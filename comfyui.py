@@ -50,25 +50,20 @@ class ComfyUIAPIGenerator:
             str_prompt = str_prompt.replace('_____POSE_____', pose)
             str_prompt = str_prompt.replace('_____CHARACTER_____', character)
             self.nodes[node_id]["inputs"]["text"] = str_prompt
-            #print('pos set!')
 
     def set_negative_prompt(self, negquality: str, node_id: str) -> None:
             self.nodes[node_id]["inputs"]["text"] = negquality
-            #print('neg set!')                                
     
     def set_seed(self, seed: int, node_id: str) -> None:
         self.nodes[node_id]["inputs"]["int"] = seed
-        print('Seed = {} set!'.format(seed))
     
     def set_width_height(self, width: int, height: int, node_id: str) -> None:
         self.nodes[node_id]["inputs"]["Width"] = width
         self.nodes[node_id]["inputs"]["Height"] = height
-        print('Width = {} and Height = {} set!'.format(width, height))
         
     def set_steps_cfg(self, steps: int, cfg: float, node_id: str) -> None:              
         self.nodes[node_id]["inputs"]["steps"] = steps
         self.nodes[node_id]["inputs"]["cfg"] = cfg
-        print('Steps = {} and cfg = {} set!'.format(steps, cfg))    
 
     def get_image(self, filename, subfolder, folder_type):
         data = {"filename": filename, "subfolder": subfolder, "type": folder_type}
@@ -81,8 +76,6 @@ class ComfyUIAPIGenerator:
             return json.loads(response.read())   
              
     def get_images(self, ws, prompt_id):
-        print('Waiting for images...')
-        output_images = {}
         while True:
             out = ws.recv()
             if isinstance(out, str):
@@ -102,11 +95,9 @@ class ComfyUIAPIGenerator:
             node_output = history['outputs'][node_id]
             images_output = []
             if 'images' in node_output:
-                print(f"Node {node_id} has {len(node_output['images'])} images")
                 for image in node_output['images']:
                     image_data = self.get_image(image['filename'], image['subfolder'], image['type'])
                     images_output.append(image_data)
-        print('Waiting for images... done!')
         return images_output        
 
     def save_images(self, images, output_folder, random_integer):
@@ -127,13 +118,11 @@ class ComfyUIAPIGenerator:
             return image_data
 
     def queue_prompt(self) -> None:
-        data = json.dumps({"prompt": self.nodes, "client_id": self.client_id}).encode('utf-8')
-        #print(data)
-        
+        data = json.dumps({"prompt": self.nodes, "client_id": self.client_id}).encode('utf-8')        
         req = request.Request(f"http://{self.server_address}/prompt", data=data,  headers={'Content-Type': 'application/json'})
         
         prompt_id = json.loads(request.urlopen(req).read())['prompt_id']
-        print(f"Prompt queued with ID: {prompt_id}")
+        #print(f"Prompt queued with ID: {prompt_id}")
         
         images = self.get_images(ws, prompt_id)        
         return images
@@ -143,7 +132,6 @@ def run_comfyui(server_address, positive_prompt, negative_prompt, random_seed, s
     client_id = str(uuid.uuid4())   
     current_file_path = os.path.abspath(__file__)
     current_folder = os.path.dirname(current_file_path)
-    print('current_folder='+current_folder)
                 
     ws = websocket.WebSocket()
     ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))            

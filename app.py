@@ -78,7 +78,7 @@ def decode_response(response):
         # Renmove <think> for DeepSeek
         if str(ret).__contains__('</think>'):
             ret = str(ret).split('</think>')[-1].strip()
-            print(f'[{cat}]:Trimed response:{ret}')        
+            print(f'\n[{cat}]:Trimed response:{ret}')        
         return ret
     else:
         print(f"[{cat}]:Error: Request failed with status code {response.status_code}")
@@ -193,7 +193,7 @@ def remove_duplicates(input_string):
     return result
 
 
-def illustrious_character_select_ex(character = 'random', action = 'none', optimise_tags = True, random_action_seed = 1, custom_prompt = ''):
+def illustrious_character_select_ex(character = 'random', action = 'none', optimise_tags = True, random_action_seed = 1):
     chara = ''
     rnd_character = ''
     act = ''
@@ -227,12 +227,12 @@ def illustrious_character_select_ex(character = 'random', action = 'none', optim
     if optimise_tags:
         opt_chara = remove_duplicates(chara.replace('_', ' ').replace(':', ' '))
         opt_chara = opt_chara.replace('(', '\\(').replace(')', '\\)')
+        if not opt_chara.endswith(','):
+            opt_chara = f'{opt_chara},'
         
-    prompt = f'{opt_chara}{act}{custom_prompt},'
-    info = f'Character:{rnd_character}[{opt_chara}]\nAction:{rnd_action}[{act}]\nCustom Promot:[{custom_prompt}]'
+    prompt = f'{opt_chara}{act}'
+    info = f'Character:{rnd_character}[{opt_chara}]\nAction:{rnd_action}[{act}]'
             
-    print(f'\n{prompt}\n')
-    print(f'Info:{info}')
     return prompt, info, thumb_image
 
 def parse_api_image_data(api_image_data):
@@ -261,10 +261,13 @@ def create_prompt(character='random', action='none', random_seed=-1, custom_prom
 
     if ai_text.__contains__('.'):
         ai_text = ai_text.replace('.','')
+
+    if '' != custom_prompt and not custom_prompt.endswith(','):
+        custom_prompt = f'{custom_prompt},'
         
-    prompt, info, thumb_image = illustrious_character_select_ex(character = character, action = action, random_action_seed=seed, custom_prompt=custom_prompt)    
-    final_prompt = f'{prompt},\n{ai_text},\n{api_prompt}'
-    final_info = f'{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed}]'
+    prompt, info, thumb_image = illustrious_character_select_ex(character = character, action = action, random_action_seed=seed)    
+    final_prompt = f'{custom_prompt}{prompt}{ai_text},{api_prompt}'
+    final_info = f'Custom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed}]'
     
     api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
     cfg, steps, width, height = parse_api_image_data(api_image_data)
@@ -279,8 +282,8 @@ def create_prompt(character='random', action='none', random_seed=-1, custom_prom
     last_info = info
     return final_prompt, final_info, thumb_image, api_image
 
-def create_with_last_prompt(random_seed=-1, 
-                ai_interface='none', ai_prompt='make character furry', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
+def create_with_last_prompt(random_seed=-1, custom_prompt='', 
+                ai_interface='none', ai_prompt='turn character to furry, then make a portrait', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
                 api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360'
             ) -> tuple[str, str, Image.Image, Image.Image]:
     if '' == last_prompt:
@@ -300,8 +303,11 @@ def create_with_last_prompt(random_seed=-1,
     if ai_text.__contains__('.'):
         ai_text = ai_text.replace('.','')
         
-    final_prompt = f'{last_prompt},\n{ai_text},\n{api_prompt}'
-    final_info = f'{last_info}\nAI Prompt:[{ai_text}]\nSeed:[{seed}]'
+    if '' != custom_prompt and not custom_prompt.endswith(','):
+        custom_prompt = f'{custom_prompt},'
+        
+    final_prompt = f'{custom_prompt}{last_prompt}{ai_text},{api_prompt}'
+    final_info = f'Custom Promot:[{custom_prompt}]\n{last_info}\nAI Prompt:[{ai_text}]\nSeed:[{seed}]'
     
     api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
     cfg, steps, width, height = parse_api_image_data(api_image_data)
@@ -346,7 +352,7 @@ if __name__ == '__main__':
                 
                 run_button = gr.Button("Create Prompt")
                 gr.HTML('')
-                run_same_button = gr.Button("Use Current Character")
+                run_same_button = gr.Button("Use Current Character and Action")
 
                 # AI Prompt Generator
                 ai_interface = gr.Dropdown(
@@ -397,7 +403,7 @@ if __name__ == '__main__':
                          outputs=[output_prompt, output_info, thumb_image, api_image])
         
         run_same_button.click(fn=create_with_last_prompt, 
-                         inputs=[random_seed,  
+                         inputs=[random_seed,  custom_prompt,
                                  ai_interface, ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict, 
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data
                                  ], 
