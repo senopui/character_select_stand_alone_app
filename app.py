@@ -283,7 +283,7 @@ def create_prompt(character='random', action='none', random_seed=-1, custom_prom
     return final_prompt, final_info, thumb_image, api_image
 
 def create_with_last_prompt(random_seed=-1, custom_prompt='', 
-                ai_interface='none', ai_prompt='turn character to furry, then make a portrait', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
+                ai_interface='none', ai_prompt='a close up portrait, turn character to furry', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
                 api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360'
             ) -> tuple[str, str, Image.Image, Image.Image]:
     if '' == last_prompt:
@@ -352,7 +352,7 @@ if __name__ == '__main__':
                 
                 run_button = gr.Button("Create Prompt")
                 gr.HTML('')
-                run_same_button = gr.Button("Use Current Character and Action")
+                run_same_button = gr.Button("Create with last Character and Action")
 
                 # AI Prompt Generator
                 ai_interface = gr.Dropdown(
