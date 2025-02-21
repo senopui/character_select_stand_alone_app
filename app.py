@@ -612,7 +612,7 @@ if __name__ == '__main__':
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
                             choices=model_files_list,
-                            label="Model list (Default:waiNSFWIllustrious_v110)",
+                            label="Model list (ComfyUI Default:waiNSFWIllustrious_v110)",
                             value=settings_json["api_model_file_select"],
                             allow_custom_value = False,
                         )            

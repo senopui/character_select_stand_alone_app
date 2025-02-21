@@ -11,16 +11,14 @@ def run_webui(
     my_sampler_name='Euler a', height = 512, width = 512, 
     ):
     
-    if 'default' == model_name:
-        model_name = 'waiNSFWIllustrious_v110.safetensors'
-    
-    option_payload = {
-        "sd_model_checkpoint": model_name,
-    }
-    response = requests.post(url=f'http://{server_address}/sdapi/v1/options', json=option_payload)
-    if response.status_code != 200:
-        print(f'{CAT}Failed to connect to server, error code: {response.status_code}')
-        return None
+    if 'default' != model_name:            
+        option_payload = {
+            "sd_model_checkpoint": model_name,
+        }
+        response = requests.post(url=f'http://{server_address}/sdapi/v1/options', json=option_payload)
+        if response.status_code != 200:
+            print(f'{CAT}Failed to connect to server, error code: {response.status_code}')
+            return None
     
     payload = {        
         "prompt": positive_prompt,
