@@ -20,5 +20,5 @@
     "ai_local_temp": 0.7,
     "ai_local_n_predict": 768,
     "api_interface": "ComfyUI",
-    "api_addr": "127.0.0.1:58188"
+    "api_addr": "127.0.0.1:7860"
 }
