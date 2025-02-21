@@ -399,7 +399,6 @@ if __name__ == '__main__':
     
     with gr.Blocks(js=js_func) as ui:
         with gr.Row():
-            with gr.Column():
                 character1 = gr.Dropdown(
                     choices=character_list,
                     label="Character list 1",
@@ -427,7 +426,8 @@ if __name__ == '__main__':
                     value="none",
                     allow_custom_value = False,    
                 )
-    
+        with gr.Row():
+            with gr.Column():    
                 random_seed = gr.Slider(minimum=-1,
                     maximum=4294967295,
                     step=1,
