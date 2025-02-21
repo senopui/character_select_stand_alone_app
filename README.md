@@ -41,10 +41,21 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 ------
 
 # FAQ
+## Not working???
 You may need few supports lib for python   
 
 ```
 py -m pip install -r requirements.txt
 ```
+
+## ComfyUI API not working???
+Load `examples\workflow_comfyui.png` in to your ComfyUI, and make sure you have install all custom nodes below:   
+
+[ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver)   
+[ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)   
+
+## WebUI API works, but WebUI not working anymore!!!
+It seems some plugin caused that issue, try update to the latest version.    
+Still not working? Unfortunately, you can't use both the API and WebUI in this case unless you uninstall the buggy plugin.   
 
 
