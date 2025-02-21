@@ -5,10 +5,23 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 ------
 
 # Install and Run
-1. Copy this folder to anywhere you like   
+1. Clone the repository to wherever you like   
 2. Dbclick #run.bat   
 3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
 4. Have fun   
+------
+
+# Setup Model List
+1. Modify `json/settings.json` 
+2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
+3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
+4. To use all your models, modify `model_filter` to `false`    
+------
+
+# Original Characters
+1. You can add/remove character (who not in list) in `original_character.json`    
+2. I already put some of my OC in it, feel free to use or modify    
+3. Original Characters is NOT support thumb image for now   
 ------
 
 # AI prompt
