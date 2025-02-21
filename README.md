@@ -24,6 +24,13 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 3. Original Characters is NOT support thumb image for now   
 ------
 
+# Default settings and custom settings
+1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`
+2. Rename to `settings.json` as default settings
+3. `Load Settings` will override current settings with your `renamed_settings.json`
+4. In case you messed up, just `delete` all json files and restart app    
+------
+
 # AI prompt
 ## Remote   
 1. Modify `json/wai_settings.json` to setup your API key and Model   
