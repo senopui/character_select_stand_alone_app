@@ -136,9 +136,9 @@ def decode_response(response):
             ret = str(ret).split('</think>')[-1].strip()
             print(f'\n[{cat}]:Trimed response:{ret}')    
             
-        ai_text = ret
-        if ai_text.__contains__('.'):
-            ai_text = ai_text.replace('.','')            
+        ai_text = ret.strip()
+        if ai_text.endswith('.'):
+            ai_text = ai_text[:-1] + ','      
         if not ai_text.endswith(','):
             ai_text = f'{ai_text},'            
         return ai_text    
@@ -567,10 +567,10 @@ def load_saved_setting(file_path):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')
-    parser.add_argument("-e", '--english', type=bool, default=False, help='Use English Character Name')
+    parser.add_argument("--english", type=bool, default=False, required=False, help='Use English Character Name')
     args = parser.parse_args()
 
-    return args.english,  
+    return args.english
           
 if __name__ == '__main__':
     ENGLISH_CHARACTER_NAME = parse_arguments()
