@@ -3,8 +3,6 @@ from urllib import request, parse
 import os
 from typing import Dict, Any, Optional
 import time
-import random
-import sys
 import uuid
 import websocket
 import re
