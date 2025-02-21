@@ -94,22 +94,13 @@
         0
       ],
       "vae": [
-        "7",
-        0
+        "11",
+        2
       ]
     },
     "class_type": "VAEDecode",
     "_meta": {
       "title": "VAE Decode"
-    }
-  },
-  "7": {
-    "inputs": {
-      "vae_name": "xlVAEC_c91.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
     }
   },
   "10": {
@@ -201,7 +192,7 @@
   },
   "14": {
     "inputs": {
-      "text": "masterpiece, best quality,amazing quality, solo,white background,standing,miqo'te, petite, ahoge, whiskers, slit pupils, hair between eyes, long hair, (4 fingers:1.35), claws, glowing eyes, ear fluff, two-tone fur, (light blue body fur:1.1), white cheek fur, cyan hair, orange eyes, white fur on cat tail front, "
+      "text": "solo, two-tone fur, (light blue body fur:1.1), white cheek fur, cyan hair, white fur on cat tail front, orange eyes, slit pupils, furry, miqo'te, petite, ahoge, whiskers, long hair, hair between eyes, ear fluff, glowing eyes, (4 fingers:1.2), claws "
     },
     "class_type": "TextBox",
     "_meta": {
@@ -210,7 +201,7 @@
   },
   "15": {
     "inputs": {
-      "text": "bad quality,worst quality,worst detail,sketch, censor"
+      "text": "bad quality,worst quality,worst detail,sketch,censor,3d"
     },
     "class_type": "TextBox",
     "_meta": {
@@ -219,7 +210,7 @@
   },
   "16": {
     "inputs": {
-      "int": 1024
+      "int": 1544732514
     },
     "class_type": "int _O",
     "_meta": {

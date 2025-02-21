@@ -7,10 +7,9 @@ import uuid
 import websocket
 import re
 
-ws = None
+CAT = "ComfyUI:"
 
-TRIGGER_LEFT = "CSTART "
-TRIGGER_RIGHT = "CEND"
+ws = None
 
 class ComfyUIAPIGenerator:
     def __init__(self, server_address: str = "127.0.0.1:8188", client_id = "4d42d601-ffd1-4573-9311-38d3ea2faa1c", workflow_path: Optional[str] = None):        
@@ -28,14 +27,17 @@ class ComfyUIAPIGenerator:
             with open(self.workflow_path, 'r') as file:
                 return json.load(file)
         except FileNotFoundError:
-            raise FileNotFoundError(f"Workflow file not found: {self.workflow_path}")
+            raise FileNotFoundError(f"{CAT}Workflow file not found: {self.workflow_path}")
         except json.JSONDecodeError:
-            raise ValueError(f"Invalid JSON in workflow file: {self.workflow_path}")
+            raise ValueError(f"{CAT}Invalid JSON in workflow file: {self.workflow_path}")
     
     def set_png_filename(self, filename: str, node_id: str) -> None:       
         str_prompt = '%time_%seed' + '_' + filename.replace(' ', '_').replace('\\', '').replace(':0.7', '').replace(',', '_') 
         self.nodes[node_id]["inputs"]["filename"] = str_prompt
 
+    def set_model(self, model_name: str, node_id: str) -> None:
+            self.nodes[node_id]["inputs"]["ckpt_name"] = model_name
+            
     def reset_postive_prompt(self,node_id: str) -> None:
         self.nodes[node_id]["inputs"]["text"] = "_____QUALITY_____, _____ARTIST_____, _____PLACE_____, _____POSE_____, _____CHARACTER_____, "
         
@@ -98,34 +100,21 @@ class ComfyUIAPIGenerator:
                     images_output.append(image_data)
         return images_output        
 
-    def save_images(self, images, output_folder, random_integer):
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-
-        for i, image_data in enumerate(images):
-            now_time = int(time.time())
-            save_image_name = f"{random_integer}_{now_time}"
-            image_path = os.path.join(output_folder, f'{save_image_name}.png')
-            with open(image_path, 'wb') as f:
-                f.write(image_data)
-            print(f'Saved image to {image_path}')
-            return image_path
-
     def pick_image(self, images):
         for _, image_data in enumerate(images):
             return image_data
 
     def queue_prompt(self) -> None:
         data = json.dumps({"prompt": self.nodes, "client_id": self.client_id}).encode('utf-8')        
-        req = request.Request(f"http://{self.server_address}/prompt", data=data,  headers={'Content-Type': 'application/json'})
+        req = request.Request(f"http://{self.server_address}/prompt", data=data,  headers={'Content-Type': 'application/json'})        
         
         prompt_id = json.loads(request.urlopen(req).read())['prompt_id']
-        #print(f"Prompt queued with ID: {prompt_id}")
+        #print(f"{CAT}Prompt queued with ID: {prompt_id}")
         
         images = self.get_images(ws, prompt_id)        
         return images
 
-def run_comfyui(server_address, positive_prompt, negative_prompt, random_seed, steps, cfg, width, height ):
+def run_comfyui(server_address, model_name, positive_prompt, negative_prompt, random_seed, steps, cfg, width, height ):
     global ws
     client_id = str(uuid.uuid4())   
     current_file_path = os.path.abspath(__file__)
@@ -134,7 +123,11 @@ def run_comfyui(server_address, positive_prompt, negative_prompt, random_seed, s
     ws = websocket.WebSocket()
     ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))            
     
-    my_gen = ComfyUIAPIGenerator(server_address, client_id, current_folder+'\\workflow_api.json')                
+    my_gen = ComfyUIAPIGenerator(server_address, client_id, current_folder+'\\workflow_api.json')
+    
+    if 'default' != model_name:
+        my_gen.set_model(model_name=model_name, node_id="11")
+        
     my_gen.set_steps_cfg(steps=steps, cfg=cfg, node_id="13")
     my_gen.set_seed(seed=random_seed, node_id="16")    
     my_gen.set_width_height(width=width, height=height, node_id="12")
@@ -142,20 +135,6 @@ def run_comfyui(server_address, positive_prompt, negative_prompt, random_seed, s
     my_gen.set_negative_prompt(negquality=negative_prompt, node_id="15")
     images = my_gen.queue_prompt()
         
-    #image_path = my_gen.save_images(images, current_folder+'\\',random_integer)
-    
     ws.close()            
         
     return my_gen.pick_image(images)
-
-def extract_comfyui_content(text):
-    pattern = '{}(.*?){}'.format(TRIGGER_LEFT, TRIGGER_RIGHT)
-    match = re.search(pattern, text, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-    return None
-
-def simplify_path(path):
-    normalized_path = os.path.normpath(path)
-    absolute_path = os.path.abspath(normalized_path)
-    return absolute_path
