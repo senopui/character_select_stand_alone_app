@@ -74,7 +74,6 @@ Load `examples\workflow_comfyui.png` in to your ComfyUI, and make sure you have 
 
 [ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver)   
 [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)   
-[ComfyUI-QualityOfLifeSuit_Omar92](https://github.com/omar92/ComfyUI-QualityOfLifeSuit_Omar92)
 
 ## WebUI API works, but WebUI not working anymore!!!
 It seems some plugin caused that issue, try update to the latest version.    
