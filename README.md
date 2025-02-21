@@ -44,9 +44,7 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 You may need few supports lib for python   
 
 ```
-py -m pip install gradio
-py -m pip install websockets  
-py -m pip install websocket-client
+py -m pip install -r requirements.txt
 ```
 
 
