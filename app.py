@@ -187,7 +187,7 @@ def dase64_to_image(base64_data):
 def get_safetensors_files(directory):
     if not os.path.isdir(directory):
         print('[{}]:{} not exist, use default'.format(cat, directory))
-        return None
+        return []
     
     safetensors_files = glob.glob(os.path.join(directory, '*.safetensors'))
     safetensors_filenames = [os.path.basename(file) for file in safetensors_files]
