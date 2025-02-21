@@ -360,7 +360,9 @@ def original_character_select_ex(character = 'random', random_action_seed = 1):
         rnd_character = character
     chara = original_character_dict[rnd_character]                                    
     
-    opt_chara = chara      
+    opt_chara = chara
+    if not opt_chara.endswith(','):
+        opt_chara = f'{opt_chara},'   
             
     return rnd_character, opt_chara
 
