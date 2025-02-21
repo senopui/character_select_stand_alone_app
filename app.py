@@ -11,6 +11,7 @@ import random
 import gradio as gr
 from comfyui import run_comfyui
 from webui import run_webui
+import argparse
 
 # JavaScript
 js_func = """
@@ -36,6 +37,7 @@ css_script = """
 # CATEGORY
 cat = "WAI_Character_Select"
 
+ENGLISH_CHARACTER_NAME = False
 current_dir = os.path.dirname(os.path.abspath(__file__))
 json_folder = os.path.join(current_dir, 'json')
 
@@ -230,9 +232,12 @@ def download_jsons():
                 action_dict.update(json.load(file))
                 action_list = list(action_dict.keys())
                 action_list.insert(0, "none")
-            elif 'wai_zh_tw' == name:            
+            elif 'wai_zh_tw' == name:
                 character_dict.update(json.load(file))
-                character_list = list(character_dict.keys())    
+                if ENGLISH_CHARACTER_NAME:
+                    character_list = list(character_dict.values())   
+                else:
+                    character_list = list(character_dict.keys())   
                 character_list.insert(0, "none")
                 character_list.insert(0, "random")
             elif 'wai_remote_ai_settings' == name:
@@ -319,7 +324,10 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
             rnd_character = character_list[index+1]
     else:
         rnd_character = character
-    chara = character_dict[rnd_character]                    
+    if ENGLISH_CHARACTER_NAME:
+        chara = rnd_character
+    else:
+        chara = character_dict[rnd_character]                    
                 
     thumb_image = Image.new('RGB', (128, 128), (128, 128, 128))
     if wai_image_dict.keys().__contains__(chara):
@@ -556,8 +564,19 @@ def load_saved_setting(file_path):
     gr.Info(f"[{cat}]:Settings loaded {file_path}")
     
     return settings_json["character1"], settings_json["character2"], settings_json["character3"], settings_json["action"], settings_json["api_model_file_select"], settings_json["random_seed"], settings_json["custom_prompt"], settings_json["api_prompt"], settings_json["api_neg_prompt"], settings_json["api_image_data"], settings_json["ai_only_create_one_time"], settings_json["ai_prompt"], settings_json["prompt_ban"], settings_json["ai_interface"], settings_json["ai_local_addr"], settings_json["ai_local_temp"], settings_json["ai_local_n_predict"], settings_json["api_interface"], settings_json["api_addr"]
-            
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Character Select Application')
+    parser.add_argument("-e", '--english', type=bool, default=False, help='Use English Character Name')
+    args = parser.parse_args()
+
+    return args.english,  
+          
 if __name__ == '__main__':
+    ENGLISH_CHARACTER_NAME = parse_arguments()
+    if ENGLISH_CHARACTER_NAME:
+        print(f'[{cat}]:Use tags as Character Name')
+        
     download_jsons()
     
     print(f'[{cat}]:Starting...')
