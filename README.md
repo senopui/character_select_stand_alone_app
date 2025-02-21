@@ -16,6 +16,7 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
 4. To use all your models, modify `model_filter` to `false`    
+5. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
 ------
 
 # Original Characters
@@ -79,4 +80,7 @@ Load `examples\workflow_comfyui.png` in to your ComfyUI, and make sure you have 
 It seems some plugin caused that issue, try update to the latest version.    
 Still not working? Unfortunately, you can't use both the API and WebUI in this case unless you uninstall the buggy plugin.   
 
+## WebUI Http 500 / ComfyUI model not found
+Make sure you have `waiNSFWIllustrious_v110` model in your `models/Stable-diffusion` folder.    
+Check `Setup Model List` section, setup your proper models folder and set `model_filter` to `false`    
 
