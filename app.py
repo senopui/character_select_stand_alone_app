@@ -10,6 +10,18 @@ import gradio as gr
 from comfyui import run_comfyui
 from webui import run_webui
 
+# JavaScript
+js_func = """
+function refresh() {
+    const url = new URL(window.location);
+
+    if (url.searchParams.get('__theme') !== 'dark') {
+        url.searchParams.set('__theme', 'dark');
+        window.location.href = url.href;
+    }
+}
+"""
+
 # CATEGORY
 cat = "WAI_Character_Select"
 
@@ -167,7 +179,7 @@ def download_jsons():
                 character_list = list(character_dict.keys())    
                 character_list.insert(0, "none")
                 character_list.insert(0, "random")
-            elif 'wai_settings' == name:
+            elif 'wai_remote_ai_settings' == name:
                 wai_llm_config.update(json.load(file))       
             elif 'wai_image' == name and wai_image_cache:
                 print('[{}]:Loading wai_image.json, delete this file for update.'.format(cat))
@@ -222,7 +234,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     rnd_character = ''
     
     if 'none' == character:
-        return '', '', Image.new('RGB', (1, 304), (128, 128, 128))
+        return '', '', None
     
     if 'random' == character:
         index = random_action_seed % len(character_list)
@@ -248,25 +260,12 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
 
 def parse_api_image_data(api_image_data):
     try:
-        cfg, steps, width, height = map(float, api_image_data.split(','))
-        return float(cfg), int(steps), int(width), int(height)
+        cfg, steps, width, height, loops = map(float, api_image_data.split(','))
+        if 1 > int(loops) or 4 < int(loops):
+            loops = 1
+        return float(cfg), int(steps), int(width), int(height), int(loops)
     except ValueError:
-        return 7.0, 30, 1024, 1360
-    
-def merge_images(image1, image2, image3):
-    width1, height1 = image1.size
-    width2, height2 = image2.size
-    width3, height3 = image3.size
-
-    total_width = width1 + width2 + width3
-    max_height = max(height1, height2, height3)
-    new_image = Image.new('RGB', (total_width, max_height))
-
-    new_image.paste(image1, (0, 0))
-    new_image.paste(image2, (width1, 0))
-    new_image.paste(image3, (width1 + width2, 0))
-
-    return new_image
+        return 7.0, 30, 1024, 1360, 1
 
 def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_chara2='',rnd_character3='', opt_chara3=''):
     info = ''    
@@ -282,107 +281,125 @@ def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_c
     prompt = f'{opt_chara1}{opt_chara2}{opt_chara3}'
     
     return prompt, info
+
+def create_image(interface, addr, prompt, neg_prompt, seed, cfg, steps, width, height):
+    if 'none' != interface:
+        if 'ComfyUI' == interface:
+            image_data_list = run_comfyui(server_address=addr, positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)
+            image_data_bytes = bytes(image_data_list)  
+            api_image = Image.open(BytesIO(image_data_bytes))    
+        elif 'WebUI' == interface:
+            api_image = run_webui(server_address=addr, positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)      
+        return api_image
     
+    return None
+
 def create_prompt(character1='random',character2='none',character3='none', action='none', random_seed=-1, custom_prompt='', 
                 ai_interface='none', ai_prompt='a close up portrait', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
-                api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360'
-            ) -> tuple[str, str, Image.Image, Image.Image]:
-    
-    if 'none' == character1 == character2 == character3:
-        api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
-        return 'no character', '', api_image, api_image    
+                api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360,1'
+            ) -> tuple[str, str, Image.Image, Image.Image]:    
+    if 'none' == character1 == character2 == character3:   
+        return 'no character', '', None, None    
     
     global last_prompt
     global last_info
-    
+        
+    cfg, steps, width, height, _ = parse_api_image_data(api_image_data)
+    if '' != custom_prompt and not custom_prompt.endswith(','):
+        custom_prompt = f'{custom_prompt},'    
+        
     seed1 = random_seed
     seed2 = random.randint(0, 4294967295)
     seed3 = random.randint(0, 4294967295)
     if random_seed == -1:
-        seed1 = random.randint(0, 4294967295)
-    
-    ai_text = ''
-    if 'Remote' == ai_interface:
-        ai_text = llm_send_request(ai_prompt, wai_llm_config)
-    elif 'Local' == ai_interface:
-        ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)
-
-    if '' != custom_prompt and not custom_prompt.endswith(','):
-        custom_prompt = f'{custom_prompt},'    
+        seed1 = random.randint(0, 4294967295)    
     
     rnd_character1, opt_chara1, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1)        
     rnd_character2, opt_chara2, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2)
     rnd_character3, opt_chara3, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3)
         
     rnd_action, act = illustrious_action_select_ex(action = action, random_action_seed=seed1)            
-    thumb_image = merge_images(thumb_image1, thumb_image2, thumb_image3)
+    thumb_image = []
+    if thumb_image1:
+        thumb_image.append(thumb_image1)
+    if thumb_image2:
+        thumb_image.append(thumb_image2)
+    if thumb_image3:
+        thumb_image.append(thumb_image3)
     
     prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3)
     if '' != rnd_action:
-        info += f'Action:{rnd_action}[{act}]\n'    
-    
-    final_prompt = f'{custom_prompt}{prompt}{act}{ai_text}{api_prompt}'
-    final_info = f'Custom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]'
-    
-    api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
-    cfg, steps, width, height = parse_api_image_data(api_image_data)
-    if 'ComfyUI' == api_interface:        
-        image_data_list = run_comfyui(server_address=api_addr, positive_prompt=final_prompt, negative_prompt=api_neg_prompt, random_seed=seed1, cfg=cfg, steps=steps, width=width, height=height)
-        image_data_bytes = bytes(image_data_list)  
-        api_image = Image.open(BytesIO(image_data_bytes))    
-    elif 'WebUI' == api_interface:
-        api_image = run_webui(server_address=api_addr, positive_prompt=final_prompt, negative_prompt=api_neg_prompt, random_seed=seed1, cfg=cfg, steps=steps, width=width, height=height)      
+        info += f'Action:{rnd_action}[{act}]'    
     
     last_prompt = prompt
     last_info = info
-    return final_prompt, final_info, thumb_image, api_image
-
-def create_with_last_prompt(random_seed=-1, custom_prompt='', 
-                ai_interface='none', ai_prompt='a close up portrait, turn character to furry', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
-                api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360'
-            ) -> tuple[str, str, Image.Image, Image.Image]:
-    if '' == last_prompt:
-        api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
-        return 'Click above button first', '', api_image
-    
-    seed = random_seed
-    if random_seed == -1:
-        seed = random.randint(0, 4294967295)        
     
     ai_text = ''
     if 'Remote' == ai_interface:
         ai_text = llm_send_request(ai_prompt, wai_llm_config)
     elif 'Local' == ai_interface:
         ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)
+    
+    final_prompt = f'{custom_prompt}{prompt}{act}{ai_text}{api_prompt}'
+    api_images = []
+    api_image = create_image(api_interface, api_addr, final_prompt, api_neg_prompt, seed1, cfg, steps, width, height)
+    if api_image:
+        api_images.append(api_image)
+    final_info = f'Custom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]'
+    
+    return final_prompt, final_info, thumb_image, api_images
 
-    if ai_text.__contains__('.'):
-        ai_text = ai_text.replace('.','')
-        
+def create_with_last_prompt(random_seed=-1, custom_prompt='', 
+                ai_interface='none', ai_only_create_one_time=True, ai_prompt='a close up portrait, turn character to furry', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
+                api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360,1'
+            ) -> tuple[str, str, Image.Image, Image.Image]:
+    if '' == last_prompt:
+        return 'Click above button first', '', None
+    
+    cfg, steps, width, height, loops = parse_api_image_data(api_image_data)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
+            
+    api_images = []
+    final_prompts = []
+    final_infos = []
+    ai_text = ''
+    if 'Remote' == ai_interface:
+        ai_text = llm_send_request(ai_prompt, wai_llm_config)
+    elif 'Local' == ai_interface:
+        ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
+
+    for index in range(1, loops + 1):
+        seed = random_seed
+        if random_seed == -1:
+            seed = random.randint(0, 4294967295)        
+            
+        if 1 != index and not ai_only_create_one_time:
+            if 'Remote' == ai_interface:
+                ai_text = llm_send_request(ai_prompt, wai_llm_config)
+            elif 'Local' == ai_interface:
+                ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
+            
+        final_prompt = f'{index}:\n{custom_prompt}{last_prompt}{ai_text}{api_prompt}\n'
+        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\n{last_info}\nAI Prompt:[{ai_text}]'
+        api_image = create_image(api_interface, api_addr, final_prompt, api_neg_prompt, seed, cfg, steps, width, height)
+        final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
         
-    final_prompt = f'{custom_prompt}{last_prompt}{ai_text},{api_prompt}'
-    final_info = f'Custom Promot:[{custom_prompt}]\n{last_info}\nAI Prompt:[{ai_text}]\nSeed:[{seed}]'
+        if api_image:
+            api_images.append(api_image)
+        final_prompts.append(final_prompt)
+        final_infos.append(final_info)
     
-    api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
-    cfg, steps, width, height = parse_api_image_data(api_image_data)
-    if 'ComfyUI' == api_interface:        
-        image_data_list = run_comfyui(server_address=api_addr, positive_prompt=final_prompt, negative_prompt=api_neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)
-        image_data_bytes = bytes(image_data_list)  
-        api_image = Image.open(BytesIO(image_data_bytes))    
-    elif 'WebUI' == api_interface:
-        api_image = run_webui(server_address=api_addr, positive_prompt=final_prompt, negative_prompt=api_neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)  
-    
-    return final_prompt, final_info, api_image
+    return ''.join(final_prompts), ''.join(final_infos), api_images
 
 if __name__ == '__main__':
     download_jsons()
     
     print(f'[{cat}]:Starting...')
     
-    with gr.Blocks() as ui:
+    with gr.Blocks(js=js_func) as ui:
         with gr.Row():
-            with gr.Column():               
+            with gr.Column():
                 character1 = gr.Dropdown(
                     choices=character_list,
                     label="Character list 1",
@@ -417,20 +434,30 @@ if __name__ == '__main__':
                     value=-1,
                     label="Seed",
                 )
-                custom_prompt = gr.Textbox(value='1girl', label="Custom Prompt")                
                 
-                run_button = gr.Button("Create Prompt")
-                gr.HTML('')
-                run_same_button = gr.Button("Create with last Character and Action")
-
-                # AI Prompt Generator
+                # API prompts
+                custom_prompt = gr.Textbox(value='1girl', label="Custom Prompt (Head)")                
+                api_prompt = gr.Textbox(value='masterpiece, best quality, amazing quality', label="Positive Prompt (Tail)")
+                api_neg_prompt = gr.Textbox(value='bad quality,worst quality,worst detail,sketch,censor,3d', label="Negative Prompt")
+                api_image_data = gr.Textbox(value='7.0,30,1024,1360,1', label="CFG,Step,Width,Height,Images(1-4)")   
+                
+                # AI prompts
+                ai_only_create_one_time = gr.Checkbox(
+                    label="Only Generate once for Continue Create",
+                    value=True
+                )
+                ai_prompt = gr.Textbox(label="AI Prompt")
+                
+                run_button = gr.Button("Create Prompt (1 Image only)", variant='primary') 
+                run_same_button = gr.Button("Continue Create with last Character and Action (1-4)")
+                                                
+                # AI Prompt Generator                
                 ai_interface = gr.Dropdown(
                     choices=['none', 'Remote', 'Local'],
                     label="AI Prompt Generator",
                     value="none",
                     allow_custom_value = False,
-                )
-                ai_prompt = gr.Textbox(label="AI Prompt")
+                )                
                 ai_local_addr = gr.Textbox(value='http://127.0.0.1:8080/chat/completions', label="Local Llama.cpp server")   
                 ai_local_temp = gr.Slider(minimum=0.1,
                     maximum=1,
@@ -443,26 +470,23 @@ if __name__ == '__main__':
                     step=128,
                     value=1536,
                     label="Local AI n_predict",
-                )             
-                gr.HTML('')
+                )                            
                 
-                # API Image Generator
+                gr.HTML('')        
+                # API Image Generator                
                 api_interface = gr.Dropdown(
                     choices=['none', 'ComfyUI', 'WebUI'],
                     label="Local Image Generator API",
                     value="none",
                     allow_custom_value = False,
                 )
-                api_addr = gr.Textbox(value='127.0.0.1:7860', label="Local Image Generator IP Address:Port")
-                api_prompt = gr.Textbox(value='masterpiece, best quality, amazing quality', label="Positive Prompt")   
-                api_neg_prompt = gr.Textbox(value='bad quality,worst quality,worst detail,sketch,censor,3d', label="Negative Prompt")                   
-                api_image_data = gr.Textbox(value='7.0,30,1024,1360', label="CFG,Step,Width,Height")   
+                api_addr = gr.Textbox(value='127.0.0.1:7860', label="Local Image Generator IP Address:Port")     
                 
             with gr.Column():
-                api_image = gr.Image(type="pil", label="Local Image Generator")               
+                api_image = gr.Gallery(type="pil", object_fit='contain', label="Gallery", preview=True, height=768)               
+                thumb_image = gr.Gallery(type="pil", columns=3, object_fit='scale-down', height=244, label="Thumb Image Gallery")
                 output_prompt = gr.Textbox(label="Prompt")
-                output_info = gr.Textbox(label="Information")
-                thumb_image = gr.Image(type="pil", label="Thumb Image")                
+                output_info = gr.Textbox(label="Information")                
         
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, action, random_seed, custom_prompt, 
@@ -473,7 +497,7 @@ if __name__ == '__main__':
         
         run_same_button.click(fn=create_with_last_prompt, 
                          inputs=[random_seed,  custom_prompt,
-                                 ai_interface, ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict, 
+                                 ai_interface, ai_only_create_one_time, ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict, 
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data
                                  ], 
                          outputs=[output_prompt, output_info, api_image])
