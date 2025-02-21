@@ -15,10 +15,10 @@
     "ai_only_create_one_time": true,
     "ai_prompt": "fantasy style",
     "prompt_ban" : "",
-    "ai_interface": "Local",
+    "ai_interface": "none",
     "ai_local_addr": "http://127.0.0.1:8080/chat/completions",
     "ai_local_temp": 0.7,
     "ai_local_n_predict": 768,
-    "api_interface": "ComfyUI",
+    "api_interface": "none",
     "api_addr": "127.0.0.1:7860"
 }
