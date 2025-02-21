@@ -31,7 +31,8 @@ last_info = ''
 wai_illustrious_character_select_files = [
     {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'}, 
     {'name': 'wai_zh_tw', 'file_path': os.path.join(json_folder, 'wai_zh_tw.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/zh_TW.json'},
-    {'name': 'wai_settings', 'file_path': os.path.join(json_folder, 'wai_settings.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/settings.json'},
+    # settings are now in https://github.com/mirabarukaso/character_select_stand_alone_app
+    {'name': 'wai_remote_ai_settings', 'file_path': os.path.join(json_folder, 'wai_remote_ai_settings.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_remote_ai_settings.json'},
     # local cache
     {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_image.json'), 'url': 'local'},
     # images
@@ -78,8 +79,14 @@ def decode_response(response):
         # Renmove <think> for DeepSeek
         if str(ret).__contains__('</think>'):
             ret = str(ret).split('</think>')[-1].strip()
-            print(f'\n[{cat}]:Trimed response:{ret}')        
-        return ret
+            print(f'\n[{cat}]:Trimed response:{ret}')    
+            
+        ai_text = ret
+        if ai_text.__contains__('.'):
+            ai_text = ai_text.replace('.','')            
+        if not ai_text.endswith(','):
+            ai_text = f'{ai_text},'            
+        return ai_text    
     else:
         print(f"[{cat}]:Error: Request failed with status code {response.status_code}")
         return []
@@ -107,8 +114,8 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
-    response = requests.post(server, headers={"Content-Type": "application/json"}, json=data)
-    return decode_response(response)
+    response = requests.post(server, headers={"Content-Type": "application/json"}, json=data)    
+    return decode_response(response)    
 
 def download_file(url, file_path):   
     response = requests.get(url)
@@ -194,11 +201,26 @@ def remove_duplicates(input_string):
     return result
 
 
-def illustrious_character_select_ex(character = 'random', action = 'none', optimise_tags = True, random_action_seed = 1):
+def illustrious_action_select_ex(action = 'random', random_action_seed = 1):   
+    act = ''        
+    rnd_action = ''
+    
+    if 'random' == action:
+        index = random_action_seed % len(action_list)
+        rnd_action = action_list[index]
+        act = f'{action_dict[rnd_action]}, '
+    elif 'none' == action:
+        rnd_action = action
+        act = ''
+    else:
+        rnd_action = action
+        act = f'{action_dict[rnd_action]}, '   
+        
+    return rnd_action, act
+
+def illustrious_character_select_ex(character = 'random', optimise_tags = True, random_action_seed = 1):
     chara = ''
     rnd_character = ''
-    act = ''
-    rnd_action = ''
     
     if 'none' == character:
         return '', '', Image.new('RGB', (1, 304), (128, 128, 128))
@@ -210,18 +232,7 @@ def illustrious_character_select_ex(character = 'random', action = 'none', optim
             rnd_character = character_list[index+1]
     else:
         rnd_character = character
-    chara = character_dict[rnd_character]
-        
-    if 'random' == action:
-        index = random_action_seed % len(action_list)
-        rnd_action = action_list[index]
-        act = f'{action_dict[rnd_action]}, '
-    elif 'none' == action:
-        rnd_action = action
-        act = ''
-    else:
-        rnd_action = action
-        act = f'{action_dict[rnd_action]}, '               
+    chara = character_dict[rnd_character]                    
                 
     thumb_image = Image.new('RGB', (128, 128), (128, 128, 128))
     if wai_image_dict.keys().__contains__(chara):
@@ -232,12 +243,9 @@ def illustrious_character_select_ex(character = 'random', action = 'none', optim
         opt_chara = remove_duplicates(chara.replace('_', ' ').replace(':', ' '))
         opt_chara = opt_chara.replace('(', '\\(').replace(')', '\\)')
         if not opt_chara.endswith(','):
-            opt_chara = f'{opt_chara},'
-        
-    prompt = f'{opt_chara}{act}'
-    info = f'Character:{rnd_character}[{opt_chara}]\nAction:{rnd_action}[{act}]'
+            opt_chara = f'{opt_chara},'        
             
-    return prompt, info, thumb_image
+    return rnd_character, opt_chara, thumb_image
 
 def parse_api_image_data(api_image_data):
     try:
@@ -261,10 +269,26 @@ def merge_images(image1, image2, image3):
 
     return new_image
 
+def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_chara2='',rnd_character3='', opt_chara3=''):
+    info = ''    
+    if '' != opt_chara1:
+        info += f'Character 1:{rnd_character1}[{opt_chara1}]\n'
+        
+    if '' != opt_chara2:
+        info += f'Character 2:{rnd_character2}[{opt_chara2}]\n'
+    
+    if '' != opt_chara3:
+        info += f'Character 3:{rnd_character3}[{opt_chara3}]\n'
+
+    prompt = f'{opt_chara1}{opt_chara2}{opt_chara3}'
+    
+    return prompt, info
+    
 def create_prompt(character1='random',character2='none',character3='none', action='none', random_seed=-1, custom_prompt='', 
-                ai_interface='none', ai_prompt='make character furry', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
+                ai_interface='none', ai_prompt='a close up portrait', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, 
                 api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360'
             ) -> tuple[str, str, Image.Image, Image.Image]:
+    
     if 'none' == character1 == character2 == character3:
         api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
         return 'no character', '', api_image, api_image    
@@ -284,21 +308,21 @@ def create_prompt(character1='random',character2='none',character3='none', actio
     elif 'Local' == ai_interface:
         ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)
 
-    if ai_text.__contains__('.'):
-        ai_text = ai_text.replace('.','')
-
     if '' != custom_prompt and not custom_prompt.endswith(','):
-        custom_prompt = f'{custom_prompt},'
+        custom_prompt = f'{custom_prompt},'    
     
-    prompt1, info1, thumb_image1 = illustrious_character_select_ex(character = character1, action = action, random_action_seed=seed1)        
-    prompt2, info2, thumb_image2 = illustrious_character_select_ex(character = character2, action = action, random_action_seed=seed2)
-    prompt3, info3, thumb_image3 = illustrious_character_select_ex(character = character3, action = action, random_action_seed=seed3)
-    
-    prompt = f'{prompt1}{prompt2}{prompt3}'
-    info = f'{info1}{info2}{info3}'    
+    rnd_character1, opt_chara1, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1)        
+    rnd_character2, opt_chara2, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2)
+    rnd_character3, opt_chara3, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3)
+        
+    rnd_action, act = illustrious_action_select_ex(action = action, random_action_seed=seed1)            
     thumb_image = merge_images(thumb_image1, thumb_image2, thumb_image3)
     
-    final_prompt = f'{custom_prompt}{prompt}{ai_text},{api_prompt}'
+    prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3)
+    if '' != rnd_action:
+        info += f'Action:{rnd_action}[{act}]\n'    
+    
+    final_prompt = f'{custom_prompt}{prompt}{act}{ai_text}{api_prompt}'
     final_info = f'Custom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]'
     
     api_image = Image.new('RGB', (128, 128), (39, 39, 42))    
@@ -308,7 +332,7 @@ def create_prompt(character1='random',character2='none',character3='none', actio
         image_data_bytes = bytes(image_data_list)  
         api_image = Image.open(BytesIO(image_data_bytes))    
     elif 'WebUI' == api_interface:
-        api_image = run_webui(server_address=api_addr, positive_prompt=final_prompt, negative_prompt=api_neg_prompt, random_seed=seed1, cfg=cfg, steps=steps, width=width, height=height)  
+        api_image = run_webui(server_address=api_addr, positive_prompt=final_prompt, negative_prompt=api_neg_prompt, random_seed=seed1, cfg=cfg, steps=steps, width=width, height=height)      
     
     last_prompt = prompt
     last_info = info
