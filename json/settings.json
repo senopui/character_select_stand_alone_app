@@ -1,6 +1,6 @@
 {
     "model_path": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
-    "model_filter": true,
+    "model_filter": false,
     "model_filter_keyword": "waiNSFW",
     "character1": "random",
     "character2": "none",

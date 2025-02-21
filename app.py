@@ -269,10 +269,14 @@ def download_jsons():
             
     # Search models
     files_list = get_safetensors_files(settings_json["model_path"])
-    if len(files_list) > 0 and settings_json["model_filter"]:
+    
+    if len(files_list) > 0 :
         for model in files_list:
-            if str(model).__contains__(settings_json["model_filter_keyword"]):
-                model_files_list.append(model)
+            if settings_json["model_filter"]:
+                if (model).__contains__(settings_json["model_filter_keyword"]):
+                    model_files_list.append(model)
+            else:
+                model_files_list.append(model)            
     model_files_list.insert(0, 'default')    
             
 def remove_duplicates(input_string):
