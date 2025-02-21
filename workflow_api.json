@@ -33,10 +33,7 @@
   },
   "4": {
     "inputs": {
-      "seed": [
-        "16",
-        0
-      ],
+      "seed": 681374336245437,
       "steps": [
         "13",
         0
@@ -105,7 +102,7 @@
   },
   "10": {
     "inputs": {
-      "filename": "%time_%seed_by_shimabo",
+      "filename": "%time_%seed",
       "path": "%date",
       "extension": "png",
       "steps": [
@@ -130,10 +127,7 @@
         "15",
         0
       ],
-      "seed_value": [
-        "16",
-        0
-      ],
+      "seed_value": 681374336245437,
       "width": [
         "12",
         0
@@ -192,7 +186,7 @@
   },
   "14": {
     "inputs": {
-      "text": "solo, two-tone fur, (light blue body fur:1.1), white cheek fur, cyan hair, white fur on cat tail front, orange eyes, slit pupils, furry, miqo'te, petite, ahoge, whiskers, long hair, hair between eyes, ear fluff, glowing eyes, (4 fingers:1.2), claws "
+      "text": "solo, two-tone fur, (light blue body fur:1.1), white cheek fur, cyan hair, white fur on cat tail front, orange eyes, slit pupils, furry, miqo'te, petite, ahoge, whiskers, long hair, hair between eyes, ear fluff, glowing eyes, (4 fingers:1.2), claws"
     },
     "class_type": "TextBox",
     "_meta": {
@@ -206,15 +200,6 @@
     "class_type": "TextBox",
     "_meta": {
       "title": "Text Box"
-    }
-  },
-  "16": {
-    "inputs": {
-      "int": 1544732514
-    },
-    "class_type": "int _O",
-    "_meta": {
-      "title": "int _O"
     }
   }
 }

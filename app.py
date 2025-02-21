@@ -342,7 +342,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
             
     return rnd_character, opt_chara, thumb_image
 
-def original_character_select_ex(character = 'random', optimise_tags = True, random_action_seed = 1):
+def original_character_select_ex(character = 'random', random_action_seed = 1):
     chara = ''
     rnd_character = ''
     
@@ -360,12 +360,7 @@ def original_character_select_ex(character = 'random', optimise_tags = True, ran
         rnd_character = character
     chara = original_character_dict[rnd_character]                                    
     
-    opt_chara = chara
-    if optimise_tags:
-        opt_chara = remove_duplicates(chara.replace('_', ' ').replace(':', ' '))
-        opt_chara = opt_chara.replace('(', '\\(').replace(')', '\\)')
-        if not opt_chara.endswith(','):
-            opt_chara = f'{opt_chara},'        
+    opt_chara = chara      
             
     return rnd_character, opt_chara
 

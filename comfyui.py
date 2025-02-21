@@ -37,25 +37,16 @@ class ComfyUIAPIGenerator:
 
     def set_model(self, model_name: str, node_id: str) -> None:
             self.nodes[node_id]["inputs"]["ckpt_name"] = model_name
-            
-    def reset_postive_prompt(self,node_id: str) -> None:
-        self.nodes[node_id]["inputs"]["text"] = "_____QUALITY_____, _____ARTIST_____, _____PLACE_____, _____POSE_____, _____CHARACTER_____, "
-        
-    def set_postive_prompt(self, quality: str, artist: str, place: str, pose: str, character: str, node_id: str) -> None:
-            self.reset_postive_prompt(node_id)
-            str_prompt = str(self.nodes[node_id]["inputs"]["text"])
-            str_prompt = str_prompt.replace('_____QUALITY_____', quality)
-            str_prompt = str_prompt.replace('_____ARTIST_____', artist)
-            str_prompt = str_prompt.replace('_____PLACE_____', place)
-            str_prompt = str_prompt.replace('_____POSE_____', pose)
-            str_prompt = str_prompt.replace('_____CHARACTER_____', character)
-            self.nodes[node_id]["inputs"]["text"] = str_prompt
+                    
+    def set_postive_prompt(self, quality: str, node_id: str) -> None:
+            self.nodes[node_id]["inputs"]["text"] = quality
 
     def set_negative_prompt(self, negquality: str, node_id: str) -> None:
             self.nodes[node_id]["inputs"]["text"] = negquality
     
-    def set_seed(self, seed: int, node_id: str) -> None:
-        self.nodes[node_id]["inputs"]["int"] = seed
+    def set_seed(self, seed: int, knode_id: str, snode_id: str) -> None:
+        self.nodes[knode_id]["inputs"]["seed"] = seed
+        self.nodes[snode_id]["inputs"]["seed_value"] = seed
     
     def set_width_height(self, width: int, height: int, node_id: str) -> None:
         self.nodes[node_id]["inputs"]["Width"] = width
@@ -129,9 +120,9 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt, ra
         my_gen.set_model(model_name=model_name, node_id="11")
         
     my_gen.set_steps_cfg(steps=steps, cfg=cfg, node_id="13")
-    my_gen.set_seed(seed=random_seed, node_id="16")    
+    my_gen.set_seed(seed=random_seed, knode_id="4", snode_id='10')
     my_gen.set_width_height(width=width, height=height, node_id="12")
-    my_gen.set_postive_prompt(positive_prompt, '', '', '', '', "14")              
+    my_gen.set_postive_prompt(positive_prompt, "14")              
     my_gen.set_negative_prompt(negquality=negative_prompt, node_id="15")
     images = my_gen.queue_prompt()
         
