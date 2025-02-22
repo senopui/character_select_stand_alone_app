@@ -7,6 +7,7 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 ------
 
 # Install and Run
+## *(IMPORTANT)* After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
 1. Clone the repository to wherever you like   
 2. Dbclick `#run_XX.bat`   
 3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
@@ -15,7 +16,7 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 # Update from git
 1. `git fetch` and `git pull`
 2. Have fun
-3. *(IMPORTANT)* After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
+3. Upgrade `settings.json`, click `Save settings` and replace `tmp_settings.json` with `settings.json`
 4. Optional, backup your current `settings.json` and `original_character.json`, then *DELETE ALL* (other) json files in `json` folder    
 ------
 
