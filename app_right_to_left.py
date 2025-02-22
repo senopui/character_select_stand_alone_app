@@ -56,6 +56,7 @@ settings_json = {
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "llama-3.3-70b-versatile",
     "remote_ai_api_key":"<Your API Key here>",
+    "remote_ai_timeout":30,
     
     "model_path": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
     "model_filter": False,
@@ -168,7 +169,7 @@ def llm_send_request(input_prompt):
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
-    response = requests.post(settings_json["remote_ai_base_url"], headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=30)
+    response = requests.post(settings_json["remote_ai_base_url"], headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=settings_json["remote_ai_timeout"])
     return decode_response(response)
 
 def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512):
@@ -188,7 +189,7 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
 def download_file(url, file_path):   
     response = requests.get(url)
     response.raise_for_status() 
-    print('[{}]:Downloading... {}'.format(CAT, url))
+    print(f'[{CAT}]:Downloading... {url}')
     with open(file_path, 'wb') as file:
         file.write(response.content)        
 
@@ -201,7 +202,7 @@ def dase64_to_image(base64_data):
 
 def get_safetensors_files(directory):
     if not os.path.isdir(directory):
-        print('[{}]:{} not exist, use default'.format(CAT, directory))
+        print(f'[{CAT}]:{directory} not exist, use default')
         return []
     
     safetensors_files = glob.glob(os.path.join(directory, '*.safetensors'))
@@ -251,7 +252,6 @@ def download_jsons():
                 download_file(url, file_path)
 
         with open(file_path, 'r', encoding='utf-8') as file:
-            # print('[{}]:Loading... {}'.format(CAT, url))
             if 'wai_action' == name:
                 action_dict.update(json.load(file))
                 action_list = list(action_dict.keys())
@@ -552,6 +552,7 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         "remote_ai_base_url": settings_json["remote_ai_base_url"],
         "remote_ai_model": settings_json["remote_ai_model"],
         "remote_ai_api_key": settings_json["remote_ai_api_key"],
+        "remote_ai_timeout":settings_json["remote_ai_timeout"],
         
         "model_path": settings_json["model_path"],
         "model_filter": settings_json["model_filter"],
@@ -605,8 +606,7 @@ def load_saved_setting(file_path):
             settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"]
 
 def batch_generate_rule_change(options_selected):
-    #settings_json["batch_generate_rule"] = options_selected
-    pass
+    print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')
