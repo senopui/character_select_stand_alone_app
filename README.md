@@ -9,7 +9,6 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 2. Dbclick `#run_XX.bat`   
 3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
 4. Have fun   
-------
 
 # Update from git pull
 0. `git fetch` and `git pull`   
@@ -24,7 +23,12 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
 4. To use all your models, modify `model_filter` to `false`    
 5. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
-------
+
+# Default settings and custom settings
+1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`
+2. Rename to `settings.json` as default settings
+3. `Load Settings` will override current settings with your `renamed_settings.json`
+4. In case you messed up, just `delete` all json files and restart app    
 
 # Original Characters
 1. You can add/remove character (who not in list) in `original_character.json`    
@@ -32,11 +36,22 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 3. Original Characters is NOT support thumb image for now   
 ------
 
-# Default settings and custom settings
-1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`
-2. Rename to `settings.json` as default settings
-3. `Load Settings` will override current settings with your `renamed_settings.json`
-4. In case you messed up, just `delete` all json files and restart app    
+# Right to Left UI
+Modify `#run_CN.bat`   
+```
+@echo off
+@set GRADIO_SERVER_PORT=47861
+py -m app_right_to_left --english True
+pause
+```
+
+Modify `#run_EN.bat`   
+```
+@echo off
+@set GRADIO_SERVER_PORT=47861
+py -m app_right_to_left
+pause
+```
 ------
 
 # AI prompt
