@@ -10,11 +10,11 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
 4. Have fun   
 
-# Update from git pull
-0. `git fetch` and `git pull`   
-1. Optional, backup your current `settings.json` and `original_character.json`    
-2. Delete all (other) json files in `json` folder    
-3. Have fun
+# Update from git
+1. `git fetch` and `git pull`
+2. Have fun
+3. After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
+4. Optional, backup your current `settings.json` and `original_character.json`, then *DELETE ALL* (other) json files in `json` folder    
 ------
 
 # Setup Model List for model switch
