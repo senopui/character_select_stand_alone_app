@@ -746,7 +746,7 @@ if __name__ == '__main__':
                                 save_settings_button = gr.Button("Save Settings", variant='stop') 
                                 load_settings_button = gr.UploadButton("Load Settings", file_count='single', file_types=['.json']) 
             with gr.Column(elem_classes='column_images'):
-                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=768, label="Gallery")
+                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=789, label="Gallery")
                 output_prompt = gr.Textbox(label="Prompt")
                 output_info = gr.Textbox(label="Information")
                 

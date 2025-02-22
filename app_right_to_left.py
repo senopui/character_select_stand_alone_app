@@ -665,7 +665,7 @@ if __name__ == '__main__':
             
         with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_images'):
-                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=768, label="Gallery")
+                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=789, label="Gallery")
                 output_prompt = gr.Textbox(label="Prompt")
                 output_info = gr.Textbox(label="Information")
                 
