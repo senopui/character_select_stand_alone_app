@@ -47,48 +47,58 @@ action_list = ''
 action_dict = {}
 original_character_list = ''
 original_character_dict = {}
-wai_llm_config = {}
 wai_image_dict = {}
 
+#"remote_ai_api_key":"<your API Key here>",
+
 settings_json = {
+    "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
+    "remote_ai_model": "llama-3.3-70b-versatile",
+    "remote_ai_api_key":"<Your API Key here>",
+    
     "model_path": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
-    "model_filter": True,
+    "model_filter": False,
     "model_filter_keyword": "waiNSFW",
-    "ui_right_to_left": False,        
-    "character1": "none",
+    
+    "character1": "random",
     "character2": "none",
     "character3": "none",
-    "action": "none",    
-    "api_model_file_select" : "default",
-    "random_seed": -1,    
-    "custom_prompt": "1girl",
+    "action": "none",
+    
+    "api_model_file_select" : "default",    
+    "random_seed": -1,
+    
+    "custom_prompt": "",
     "api_prompt": "masterpiece, best quality, amazing quality",
     "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor,3d",
     "api_image_data": "7.0,30,1024,1360,1",
-    "ai_only_create_one_time": True,
-    "ai_prompt" : "",
+    
+    "batch_generate_rule": "Last",
+    "ai_prompt": "",
     "prompt_ban" : "",
+    
     "ai_interface": "none",
     "ai_local_addr": "http://127.0.0.1:8080/chat/completions",
-    "ai_local_temp": 0.3,
-    "ai_local_n_predict": 1536,    
+    "ai_local_temp": 0.7,
+    "ai_local_n_predict": 768,
+    
     "api_interface": "none",
-    "api_addr": "127.0.0.1:7860",
+    "api_addr": "127.0.0.1:7860"
 }
 
 model_files_list = []
 
 last_prompt = ''
 last_info = ''
+last_ai_text = ''
 
 wai_illustrious_character_select_files = [
     {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'}, 
     {'name': 'wai_zh_tw', 'file_path': os.path.join(json_folder, 'wai_zh_tw.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/zh_TW.json'},
     # settings are now in https://github.com/mirabarukaso/character_select_stand_alone_app
-    {'name': 'wai_remote_ai_settings', 'file_path': os.path.join(json_folder, 'wai_remote_ai_settings.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_remote_ai_settings.json'},
-    {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/settings.json'},
-    {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},
-    # local cache
+    {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},    
+    # local files
+    {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
     {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_image.json'), 'url': 'local'},
     # images
     {'name': 'wai_output_1', 'file_path': os.path.join(json_folder, 'wai_output_1.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_1.json'},
@@ -137,6 +147,8 @@ def decode_response(response):
             print(f'\n[{cat}]:Trimed response:{ret}')    
             
         ai_text = ret.strip()
+        ai_text = ai_text.replace('"','').replace('*','')
+                
         if ai_text.endswith('.'):
             ai_text = ai_text[:-1] + ','      
         if not ai_text.endswith(','):
@@ -147,15 +159,15 @@ def decode_response(response):
         return []
 
 
-def llm_send_request(input_prompt, llm_config):
+def llm_send_request(input_prompt):
     data = {
-            'model': llm_config["model"],
+            'model': settings_json["remote_ai_model"],
             'messages': [
                 {"role": "system", "content": prime_directive},
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
-    response = requests.post(llm_config["base_url"], headers={"Content-Type": "application/json", "Authorization": "Bearer " + llm_config["api_key"]}, json=data, timeout=30)
+    response = requests.post(settings_json["remote_ai_base_url"], headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=30)
     return decode_response(response)
 
 def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512):
@@ -196,6 +208,14 @@ def get_safetensors_files(directory):
     
     return safetensors_filenames
 
+def load_settings(temp_settings_json):    
+    for key, value in temp_settings_json.items():
+        if settings_json.__contains__(key):
+            print(f'[{cat}] Settings: Load [{key}] : [{value}]')
+            settings_json[key] = value
+        else:
+            print(f'[{cat}] Settings: Ignore Unknown [{key}] : [{value}]')    
+            
 def download_jsons():
     global character_list
     global character_dict
@@ -203,7 +223,6 @@ def download_jsons():
     global action_dict
     global original_character_dict
     global original_character_list
-    global wai_llm_config
     global wai_image_dict
     global settings_json
     global model_files_list
@@ -217,10 +236,14 @@ def download_jsons():
         file_path = item['file_path']
         url = item['url']        
             
-        if 'local' == url and 'wai_image' == name:
-            if os.path.exists(file_path):
-                wai_image_cache = True   
-            else:
+        if 'local' == url:
+            if 'wai_image' == name:
+                if os.path.exists(file_path):
+                    wai_image_cache = True   
+                else:
+                    continue
+            elif 'settings' == name and not os.path.exists(file_path):                                        
+                print(f'[{cat}] Settings: Local settings.json not found, use default. Use Save settings to save your settings, and rename tmp_settings to settings.json.')
                 continue
         else:
             if not os.path.exists(file_path):
@@ -239,16 +262,16 @@ def download_jsons():
                 else:
                     character_list = list(character_dict.keys())   
                 character_list.insert(0, "none")
-                character_list.insert(0, "random")
-            elif 'wai_remote_ai_settings' == name:
-                wai_llm_config.update(json.load(file))
-            elif 'settings' == name:
-                settings_json.update(json.load(file))
+                character_list.insert(0, "random")                   
             elif 'original_character' == name:
                 original_character_dict.update(json.load(file))
                 original_character_list = list(original_character_dict.keys())    
                 original_character_list.insert(0, "none")
                 original_character_list.insert(0, "random")
+            elif 'settings' == name:
+                temp_settings_json = {}
+                temp_settings_json.update(json.load(file))
+                load_settings(temp_settings_json)
             elif 'wai_image' == name and wai_image_cache:
                 print(f'[{cat}]:Loading wai_image.json, delete this file for update.')
                 wai_image_dict = json.load(file)                
@@ -263,8 +286,8 @@ def download_jsons():
                     wai_image_dict.update({key : value}) 
         
         if wai_image_cache:
-            break
-        
+            break    
+                        
     # Create cache
     # Loading time 4.3s to 0.1s
     if not wai_image_cache:
@@ -369,7 +392,7 @@ def original_character_select_ex(character = 'random', random_action_seed = 1):
 def parse_api_image_data(api_image_data):
     try:
         cfg, steps, width, height, loops = map(float, api_image_data.split(','))
-        if 1 > int(loops) or 8 < int(loops):
+        if 1 > int(loops) or 16 < int(loops):
             loops = 1
         return float(cfg), int(steps), int(width), int(height), int(loops)
     except ValueError:
@@ -405,12 +428,13 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt, seed, c
     
     return None
 
-def create_prompt(character1='random',character2='none',character3='none', action='none', original_character='none', random_seed=-1, custom_prompt='', 
-                ai_interface='none', ai_prompt='a close up portrait', prompt_ban='', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, ai_system_prompt_text='',
-                api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360,1', api_model_file_select='default'
+def create_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
+                ai_interface, ai_prompt, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
     global last_info
+    global last_ai_text
     global prime_directive
         
     cfg, steps, width, height, _ = parse_api_image_data(api_image_data)
@@ -441,13 +465,10 @@ def create_prompt(character1='random',character2='none',character3='none', actio
     if '' != rnd_action:
         info += f'Action:{rnd_action}[{act}]'    
     
-    last_prompt = prompt
-    last_info = info
-    
     ai_text = ''
     prime_directive = textwrap.dedent(ai_system_prompt_text)
     if 'Remote' == ai_interface:
-        ai_text = llm_send_request(ai_prompt, wai_llm_config)
+        ai_text = llm_send_request(ai_prompt)
     elif 'Local' == ai_interface:
         ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)        
     
@@ -461,11 +482,16 @@ def create_prompt(character1='random',character2='none',character3='none', actio
         api_images.append(api_image)
     final_info = f'Custom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]'
     
+    # Collect prompts
+    last_prompt = prompt
+    last_info = info
+    last_ai_text = ai_text
+    
     return final_prompt, final_info, thumb_image, api_images
 
-def create_with_last_prompt(random_seed=-1, custom_prompt='', 
-                ai_interface='none', ai_only_create_one_time=True, ai_prompt='a close up portrait, turn character to furry', prompt_ban='', ai_local_addr='http://127.0.0.1:8080/chat/completions', ai_local_temp=0.3, ai_local_n_predict=1536, ai_system_prompt_text='',
-                api_interface='none', api_addr='127.0.0.1:7890', api_prompt='', api_neg_prompt='', api_image_data='7.0,36,1024,1360,1', api_model_file_select='default'
+def create_with_last_prompt(random_seed,  custom_prompt,
+                            ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                            api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global prime_directive
     if '' == last_prompt:
@@ -478,22 +504,25 @@ def create_with_last_prompt(random_seed=-1, custom_prompt='',
     api_images = []
     final_prompts = []
     final_infos = []
-    
-    ai_text = ''
-    prime_directive = ai_system_prompt_text
-    if 'Remote' == ai_interface:
-        ai_text = llm_send_request(ai_prompt, wai_llm_config)
-    elif 'Local' == ai_interface:
-        ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
+
+    ai_text=''
+    if 'Disable' != batch_generate_rule:         
+        ai_text = last_ai_text        
+        if 'Last' != batch_generate_rule:            
+            prime_directive = textwrap.dedent(ai_system_prompt_text)
+            if 'Remote' == ai_interface:
+                ai_text = llm_send_request(ai_prompt)
+            elif 'Local' == ai_interface:
+                ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
 
     for index in range(1, loops + 1):
         seed = random_seed
         if random_seed == -1:
             seed = random.randint(0, 4294967295)        
             
-        if 1 != index and not ai_only_create_one_time:
+        if 1 != index and 'Everytime' == batch_generate_rule:
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt, wai_llm_config)
+                ai_text = llm_send_request(ai_prompt)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
             
@@ -512,14 +541,17 @@ def create_with_last_prompt(random_seed=-1, custom_prompt='',
     
     return ''.join(final_prompts), ''.join(final_infos), api_images
 
-def save_current_setting(character1, character2, character3, action, api_model_file_select, random_seed, 
-                         custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
-                         ai_only_create_one_time, ai_prompt, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr):
-    now_settings_json = {
+def save_current_setting(character1, character2, character3, action, api_model_file_select, random_seed,
+                        custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
+                        ai_prompt, batch_generate_rule, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr):        
+    now_settings_json = {        
+        "remote_ai_base_url": settings_json["remote_ai_base_url"],
+        "remote_ai_model": settings_json["remote_ai_model"],
+        "remote_ai_api_key": settings_json["remote_ai_api_key"],
+        
         "model_path": settings_json["model_path"],
         "model_filter": settings_json["model_filter"],
         "model_filter_keyword": settings_json["model_filter_keyword"],
-        "ui_right_to_left": settings_json["ui_right_to_left"],
         
         "character1": character1,
         "character2": character2,
@@ -532,11 +564,12 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         "custom_prompt": custom_prompt,
         "api_prompt": api_prompt,
         "api_neg_prompt": api_neg_prompt,
-        "api_image_data": api_image_data,
-        "ai_only_create_one_time": ai_only_create_one_time,
-        "ai_prompt" : ai_prompt,
+        "api_image_data": api_image_data,   
+
+        "batch_generate_rule": batch_generate_rule,
+        "ai_prompt" : ai_prompt,                
         "prompt_ban": prompt_ban,
-        
+               
         "ai_interface": ai_interface,
         "ai_local_addr": ai_local_addr,
         "ai_local_temp": ai_local_temp,
@@ -554,13 +587,22 @@ def save_current_setting(character1, character2, character3, action, api_model_f
     gr.Info(f"[{cat}]:Settings saved to {tmp_file}")
 
 def load_saved_setting(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        settings_json.update(json.load(file))    
-        
-    print(f"[{cat}]:Settings loaded {file_path}")
-    gr.Info(f"[{cat}]:Settings loaded {file_path}")
     
-    return settings_json["character1"], settings_json["character2"], settings_json["character3"], settings_json["action"], settings_json["api_model_file_select"], settings_json["random_seed"], settings_json["custom_prompt"], settings_json["api_prompt"], settings_json["api_neg_prompt"], settings_json["api_image_data"], settings_json["ai_only_create_one_time"], settings_json["ai_prompt"], settings_json["prompt_ban"], settings_json["ai_interface"], settings_json["ai_local_addr"], settings_json["ai_local_temp"], settings_json["ai_local_n_predict"], settings_json["api_interface"], settings_json["api_addr"]
+    temp_settings_json = {}                
+    with open(file_path, 'r', encoding='utf-8') as file:
+        temp_settings_json.update(json.load(file))    
+    load_settings(temp_settings_json)
+        
+    gr.Info(f"[{cat}]:Settings loaded {file_path}")
+        
+    return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["action"],settings_json["api_model_file_select"],settings_json["random_seed"],\
+            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],\
+            settings_json["batch_generate_rule"],settings_json["ai_prompt"],settings_json["prompt_ban"],settings_json["ai_interface"],settings_json["ai_local_addr"],\
+            settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"]
+
+def batch_generate_rule_change(options_selected):
+    #settings_json["batch_generate_rule"] = options_selected
+    pass
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')
@@ -617,8 +659,8 @@ if __name__ == '__main__':
             
         with gr.Row():
             with gr.Column():
-                api_image = gr.Gallery(type="pil", object_fit='contain', label="Gallery", preview=True, height=768)               
-                thumb_image = gr.Gallery(type="pil", columns=3, object_fit='scale-down', height=244, label="Thumb Image Gallery")
+                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=768, label="Gallery")
+                thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb Image Gallery")
                 output_prompt = gr.Textbox(label="Prompt")
                 output_info = gr.Textbox(label="Information")
                 
@@ -644,20 +686,19 @@ if __name__ == '__main__':
                         custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label="Custom Prompt (Head)", elem_id="custom_prompt_text") 
                         api_prompt = gr.Textbox(value=settings_json["api_prompt"], label="Positive Prompt (Tail)", elem_id="positive_prompt_text")
                         api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label="Negative Prompt", elem_id="negative_prompt_text")
-                        api_image_data = gr.Textbox(value=settings_json["api_image_data"], label="CFG,Step,Width,Height,Images(1-8)")   
+                        api_image_data = gr.Textbox(value=settings_json["api_image_data"], label="CFG,Step,Width,Height,Batch Images(1-16)")   
                         
                         # AI prompts
-                        ai_only_create_one_time = gr.Checkbox(
-                            label="Only Generate once for Continue Create",
-                            value=settings_json["ai_only_create_one_time"]
-                        )
+                        batch_generate_rule = gr.Radio(choices=["Last", "Once", "Everytime", "Disable"], 
+                                                       value = settings_json["batch_generate_rule"],
+                                                       label="AI rule for Batch generate")
                         ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label="AI Prompt", elem_id="ai_prompt_text")
                         prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label="Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )", elem_id="prompt_ban_text")
                 with gr.Row():
                     with gr.Column():
                         run_button = gr.Button("Create Prompt (1 Image only)", variant='primary') 
                     with gr.Column():
-                        run_same_button = gr.Button("Continue with last Character and Action (1-8)")
+                        run_same_button = gr.Button("Batch with last Character and Action")
                 with gr.Row():             
                     with gr.Column():                               
                         # AI Prompt Generator                
@@ -703,7 +744,7 @@ if __name__ == '__main__':
         
         run_same_button.click(fn=create_with_last_prompt, 
                          inputs=[random_seed,  custom_prompt,
-                                 ai_interface, ai_only_create_one_time, ai_prompt, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
                                  ], 
                          outputs=[output_prompt, output_info, api_image])
@@ -711,13 +752,15 @@ if __name__ == '__main__':
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, action, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
-                                           ai_only_create_one_time, ai_prompt, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr],
+                                           ai_prompt, batch_generate_rule, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr],
                                    outputs=[])
         
         load_settings_button.upload(fn=load_saved_setting,
                                    inputs=[load_settings_button],
                                    outputs=[character1, character2, character3, action, api_model_file_select, random_seed,
                                             custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
-                                            ai_only_create_one_time, ai_prompt, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr])
+                                            batch_generate_rule, ai_prompt, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr])
         
+        batch_generate_rule.change(fn=batch_generate_rule_change,
+                                inputs=batch_generate_rule)
     ui.launch()

@@ -6,12 +6,19 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 
 # Install and Run
 1. Clone the repository to wherever you like   
-2. Dbclick #run.bat   
+2. Dbclick `#run_XX.bat`   
 3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
 4. Have fun   
 ------
 
-# Setup Model List
+# Update from git pull
+0. `git fetch` and `git pull`   
+1. Optional, backup your current `settings.json` and `original_character.json`    
+2. Delete all (other) json files in `json` folder    
+3. Have fun
+------
+
+# Setup Model List for model switch
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
@@ -34,16 +41,20 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 
 # AI prompt
 ## Remote   
-1. Modify `json/wai_settings.json` to setup your API key and Model   
-2. Set `AI Prompt Generator` to `Remote`   
-3. Put something e.g. `make character furry, and I wang a detailed portrait` in `AI Prompt`    
+1. Modify `json/settings.json`    
+2. Set `remote_ai_base_url` `remote_ai_model` `remote_ai_api_key` to your Remote AI     
+3. Restart App    
+4. Set `AI Prompt Generator` to `Remote`   
+5. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`    
 
 ## Local
 1. Make sure you know how to build [Llama.cpp](https://github.com/ggml-org/llama.cpp) yourself, or download them from trusted source   
 2. Download Model from [HuggingFace](https://huggingface.co/), recommend GGUF like `Llama-3.3-7B-q8`   
 3. Recommend Server args `llama-server.exe -ngl 40 --no-mmap -m "<your GGUF model here>`
 4. Set `AI Prompt Generator` to `Local`
-5. Put something e.g. `make character furry, and I wang a detailed portrait` in `AI Prompt`
+5. Modify `Local Llama.cpp server` to your Local AI address    
+6. You may need to check API settings for other Local AI service     
+7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`    
 ------
 
 # API   
