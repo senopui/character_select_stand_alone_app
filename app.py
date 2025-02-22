@@ -188,7 +188,7 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
 def download_file(url, file_path):   
     response = requests.get(url)
     response.raise_for_status() 
-    print('[{}]:Downloading... {}'.format(cat, url))
+    print('[{}]:Downloading... {}'.format(CAT, url))
     with open(file_path, 'wb') as file:
         file.write(response.content)        
 
@@ -201,7 +201,7 @@ def dase64_to_image(base64_data):
 
 def get_safetensors_files(directory):
     if not os.path.isdir(directory):
-        print('[{}]:{} not exist, use default'.format(cat, directory))
+        print('[{}]:{} not exist, use default'.format(CAT, directory))
         return []
     
     safetensors_files = glob.glob(os.path.join(directory, '*.safetensors'))
@@ -251,7 +251,7 @@ def download_jsons():
                 download_file(url, file_path)
 
         with open(file_path, 'r', encoding='utf-8') as file:
-            # print('[{}]:Loading... {}'.format(cat, url))
+            # print('[{}]:Loading... {}'.format(CAT, url))
             if 'wai_action' == name:
                 action_dict.update(json.load(file))
                 action_list = list(action_dict.keys())
