@@ -497,8 +497,8 @@ def create_with_last_prompt(random_seed,  custom_prompt,
                             api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global prime_directive
-    if '' == last_prompt:
-        return 'Click above button first', '', None
+    if '' == last_prompt and '' == custom_prompt:
+        return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None
         
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data)
     if '' != custom_prompt and not custom_prompt.endswith(','):
