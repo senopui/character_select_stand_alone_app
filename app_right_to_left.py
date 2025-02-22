@@ -211,7 +211,7 @@ def get_safetensors_files(directory):
 def load_settings(temp_settings_json):    
     for key, value in temp_settings_json.items():
         if settings_json.__contains__(key):
-            print(f'[{CAT}] Settings: Load [{key}] : [{value}]')
+            #print(f'[{CAT}] Settings: Load [{key}] : [{value}]')
             settings_json[key] = value
         else:
             print(f'[{CAT}] Settings: Ignore Unknown [{key}] : [{value}]')    
@@ -704,12 +704,9 @@ if __name__ == '__main__':
                                                         value = settings_json["batch_generate_rule"],
                                                         label="AI rule for Batch generate",
                                                         scale=3)
-                            api_image_data = gr.Textbox(value=settings_json["api_image_data"], label="CFG,Step,Width,Height,Batch Images(1-16)",scale=2)
-                            
-                        with gr.Row():
-                            ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label="AI Prompt", elem_id="ai_prompt_text")
-                        with gr.Row():
-                            prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label="Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )", elem_id="prompt_ban_text")                
+                            api_image_data = gr.Textbox(value=settings_json["api_image_data"], label="CFG,Step,Width,Height,Batch Images(1-16)",scale=2)                            
+                        ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label="AI Prompt", elem_id="ai_prompt_text")
+                        prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label="Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )", elem_id="prompt_ban_text")                
                 with gr.Row():             
                     with gr.Column():                               
                         # AI Prompt Generator                
