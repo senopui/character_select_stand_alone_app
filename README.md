@@ -40,7 +40,7 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 ------
 
 # Right to Left UI
-Modify `#run_CN.bat`   
+Modify `#run_EN.bat`   
 ```
 @echo off
 @set GRADIO_SERVER_PORT=47861
@@ -48,7 +48,7 @@ py -m app_right_to_left --english True
 pause
 ```
 
-Modify `#run_EN.bat`   
+Modify `#run_CN.bat`   
 ```
 @echo off
 @set GRADIO_SERVER_PORT=47861
@@ -61,10 +61,11 @@ pause
 ## Remote   
 1. Modify `json/settings.json`    
 2. Set `remote_ai_base_url` `remote_ai_model` `remote_ai_api_key` to your Remote AI     
-2.5. Got feed back: *For some DSR1 model provider, you man need change timeout from 30s to 60~120+*
+2.5. Got feed back: *For some DSR1 model provider, you man need change `remote_ai_timeout` from 30s to 60~120+*
 3. Restart App    
 4. Set `AI Prompt Generator` to `Remote`   
-5. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`    
+5. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`
+6. You can modify `Remote AI url`, `Remote AI model`, `Remote AI connection timeout` in App   
 
 ## Local
 1. Make sure you know how to build [Llama.cpp](https://github.com/ggml-org/llama.cpp) yourself, or download them from trusted source   
