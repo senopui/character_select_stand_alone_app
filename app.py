@@ -35,7 +35,7 @@ css_script = """
 """
 
 # CATEGORY
-cat = "WAI_Character_Select"
+CAT = "WAI_Character_Select"
 
 ENGLISH_CHARACTER_NAME = False
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -140,11 +140,11 @@ prime_directive = textwrap.dedent("""\
 def decode_response(response):
     if response.status_code == 200:
         ret = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-        print(f'[{cat}]:Response:{ret}')
+        print(f'[{CAT}]:Response:{ret}')
         # Renmove <think> for DeepSeek
         if str(ret).__contains__('</think>'):
             ret = str(ret).split('</think>')[-1].strip()
-            print(f'\n[{cat}]:Trimed response:{ret}')    
+            print(f'\n[{CAT}]:Trimed response:{ret}')    
             
         ai_text = ret.strip()
         ai_text = ai_text.replace('"','').replace('*','')
@@ -155,7 +155,7 @@ def decode_response(response):
             ai_text = f'{ai_text},'            
         return ai_text    
     else:
-        print(f"[{cat}]:Error: Request failed with status code {response.status_code}")
+        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}")
         return []
 
 
@@ -211,10 +211,10 @@ def get_safetensors_files(directory):
 def load_settings(temp_settings_json):    
     for key, value in temp_settings_json.items():
         if settings_json.__contains__(key):
-            print(f'[{cat}] Settings: Load [{key}] : [{value}]')
+            print(f'[{CAT}] Settings: Load [{key}] : [{value}]')
             settings_json[key] = value
         else:
-            print(f'[{cat}] Settings: Ignore Unknown [{key}] : [{value}]')    
+            print(f'[{CAT}] Settings: Ignore Unknown [{key}] : [{value}]')    
             
 def download_jsons():
     global character_list
@@ -243,7 +243,7 @@ def download_jsons():
                 else:
                     continue
             elif 'settings' == name and not os.path.exists(file_path):                                        
-                print(f'[{cat}] Settings: Local settings.json not found, use default. Use Save settings to save your settings, and rename tmp_settings to settings.json.')
+                print(f'[{CAT}] Settings: Local settings.json not found, use default. Use Save settings to save your settings, and rename tmp_settings to settings.json.')
                 continue
         else:
             if not os.path.exists(file_path):
@@ -273,7 +273,7 @@ def download_jsons():
                 temp_settings_json.update(json.load(file))
                 load_settings(temp_settings_json)
             elif 'wai_image' == name and wai_image_cache:
-                print(f'[{cat}]:Loading wai_image.json, delete this file for update.')
+                print(f'[{CAT}]:Loading wai_image.json, delete this file for update.')
                 wai_image_dict = json.load(file)                
             elif name.startswith('wai_output_') and not wai_image_cache:
                 # [ {} ] .......
@@ -291,7 +291,7 @@ def download_jsons():
     # Create cache
     # Loading time 4.3s to 0.1s
     if not wai_image_cache:
-        print(f'[{cat}]:Creating wai_image.json ...')
+        print(f'[{CAT}]:Creating wai_image.json ...')
         with open(os.path.join(json_folder, 'wai_image.json'), 'w', encoding='utf-8') as file:
             json.dump(wai_image_dict, file, ensure_ascii=False, indent=4)
             
@@ -361,7 +361,9 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
         opt_chara = remove_duplicates(chara.replace('_', ' ').replace(':', ' '))
         opt_chara = opt_chara.replace('(', '\\(').replace(')', '\\)')
         if not opt_chara.endswith(','):
-            opt_chara = f'{opt_chara},'        
+            opt_chara = f'{opt_chara},'   
+    
+        print(f'{CAT}:Optimise Tags:[{chara}]->[{opt_chara}]')
             
     return rnd_character, opt_chara, thumb_image
 
@@ -584,8 +586,8 @@ def save_current_setting(character1, character2, character3, action, api_model_f
     with open(tmp_file, 'w', encoding='utf-8') as f:
         json.dump(now_settings_json, f, ensure_ascii=False, indent=4)        
             
-    print(f"[{cat}]:Settings saved to {tmp_file}")
-    gr.Info(f"[{cat}]:Settings saved to {tmp_file}")
+    print(f"[{CAT}]:Settings saved to {tmp_file}")
+    gr.Info(f"[{CAT}]:Settings saved to {tmp_file}")
 
 def load_saved_setting(file_path):
     
@@ -594,7 +596,7 @@ def load_saved_setting(file_path):
         temp_settings_json.update(json.load(file))    
     load_settings(temp_settings_json)
         
-    gr.Info(f"[{cat}]:Settings loaded {file_path}")
+    gr.Info(f"[{CAT}]:Settings loaded {file_path}")
         
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["action"],settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],\
@@ -615,11 +617,11 @@ def parse_arguments():
 if __name__ == '__main__':
     ENGLISH_CHARACTER_NAME = parse_arguments()
     if ENGLISH_CHARACTER_NAME:
-        print(f'[{cat}]:Use tags as Character Name')
+        print(f'[{CAT}]:Use tags as Character Name')
         
     download_jsons()
     
-    print(f'[{cat}]:Starting...')
+    print(f'[{CAT}]:Starting...')
     
     with gr.Blocks(js=js_func, css=css_script) as ui:
         with gr.Row():
@@ -661,7 +663,6 @@ if __name__ == '__main__':
         with gr.Row():
             with gr.Column():
                 api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=768, label="Gallery")
-                thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb Image Gallery")
                 output_prompt = gr.Textbox(label="Prompt")
                 output_info = gr.Textbox(label="Information")
                 
@@ -682,24 +683,30 @@ if __name__ == '__main__':
                             label=settings_json["random_seed"],
                         )    
                 with gr.Row():
-                    with gr.Column():                        
-                        # API prompts
-                        custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label="Custom Prompt (Head)", elem_id="custom_prompt_text") 
-                        api_prompt = gr.Textbox(value=settings_json["api_prompt"], label="Positive Prompt (Tail)", elem_id="positive_prompt_text")
-                        api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label="Negative Prompt", elem_id="negative_prompt_text")
-                        api_image_data = gr.Textbox(value=settings_json["api_image_data"], label="CFG,Step,Width,Height,Batch Images(1-16)")   
-                        
-                        # AI prompts
-                        batch_generate_rule = gr.Radio(choices=["Last", "Once", "Everytime", "Disable"], 
-                                                       value = settings_json["batch_generate_rule"],
-                                                       label="AI rule for Batch generate")
-                        ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label="AI Prompt", elem_id="ai_prompt_text")
-                        prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label="Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )", elem_id="prompt_ban_text")
+                    thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb Image Gallery")
                 with gr.Row():
                     with gr.Column():
                         run_button = gr.Button("Create Prompt (1 Image only)", variant='primary') 
                     with gr.Column():
                         run_same_button = gr.Button("Batch with last Character and Action")
+                with gr.Row():
+                    with gr.Column():                        
+                        # API prompts
+                        custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label="Custom Prompt (Head)", elem_id="custom_prompt_text") 
+                        api_prompt = gr.Textbox(value=settings_json["api_prompt"], label="Positive Prompt (Tail)", elem_id="positive_prompt_text")
+                        api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label="Negative Prompt", elem_id="negative_prompt_text")                        
+                        with gr.Row():
+                            # AI prompts
+                            batch_generate_rule = gr.Radio(choices=["Last", "Once", "Everytime", "Disable"], 
+                                                        value = settings_json["batch_generate_rule"],
+                                                        label="AI rule for Batch generate",
+                                                        scale=3)
+                            api_image_data = gr.Textbox(value=settings_json["api_image_data"], label="CFG,Step,Width,Height,Batch Images(1-16)",scale=2)
+                            
+                        with gr.Row():
+                            ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label="AI Prompt", elem_id="ai_prompt_text")
+                        with gr.Row():
+                            prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label="Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )", elem_id="prompt_ban_text")                
                 with gr.Row():             
                     with gr.Column():                               
                         # AI Prompt Generator                
