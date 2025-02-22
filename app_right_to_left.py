@@ -661,6 +661,13 @@ if __name__ == '__main__':
             )
             
         with gr.Row(elem_classes='main_row'):
+            with gr.Column(elem_classes='column_images'):
+                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=768, label="Gallery")
+                output_prompt = gr.Textbox(label="Prompt")
+                output_info = gr.Textbox(label="Information")
+                
+                gr.Markdown('<h1><span style="color:orangered">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>')
+                ai_system_prompt_text = gr.Textbox(label="System Prompt", value=prime_directive)
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -735,14 +742,7 @@ if __name__ == '__main__':
                         with gr.Row():
                                 save_settings_button = gr.Button("Save Settings", variant='stop') 
                                 load_settings_button = gr.UploadButton("Load Settings", file_count='single', file_types=['.json']) 
-            with gr.Column(elem_classes='column_images'):
-                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=768, label="Gallery")
-                output_prompt = gr.Textbox(label="Prompt")
-                output_info = gr.Textbox(label="Information")
-                
-                gr.Markdown('<h1><span style="color:orangered">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>')
-                ai_system_prompt_text = gr.Textbox(label="System Prompt", value=prime_directive)
-                
+        
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
