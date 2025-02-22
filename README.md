@@ -15,7 +15,7 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 # Update from git
 1. `git fetch` and `git pull`
 2. Have fun
-3. After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
+3. *(IMPORTANT)* After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
 4. Optional, backup your current `settings.json` and `original_character.json`, then *DELETE ALL* (other) json files in `json` folder    
 ------
 
@@ -60,6 +60,7 @@ pause
 ## Remote   
 1. Modify `json/settings.json`    
 2. Set `remote_ai_base_url` `remote_ai_model` `remote_ai_api_key` to your Remote AI     
+2.5. Got feed back: *For some DSR1 model provider, you man need change timeout from 30s to 60~120+*
 3. Restart App    
 4. Set `AI Prompt Generator` to `Remote`   
 5. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`    
