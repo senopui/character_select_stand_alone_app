@@ -516,6 +516,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
 
     for index in range(1, loops + 1):
+        gr.Info(f"Creating {index} of {loops}, please wait ...")
         seed = random_seed
         if random_seed == -1:
             seed = random.randint(0, 4294967295)        
