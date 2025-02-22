@@ -50,8 +50,6 @@ original_character_list = ''
 original_character_dict = {}
 wai_image_dict = {}
 
-#"remote_ai_api_key":"<your API Key here>",
-
 settings_json = {
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "llama-3.3-70b-versatile",
@@ -161,15 +159,15 @@ def decode_response(response):
         return []
 
 
-def llm_send_request(input_prompt):
+def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout):
     data = {
-            'model': settings_json["remote_ai_model"],
+            'model': ai_remote_model,
             'messages': [
                 {"role": "system", "content": prime_directive},
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
-    response = requests.post(settings_json["remote_ai_base_url"], headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=settings_json["remote_ai_timeout"])
+    response = requests.post(ai_remote_addr, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=ai_remote_timeout)
     return decode_response(response)
 
 def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512):
@@ -432,7 +430,8 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt, seed, c
     return None
 
 def create_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                ai_interface, ai_prompt, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                ai_interface, ai_prompt, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
@@ -471,7 +470,7 @@ def create_prompt(character1, character2, character3, action, original_character
     ai_text = ''
     prime_directive = textwrap.dedent(ai_system_prompt_text)
     if 'Remote' == ai_interface:
-        ai_text = llm_send_request(ai_prompt)
+        ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
     elif 'Local' == ai_interface:
         ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)        
     
@@ -493,7 +492,8 @@ def create_prompt(character1, character2, character3, action, original_character
     return final_prompt, final_info, thumb_image, api_images
 
 def create_with_last_prompt(random_seed,  custom_prompt,
-                            ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                            ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                            ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                             api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global prime_directive
@@ -514,7 +514,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
         if 'Last' != batch_generate_rule:            
             prime_directive = textwrap.dedent(ai_system_prompt_text)
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt)
+                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
 
@@ -526,7 +526,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
             
         if 1 != index and 'Everytime' == batch_generate_rule:
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt)
+                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
             
@@ -547,12 +547,14 @@ def create_with_last_prompt(random_seed,  custom_prompt,
 
 def save_current_setting(character1, character2, character3, action, api_model_file_select, random_seed,
                         custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
-                        ai_prompt, batch_generate_rule, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr):        
+                        ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
+                        ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                        ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr):        
     now_settings_json = {        
-        "remote_ai_base_url": settings_json["remote_ai_base_url"],
-        "remote_ai_model": settings_json["remote_ai_model"],
+        "remote_ai_base_url": ai_remote_addr,
+        "remote_ai_model": ai_remote_model,
         "remote_ai_api_key": settings_json["remote_ai_api_key"],
-        "remote_ai_timeout":settings_json["remote_ai_timeout"],
+        "remote_ai_timeout":ai_remote_timeout,
         
         "model_path": settings_json["model_path"],
         "model_filter": settings_json["model_filter"],
@@ -599,11 +601,12 @@ def load_saved_setting(file_path):
     load_settings(temp_settings_json)
         
     gr.Info(f"[{CAT}]:Settings loaded {file_path}")
-        
+
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["action"],settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],\
-            settings_json["batch_generate_rule"],settings_json["ai_prompt"],settings_json["prompt_ban"],settings_json["ai_interface"],settings_json["ai_local_addr"],\
-            settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"]
+            settings_json["batch_generate_rule"],settings_json["ai_prompt"],settings_json["prompt_ban"],settings_json["ai_interface"],\
+            settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\
+            settings_json["ai_local_addr"],settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"]
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
@@ -660,7 +663,7 @@ if __name__ == '__main__':
                 allow_custom_value = False,
             )
             
-        with gr.Row(elem_classes='main_row'):
+        with gr.Row(elem_classes='main_row'):           
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -708,7 +711,17 @@ if __name__ == '__main__':
                             label="AI Prompt Generator",
                             value=settings_json["ai_interface"],
                             allow_custom_value = False,
-                        )                
+                        )
+                        
+                        ai_remote_addr= gr.Textbox(value=settings_json["remote_ai_base_url"], label="Remote AI url")
+                        ai_remote_model= gr.Textbox(value=settings_json["remote_ai_model"], label="Remote AI model")
+                        ai_remote_timeout = gr.Slider(minimum=5,
+                            maximum=300,
+                            step=1,
+                            value=settings_json["remote_ai_timeout"],
+                            label="Remote AI connection timeout",
+                        )   
+                        
                         ai_local_addr = gr.Textbox(value=settings_json["ai_local_addr"], label="Local Llama.cpp server")   
                         ai_local_temp = gr.Slider(minimum=0.1,
                             maximum=1,
@@ -742,17 +755,19 @@ if __name__ == '__main__':
                 
                 gr.Markdown('<h1><span style="color:orangered">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>')
                 ai_system_prompt_text = gr.Textbox(label="System Prompt", value=prime_directive)
-                
+        
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 ai_interface, ai_prompt, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
                                  ], 
                          outputs=[output_prompt, output_info, thumb_image, api_image])
         
         run_same_button.click(fn=create_with_last_prompt, 
                          inputs=[random_seed,  custom_prompt,
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
                                  ], 
                          outputs=[output_prompt, output_info, api_image])
@@ -760,14 +775,18 @@ if __name__ == '__main__':
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, action, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
-                                           ai_prompt, batch_generate_rule, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr],
+                                           ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
+                                           ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                           ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr],
                                    outputs=[])
         
         load_settings_button.upload(fn=load_saved_setting,
                                    inputs=[load_settings_button],
                                    outputs=[character1, character2, character3, action, api_model_file_select, random_seed,
                                             custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
-                                            batch_generate_rule, ai_prompt, prompt_ban, ai_interface, ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr])
+                                            batch_generate_rule, ai_prompt, prompt_ban, ai_interface, 
+                                            ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr])
         
         batch_generate_rule.change(fn=batch_generate_rule_change,
                                 inputs=batch_generate_rule)
