@@ -3,6 +3,8 @@ This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.
    
 Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing the role data, please support his webui plugin.   
 ------
+# Reminder: Remote AI moved to ***settings.json***
+------
 
 # Install and Run
 1. Clone the repository to wherever you like   
