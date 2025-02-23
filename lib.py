@@ -12,6 +12,69 @@ from comfyui import run_comfyui
 from webui import run_webui
 import argparse
 
+# Language
+LANG_EN = {
+    "character1": "Character list 1",
+    "character2": "Character list 2",
+    "character3": "Character list 3",
+    "action": "Action list",
+    "original_character": "Original Character",
+    "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v110)",
+    "random_seed": "Random Seed",
+    "custom_prompt": "Custom Prompt (Head)",
+    "api_prompt": "Positive Prompt (Tail)",
+    "api_neg_prompt": "Negative Prompt",
+    "batch_generate_rule": "AI rule for Batch generate",
+    "api_image_data": "CFG,Step,Width,Height,Batch Images(1-16)",
+    "ai_prompt": "AI Prompt",
+    "prompt_ban": "Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )",
+    "ai_interface": "AI Prompt Generator",
+    "ai_remote_addr": "Remote AI url",
+    "ai_remote_model": "Remote AI model",
+    "ai_remote_timeout": "Remote AI connection timeout",
+    "ai_local_addr": "Local Llama.cpp server",
+    "ai_local_temp": "Local AI Temperature",
+    "ai_local_n_predict": "Local AI n_predict",
+    "api_interface": "Local Image Generator API",
+    "api_addr": "Local Image Generator IP Address:Port",
+    "api_image": "Gallery",
+    "output_prompt": "Prompt",
+    "output_info": "Information",
+    "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>",
+    "ai_system_prompt_text": "AI System Prompt"
+}
+
+LANG_CN = {
+    "character1": "角色1",
+    "character2": "角色2",
+    "character3": "角色3",
+    "action": "动作",
+    "original_character": "自定义及原创角色",
+    "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v110)",
+    "random_seed": "种子",
+    "custom_prompt": "自定义提示词（放在最前）",
+    "api_prompt": "效果提示词（放在末尾）",
+    "api_neg_prompt": "负面提示词",
+    "batch_generate_rule": "AI填词规则",
+    "api_image_data": "引导,步数,宽,高,批量数量(1-16)",
+    "ai_prompt": "AI提示词（用于生成填词）",
+    "prompt_ban": "提示词黑名单（用于删除特定标签，例如：\"masterpiece, quality, amazing\" ）",
+    "ai_interface": "AI填词设置",
+    "ai_remote_addr": "远程AI地址",
+    "ai_remote_model": "远程AI模型",
+    "ai_remote_timeout": "远程AI超时（秒）",
+    "ai_local_addr": "本地 Llama.cpp 服务地址",
+    "ai_local_temp": "本地AI温度（Temperature）",
+    "ai_local_n_predict": "本地AI回复长度（n_predict）",
+    "api_interface": "本地生图设置",
+    "api_addr": "本地生图API地址（IP Address:Port）",
+    "api_image": "输出",
+    "output_prompt": "最终提示词",
+    "output_info": "相关信息",
+    "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">AI系统提示词，建议使用英文<br>如果你不清楚这是干什么的，不要修改！！！</span></h1>",
+    "ai_system_prompt_text": "AI系统提示词"    
+}
+
 # JavaScript
 JAVA_SCRIPT = """
 function refresh() {
@@ -628,11 +691,13 @@ def parse_arguments():
 
 def init():
     global ENGLISH_CHARACTER_NAME
+    LANG = LANG_CN    
     ENGLISH_CHARACTER_NAME = parse_arguments()
     if ENGLISH_CHARACTER_NAME:
         print(f'[{CAT}]:Use tags as Character Name')
+        LANG = LANG_EN
         
     load_jsons()    
     print(f'[{CAT}]:Starting...')
     
-    return character_list, action_list, original_character_list, model_files_list, prime_directive
+    return character_list, action_list, original_character_list, model_files_list, prime_directive, LANG
