@@ -34,9 +34,8 @@ css_script = """
 #prompt_ban_text textarea {color: Khaki}
 """
 
-# CATEGORY
+TITLE = "WAI Character Select SAA"
 CAT = "WAI_Character_Select"
-
 ENGLISH_CHARACTER_NAME = False
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -626,7 +625,7 @@ if __name__ == '__main__':
     download_jsons()    
     print(f'[{CAT}]:Starting...')
     
-    with gr.Blocks(js=js_func, css=css_script) as ui:
+    with gr.Blocks(js=js_func, css=css_script, title=TITLE) as ui:
         with gr.Row():
             character1 = gr.Dropdown(
                 choices=character_list,
