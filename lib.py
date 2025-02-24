@@ -43,6 +43,11 @@ LANG_EN = {
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>",
     "ai_system_prompt_text": "AI System Prompt",
     
+    "run_button": "Create Prompt (1 Image only)",
+    "run_same_button": "Batch with last Character and Action",
+    "save_settings_button": "Save Settings",
+    "load_settings_button": "Load Settings",
+    
     "gr_info_create_1": "Creating 1, please wait ...",
     "gr_info_create_n": "Creating {}of{}, please wait ...",
     "gr_info_settings_saved": "Settings Saved to {}",
@@ -84,6 +89,11 @@ LANG_CN = {
     "output_info": "相关信息",
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">AI系统提示词，建议使用英文<br>如果你不清楚这是干什么的，不要修改！！！</span></h1>",
     "ai_system_prompt_text": "AI系统提示词",
+    
+    "run_button": "生成（单图）",
+    "run_same_button": "批量生成（继承人物与动作）",
+    "save_settings_button": "保存设置",
+    "load_settings_button": "载入设置",
     
     "gr_info_create_1": "正在生成，请稍候……",
     "gr_info_create_n": "正在生成 {} / {}， 请稍候……",

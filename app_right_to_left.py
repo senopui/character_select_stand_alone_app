@@ -68,9 +68,9 @@ if __name__ == '__main__':
                     thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb Image Gallery")
                 with gr.Row():
                     with gr.Column():
-                        run_button = gr.Button("Create Prompt (1 Image only)", variant='primary') 
+                        run_button = gr.Button(value=LANG["run_button"], variant='primary') 
                     with gr.Column():
-                        run_same_button = gr.Button("Batch with last Character and Action")
+                        run_same_button = gr.Button(value=LANG["run_same_button"])
                 with gr.Row():
                     with gr.Column():                        
                         # API prompts
@@ -129,8 +129,8 @@ if __name__ == '__main__':
                         )
                         api_addr = gr.Textbox(value=settings_json["api_addr"], label=LANG["api_addr"]) 
                         with gr.Row():
-                                save_settings_button = gr.Button("Save Settings", variant='stop') 
-                                load_settings_button = gr.UploadButton("Load Settings", file_count='single', file_types=['.json']) 
+                            save_settings_button = gr.Button(value=LANG["save_settings_button"], variant='stop') 
+                            load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json']) 
         
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
