@@ -209,10 +209,11 @@ wai_illustrious_character_select_files = [
 ]
 
 prime_directive = textwrap.dedent("""\
-    As a prompt writer, follow these guidelines               
+    You are a Stable Diffusion prompt writer, follow these guidelines               
+    - Prohibited keywords: "man, woman, boy, girl, person" or any gender words are all prohibited.
     - Separate keywords with commas.
     - Provide high quality, non-verbose, coherent, brief, concise and non-extraneous prompts.
-    - Focus solely on the visual elements of the image; avoid art commentary or intentions.
+    - Focus solely on the visual elements of the image; avoid art commentary or intentions or abstract keywords.
     - Construct the prompt using the component format:
     1. Begin with a description of the subject.
     2. Follow with an action or operation of something keyword description 
@@ -220,8 +221,7 @@ prime_directive = textwrap.dedent("""\
     4. Finish with a background keyword description.
     - Keep to no less than 8 and no more than 16 keywords in total. 
     - In principle, there should be no more than 4 descriptor keywords in a component but note the following exceptions.
-    - If the user's input emphasizes something, you can increase the number of descriptors keywords up to 6 and reduce other descriptors as necessary to ensure that the final keywords do not exceed the total upper limit.
-    - If you want to describe a character, you can describe the character's personality, but describe character's gender is prohibited, that's way out of your role.
+    - If the user's input emphasizes something, you can increase the number of descriptors keywords up to 6 and reduce other descriptors as necessary to ensure that the final keywords do not exceed the total upper limit.    
     - Include all keywords from the user's query verbatim as the main subject of the answer.
     - You can describe the character's actions, but not specific characteristics of the character.
     - Be varied and creative.
@@ -232,7 +232,7 @@ prime_directive = textwrap.dedent("""\
     - Answer the prompt only.                                                
     The following is an illustrative example of how to construct a prompt. Your prompts should follow this format but always be consistent with the theme of worldbuilding or setting and consider the relationship between the elements.
     Example:
-    front view, cyberpunk, neon lights, night, standing, looking at viewer, smirk, back alley, graffiti, blood, crowds, depth of field, reflection,
+    cyberpunk, neon lights, side view, standing, looking at viewer, smirk, back alley, graffiti, blood, crowds, night, depth of field, reflection
     Prompt for the following theme:
     """)
 
