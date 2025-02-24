@@ -55,9 +55,32 @@ LANG_EN = {
     
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
     "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
-    "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed: {}",
+    "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
     
     "gr_error_creating_image":"[Error] Got error from Image API: {}",
+    
+    "ai_system_prompt": textwrap.dedent("""\
+    You are a Stable Diffusion prompt writer. Follow these guidelines to generate prompts:
+    1.Prohibited keywords: Do not use any gender-related words such as "man," "woman," "boy," "girl," "person," or similar terms.
+    2.Format: Provide 8 to 16 keywords separated by commas, keeping the prompt concise.
+    3.Content focus: Concentrate solely on visual elements of the image; avoid abstract concepts, art commentary, or descriptions of intent.
+    4.Keyword categories: Ensure the prompt includes keywords from the following categories:
+        - Theme or style (e.g., cyberpunk, fantasy)
+        - Visual elements or atmosphere (e.g., neon lights, fog)
+        - Camera angle or composition (e.g., side view, close-up)
+        - Action or pose (e.g., standing, jumping)
+        - Expression or emotion (e.g., smirk, calm)
+        - Location or scene (e.g., back alley, forest)
+        - Environmental details (e.g., graffiti, trees)
+        - Time of day or lighting (e.g., night, golden hour)
+        - Additional effects (e.g., depth of field, bokeh)
+    5.Creativity and coherence: Select keywords that are diverse and creative, forming a vivid and coherent scene.
+    6.User input: Incorporate the exact keywords from the user's query into the prompt where appropriate.
+    7.Emphasis handling: If the user emphasizes a particular aspect, you may increase the number of keywords in that category (up to 6), but ensure the total number of keywords remains between 8 and 16.
+    8.Character description: You may describe actions and expressions but must not mention specific character traits (such as gender or age). Words that imply a character (e.g., "warrior") are allowed as long as they do not violate the prohibited keywords.
+    9.Output: Provide the answer as a single line of comma-separated keywords.
+    Prompt for the following theme:
+    """),
 }
 
 LANG_CN = {
@@ -102,9 +125,32 @@ LANG_CN = {
     
     "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
     "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
-    "gr_warning_creating_ai_prompt":"注意：AI题词返回回故障信息： [{}]",
+    "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
     
     "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
+    
+    "ai_system_prompt": textwrap.dedent("""\
+    你是一个Stable Diffusion提示词编写者，按照以下指南生成提示词：
+    1.禁止关键词： 不得使用任何性别相关词，如“man”、“woman”、“boy”、“girl”、“person”或类似词。
+    2.格式： 提供8到16个关键词，用逗号分隔，保持简洁。
+    3.内容重点： 仅关注图像的可视元素，避免抽象概念、艺术评论或意图描述。
+    4.关键词类别： 确保提示词涵盖以下类别：
+        - 主题或风格（如cyberpunk、fantasy）
+        - 可视元素或氛围（如neon lights、fog）
+        - 镜头视角或构图（如side view、close-up）
+        - 动作或姿势（如standing、jumping）
+        - 表情或情绪（如smirk、calm）
+        - 地点或场景（如back alley、forest）
+        - 环境细节（如graffiti、trees）
+        - 时间或光线（如night、golden hour）
+        - 额外效果（如depth of field、bokeh）
+    5.创意与连贯性： 关键词选择需多样且富有创意，形成一个生动连贯的场景。
+    6.用户输入： 将用户查询中的关键词逐字纳入，适当融入提示词。
+    7.强调处理： 若用户强调某方面，可增加该类别关键词（最多6个），但总数保持在8到16个。
+    8.角色描述： 可描述动作和表情，但不得提及角色特征（如性别、年龄）。允许使用暗示角色的词（如warrior），只要不涉及禁止词。
+    9.输出： 以单行逗号分隔的关键词形式且必须以英文回答。
+    Prompt for the following theme:
+    """),
 }
 
 LANG = LANG_CN
@@ -208,34 +254,6 @@ wai_illustrious_character_select_files = [
     {'name': 'wai_output_10', 'file_path': os.path.join(json_folder, 'wai_output_10.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_10.json'},
 ]
 
-prime_directive = textwrap.dedent("""\
-    You are a Stable Diffusion prompt writer, follow these guidelines               
-    - Prohibited keywords: "man, woman, boy, girl, person" or any gender words are all prohibited.
-    - Separate keywords with commas.
-    - Provide high quality, non-verbose, coherent, brief, concise and non-extraneous prompts.
-    - Focus solely on the visual elements of the image; avoid art commentary or intentions or abstract keywords.
-    - Construct the prompt using the component format:
-    1. Begin with a description of the subject.
-    2. Follow with an action or operation of something keyword description 
-    3. Follow with a scene keyword description.
-    4. Finish with a background keyword description.
-    - Keep to no less than 8 and no more than 16 keywords in total. 
-    - In principle, there should be no more than 4 descriptor keywords in a component but note the following exceptions.
-    - If the user's input emphasizes something, you can increase the number of descriptors keywords up to 6 and reduce other descriptors as necessary to ensure that the final keywords do not exceed the total upper limit.    
-    - Include all keywords from the user's query verbatim as the main subject of the answer.
-    - You can describe the character's actions, but not specific characteristics of the character.
-    - Be varied and creative.
-    - Always answer on the same line and in no more than 120 words. 
-    - Do not list or pronounce components.
-    - Include creative additional information in your answer.    
-    - Answer in English.
-    - Answer the prompt only.                                                
-    The following is an illustrative example of how to construct a prompt. Your prompts should follow this format but always be consistent with the theme of worldbuilding or setting and consider the relationship between the elements.
-    Example:
-    cyberpunk, neon lights, side view, standing, looking at viewer, smirk, back alley, graffiti, blood, crowds, night, depth of field, reflection
-    Prompt for the following theme:
-    """)
-
 def decode_response(response):
     if response.status_code == 200:
         ret = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
@@ -255,13 +273,14 @@ def decode_response(response):
         return ai_text    
     else:
         print(f"[{CAT}]:Error: Request failed with status code {response.status_code}")        
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, ''))
         return ''
 
 def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout):
     data = {
             'model': ai_remote_model,
             'messages': [
-                {"role": "system", "content": prime_directive},
+                {"role": "system", "content": LANG["ai_system_prompt"]},
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
@@ -270,7 +289,8 @@ def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_ti
         response = requests.post(ai_remote_addr, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=ai_remote_timeout)
         return decode_response(response)
     except Exception as e:
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(e))
+        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
     
     return ''
 
@@ -281,7 +301,7 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
             "cache_prompt": True,
             "stop": ["<|im_end|>"],
             'messages': [
-                {"role": "system", "content": prime_directive},
+                {"role": "system", "content": LANG["ai_system_prompt"]},
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
@@ -289,7 +309,8 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
         response = requests.post(server, headers={"Content-Type": "application/json"}, json=data)    
         return decode_response(response)
     except Exception as e:
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(e))
+        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
     
     return ''
 
@@ -555,7 +576,7 @@ def create_prompt(character1, character2, character3, action, original_character
     global last_prompt
     global last_info
     global last_ai_text
-    global prime_directive
+    global LANG
         
     cfg, steps, width, height, _ = parse_api_image_data(api_image_data)
     if '' != custom_prompt and not custom_prompt.endswith(','):
@@ -591,7 +612,7 @@ def create_prompt(character1, character2, character3, action, original_character
         gr.Info(LANG["gr_info_create_1"])
     
     ai_text = ''
-    prime_directive = textwrap.dedent(ai_system_prompt_text)
+    LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
     if 'Remote' == ai_interface:
         ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
     elif 'Local' == ai_interface:
@@ -619,7 +640,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                             api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select
             ) -> tuple[str, str, Image.Image, Image.Image]:        
-    global prime_directive
+    global LANG
     if '' == last_prompt and '' == custom_prompt:
         gr.Warning(LANG["gr_warning_click_create_first"])
         return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None
@@ -636,7 +657,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
     if 'Disable' != batch_generate_rule:         
         ai_text = last_ai_text        
         if 'Last' != batch_generate_rule:            
-            prime_directive = textwrap.dedent(ai_system_prompt_text)
+            LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
             if 'Remote' == ai_interface:
                 ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
             elif 'Local' == ai_interface:
@@ -752,6 +773,7 @@ def init():
         LANG = LANG_EN
         
     load_jsons()    
+    
     print(f'[{CAT}]:Starting...')
     
-    return character_list, action_list, original_character_list, model_files_list, prime_directive, LANG
+    return character_list, action_list, original_character_list, model_files_list, LANG

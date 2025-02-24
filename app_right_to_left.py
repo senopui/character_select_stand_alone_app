@@ -3,7 +3,7 @@ from lib import init, create_prompt, create_with_last_prompt, save_current_setti
 from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
-    character_list, action_list, original_character_list, model_files_list, prime_directive, LANG = init()
+    character_list, action_list, original_character_list, model_files_list, LANG = init()
     
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:
         with gr.Row():
@@ -49,7 +49,7 @@ if __name__ == '__main__':
                 output_info = gr.Textbox(label=LANG["output_info"])
                 
                 gr.Markdown(LANG["ai_system_prompt_warning"])
-                ai_system_prompt_text = gr.Textbox(label=LANG["ai_system_prompt_text"], value=prime_directive)
+                ai_system_prompt_text = gr.Textbox(label=LANG["ai_system_prompt_text"], value=LANG["ai_system_prompt"])
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
