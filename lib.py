@@ -41,7 +41,18 @@ LANG_EN = {
     "output_prompt": "Prompt",
     "output_info": "Information",
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>",
-    "ai_system_prompt_text": "AI System Prompt"
+    "ai_system_prompt_text": "AI System Prompt",
+    
+    "gr_info_create_1": "Creating 1, please wait ...",
+    "gr_info_create_n": "Creating {}of{}, please wait ...",
+    "gr_info_settings_saved": "Settings Saved to {}",
+    "gr_info_settings_loaded": "Settings Loaded {}",
+    
+    "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
+    "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
+    "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed: {}",
+    
+    "gr_error_creating_image":"[Error] Got error from Image API: {}",
 }
 
 LANG_CN = {
@@ -72,8 +83,21 @@ LANG_CN = {
     "output_prompt": "最终提示词",
     "output_info": "相关信息",
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">AI系统提示词，建议使用英文<br>如果你不清楚这是干什么的，不要修改！！！</span></h1>",
-    "ai_system_prompt_text": "AI系统提示词"    
+    "ai_system_prompt_text": "AI系统提示词",
+    
+    "gr_info_create_1": "正在生成，请稍候……",
+    "gr_info_create_n": "正在生成 {} / {}， 请稍候……",
+    "gr_info_settings_saved": "配置已保存： {}",
+    "gr_info_settings_loaded": "配置已载入： {}",
+    
+    "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
+    "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
+    "gr_warning_creating_ai_prompt":"注意：AI题词返回回故障信息： [{}]",
+    
+    "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
 }
+
+LANG = LANG_CN
 
 # JavaScript
 JAVA_SCRIPT = """
@@ -219,9 +243,8 @@ def decode_response(response):
             ai_text = f'{ai_text},'            
         return ai_text    
     else:
-        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}")
-        return []
-
+        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}")        
+        return ''
 
 def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout):
     data = {
@@ -231,8 +254,14 @@ def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_ti
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
-    response = requests.post(ai_remote_addr, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=ai_remote_timeout)
-    return decode_response(response)
+    
+    try:
+        response = requests.post(ai_remote_addr, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=ai_remote_timeout)
+        return decode_response(response)
+    except Exception as e:
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(e))
+    
+    return ''
 
 def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512):
     data = {
@@ -245,8 +274,13 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
                 {"role": "user", "content": input_prompt + ";Response in English"}
             ],  
         }
-    response = requests.post(server, headers={"Content-Type": "application/json"}, json=data)    
-    return decode_response(response)    
+    try:
+        response = requests.post(server, headers={"Content-Type": "application/json"}, json=data)    
+        return decode_response(response)
+    except Exception as e:
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(e))
+    
+    return ''
 
 def download_file(url, file_path):   
     response = requests.get(url)
@@ -488,13 +522,17 @@ def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_c
 
 def create_image(interface, addr, model_file_select, prompt, neg_prompt, seed, cfg, steps, width, height):
     if 'none' != interface:
-        if 'ComfyUI' == interface:
-            image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)
-            image_data_bytes = bytes(image_data_list)  
-            api_image = Image.open(BytesIO(image_data_bytes))    
-        elif 'WebUI' == interface:
-            api_image = run_webui(server_address=addr, model_name=model_file_select, positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)      
-        return api_image
+        try:
+            if 'ComfyUI' == interface:
+                image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)
+                image_data_bytes = bytes(image_data_list)  
+                api_image = Image.open(BytesIO(image_data_bytes))    
+            elif 'WebUI' == interface:
+                api_image = run_webui(server_address=addr, model_name=model_file_select, positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height)      
+            return api_image
+        except Exception as e:
+            print(f"[{CAT}]Error creating image: {e}")
+            raise gr.Error(LANG["gr_error_creating_image"].format(e))
     
     return None
 
@@ -536,7 +574,10 @@ def create_prompt(character1, character2, character3, action, original_character
     if '' != rnd_action:
         info += f'Action:{rnd_action}[{act}]'    
     
-    gr.Info("Creating 1, please wait ...")
+    if 'none' == ai_interface == api_interface:
+        gr.Warning(LANG["gr_warning_interface_both_none"])
+    else:
+        gr.Info(LANG["gr_info_create_1"])
     
     ai_text = ''
     prime_directive = textwrap.dedent(ai_system_prompt_text)
@@ -569,6 +610,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global prime_directive
     if '' == last_prompt and '' == custom_prompt:
+        gr.Warning(LANG["gr_warning_click_create_first"])
         return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None
         
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data)
@@ -589,8 +631,8 @@ def create_with_last_prompt(random_seed,  custom_prompt,
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
 
-    for index in range(1, loops + 1):
-        gr.Info(f"Creating {index} of {loops}, please wait ...")
+    for index in range(1, loops + 1):       
+        gr.Info(LANG["gr_info_create_n"].format(index, loops))
         seed = random_seed
         if random_seed == -1:
             seed = random.randint(0, 4294967295)        
@@ -662,16 +704,16 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         json.dump(now_settings_json, f, ensure_ascii=False, indent=4)        
             
     print(f"[{CAT}]:Settings saved to {tmp_file}")
-    gr.Info(f"[{CAT}]:Settings saved to {tmp_file}")
+    gr.Info(LANG["gr_info_settings_saved"].format(tmp_file))
+    
 
 def load_saved_setting(file_path):
     
     temp_settings_json = {}                
     with open(file_path, 'r', encoding='utf-8') as file:
         temp_settings_json.update(json.load(file))    
-    load_settings(temp_settings_json)
-        
-    gr.Info(f"[{CAT}]:Settings loaded {file_path}")
+    load_settings(temp_settings_json)        
+    gr.Info(LANG["gr_info_settings_loaded"].format(file_path))
 
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["action"],settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],\
@@ -691,7 +733,8 @@ def parse_arguments():
 
 def init():
     global ENGLISH_CHARACTER_NAME
-    LANG = LANG_CN    
+    global LANG
+        
     ENGLISH_CHARACTER_NAME = parse_arguments()
     if ENGLISH_CHARACTER_NAME:
         print(f'[{CAT}]:Use tags as Character Name')
