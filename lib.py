@@ -221,6 +221,7 @@ prime_directive = textwrap.dedent("""\
     - Keep to no less than 8 and no more than 16 keywords in total. 
     - In principle, there should be no more than 4 descriptor keywords in a component but note the following exceptions.
     - If the user's input emphasizes something, you can increase the number of descriptors keywords up to 6 and reduce other descriptors as necessary to ensure that the final keywords do not exceed the total upper limit.
+    - If you want to describe a character, you can describe the character's personality, but describe character's gender is prohibited, that's way out of your role.
     - Include all keywords from the user's query verbatim as the main subject of the answer.
     - You can describe the character's actions, but not specific characteristics of the character.
     - Be varied and creative.
