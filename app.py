@@ -1,5 +1,5 @@
 import gradio as gr
-from scripts.lib import init, create_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
+from scripts.lib import init, create_prompt, create_random_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
 from scripts.lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
@@ -42,7 +42,7 @@ if __name__ == '__main__':
                 allow_custom_value=False,
             )
             
-        with gr.Row(elem_classes='main_row'):            
+        with gr.Row(elem_classes='main_row'):           
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -59,7 +59,7 @@ if __name__ == '__main__':
                         )    
                 with gr.Row():
                     thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb Image Gallery")
-                with gr.Row(equal_height=True):
+                with gr.Row():
                     with gr.Row(scale=2):
                         api_hf_enable = gr.Checkbox(label=LANG["api_hf_enable"],value=False)
                         api_webui_savepath_override = gr.Checkbox(label=LANG["api_webui_savepath_override"], value=False)
@@ -88,11 +88,10 @@ if __name__ == '__main__':
                             value=settings_json["api_hf_denoise"],
                             label=LANG["api_hf_denoise"],
                         )
-                with gr.Row():
-                    with gr.Column():
-                        run_button = gr.Button(value=LANG["run_button"], variant='primary') 
-                    with gr.Column():
-                        run_same_button = gr.Button(value=LANG["run_same_button"])
+                with gr.Row():                    
+                        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4)
+                        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1)
+                        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3)
                 with gr.Row():
                     with gr.Column():                        
                         # API prompts
@@ -164,7 +163,16 @@ if __name__ == '__main__':
         
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                                 ], 
+                         outputs=[output_prompt, output_info, thumb_image, api_image])
+        
+        run_random_button.click(fn=create_random_prompt, 
+                         inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override

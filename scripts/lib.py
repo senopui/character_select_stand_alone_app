@@ -56,12 +56,12 @@ LANG_EN = {
     "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
     "api_webui_savepath_override": "WebUI Save redirect to \".\\outputs\"",
     
-    "run_button": "Create Prompt (1 Image only)",
-    "run_same_button": "Batch with last Character and Action",
+    "run_button": "Create Prompt",
+    "run_random_button": "Batch (Random)",
+    "run_same_button": "Batch (Last Prompt)",
     "save_settings_button": "Save Settings",
     "load_settings_button": "Load Settings",
     
-    "gr_info_create_1": "Creating 1, please wait ...",
     "gr_info_create_n": "Creating {}of{}, please wait ...",
     "gr_info_settings_saved": "Settings Saved to {}",
     "gr_info_settings_loaded": "Settings Loaded {}",
@@ -134,12 +134,12 @@ LANG_CN = {
     "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下。",
     "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
     
-    "run_button": "生成（单图）",
-    "run_same_button": "批量生成（继承人物与动作）",
+    "run_button": "单图生成",
+    "run_random_button": "批量（随机）",
+    "run_same_button": "批量（上次生成）",
     "save_settings_button": "保存设置",
     "load_settings_button": "载入设置",
     
-    "gr_info_create_1": "正在生成，请稍候……",
     "gr_info_create_n": "正在生成 {} / {}， 请稍候……",
     "gr_info_settings_saved": "配置已保存： {}",
     "gr_info_settings_loaded": "配置已载入： {}",
@@ -719,74 +719,121 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
     return None
 
 def create_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                    ai_interface, ai_prompt, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
-                    ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                    api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
-                    api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                    ):
+    return create_prompt_ex(False, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+
+
+def create_random_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                    ):
+    return create_prompt_ex(True, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+
+def create_prompt_ex(batch_random, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
     global last_info
     global last_ai_text
     global LANG
         
-    cfg, steps, width, height, _ = parse_api_image_data(api_image_data)
+    cfg, steps, width, height, loops = parse_api_image_data(api_image_data)
     if '' != custom_prompt and not custom_prompt.endswith(','):
-        custom_prompt = f'{custom_prompt},'    
+        custom_prompt = f'{custom_prompt},'
         
-    seed1 = random_seed
-    seed2 = random.randint(0, 4294967295)
-    seed3 = random.randint(0, 4294967295)
-    if random_seed == -1:
-        seed1 = random.randint(0, 4294967295)    
-    
-    rnd_character1, opt_chara1, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1)        
-    rnd_character2, opt_chara2, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2)
-    rnd_character3, opt_chara3, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3)
-    rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
+    if not batch_random:
+        loops = 1
         
-    rnd_action, act = illustrious_action_select_ex(action = action, random_action_seed=seed1)            
-    thumb_image = []
-    if thumb_image1:
-        thumb_image.append(thumb_image1)
-    if thumb_image2:
-        thumb_image.append(thumb_image2)
-    if thumb_image3:
-        thumb_image.append(thumb_image3)
-    
-    prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3, rnd_oc, opt_oc)
-    if '' != rnd_action:
-        info += f'Action:{rnd_action}[{act}]'    
-    
     if 'none' == ai_interface == api_interface:
         gr.Warning(LANG["gr_warning_interface_both_none"])
-    else:
-        gr.Info(LANG["gr_info_create_1"])
-    
-    ai_text = ''
-    LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
-    if 'Remote' == ai_interface:
-        ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
-    elif 'Local' == ai_interface:
-        ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)        
-    
-    final_prompt = f'{custom_prompt}{prompt}{act}{ai_text}{api_prompt}'
-    for ban_word in prompt_ban.split(','):
-        final_prompt = final_prompt.replace(ban_word.strip(), '')
         
+    thumb_image = []
     api_images = []
-    api_image = create_image(api_interface, api_addr, api_model_file_select, final_prompt, api_neg_prompt, 
-                             seed1, cfg, steps, width, height, 
-                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
-    if api_image:
-        api_images.append(api_image)
-    final_info = f'Custom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]'
+    final_prompts = []
+    final_infos = []
     
-    # Collect prompts
-    last_prompt = prompt
-    last_info = info
-    last_ai_text = ai_text
-    
-    return final_prompt, final_info, thumb_image, api_images
+    ai_text=''
+    LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
+    if 'Disable' != batch_generate_rule:         
+        ai_text = last_ai_text        
+        if 'Last' != batch_generate_rule:            
+            LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
+            if 'Remote' == ai_interface:
+                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
+            elif 'Local' == ai_interface:
+                ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)     
+                
+    for index in range(1, loops + 1):
+        seed1 = random_seed
+        seed2 = random.randint(0, 4294967295)
+        seed3 = random.randint(0, 4294967295)
+        if random_seed == -1:
+            seed1 = random.randint(0, 4294967295)    
+        
+        rnd_character1, opt_chara1, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1)        
+        rnd_character2, opt_chara2, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2)
+        rnd_character3, opt_chara3, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3)
+        rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
+            
+        rnd_action, act = illustrious_action_select_ex(action = action, random_action_seed=seed1)                    
+        if thumb_image1:
+            thumb_image.append(thumb_image1)
+        if thumb_image2:
+            thumb_image.append(thumb_image2)
+        if thumb_image3:
+            thumb_image.append(thumb_image3)
+        
+        prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3, rnd_oc, opt_oc)
+        if '' != rnd_action:
+            info += f'Action:{rnd_action}[{act}]'    
+        
+        if 'none' != ai_interface or 'none' != api_interface:
+            gr.Info(LANG["gr_info_create_n"].format(index, loops))
+        
+        if 1 != index and 'Everytime' == batch_generate_rule:
+            if 'Remote' == ai_interface:
+                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
+            elif 'Local' == ai_interface:
+                ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)         
+        
+        to_image_create_prompt = f'{custom_prompt}{prompt}{act}{ai_text}{api_prompt}'
+        for ban_word in prompt_ban.split(','):
+            to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
+
+        api_image = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
+                                seed1, cfg, steps, width, height, 
+                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+        
+        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
+        final_prompt = f'{index}:\n{to_image_create_prompt}\n'
+        if api_image:
+            api_images.append(api_image)
+        final_prompts.append(final_prompt)
+        final_infos.append(final_info)        
+        
+        # Collect prompts
+        last_prompt = prompt
+        last_info = info
+        last_ai_text = ai_text
+        
+    return ''.join(final_prompts), ''.join(final_infos), thumb_image, api_images
 
 def create_with_last_prompt(random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
