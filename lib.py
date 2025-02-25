@@ -65,15 +65,14 @@ LANG_EN = {
     2.Format: Provide 8 to 16 keywords separated by commas, keeping the prompt concise.
     3.Content focus: Concentrate solely on visual elements of the image; avoid abstract concepts, art commentary, or descriptions of intent.
     4.Keyword categories: Ensure the prompt includes keywords from the following categories:
-        - Theme or style (e.g., cyberpunk, fantasy)
-        - Visual elements or atmosphere (e.g., neon lights, fog)
-        - Camera angle or composition (e.g., side view, close-up)
-        - Action or pose (e.g., standing, jumping)
-        - Expression or emotion (e.g., smirk, calm)
-        - Location or scene (e.g., back alley, forest)
+        - Theme or style (e.g., cyberpunk, fantasy, wasteland)
+        - Location or scene (e.g., back alley, forest, street)
+        - Visual elements or atmosphere (e.g., neon lights, fog, ruined)
+        - Camera angle or composition (e.g., front view, side view, close-up)
+        - Action or expression (e.g., standing, jumping, smirk, calm)
         - Environmental details (e.g., graffiti, trees)
-        - Time of day or lighting (e.g., night, golden hour)
-        - Additional effects (e.g., depth of field, bokeh)
+        - Time of day or lighting (e.g., sunny day, night, golden hour)
+        - Additional effects (e.g., depth of field, blurry background)
     5.Creativity and coherence: Select keywords that are diverse and creative, forming a vivid and coherent scene.
     6.User input: Incorporate the exact keywords from the user's query into the prompt where appropriate.
     7.Emphasis handling: If the user emphasizes a particular aspect, you may increase the number of keywords in that category (up to 6), but ensure the total number of keywords remains between 8 and 16.
@@ -135,15 +134,14 @@ LANG_CN = {
     2.格式： 提供8到16个关键词，用逗号分隔，保持简洁。
     3.内容重点： 仅关注图像的可视元素，避免抽象概念、艺术评论或意图描述。
     4.关键词类别： 确保提示词涵盖以下类别：
-        - 主题或风格（如cyberpunk、fantasy）
-        - 可视元素或氛围（如neon lights、fog）
-        - 镜头视角或构图（如side view、close-up）
-        - 动作或姿势（如standing、jumping）
-        - 表情或情绪（如smirk、calm）
-        - 地点或场景（如back alley、forest）
-        - 环境细节（如graffiti、trees）
-        - 时间或光线（如night、golden hour）
-        - 额外效果（如depth of field、bokeh）
+        - 主题或风格 (e.g., cyberpunk, fantasy, wasteland)
+        - 地点或场景 (e.g., back alley, forest, street)
+        - 可视元素或氛围 (e.g., neon lights, fog, ruined)
+        - 镜头视角或构图 (e.g., front view, side view, close-up)
+        - 动作姿势或表情情绪 (e.g., standing, jumping, smirk, calm)        
+        - 环境细节 (e.g., graffiti, trees)
+        - 时间或光线 (e.g., sunny day, night, golden hour)
+        - 额外效果 (e.g., depth of field, blurry background)        
     5.创意与连贯性： 关键词选择需多样且富有创意，形成一个生动连贯的场景。
     6.用户输入： 将用户查询中的关键词逐字纳入，适当融入提示词。
     7.强调处理： 若用户强调某方面，可增加该类别关键词（最多6个），但总数保持在8到16个。
