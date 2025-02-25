@@ -12,9 +12,9 @@ from PIL import Image
 from PIL import PngImagePlugin
 import random
 import argparse
-from comfyui import run_comfyui
-from webui import run_webui
-from color_transfer import ColorTransfer
+from .comfyui import run_comfyui
+from .webui import run_webui
+from .color_transfer import ColorTransfer
 
 # Language
 LANG_EN = {
@@ -201,8 +201,9 @@ CAT = "WAI_Character_Select"
 ENGLISH_CHARACTER_NAME = False
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-json_folder = os.path.join(current_dir, 'json')
-image_outputs_folder = os.path.join(current_dir, 'outputs')
+parent_dir = os.path.dirname(current_dir)
+json_folder = os.path.join(parent_dir, 'json')
+image_outputs_folder = os.path.join(parent_dir, 'outputs')
 
 character_list = ''
 character_dict = {}
@@ -641,7 +642,6 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
         try:            
             if 'ComfyUI' == interface:
                 if api_hf_enable: 
-                    gr.Warning("WIP: ComfyUI Hires Fix workflow not upload yet")
                     if not str(api_hf_upscaler).__contains__('(C)'):
                         print(f"[{CAT}]Reset {api_hf_upscaler} to 4x-UltraSharp")
                         api_hf_upscaler = '4x-UltraSharp'
@@ -650,7 +650,8 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                         api_hf_upscaler = str(api_hf_upscaler).replace('(C)', '')
                     
                 image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, 
-                                              positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height
+                                              positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
+                                              hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler, hf_colortransfer=api_hf_colortransfer,
                                               )
                 image_data_bytes = bytes(image_data_list)  
                 api_image = Image.open(BytesIO(image_data_bytes))    
@@ -922,6 +923,20 @@ def load_saved_setting(file_path):
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
+
+def refresh_character_thumb_image(character1, character2, character3):
+    thumb_image = []
+    if 'none' != character1 and 'random' != character1:
+        _, _, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=42)        
+        thumb_image.append(thumb_image1)
+    
+    if 'none' != character2 and 'random' != character2:
+        _, _, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=42)        
+        thumb_image.append(thumb_image2)
+    if 'none' != character3 and 'random' != character3:
+        _, _, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=42)        
+        thumb_image.append(thumb_image3)
+    return thumb_image
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')

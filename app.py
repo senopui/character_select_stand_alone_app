@@ -1,6 +1,6 @@
 import gradio as gr
-from lib import init, create_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change
-from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
+from scripts.lib import init, create_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
+from scripts.lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
     character_list, action_list, original_character_list, model_files_list, LANG = init()
@@ -42,7 +42,7 @@ if __name__ == '__main__':
                 allow_custom_value=False,
             )
             
-        with gr.Row(elem_classes='main_row'):           
+        with gr.Row(elem_classes='main_row'):            
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                             save_settings_button = gr.Button(value=LANG["save_settings_button"], variant='stop') 
                             load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json']) 
             with gr.Column(elem_classes='column_images'):
-                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=872, label=LANG["api_image"])
+                api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=846, label=LANG["api_image"])
                 output_prompt = gr.Textbox(label=LANG["output_prompt"])
                 output_info = gr.Textbox(label=LANG["output_info"])
                 
@@ -202,5 +202,15 @@ if __name__ == '__main__':
         
         batch_generate_rule.change(fn=batch_generate_rule_change,
                                 inputs=batch_generate_rule)
+        
+        character1.change(fn=refresh_character_thumb_image,
+                          inputs=[character1,character2,character3],
+                          outputs=[thumb_image])
+        character2.change(fn=refresh_character_thumb_image,
+                          inputs=[character1,character2,character3],
+                          outputs=[thumb_image])
+        character3.change(fn=refresh_character_thumb_image,
+                          inputs=[character1,character2,character3],
+                          outputs=[thumb_image])
         
     ui.launch()

@@ -1,6 +1,6 @@
 import gradio as gr
-from lib import init, create_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change
-from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
+from scripts.lib import init, create_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
+from scripts.lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
     character_list, action_list, original_character_list, model_files_list, LANG = init()
@@ -202,5 +202,15 @@ if __name__ == '__main__':
         
         batch_generate_rule.change(fn=batch_generate_rule_change,
                                 inputs=batch_generate_rule)
+        
+        character1.change(fn=refresh_character_thumb_image,
+                          inputs=[character1,character2,character3],
+                          outputs=[thumb_image])
+        character2.change(fn=refresh_character_thumb_image,
+                          inputs=[character1,character2,character3],
+                          outputs=[thumb_image])
+        character3.change(fn=refresh_character_thumb_image,
+                          inputs=[character1,character2,character3],
+                          outputs=[thumb_image])
         
     ui.launch()

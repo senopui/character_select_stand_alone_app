@@ -10,10 +10,7 @@ def run_webui(
     positive_prompt = 'miqo\'te',negative_prompt = 'nsfw', random_seed = -1, steps= 20, cfg = 7, 
     my_sampler_name='Euler a', height = 512, width = 512, 
     hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='R-ESRGAN 4x+', savepath_override = False
-    ):
-    if savepath_override:
-        print(f'{CAT} WebUI Save path override mode')
-        
+    ):        
     if 'default' != model_name:            
         option_payload = {
             "sd_model_checkpoint": model_name,
