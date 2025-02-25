@@ -95,6 +95,18 @@ pause
 5. Have fun
 ------
 
+# Hires Fix and Image Color Transfer
+## Hires fix now works for WebUI, I'm working on ComfyUI now...   
+
+Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_Mira#image-color-transfer) for more details about Image Color Transfer.   
+
+1. WeuUI will(I think...) download upscale models itself, select any model end with `(W)` will work for WebUI.   
+2. Comfyui needs to download upscale models by yourself. Select `Manager`->`Model Manager` and filter with `upscale`, then download them.   
+3. Upscale model list can be modity in your `settings.json` -> `api_hf_upscaler_list`    
+3.1. For WebUI, copy and paste them from WebUI, and MAKR `(W)` in the end.        
+3.2. For ComfyUI copy and paste model's name from `ComfyUI/models/upscale_models`, and MAKR `(C)` in the end.     
+------
+
 # FAQ
 ## Not working???
 You may need few supports lib for python   
