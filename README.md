@@ -103,8 +103,8 @@ Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_M
 1. WeuUI will(I think...) download upscale models itself, select any model end with `(W)` will work for WebUI.   
 2. Comfyui needs to download upscale models by yourself. Select `Manager`->`Model Manager` and filter with `upscale`, then download them.   
 3. Upscale model list can be modity in your `settings.json` -> `api_hf_upscaler_list`    
-3.1. For WebUI, copy and paste them from WebUI, and MAKR `(W)` in the end.        
-3.2. For ComfyUI copy and paste model's name from `ComfyUI/models/upscale_models`, and MAKR `(C)` in the end.     
+3.1. For WebUI, copy and paste them from WebUI, and add `(W)` in the end.        
+3.2. For ComfyUI, check your model's name from `ComfyUI/models/upscale_models`, and add `(C)` in the end.     
 ------
 
 # FAQ
