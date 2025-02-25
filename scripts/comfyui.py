@@ -85,9 +85,9 @@ class ComfyUIAPIGenerator:
                 continue #previews are binary data
 
         history = self.get_history(prompt_id)[prompt_id]
+        images_output = []
         for node_id in history['outputs']:
-            node_output = history['outputs'][node_id]
-            images_output = []
+            node_output = history['outputs'][node_id]            
             if 'images' in node_output:
                 for image in node_output['images']:
                     image_data = self.get_image(image['filename'], image['subfolder'], image['type'])
