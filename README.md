@@ -96,8 +96,6 @@ pause
 ------
 
 # Hires Fix and Image Color Transfer
-## Hires fix now works for WebUI, I'm working on ComfyUI now...   
-
 Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_Mira#image-color-transfer) for more details about Image Color Transfer.   
 
 1. WeuUI will(I think...) download upscale models itself, select any model end with `(W)` will work for WebUI.   
