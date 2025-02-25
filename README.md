@@ -6,31 +6,22 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=35% height=35%>   
 
 ------
-# Reminder: Remote AI moved to ***settings.json***
-------
-
 # Install and Run
-## *(IMPORTANT)* After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
+## *IMPORTANT* After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
 1. Clone the repository to wherever you like   
 2. Dbclick `#run_XX.bat`   
 3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
 4. Have fun   
-
-# Update from git
-1. `git fetch` and `git pull`
-2. Have fun
-3. Upgrade `settings.json`, click `Save settings` and replace `tmp_settings.json` with `settings.json`
-4. Optional, backup your current `settings.json` and `original_character.json`, then *DELETE ALL* (other) json files in `json` folder    
 ------
 
 # Setup Model List for model switch
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
-4. To use all your models, modify `model_filter` to `false`    
+4. To use all your local models, modify `model_filter` to `false`    
 5. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
 
-# Default settings and custom settings
+# Default and custom settings
 1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`
 2. Rename to `settings.json` as default settings
 3. `Load Settings` will override current settings with your `renamed_settings.json`
