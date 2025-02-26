@@ -29,7 +29,8 @@ LANG_EN = {
     "api_prompt": "Positive Prompt (Tail)",
     "api_neg_prompt": "Negative Prompt",
     "batch_generate_rule": "AI rule for Batch generate",
-    "api_image_data": "CFG,Step,Width,Height,Batch Images(1-16)",
+    "api_image_data": "CFG,Step,W,H,Batch (1-16)",
+    "api_image_landscape": "Landscape",
     "ai_prompt": "AI Prompt",
     "prompt_ban": "Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )",
     "ai_interface": "AI Prompt Generator",
@@ -107,7 +108,8 @@ LANG_CN = {
     "api_prompt": "效果提示词（放在末尾）",
     "api_neg_prompt": "负面提示词",
     "batch_generate_rule": "AI填词规则",
-    "api_image_data": "引导,步数,宽,高,批量数量(1-16)",
+    "api_image_data": "引导,步数,宽,高,批量1-16",
+    "api_image_landscape": "宽高互换",
     "ai_prompt": "AI提示词（用于生成填词）",
     "prompt_ban": "提示词黑名单（用于删除特定标签，例如：\"masterpiece, quality, amazing\" ）",
     "ai_interface": "AI填词设置",
@@ -235,8 +237,9 @@ settings_json = {
     "api_prompt": "masterpiece, best quality, amazing quality",
     "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor,3d",
     "api_image_data": "7.0,30,1024,1360,1",
+    "api_image_landscape": False,
     
-    "batch_generate_rule": "Last",
+    "batch_generate_rule": "Once",
     "ai_prompt": "",
     "prompt_ban" : "",
     
@@ -476,7 +479,6 @@ def remove_duplicates(input_string):
     result = ', '.join(unique_items)
     return result
 
-
 def illustrious_action_select_ex(action = 'random', random_action_seed = 1):   
     act = ''        
     rnd_action = ''
@@ -555,12 +557,15 @@ def original_character_select_ex(character = 'random', random_action_seed = 1):
             
     return rnd_character, opt_chara
 
-def parse_api_image_data(api_image_data):
+def parse_api_image_data(api_image_data,api_image_landscape):
     try:
         cfg, steps, width, height, loops = map(float, api_image_data.split(','))
         if 1 > int(loops) or 16 < int(loops):
             loops = 1
-        return float(cfg), int(steps), int(width), int(height), int(loops)
+        if not api_image_landscape:
+            return float(cfg), int(steps), int(width), int(height), int(loops)
+        else:
+            return float(cfg), int(steps), int(height), int(width), int(loops)
     except ValueError:
         return 7.0, 30, 1024, 1360, 1
 
@@ -721,32 +726,32 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
 def create_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
                     ):
     return create_prompt_ex(False, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
 
 
 def create_random_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
                     ):
     return create_prompt_ex(True, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
 
 def create_prompt_ex(batch_random, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
@@ -754,7 +759,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
     global last_ai_text
     global LANG
         
-    cfg, steps, width, height, loops = parse_api_image_data(api_image_data)
+    cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
         
@@ -771,9 +776,11 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
     
     ai_text=''
     LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
-    if 'Disable' != batch_generate_rule:         
-        ai_text = last_ai_text        
-        if 'Last' != batch_generate_rule:            
+    if 'none' != batch_generate_rule:  
+        if 'none' != ai_interface:
+            ai_text = last_ai_text
+            
+        if 'Last' != batch_generate_rule:
             LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
             if 'Remote' == ai_interface:
                 ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
@@ -807,7 +814,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
         if 'none' != ai_interface or 'none' != api_interface:
             gr.Info(LANG["gr_info_create_n"].format(index, loops))
         
-        if 1 != index and 'Everytime' == batch_generate_rule:
+        if 1 != index and 'Every' == batch_generate_rule:
             if 'Remote' == ai_interface:
                 ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
             elif 'Local' == ai_interface:
@@ -838,7 +845,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
 def create_with_last_prompt(random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                            api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                            api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
@@ -846,7 +853,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
         gr.Warning(LANG["gr_warning_click_create_first"])
         return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None
         
-    cfg, steps, width, height, loops = parse_api_image_data(api_image_data)
+    cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
             
@@ -855,7 +862,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
     final_infos = []
 
     ai_text=''
-    if 'Disable' != batch_generate_rule:         
+    if 'none' != batch_generate_rule:         
         ai_text = last_ai_text        
         if 'Last' != batch_generate_rule:            
             LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
@@ -870,7 +877,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
         if random_seed == -1:
             seed = random.randint(0, 4294967295)        
             
-        if 1 != index and 'Everytime' == batch_generate_rule:
+        if 1 != index and 'Every' == batch_generate_rule:
             if 'Remote' == ai_interface:
                 ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
             elif 'Local' == ai_interface:
@@ -895,7 +902,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
     return ''.join(final_prompts), ''.join(final_infos), api_images
 
 def save_current_setting(character1, character2, character3, action, api_model_file_select, random_seed,
-                        custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
+                        custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                         ai_remote_addr, ai_remote_model, ai_remote_timeout,
                         ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
@@ -923,6 +930,7 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         "api_prompt": api_prompt,
         "api_neg_prompt": api_neg_prompt,
         "api_image_data": api_image_data,   
+        "api_image_landscape": api_image_landscape,   
 
         "batch_generate_rule": batch_generate_rule,
         "ai_prompt" : ai_prompt,                
@@ -962,7 +970,7 @@ def load_saved_setting(file_path):
     gr.Info(LANG["gr_info_settings_loaded"].format(file_path))
 
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["action"],settings_json["api_model_file_select"],settings_json["random_seed"],\
-            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],\
+            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"], settings_json["api_image_landscape"],\
             settings_json["batch_generate_rule"],settings_json["ai_prompt"],settings_json["prompt_ban"],settings_json["ai_interface"],\
             settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\
             settings_json["ai_local_addr"],settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"],\

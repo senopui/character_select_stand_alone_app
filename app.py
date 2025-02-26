@@ -42,7 +42,7 @@ if __name__ == '__main__':
                 allow_custom_value=False,
             )
             
-        with gr.Row(elem_classes='main_row'):           
+        with gr.Row(elem_classes='main_row'):            
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -93,18 +93,20 @@ if __name__ == '__main__':
                         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1)
                         run_same_button = gr.Button(value=LANG["run_same_button"], scale=3)
                 with gr.Row():
-                    with gr.Column():                        
+                    with gr.Column():
+                        
                         # API prompts
                         custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label=LANG["custom_prompt"], elem_id="custom_prompt_text") 
                         api_prompt = gr.Textbox(value=settings_json["api_prompt"], label=LANG["api_prompt"], elem_id="positive_prompt_text")
                         api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label=LANG["api_neg_prompt"], elem_id="negative_prompt_text")                        
                         with gr.Row():
                             # AI prompts
-                            batch_generate_rule = gr.Radio(choices=["Last", "Once", "Everytime", "Disable"], 
+                            batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
                                                         value=settings_json["batch_generate_rule"],
                                                         label=LANG["batch_generate_rule"],
-                                                        scale=3)
-                            api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"], scale=2)                            
+                                                        scale=7)
+                            api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"], scale=3)
+                            api_image_landscape = gr.Checkbox(value=settings_json["api_image_landscape"], label=LANG["api_image_landscape"], scale = 1)
                         ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label=LANG["ai_prompt"], elem_id="ai_prompt_text")
                         prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label=LANG["prompt_ban"], elem_id="prompt_ban_text")                
                 with gr.Row():             
@@ -165,7 +167,7 @@ if __name__ == '__main__':
                          inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
                                  ], 
                          outputs=[output_prompt, output_info, thumb_image, api_image])
@@ -174,7 +176,7 @@ if __name__ == '__main__':
                          inputs=[character1, character2, character3, action, original_character, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
                                  ], 
                          outputs=[output_prompt, output_info, thumb_image, api_image])
@@ -183,14 +185,14 @@ if __name__ == '__main__':
                          inputs=[random_seed,  custom_prompt,
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
                                  ], 
                          outputs=[output_prompt, output_info, api_image])
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, action, api_model_file_select, random_seed,
-                                           custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
+                                           custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
@@ -201,7 +203,7 @@ if __name__ == '__main__':
         load_settings_button.upload(fn=load_saved_setting,
                                    inputs=[load_settings_button],
                                    outputs=[character1, character2, character3, action, api_model_file_select, random_seed,
-                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, 
+                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                                             batch_generate_rule, ai_prompt, prompt_ban, ai_interface, 
                                             ai_remote_addr, ai_remote_model, ai_remote_timeout,
                                             ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
