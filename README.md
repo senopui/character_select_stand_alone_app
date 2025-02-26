@@ -54,33 +54,34 @@ pause
 # AI prompt
 ## Remote   
 1. Modify `json/settings.json`    
-2. Set `remote_ai_base_url` `remote_ai_model` `remote_ai_api_key` to your Remote AI     
-2.5. Got feed back: *For some DSR1 model provider, you man need change `remote_ai_timeout` from 30s to 60~120+*
-3. Restart App    
-4. Set `AI Prompt Generator` to `Remote`   
-5. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`
-6. You can modify `Remote AI url`, `Remote AI model`, `Remote AI connection timeout` in App   
+2. Set `remote_ai_api_key` to your Remote AI API Key, and keep it only for yourself     
+3. Run app       
+4. Set `AI Prompt Generator` to `Remote`
+5. Set `Remote AI url` to your remote AI API address
+6. Set `Remote AI model` to your selected remote model
+6.5. Got feed back: *For some DSR1 model provider, you man need change `Remote AI connection timeout` from 30s to 60~120+*
+7. Put something in `AI Prompt` e.g. `make character furry, and I want a detailed portrait`     
 
 ## Local
 1. Make sure you know how to build [Llama.cpp](https://github.com/ggml-org/llama.cpp) yourself, or download them from trusted source   
 2. Download Model from [HuggingFace](https://huggingface.co/), recommend GGUF like `Llama-3.3-7B-q8`   
 3. Recommend Server args `llama-server.exe -ngl 40 --no-mmap -m "<your GGUF model here>`
 4. Set `AI Prompt Generator` to `Local`
-5. Modify `Local Llama.cpp server` to your Local AI address    
-6. You may need to check API settings for other Local AI service     
+5. Set `Local Llama.cpp server` to your Local AI address    
+6. (Optional) You may need to check API settings for any other Local AI service     
 7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`    
 ------
 
-# API   
+# API Call for Local Image Generator   
 ## ComfyUI   
-1. Enable `DEV mode` in ComfyUI Settings   
+1. Enable `DEV mode` in ComfyUI Settings, and load `examples\workflow_comfyui.png` into your ComfyUI ([FAQ:ComfyUI API not working](https://github.com/mirabarukaso/character_select_stand_alone_app/tree/main#comfyui-api-not-working))    
 2. Select `Local Image Generator API` to `ComfyUI`   
 3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
 4. Have fun   
 
 ## WebUI
 1. Enable `API mode` by add `--api` in `COMMANDLINE_ARGS` (webui-user.bat)   
-2. run it   
+2. Start WebUI       
 3. Select `Local Image Generator API` to `WebUI`   
 4. Make sure `Local Image Generator IP Address:Port` same as your WerUI page   
 5. Have fun
