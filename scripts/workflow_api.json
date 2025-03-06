@@ -2,7 +2,7 @@
   "2": {
     "inputs": {
       "text": [
-        "14",
+        "32",
         0
       ],
       "clip": [
@@ -18,7 +18,7 @@
   "3": {
     "inputs": {
       "text": [
-        "15",
+        "33",
         0
       ],
       "clip": [
@@ -33,7 +33,7 @@
   },
   "4": {
     "inputs": {
-      "seed": 378103853096635,
+      "seed": 477711642,
       "steps": [
         "13",
         0
@@ -100,61 +100,6 @@
       "title": "VAE Decode"
     }
   },
-  "10": {
-    "inputs": {
-      "filename": "%time_%seed",
-      "path": "%date",
-      "extension": "png",
-      "steps": [
-        "13",
-        0
-      ],
-      "cfg": [
-        "13",
-        1
-      ],
-      "modelname": [
-        "11",
-        3
-      ],
-      "sampler_name": "euler_ancestral",
-      "scheduler": "normal",
-      "positive": [
-        "14",
-        0
-      ],
-      "negative": [
-        "15",
-        0
-      ],
-      "seed_value": 477711642,
-      "width": [
-        "17",
-        0
-      ],
-      "height": [
-        "17",
-        1
-      ],
-      "lossless_webp": true,
-      "quality_jpeg_or_webp": 100,
-      "optimize_png": false,
-      "counter": 0,
-      "denoise": 1,
-      "clip_skip": -2,
-      "time_format": "%Y-%m-%d-%H%M%S",
-      "save_workflow_as_json": false,
-      "embed_workflow_in_png": true,
-      "images": [
-        "28",
-        0
-      ]
-    },
-    "class_type": "Image Saver",
-    "_meta": {
-      "title": "Image Saver"
-    }
-  },
   "11": {
     "inputs": {
       "ckpt_name": "waiNSFWIllustrious_v110.safetensors"
@@ -172,24 +117,6 @@
     "class_type": "StepsAndCfg",
     "_meta": {
       "title": "Steps & Cfg"
-    }
-  },
-  "14": {
-    "inputs": {
-      "text": "1girl,two-tone fur, \\(light blue body fur 1.1\\), white cheek fur, cyan hair, white fur on cat tail front, orange eyes, slit pupils, furry, miqo'te, petite, ahoge, whiskers, long hair, hair between eyes, ear fluff, glowing eyes, \\(4 fingers 1.2\\), claws, clothed"
-    },
-    "class_type": "TextBox",
-    "_meta": {
-      "title": "Text Box"
-    }
-  },
-  "15": {
-    "inputs": {
-      "text": "bad quality,worst quality,worst detail,sketch,censor,3d"
-    },
-    "class_type": "TextBox",
-    "_meta": {
-      "title": "Text Box"
     }
   },
   "17": {
@@ -247,7 +174,7 @@
   },
   "20": {
     "inputs": {
-      "seed": 280767533161382,
+      "seed": 477711642,
       "steps": 20,
       "cfg": [
         "13",
@@ -323,6 +250,80 @@
     "class_type": "ImageColorTransferMira",
     "_meta": {
       "title": "Color Transfer"
+    }
+  },
+  "29": {
+    "inputs": {
+      "filename": "%time_%seed",
+      "path": "%date",
+      "extension": "png",
+      "steps": [
+        "13",
+        0
+      ],
+      "cfg": [
+        "13",
+        1
+      ],
+      "modelname": [
+        "11",
+        3
+      ],
+      "sampler_name": "",
+      "scheduler": "normal",
+      "positive": [
+        "32",
+        0
+      ],
+      "negative": [
+        "33",
+        0
+      ],
+      "seed_value": 0,
+      "width": [
+        "17",
+        0
+      ],
+      "height": [
+        "17",
+        1
+      ],
+      "lossless_webp": true,
+      "quality_jpeg_or_webp": 100,
+      "optimize_png": false,
+      "counter": 0,
+      "denoise": 1,
+      "clip_skip": 0,
+      "time_format": "%Y-%m-%d-%H%M%S",
+      "save_workflow_as_json": false,
+      "embed_workflow_in_png": true,
+      "additional_hashes": "",
+      "images": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "Image Saver",
+    "_meta": {
+      "title": "Image Saver"
+    }
+  },
+  "32": {
+    "inputs": {
+      "text": "1girl,two-tone fur, (light blue body fur 1.1), white cheek fur, cyan hair, white fur on cat tail front, orange eyes, slit pupils, furry, miqo'te, petite, ahoge, whiskers, long hair, hair between eyes, ear fluff, glowing eyes, (4 fingers 1.2), claws, clothed"
+    },
+    "class_type": "TextBoxMira",
+    "_meta": {
+      "title": "Text Box"
+    }
+  },
+  "33": {
+    "inputs": {
+      "text": "bad quality,worst quality,worst detail,sketch,censor,3d"
+    },
+    "class_type": "TextBoxMira",
+    "_meta": {
+      "title": "Text Box"
     }
   }
 }

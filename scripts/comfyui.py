@@ -126,12 +126,12 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
         my_gen.set_model(model_name=model_name, node_id="11")
     
     my_gen.set_steps_cfg(steps=steps, cfg=cfg, node_id="13")
-    my_gen.set_seed(seed=random_seed, knode_id="4", snode_id='10')
-    my_gen.set_postive_prompt(positive_prompt, "14")              
-    my_gen.set_negative_prompt(negquality=negative_prompt, node_id="15")
+    my_gen.set_seed(seed=random_seed, knode_id="4", snode_id='29')
+    my_gen.set_postive_prompt(positive_prompt, "32")              
+    my_gen.set_negative_prompt(negquality=negative_prompt, node_id="33")
     if not hf_enable:
         # Image Save set to 1st VAE Decode
-        my_gen.set_ex(node_id="10", inputs="inputs", item="images", data=["6", 0])
+        my_gen.set_ex(node_id="29", inputs="inputs", item="images", data=["6", 0])
         my_gen.set_width_height(width=width, height=height, node_id="17")                
     else:
         my_gen.set_width_height(width=width, height=height, node_id="17")
@@ -141,7 +141,7 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
         my_gen.set_ex(node_id="27", inputs="inputs", item="model_name", data=f'{hf_upscaler}.pth')
         if 'none' == hf_colortransfer:
             # Image Save set to 2nd VAE Decode (Tiled)
-            my_gen.set_ex(node_id="10", inputs="inputs", item="images", data=["18", 0])
+            my_gen.set_ex(node_id="29", inputs="inputs", item="images", data=["18", 0])
         else:
             # Default to Image Color Transfer
             my_gen.set_ex(node_id="28", inputs="inputs", item="method", data=hf_colortransfer)
