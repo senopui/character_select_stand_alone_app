@@ -7,6 +7,7 @@ I'll collate the thumbnails and list in later update.
 
 ```
 Model use: waiNSFWIllustrious_v120.safetensors    
+Sampler: Euler a + normal(auto)
 Seed: 42    
 CFG, Step, Width, Height: 7.0,30,1024,1360
 
