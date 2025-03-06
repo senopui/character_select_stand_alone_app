@@ -99,8 +99,9 @@ Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_M
 
 # FAQ
 ## Not working???
-You may need few supports lib for python   
+Install [Python](https://www.python.org/downloads/) 3.11~3.13 recommend.     
 
+Then copy and paste the following command into your command line with Python environment.    
 ```
 py -m pip install -r requirements.txt
 ```
