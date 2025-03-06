@@ -9,7 +9,7 @@ I'll collate the thumbnails and list in later update.
 Model use: waiNSFWIllustrious_v120.safetensors    
 Sampler: Euler a + normal(auto)
 Seed: 42    
-CFG, Step, Width, Height: 7.0,30,1024,1360
+CFG, Step, Width, Height: 7.0,30,768,1152
 
 Custom Prompt:
 <Character Name(1 tag)>, solo, simple background, white background, cowboy shot, front view, general
