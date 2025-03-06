@@ -12,7 +12,7 @@ Seed: 42
 CFG, Step, Width, Height: 7.0,30,768,1152
 
 Custom Prompt:
-<Character Name(1 tag)>, solo, simple background, white background, cowboy shot, front view, general
+<Character Name(1 tag)>, solo, simple background, white background, cowboy shot, front view
 
 Positive:
 masterpiece, best quality, amazing quality
