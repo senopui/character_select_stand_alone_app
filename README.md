@@ -12,13 +12,13 @@ Seed: 42
 CFG, Step, Width, Height: 7.0,30,768,1152
 
 Custom Prompt:
-<Character Name(1 tag)>, solo, simple background, white background, cowboy shot, front view
+<Character Name(1 tag)>, solo, simple background, white background, straight-on, upper body
 
 Positive:
 masterpiece, best quality, amazing quality
 
 Negative:
-bad quality,worst quality,worst detail,sketch
+bad quality,worst quality,worst detail,sketch,nsfw,explicit
 ```
 
 # Character Select SAA
