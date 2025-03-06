@@ -1,3 +1,25 @@
+# Embedded Character List Collection Project    
+## We are currently planning to make the complete list of IL model Embedded Characters, please refer to the following parameters for testing.    
+
+Once you are sure that certain characters exist, save their names in txt or csv format and submit them to me, one name per line, just the character‘s name.    
+I'll collate the thumbnails and list in later update.    
+**Please note: Only one tag is allowed for Embedded Characters**
+
+```
+Model use: waiNSFWIllustrious_v120.safetensors    
+Seed: 42    
+CFG, Step, Width, Height: 7.0,30,1024,1360
+
+Custom Prompt:
+<Character Name(1 tag)>, solo, simple background, white background, cowboy shot, front view, general
+
+Positive:
+masterpiece, best quality, amazing quality
+
+Negative:
+bad quality,worst quality,worst detail,sketch
+```
+
 # Character Select SAA
 This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.     
    
