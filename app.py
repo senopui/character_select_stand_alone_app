@@ -1,6 +1,8 @@
 import gradio as gr
-from scripts.lib import init, create_prompt, create_random_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
-from scripts.lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
+import sys
+sys.path.append("scripts/")
+from lib import init, create_prompt, create_random_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
+from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
     character_list, action_list, original_character_list, model_files_list, LANG = init()
@@ -58,7 +60,7 @@ if __name__ == '__main__':
                             label=LANG["random_seed"],
                         )    
                 with gr.Row():
-                    thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb Image Gallery")
+                    thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb")
                 with gr.Row():
                     with gr.Row(scale=2):
                         api_hf_enable = gr.Checkbox(label=LANG["api_hf_enable"],value=False)

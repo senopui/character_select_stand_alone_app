@@ -1,4 +1,6 @@
 import datetime
+import gzip
+import hashlib
 import os
 import glob
 import textwrap
@@ -12,9 +14,9 @@ from PIL import Image
 from PIL import PngImagePlugin
 import random
 import argparse
-from .comfyui import run_comfyui
-from .webui import run_webui
-from .color_transfer import ColorTransfer
+from comfyui import run_comfyui
+from webui import run_webui
+from color_transfer import ColorTransfer
 
 # Language
 LANG_EN = {
@@ -267,24 +269,13 @@ last_info = ''
 last_ai_text = ''
 
 wai_illustrious_character_select_files = [
-    {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'}, 
-    {'name': 'wai_zh_tw', 'file_path': os.path.join(json_folder, 'wai_zh_tw.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/zh_TW.json'},
+    {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'},     
     # settings are now in https://github.com/mirabarukaso/character_select_stand_alone_app
     {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},    
     # local files
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
-    {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_image.json'), 'url': 'local'},
-    # images
-    {'name': 'wai_output_1', 'file_path': os.path.join(json_folder, 'wai_output_1.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_1.json'},
-    {'name': 'wai_output_2', 'file_path': os.path.join(json_folder, 'wai_output_2.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_2.json'},
-    {'name': 'wai_output_3', 'file_path': os.path.join(json_folder, 'wai_output_3.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_3.json'},
-    {'name': 'wai_output_4', 'file_path': os.path.join(json_folder, 'wai_output_4.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_4.json'},
-    {'name': 'wai_output_5', 'file_path': os.path.join(json_folder, 'wai_output_5.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_5.json'},
-    {'name': 'wai_output_6', 'file_path': os.path.join(json_folder, 'wai_output_6.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_6.json'},
-    {'name': 'wai_output_7', 'file_path': os.path.join(json_folder, 'wai_output_7.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_7.json'},
-    {'name': 'wai_output_8', 'file_path': os.path.join(json_folder, 'wai_output_8.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_8.json'},
-    {'name': 'wai_output_9', 'file_path': os.path.join(json_folder, 'wai_output_9.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_9.json'},
-    {'name': 'wai_output_10', 'file_path': os.path.join(json_folder, 'wai_output_10.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/output_10.json'},
+    {'name': 'wai_character', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url': 'local'},
+    {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'local'},
 ]
 
 def decode_response(response):
@@ -354,11 +345,15 @@ def download_file(url, file_path):
     with open(file_path, 'wb') as file:
         file.write(response.content)        
 
-def dase64_to_image(base64_data):
-    base64_str = base64_data.split("base64,")[1]
-    image_data = base64.b64decode(base64_str)
-    image_bytes = BytesIO(image_data)
-    image = Image.open(image_bytes)    
+def get_md5_hash(input_str):
+    md5_hash = hashlib.md5()
+    md5_hash.update(input_str.encode('utf-8'))
+    return md5_hash.hexdigest()
+
+def base64_to_image(base64_data):
+    compressed_data = base64.b64decode(base64_data)
+    webp_data = gzip.decompress(compressed_data)
+    image = Image.open(BytesIO(webp_data))  
     return image
 
 def get_safetensors_files(directory):
@@ -388,10 +383,7 @@ def load_jsons():
     global original_character_list
     global wai_image_dict
     global settings_json
-    global model_files_list
-    
-    wai_image_cache = False
-    wai_image_dict_temp = {}
+    global model_files_list    
     
     # download file
     for item in wai_illustrious_character_select_files:
@@ -400,12 +392,7 @@ def load_jsons():
         url = item['url']        
             
         if 'local' == url:
-            if 'wai_image' == name:
-                if os.path.exists(file_path):
-                    wai_image_cache = True   
-                else:
-                    continue
-            elif 'settings' == name and not os.path.exists(file_path):                                        
+           if 'settings' == name and not os.path.exists(file_path):                                        
                 print(f'[{CAT}] Settings: Local settings.json not found, use default. Use Save settings to save your settings, and rename tmp_settings to settings.json.')
                 continue
         else:
@@ -415,52 +402,36 @@ def load_jsons():
         with open(file_path, 'r', encoding='utf-8') as file:
             if 'wai_action' == name:
                 action_dict.update(json.load(file))
-            elif 'wai_zh_tw' == name:
-                character_dict.update(json.load(file))        
             elif 'original_character' == name:
                 original_character_dict.update(json.load(file))                
             elif 'settings' == name:
                 temp_settings_json = {}
                 temp_settings_json.update(json.load(file))
                 load_settings(temp_settings_json)
-            elif 'wai_image' == name and wai_image_cache:
-                print(f'[{CAT}]:Loading wai_image.json, delete this file for update.')
+            elif 'wai_character' == name:
+                lines = file.readlines()
+                for line in lines:
+                    key, value = line.split(',')
+                    character_dict[key.strip()]=value.strip()
+            elif 'wai_image' == name:
                 wai_image_dict = json.load(file)                
-            elif name.startswith('wai_output_') and not wai_image_cache:
-                # [ {} ] .......
-                # Got some s..special data format from the source
-                # Luckily we have a strong enough cpu for that.
-                wai_image_dict_temp = json.load(file)
-                for item in wai_image_dict_temp:
-                    key = list(item.keys())[0]
-                    value = list(item.values())[0]
-                    wai_image_dict.update({key : value}) 
-        
-        if wai_image_cache:
-            break    
-                        
+                                        
     # Create list
     action_list = list(action_dict.keys())
     action_list.insert(0, "none")
-    
+        
     if ENGLISH_CHARACTER_NAME:
         character_list = list(character_dict.values())   
     else:
         character_list = list(character_dict.keys())   
+    
     character_list.insert(0, "none")
     character_list.insert(0, "random")
     
     original_character_list = list(original_character_dict.keys())    
     original_character_list.insert(0, "none")
     original_character_list.insert(0, "random")    
-                
-    # Create cache
-    # Loading time 4.3s to 0.1s
-    if not wai_image_cache:
-        print(f'[{CAT}]:Creating wai_image.json ...')
-        with open(os.path.join(json_folder, 'wai_image.json'), 'w', encoding='utf-8') as file:
-            json.dump(wai_image_dict, file, ensure_ascii=False, indent=4)
-            
+                            
     # Search models
     files_list = get_safetensors_files(settings_json["model_path"])
     
@@ -515,21 +486,20 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     if ENGLISH_CHARACTER_NAME:
         chara = rnd_character
     else:
-        chara = character_dict[rnd_character]                    
-                
+        chara = character_dict[rnd_character]
+        
+    md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))                
     thumb_image = Image.new('RGB', (128, 128), (128, 128, 128))
-    if wai_image_dict.keys().__contains__(chara):
-        thumb_image = dase64_to_image(wai_image_dict.get(chara))
+    if wai_image_dict.keys().__contains__(md5_chara):
+        thumb_image = base64_to_image(wai_image_dict.get(md5_chara))
     
     opt_chara = chara
     if optimise_tags:
-        #opt_chara = remove_duplicates(chara.replace('_', ' ').replace(':', ' '))
-        opt_chara = opt_chara.split(',')[1].strip()
-        opt_chara = opt_chara.replace('(', '\\(').replace(')', '\\)')
-        if not opt_chara.endswith(','):
-            opt_chara = f'{opt_chara},'   
+        opt_chara = opt_chara.replace('(', '\\(').replace(')', '\\)')  
+        #print(f'{CAT}:Optimise Tags:[{chara}]->[{opt_chara}]')
     
-        print(f'{CAT}:Optimise Tags:[{chara}]->[{opt_chara}]')
+    if not opt_chara.endswith(','):
+        opt_chara = f'{opt_chara},'   
             
     return rnd_character, opt_chara, thumb_image
 
@@ -659,7 +629,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                                               hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler, hf_colortransfer=api_hf_colortransfer,
                                               )
                 image_data_bytes = bytes(image_data_list)  
-                api_image = Image.open(BytesIO(image_data_bytes))    
+                api_image = Image.open(BytesIO(image_data_bytes))
             elif 'WebUI' == interface:                
                 metadata = PngImagePlugin.PngInfo()
                 
@@ -694,7 +664,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                             
                         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")                                                
                         image_filename = f"{current_time}_{seed}_reference.png"
-                        image_filepath = os.path.join(image_outputs_folder, image_filename)                                                    
+                        image_filepath = os.path.join(image_outputs_folder, image_filename)
                         ref_para = convert_to_condensed_format(''.join(ref_info), False)
                         metadata.add_text("parameters", ref_para)                        
                         ref_image.save(image_filepath, pnginfo=metadata)

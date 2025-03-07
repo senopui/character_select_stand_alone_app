@@ -1,4 +1,5 @@
 # Embedded Character List Collection Project    
+## New Character List for waiNSFWIllustrious_v120 updated, now supports 5323(includes multiple costumes for the same character) Character tags!
 ## We are currently planning to make the complete list of IL model Embedded Characters, please refer to the following parameters for testing.    
 
 Once you are sure that certain characters exist, save their names in txt or csv format and submit them to me, one name per line, just the character‘s name.    
@@ -21,10 +22,13 @@ Negative:
 bad quality,worst quality,worst detail,sketch,nsfw,explicit
 ```
 
+## Character Translate project
+Currently a team working on Simplified Chinese translation of the Character list, if you are interested in other languages, please submit an issue ticket!    
+
 # Character Select SAA
 This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.     
    
-Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing the role data, please support his webui plugin.   
+Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing 2000+ Character tags, please support his webui plugin.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=35% height=35%>   
 
