@@ -8,9 +8,9 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 # One-Click embedded package
 In case you don't know how to build your own Python enverment, try the [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)    
 
-1. Down and unzip to your computer    
-2. Db-click `##quick_start_download_and_force_update_SAA.bat`, wait for download        
-3. Db-click `#run_XX.bat`   
+1. Download and unzip to your computer    
+2. Db-click `##quick_start_download_and_force_update_SAA.bat`, wait for Github download        
+3. Db-click `#run_XX.bat`, wait for 1st time setup and Github/HF download   
 
 # Embedded Character List Collection and Translate Project    
 ## New Character List for waiNSFWIllustrious_v120 updated, now supports 5323(includes multiple costumes for the same character) Character tags!
