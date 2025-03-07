@@ -9,6 +9,7 @@ import numpy as np
 import requests
 import json
 import base64
+import webbrowser
 from io import BytesIO
 from PIL import Image
 from PIL import PngImagePlugin
@@ -366,6 +367,14 @@ def get_safetensors_files(directory):
     
     return safetensors_filenames
 
+def save_json(now_settings_json, file_name):
+    tmp_file = os.path.join(json_folder, file_name)
+    with open(tmp_file, 'w', encoding='utf-8') as f:
+        json.dump(now_settings_json, f, ensure_ascii=False, indent=4)
+            
+    print(f"[{CAT}]:Json saved to {tmp_file}")
+    return tmp_file
+
 def load_settings(temp_settings_json):    
     for key, value in temp_settings_json.items():
         if settings_json.__contains__(key):
@@ -394,6 +403,7 @@ def load_jsons():
         if 'local' == url:
            if 'settings' == name and not os.path.exists(file_path):                                        
                 print(f'[{CAT}] Settings: Local settings.json not found, use default. Use Save settings to save your settings, and rename tmp_settings to settings.json.')
+                save_json(settings_json, 'settings.json')
                 continue
         else:
             if not os.path.exists(file_path):
@@ -923,14 +933,9 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         "api_webui_savepath_override": api_webui_savepath_override,
     }
     
-    tmp_file = os.path.join(json_folder, 'tmp_settings.json')
-    with open(tmp_file, 'w', encoding='utf-8') as f:
-        json.dump(now_settings_json, f, ensure_ascii=False, indent=4)        
-            
-    print(f"[{CAT}]:Settings saved to {tmp_file}")
+    tmp_file = save_json(now_settings_json=now_settings_json, file_name='tmp_settings.json')
     gr.Info(LANG["gr_info_settings_saved"].format(tmp_file))
     
-
 def load_saved_setting(file_path):
     
     temp_settings_json = {}                
@@ -980,7 +985,8 @@ def init():
         LANG = LANG_EN
         
     load_jsons()    
-    
+    url = f'http://127.0.0.1:{os.environ['GRADIO_SERVER_PORT']}'
+    webbrowser.open(url, new=0, autoraise=True)
     print(f'[{CAT}]:Starting...')
     
     return character_list, action_list, original_character_list, model_files_list, LANG
