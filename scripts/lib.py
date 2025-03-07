@@ -73,6 +73,7 @@ LANG_EN = {
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
     "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
     "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
+    "gr_warning_cfgstepwh_mismatch":"[Warning] \"CFG,Step,W,H,Batch\" data mismatch, use default: 7.0, 30, 1024, 1360, 1",
     
     "gr_error_creating_image":"[Error] Got error from Image API: {}",
     
@@ -152,6 +153,7 @@ LANG_CN = {
     "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
     "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
     "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
+    "gr_warning_cfgstepwh_mismatch":"注意：“引导,步数,宽,高,批量”设置存在错误，使用默认数据：7.0, 30, 1024, 1360, 1",
     
     "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
     
@@ -270,10 +272,9 @@ last_info = ''
 last_ai_text = ''
 
 wai_illustrious_character_select_files = [
-    {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'},     
-    # settings are now in https://github.com/mirabarukaso/character_select_stand_alone_app
-    {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},    
-    # local files
+    {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'},
+    
+    {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
     {'name': 'wai_character', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url': 'local'},
     {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json'},
@@ -547,6 +548,7 @@ def parse_api_image_data(api_image_data,api_image_landscape):
         else:
             return float(cfg), int(steps), int(height), int(width), int(loops)
     except ValueError:
+        gr.Warning(LANG["gr_warning_cfgstepwh_mismatch"])
         return 7.0, 30, 1024, 1360, 1
 
 def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_chara2='',rnd_character3='', opt_chara3='' , rnd_oc = '', opt_oc=''):
