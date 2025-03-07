@@ -1,5 +1,21 @@
-# Embedded Character List Collection Project    
+# Character Select SAA
+This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.     
+   
+Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing 2000+ Character tags, please support his webui plugin.   
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=35% height=35%>   
+
+# One-Click embedded package
+In case you don't know how to build your own Python enverment, try the [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)    
+
+1. Down and unzip to your computer    
+2. Db-click `##quick_start_download_and_force_update_SAA.bat`, wait for download        
+3. Db-click `#run_XX.bat`   
+
+# Embedded Character List Collection and Translate Project    
 ## New Character List for waiNSFWIllustrious_v120 updated, now supports 5323(includes multiple costumes for the same character) Character tags!
+Currently a team working on Simplified Chinese translation of the Character list, if you are interested in other languages, please submit an issue ticket!    
+
 ## We are currently planning to make the complete list of IL model Embedded Characters, please refer to the following parameters for testing.    
 
 Once you are sure that certain characters exist, save their names in txt or csv format and submit them to me, one name per line, just the character‘s name.    
@@ -21,24 +37,12 @@ masterpiece, best quality, amazing quality
 Negative:
 bad quality,worst quality,worst detail,sketch,nsfw,explicit
 ```
-
-## Character Translate project
-Currently a team working on Simplified Chinese translation of the Character list, if you are interested in other languages, please submit an issue ticket!    
-
-# Character Select SAA
-This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.     
-   
-Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing 2000+ Character tags, please support his webui plugin.   
-
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=35% height=35%>   
-
 ------
 # Install and Run
-## *IMPORTANT* After success run, click `Save settings` and replace `tmp_settings.json` with `settings.json`
+## *IMPORTANT* `Save settings` will NOT overwrite your `settings.json`, it saved as `tmp_settings.json`    
 1. Clone the repository to wherever you like   
 2. Dbclick `#run_XX.bat`   
-3. Open your Chrome/Edge and paste `http://127.0.0.1:47861/`   
-4. Have fun   
+3. Have fun   
 ------
 
 # Setup Model List for model switch
