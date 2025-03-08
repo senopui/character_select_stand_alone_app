@@ -1,0 +1,47 @@
+{
+    "angle":[
+        "from above",
+        "from side",
+        "from below",
+        "from behind",
+        "straight-on",
+        "multiple views",
+        "official art",
+        "profile",
+        "pov",
+        "pov hands",
+        "pov crotch",
+        "face focus",
+        "chest focus",
+        "breast focus",
+        "hand focus",
+        "hip focus",  
+        "thigh focus",
+        "foot focus",
+        "ass focus",
+        "back focus",
+        "looking at viewer, from side, head tilt, leaning back"
+    ],
+    "camera":[
+        "dynamic angle",
+        "dutch angle",
+        "intense angle",
+        "cinematic angle",
+        "dramatic angle ",
+        "wide shot",
+        "fisheye",
+        "perspective",
+        "foreshortening",
+        "backlight",
+        "high saturation",
+        "motion lines, motion blur"
+    ],
+    "background":[
+        "depth of field",
+        "blurry background, depth of field",
+        "blurry foreground, blurry background, depth of field",
+        "simple background",
+        "white background, simple background",
+        "black background, simple background"
+    ]
+}

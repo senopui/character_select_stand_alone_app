@@ -9,7 +9,6 @@ import numpy as np
 import requests
 import json
 import base64
-import webbrowser
 from io import BytesIO
 from PIL import Image
 from PIL import PngImagePlugin
@@ -24,8 +23,10 @@ LANG_EN = {
     "character1": "Character list 1",
     "character2": "Character list 2",
     "character3": "Character list 3",
-    "action": "Action list",
     "original_character": "Original Character",
+    "view_angle": "Angle",
+    "view_camera": "Camera",
+    "view_background": "Background",
     "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v110)",
     "random_seed": "Random Seed",
     "custom_prompt": "Custom Prompt (Head)",
@@ -37,9 +38,9 @@ LANG_EN = {
     "ai_prompt": "AI Prompt",
     "prompt_ban": "Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )",
     "ai_interface": "AI Prompt Generator",
-    "ai_remote_addr": "Remote AI url",
-    "ai_remote_model": "Remote AI model",
-    "ai_remote_timeout": "Remote AI connection timeout",
+    "remote_ai_base_url": "Remote AI url",
+    "remote_ai_model": "Remote AI model",
+    "remote_ai_timeout": "Remote AI connection timeout",
     "ai_local_addr": "Local Llama.cpp server",
     "ai_local_temp": "Local AI Temperature",
     "ai_local_n_predict": "Local AI n_predict",
@@ -54,7 +55,7 @@ LANG_EN = {
     "api_hf_enable": "Enable Hires Fix",
     "api_hf_scale": "Upscale by",
     "api_hf_denoise": "Denoising strength",
-    "api_hf_upscaler": "Upscaler",
+    "api_hf_upscaler_selected": "Upscaler",
     "api_hf_colortransfer": "Color Transfer",
     "api_hf_incorrect_upscaler": "Incorrect Upscaler selected, reset to default {}",
     "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
@@ -104,8 +105,10 @@ LANG_CN = {
     "character1": "角色1",
     "character2": "角色2",
     "character3": "角色3",
-    "action": "动作",
     "original_character": "自定义及原创角色",
+    "view_angle": "视角",
+    "view_camera": "镜头",
+    "view_background": "背景",
     "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v110)",
     "random_seed": "种子",
     "custom_prompt": "自定义提示词（放在最前）",
@@ -117,9 +120,9 @@ LANG_CN = {
     "ai_prompt": "AI提示词（用于生成填词）",
     "prompt_ban": "提示词黑名单（用于删除特定标签，例如：\"masterpiece, quality, amazing\" ）",
     "ai_interface": "AI填词设置",
-    "ai_remote_addr": "远程AI地址",
-    "ai_remote_model": "远程AI模型",
-    "ai_remote_timeout": "远程AI超时（秒）",
+    "remote_ai_base_url": "远程AI地址",
+    "remote_ai_model": "远程AI模型",
+    "remote_ai_timeout": "远程AI超时（秒）",
     "ai_local_addr": "本地 Llama.cpp 服务地址",
     "ai_local_temp": "本地AI温度（Temperature）",
     "ai_local_n_predict": "本地AI回复长度（n_predict）",
@@ -134,7 +137,7 @@ LANG_CN = {
     "api_hf_enable": "高清修复",
     "api_hf_scale": "放大倍率",
     "api_hf_denoise": "降噪强度",
-    "api_hf_upscaler": "高清修复模型",
+    "api_hf_upscaler_selected": "高清修复模型",
     "api_hf_colortransfer": "色彩传递",
     "api_hf_incorrect_upscaler": "选择了错误的高清模型，使用默认 {}",
     "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下。",
@@ -214,11 +217,10 @@ image_outputs_folder = os.path.join(parent_dir, 'outputs')
 
 character_list = ''
 character_dict = {}
-action_list = ''
-action_dict = {}
 original_character_list = ''
 original_character_dict = {}
 wai_image_dict = {}
+view_tags = {}
 
 settings_json = {
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
@@ -233,7 +235,10 @@ settings_json = {
     "character1": "random",
     "character2": "none",
     "character3": "none",
-    "action": "none",
+    
+    "view_angle": "none",
+    "view_camera": "none",
+    "view_background": "none",
     
     "api_model_file_select" : "default",    
     "random_seed": -1,
@@ -271,12 +276,11 @@ last_prompt = ''
 last_info = ''
 last_ai_text = ''
 
-wai_illustrious_character_select_files = [
-    {'name': 'wai_action', 'file_path': os.path.join(json_folder, 'wai_action.json'), 'url': 'https://raw.githubusercontent.com/lanner0403/WAI-NSFW-illustrious-character-select/refs/heads/main/action.json'},
-    
+wai_illustrious_character_select_files = [       
     {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
-    {'name': 'wai_character', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url': 'local'},
+    {'name': 'view_tags', 'file_path': os.path.join(json_folder, 'view_tags.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/view_tags.json'},
+    {'name': 'wai_character', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv'},
     {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json'},
 ]
 
@@ -302,9 +306,9 @@ def decode_response(response):
         gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, ''))
         return ''
 
-def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout):
+def llm_send_request(input_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout):
     data = {
-            'model': ai_remote_model,
+            'model': remote_ai_model,
             'messages': [
                 {"role": "system", "content": LANG["ai_system_prompt"]},
                 {"role": "user", "content": input_prompt + ";Response in English"}
@@ -312,7 +316,7 @@ def llm_send_request(input_prompt, ai_remote_addr, ai_remote_model, ai_remote_ti
         }
     
     try:
-        response = requests.post(ai_remote_addr, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=ai_remote_timeout)
+        response = requests.post(remote_ai_base_url, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=remote_ai_timeout)
         return decode_response(response)
     except Exception as e:
         print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
@@ -387,13 +391,12 @@ def load_settings(temp_settings_json):
 def load_jsons():
     global character_list
     global character_dict
-    global action_list
-    global action_dict
     global original_character_dict
     global original_character_list
     global wai_image_dict
     global settings_json
     global model_files_list    
+    global view_tags
     
     # download file
     for item in wai_illustrious_character_select_files:
@@ -411,14 +414,14 @@ def load_jsons():
                 download_file(url, file_path)
 
         with open(file_path, 'r', encoding='utf-8') as file:
-            if 'wai_action' == name:
-                action_dict.update(json.load(file))
-            elif 'original_character' == name:
+            if 'original_character' == name:
                 original_character_dict.update(json.load(file))                
             elif 'settings' == name:
                 temp_settings_json = {}
                 temp_settings_json.update(json.load(file))
                 load_settings(temp_settings_json)
+            elif 'view_tags' == name:
+                view_tags.update(json.load(file))
             elif 'wai_character' == name:
                 lines = file.readlines()
                 for line in lines:
@@ -427,10 +430,14 @@ def load_jsons():
             elif 'wai_image' == name:
                 wai_image_dict = json.load(file)                
                                         
-    # Create list
-    action_list = list(action_dict.keys())
-    action_list.insert(0, "none")
-        
+    # Create list        
+    view_tags['angle'].insert(0, "none")
+    view_tags['angle'].insert(0, "random")
+    view_tags['camera'].insert(0, "none")
+    view_tags['camera'].insert(0, "random")
+    view_tags['background'].insert(0, "none")
+    view_tags['background'].insert(0, "random")
+                
     if ENGLISH_CHARACTER_NAME:
         character_list = list(character_dict.values())   
     else:
@@ -460,23 +467,6 @@ def remove_duplicates(input_string):
     unique_items = list(dict.fromkeys(item.strip() for item in items))    
     result = ', '.join(unique_items)
     return result
-
-def illustrious_action_select_ex(action = 'random', random_action_seed = 1):   
-    act = ''        
-    rnd_action = ''
-    
-    if 'random' == action:
-        index = random_action_seed % len(action_list)
-        rnd_action = action_list[index]
-        act = f'{action_dict[rnd_action]}, '
-    elif 'none' == action:
-        rnd_action = action
-        act = ''
-    else:
-        rnd_action = action
-        act = f'{action_dict[rnd_action]}, '   
-        
-    return rnd_action, act
 
 def illustrious_character_select_ex(character = 'random', optimise_tags = True, random_action_seed = 1):
     chara = ''
@@ -571,7 +561,7 @@ def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_c
 
 def create_image(interface, addr, model_file_select, prompt, neg_prompt, 
                  seed, cfg, steps, width, height, 
-                 api_hf_enable, ai_hf_scale, ai_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override):
+                 api_hf_enable, ai_hf_scale, ai_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override):
     def convert_to_condensed_format(data, api_webui_savepath_override):
         # Ensure data is a dictionary by parsing it if it's a string
         if isinstance(data, str):
@@ -629,16 +619,16 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
         try:            
             if 'ComfyUI' == interface:
                 if api_hf_enable: 
-                    if not str(api_hf_upscaler).__contains__('(C)'):
-                        print(f"[{CAT}]Reset {api_hf_upscaler} to 4x-UltraSharp")
-                        api_hf_upscaler = '4x-UltraSharp'
-                        gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler))
+                    if not str(api_hf_upscaler_selected).__contains__('(C)'):
+                        print(f"[{CAT}]Reset {api_hf_upscaler_selected} to 4x-UltraSharp")
+                        api_hf_upscaler_selected = '4x-UltraSharp'
+                        gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler_selected))
                     else:
-                        api_hf_upscaler = str(api_hf_upscaler).replace('(C)', '')
+                        api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(C)', '')
                     
                 image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, 
                                               positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                              hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler, hf_colortransfer=api_hf_colortransfer,
+                                              hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer,
                                               )
                 image_data_bytes = bytes(image_data_list)  
                 api_image = Image.open(BytesIO(image_data_bytes))
@@ -646,23 +636,23 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                 metadata = PngImagePlugin.PngInfo()
                 
                 if api_hf_enable: 
-                    if not str(api_hf_upscaler).__contains__('(W)'):
-                        print(f"[{CAT}]Reset {api_hf_upscaler} to R-ESRGAN 4x+")
-                        api_hf_upscaler = 'R-ESRGAN 4x+'
-                        gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler))
+                    if not str(api_hf_upscaler_selected).__contains__('(W)'):
+                        print(f"[{CAT}]Reset {api_hf_upscaler_selected} to R-ESRGAN 4x+")
+                        api_hf_upscaler_selected = 'R-ESRGAN 4x+'
+                        gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler_selected))
                     else:
-                        api_hf_upscaler = str(api_hf_upscaler).replace('(W)', '')
+                        api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(W)', '')
                         
                     src_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
                                     positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                    hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler, savepath_override=api_webui_savepath_override)
+                                    hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override)
                     
                     
                     if 'none' != api_hf_colortransfer:
                         gr.Warning(LANG["colortransfer_webui_warning"])
                         ref_image, _, ref_info = run_webui(server_address=addr, model_name=model_file_select, 
                                             positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                            hf_enable=False, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler, savepath_override=api_webui_savepath_override)  
+                                            hf_enable=False, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override)  
                         
                         PT = ColorTransfer()        
                         if "Mean" == api_hf_colortransfer:
@@ -686,7 +676,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                 else:
                     api_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
                                         positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                        hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler, savepath_override=api_webui_savepath_override)                                    
+                                        hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override)                                    
                 
                 if api_webui_savepath_override:
                     if not current_time:
@@ -705,36 +695,63 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
     
     return None
 
-def create_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+def create_view_tag(view_list, in_tag, seed):
+    if 'none' == in_tag:
+        out_tag = ''
+    elif 'random' == in_tag:
+        index = seed % len(view_tags[view_list])
+        if 'none' == view_tags[view_list][index]:
+            index = index + 1
+        elif 'random' == view_tags[view_list][index]:
+            index = index + 2
+        out_tag = f'{view_tags[view_list][index]}, '
+    else:
+        out_tag = f'{in_tag}, '
+        
+    return out_tag
+
+def create_view_tags(view_angle, view_camera, view_background, seed):
+    tag_angle = create_view_tag('angle', view_angle, seed)
+    tag_camera = create_view_tag('camera', view_camera, seed)
+    tag_background = create_view_tag('background', view_background, seed)
+        
+    return tag_angle, tag_camera, tag_background
+
+def create_prompt(character1, character2, character3, original_character, 
+                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                     ):
-    return create_prompt_ex(False, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+    return create_prompt_ex(False, character1, character2, character3, original_character, 
+                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
 
 
-def create_random_prompt(character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+def create_random_prompt(character1, character2, character3, original_character, 
+                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                     ):
-    return create_prompt_ex(True, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+    return create_prompt_ex(True, character1, character2, character3, original_character, 
+                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
 
-def create_prompt_ex(batch_random, character1, character2, character3, action, original_character, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+def create_prompt_ex(batch_random, character1, character2, character3, original_character, 
+                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
     global last_info
@@ -765,7 +782,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
         if 'Last' != batch_generate_rule:
             LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
+                ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)     
                 
@@ -781,7 +798,6 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
         rnd_character3, opt_chara3, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3)
         rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
             
-        rnd_action, act = illustrious_action_select_ex(action = action, random_action_seed=seed1)                    
         if thumb_image1:
             thumb_image.append(thumb_image1)
         if thumb_image2:
@@ -789,28 +805,27 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
         if thumb_image3:
             thumb_image.append(thumb_image3)
         
-        prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3, rnd_oc, opt_oc)
-        if '' != rnd_action:
-            info += f'Action:{rnd_action}[{act}]'    
+        prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3, rnd_oc, opt_oc)   
         
         if 'none' != ai_interface or 'none' != api_interface:
             gr.Info(LANG["gr_info_create_n"].format(index, loops))
         
         if 1 != index and 'Every' == batch_generate_rule:
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
+                ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)         
         
-        to_image_create_prompt = f'{custom_prompt}{prompt}{act}{ai_text}{api_prompt}'
+        tag_angle, tag_camera, tag_background = create_view_tags(view_angle, view_camera, view_background, seed1)            
+        to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{prompt}{ai_text}{api_prompt}'
         for ban_word in prompt_ban.split(','):
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
 
         api_image = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                 seed1, cfg, steps, width, height, 
-                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
         
-        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
+        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
             api_images.append(api_image)
@@ -824,11 +839,11 @@ def create_prompt_ex(batch_random, character1, character2, character3, action, o
         
     return ''.join(final_prompts), ''.join(final_infos), thumb_image, api_images
 
-def create_with_last_prompt(random_seed,  custom_prompt,
-                            ai_interface, ai_prompt, batch_generate_rule, prompt_ban, ai_remote_addr, ai_remote_model, ai_remote_timeout,
+def create_with_last_prompt(view_angle, view_camera, view_background, random_seed,  custom_prompt,
+                            ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                             api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override
+                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
     if '' == last_prompt and '' == custom_prompt:
@@ -849,7 +864,7 @@ def create_with_last_prompt(random_seed,  custom_prompt,
         if 'Last' != batch_generate_rule:            
             LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
+                ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
 
@@ -861,18 +876,19 @@ def create_with_last_prompt(random_seed,  custom_prompt,
             
         if 1 != index and 'Every' == batch_generate_rule:
             if 'Remote' == ai_interface:
-                ai_text = llm_send_request(ai_prompt, ai_remote_addr, ai_remote_model, ai_remote_timeout)
+                ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
-            
-        to_image_create_prompt = f'{custom_prompt}{last_prompt}{ai_text}{api_prompt}'
+        
+        tag_angle, tag_camera, tag_background = create_view_tags(view_angle, view_camera, view_background, seed)
+        to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{last_prompt}{ai_text}{api_prompt}'
         for ban_word in prompt_ban.split(','):
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
         
-        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\n{last_info}\nAI Prompt:[{ai_text}]'
+        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}]\n{last_info}\nAI Prompt:[{ai_text}]'
         api_image = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                  seed, cfg, steps, width, height, 
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer, api_webui_savepath_override)
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
         
@@ -883,18 +899,19 @@ def create_with_last_prompt(random_seed,  custom_prompt,
     
     return ''.join(final_prompts), ''.join(final_infos), api_images
 
-def save_current_setting(character1, character2, character3, action, api_model_file_select, random_seed,
+def save_current_setting(character1, character2, character3, 
+                        view_angle, view_camera, view_background, api_model_file_select, random_seed,
                         custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
-                        ai_remote_addr, ai_remote_model, ai_remote_timeout,
+                        remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                         ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
-                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler, api_hf_colortransfer,api_webui_savepath_override
+                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                         ):        
     now_settings_json = {        
-        "remote_ai_base_url": ai_remote_addr,
-        "remote_ai_model": ai_remote_model,
+        "remote_ai_base_url": remote_ai_base_url,
+        "remote_ai_model": remote_ai_model,
         "remote_ai_api_key": settings_json["remote_ai_api_key"],
-        "remote_ai_timeout":ai_remote_timeout,
+        "remote_ai_timeout":remote_ai_timeout,
         
         "model_path": settings_json["model_path"],
         "model_filter": settings_json["model_filter"],
@@ -903,7 +920,10 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         "character1": character1,
         "character2": character2,
         "character3": character3,
-        "action": action,
+        
+        "view_angle": view_angle,
+        "view_camera": view_camera,
+        "view_background": view_background,
         
         "api_model_file_select" : api_model_file_select,
         "random_seed": random_seed,
@@ -930,7 +950,7 @@ def save_current_setting(character1, character2, character3, action, api_model_f
         "api_hf_scale": api_hf_scale,
         "api_hf_denoise": api_hf_denoise,
         "api_hf_upscaler_list": settings_json["api_hf_upscaler_list"],
-        "api_hf_upscaler_selected": api_hf_upscaler,
+        "api_hf_upscaler_selected": api_hf_upscaler_selected,
         "api_hf_colortransfer": api_hf_colortransfer,
         "api_webui_savepath_override": api_webui_savepath_override,
     }
@@ -945,13 +965,15 @@ def load_saved_setting(file_path):
         temp_settings_json.update(json.load(file))    
     load_settings(temp_settings_json)        
     gr.Info(LANG["gr_info_settings_loaded"].format(file_path))
-
-    return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["action"],settings_json["api_model_file_select"],settings_json["random_seed"],\
-            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"], settings_json["api_image_landscape"],\
-            settings_json["batch_generate_rule"],settings_json["ai_prompt"],settings_json["prompt_ban"],settings_json["ai_interface"],\
+    
+    
+    return settings_json["character1"],settings_json["character2"],settings_json["character3"],\
+            settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"],settings_json["api_model_file_select"],settings_json["random_seed"],\
+            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],\
+            settings_json["ai_prompt"],settings_json["batch_generate_rule"],settings_json["prompt_ban"],settings_json["ai_interface"],\
             settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\
             settings_json["ai_local_addr"],settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"],\
-            settings_json["api_hf_enable"], settings_json["api_hf_scale"], settings_json["api_hf_denoise"], settings_json["api_hf_upscaler_selected"], settings_json["api_hf_colortransfer"], settings_json["api_webui_savepath_override"]
+            settings_json["api_hf_enable"],settings_json["api_hf_scale"],settings_json["api_hf_denoise"],settings_json["api_hf_upscaler_selected"],settings_json["api_hf_colortransfer"],settings_json["api_webui_savepath_override"]
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
@@ -986,9 +1008,7 @@ def init():
         print(f'[{CAT}]:Use tags as Character Name')
         LANG = LANG_EN
         
-    load_jsons()    
-    url = f'http://127.0.0.1:{os.environ['GRADIO_SERVER_PORT']}'
-    webbrowser.open(url, new=0, autoraise=True)
+    load_jsons()        
     print(f'[{CAT}]:Starting...')
     
-    return character_list, action_list, original_character_list, model_files_list, LANG
+    return character_list, view_tags, original_character_list, model_files_list, LANG
