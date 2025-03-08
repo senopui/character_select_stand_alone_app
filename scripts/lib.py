@@ -27,7 +27,7 @@ LANG_EN = {
     "view_angle": "Angle",
     "view_camera": "Camera",
     "view_background": "Background",
-    "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v110)",
+    "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v120)",
     "random_seed": "Random Seed",
     "custom_prompt": "Custom Prompt (Head)",
     "api_prompt": "Positive Prompt (Tail)",
@@ -109,7 +109,7 @@ LANG_CN = {
     "view_angle": "视角",
     "view_camera": "镜头",
     "view_background": "背景",
-    "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v110)",
+    "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v120)",
     "random_seed": "种子",
     "custom_prompt": "自定义提示词（放在最前）",
     "api_prompt": "效果提示词（放在末尾）",
@@ -489,7 +489,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     else:
         chara = character_dict[rnd_character]
         
-    md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))                
+    md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))
     thumb_image = Image.new('RGB', (128, 128), (128, 128, 128))
     if wai_image_dict.keys().__contains__(md5_chara):
         thumb_image = base64_to_image(wai_image_dict.get(md5_chara))

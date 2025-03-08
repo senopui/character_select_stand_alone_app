@@ -6,7 +6,7 @@ from PIL import Image
 CAT = "WebUI:"
 
 def run_webui(
-    server_address = 'http://127.0.0.1:7860', model_name = 'waiNSFWIllustrious_v110.safetensors',
+    server_address = 'http://127.0.0.1:7860', model_name = 'waiNSFWIllustrious_v120.safetensors',
     positive_prompt = 'miqo\'te',negative_prompt = 'nsfw', random_seed = -1, steps= 20, cfg = 7, 
     my_sampler_name='Euler a', height = 512, width = 512, 
     hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='R-ESRGAN 4x+', savepath_override = False
