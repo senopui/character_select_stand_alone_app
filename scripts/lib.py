@@ -27,6 +27,7 @@ LANG_EN = {
     "view_angle": "Angle",
     "view_camera": "Camera",
     "view_background": "Background",
+    "view_style": "Style",
     "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v120)",
     "random_seed": "Random Seed",
     "custom_prompt": "Custom Prompt (Head)",
@@ -54,12 +55,12 @@ LANG_EN = {
     
     "api_hf_enable": "Enable Hires Fix",
     "api_hf_scale": "Upscale by",
-    "api_hf_denoise": "Denoising strength",
+    "api_hf_denoise": "Denoising",
     "api_hf_upscaler_selected": "Upscaler",
     "api_hf_colortransfer": "Color Transfer",
     "api_hf_incorrect_upscaler": "Incorrect Upscaler selected, reset to default {}",
     "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
-    "api_webui_savepath_override": "WebUI Save redirect to \".\\outputs\"",
+    "api_webui_savepath_override": "WebUI Save to \".\\outputs\"",
     
     "run_button": "Create Prompt",
     "run_random_button": "Batch (Random)",
@@ -109,6 +110,7 @@ LANG_CN = {
     "view_angle": "视角",
     "view_camera": "镜头",
     "view_background": "背景",
+    "view_style": "风格",
     "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v120)",
     "random_seed": "种子",
     "custom_prompt": "自定义提示词（放在最前）",
@@ -239,6 +241,7 @@ settings_json = {
     "view_angle": "none",
     "view_camera": "none",
     "view_background": "none",
+    "view_style": "none",
     
     "api_model_file_select" : "default",    
     "random_seed": -1,
@@ -437,6 +440,8 @@ def load_jsons():
     view_tags['camera'].insert(0, "random")
     view_tags['background'].insert(0, "none")
     view_tags['background'].insert(0, "random")
+    view_tags['style'].insert(0, "none")
+    view_tags['style'].insert(0, "random")
                 
     if ENGLISH_CHARACTER_NAME:
         character_list = list(character_dict.values())   
@@ -707,25 +712,27 @@ def create_view_tag(view_list, in_tag, seed):
         out_tag = f'{view_tags[view_list][index]}, '
     else:
         out_tag = f'{in_tag}, '
-        
+    
+    out_tag = out_tag.replace('(','\\(').replace(')','\\)')    
     return out_tag
 
-def create_view_tags(view_angle, view_camera, view_background, seed):
+def create_view_tags(view_angle, view_camera, view_background, view_style, seed):
     tag_angle = create_view_tag('angle', view_angle, seed)
     tag_camera = create_view_tag('camera', view_camera, seed)
     tag_background = create_view_tag('background', view_background, seed)
+    tag_style = create_view_tag('style', view_style, seed)
         
-    return tag_angle, tag_camera, tag_background
+    return tag_angle, tag_camera, tag_background, tag_style
 
 def create_prompt(character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                     ):
     return create_prompt_ex(False, character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -733,21 +740,21 @@ def create_prompt(character1, character2, character3, original_character,
 
 
 def create_random_prompt(character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                     ):
     return create_prompt_ex(True, character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
 
 def create_prompt_ex(batch_random, character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -816,8 +823,8 @@ def create_prompt_ex(batch_random, character1, character2, character3, original_
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)         
         
-        tag_angle, tag_camera, tag_background = create_view_tags(view_angle, view_camera, view_background, seed1)            
-        to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{prompt}{ai_text}{api_prompt}'
+        tag_angle, tag_camera, tag_background, tag_style = create_view_tags(view_angle, view_camera, view_background, view_style, seed1)            
+        to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{tag_style}{prompt}{ai_text}{api_prompt}'
         for ban_word in prompt_ban.split(','):
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
 
@@ -825,7 +832,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, original_
                                 seed1, cfg, steps, width, height, 
                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
         
-        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
+        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
             api_images.append(api_image)
@@ -839,7 +846,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, original_
         
     return ''.join(final_prompts), ''.join(final_infos), thumb_image, api_images
 
-def create_with_last_prompt(view_angle, view_camera, view_background, random_seed,  custom_prompt,
+def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                             api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -880,12 +887,12 @@ def create_with_last_prompt(view_angle, view_camera, view_background, random_see
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
         
-        tag_angle, tag_camera, tag_background = create_view_tags(view_angle, view_camera, view_background, seed)
-        to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{last_prompt}{ai_text}{api_prompt}'
+        tag_angle, tag_camera, tag_background, tag_style = create_view_tags(view_angle, view_camera, view_background, view_style, seed)
+        to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{tag_style}{last_prompt}{ai_text}{api_prompt}'
         for ban_word in prompt_ban.split(','):
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
         
-        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}]\n{last_info}\nAI Prompt:[{ai_text}]'
+        final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{last_info}\nAI Prompt:[{ai_text}]'
         api_image = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                  seed, cfg, steps, width, height, 
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
@@ -900,7 +907,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, random_see
     return ''.join(final_prompts), ''.join(final_infos), api_images
 
 def save_current_setting(character1, character2, character3, 
-                        view_angle, view_camera, view_background, api_model_file_select, random_seed,
+                        view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
                         custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                         remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -924,6 +931,7 @@ def save_current_setting(character1, character2, character3,
         "view_angle": view_angle,
         "view_camera": view_camera,
         "view_background": view_background,
+        "view_style": view_style, 
         
         "api_model_file_select" : api_model_file_select,
         "random_seed": random_seed,
@@ -968,7 +976,7 @@ def load_saved_setting(file_path):
     
     
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],\
-            settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"],settings_json["api_model_file_select"],settings_json["random_seed"],\
+            settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"], settings_json["view_style"], settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],\
             settings_json["ai_prompt"],settings_json["batch_generate_rule"],settings_json["prompt_ban"],settings_json["ai_interface"],\
             settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\

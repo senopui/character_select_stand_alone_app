@@ -66,6 +66,13 @@ if __name__ == '__main__':
                         value=settings_json["view_background"],
                         allow_custom_value=False,    
                     )
+                    
+                    view_style = gr.Dropdown(
+                        choices=view_tags['style'],
+                        label=LANG["view_style"],
+                        value=settings_json["view_style"],
+                        allow_custom_value=False,    
+                    )                    
                 with gr.Row():
                     api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=846, label=LANG["api_image"])
                 with gr.Row():                    
@@ -191,7 +198,7 @@ if __name__ == '__main__':
         
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -201,7 +208,7 @@ if __name__ == '__main__':
         
         run_random_button.click(fn=create_random_prompt, 
                          inputs=[character1, character2, character3, original_character, 
-                                 view_angle, view_camera, view_background, random_seed, custom_prompt, 
+                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -210,7 +217,7 @@ if __name__ == '__main__':
                          outputs=[output_prompt, output_info, thumb_image, api_image])
         
         run_same_button.click(fn=create_with_last_prompt, 
-                         inputs=[view_angle, view_camera, view_background, random_seed,  custom_prompt,
+                         inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -220,7 +227,7 @@ if __name__ == '__main__':
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, 
-                                           view_angle, view_camera, view_background, api_model_file_select, random_seed,
+                                           view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -232,7 +239,7 @@ if __name__ == '__main__':
         load_settings_button.upload(fn=load_saved_setting,
                                    inputs=[load_settings_button],
                                    outputs=[character1, character2, character3, 
-                                           view_angle, view_camera, view_background, api_model_file_select, random_seed,
+                                           view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
