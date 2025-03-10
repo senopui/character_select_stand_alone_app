@@ -1,11 +1,10 @@
 # Character Select SAA
-This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.     
-   
-Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing 2000+ Character tags, please support his webui plugin.   
+This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.    
+Now supports 5323 (includes multiple costumes) Character list.   
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=35% height=35%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
 
-Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)
+Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)
 
 # One-Click embedded package
 In case you don't know how to build your own Python enverment, try the [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)    
@@ -14,39 +13,18 @@ In case you don't know how to build your own Python enverment, try the [embeded_
 2. Db-click `##quick_start_download_and_force_update_SAA.bat`, wait for Github download        
 3. Db-click `#run_XX.bat`, wait for 1st time setup and Github/HF download   
 
-# Embedded Character List Collection and Translate Project    
-## New Character List for waiNSFWIllustrious_v120 updated, now supports 5323(includes multiple costumes for the same character) Character tags!
+# Character List Translate Project    
 Currently a team working on Simplified Chinese translation of the Character list, if you are interested in other languages, please submit an issue ticket!    
+Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing 2000+ Character tags, please support his webui plugin.   
 
-## We are currently planning to make the complete list of IL model Embedded Characters, please refer to the following parameters for testing.    
-
-Once you are sure that certain characters exist, save their names in txt or csv format and submit them to me, one name per line, just the character‘s name.    
-I'll collate the thumbnails and list in later update.    
-**Please note: Only one tag is allowed for Embedded Characters**
-
-```
-Model use: waiNSFWIllustrious_v120.safetensors    
-Sampler: Euler a + normal(auto)
-Seed: 42    
-CFG, Step, Width, Height: 7.0,30,768,1152
-
-Custom Prompt:
-<Character Name(1 tag)>, solo, simple background, white background, straight-on, upper body
-
-Positive:
-masterpiece, best quality, amazing quality
-
-Negative:
-bad quality,worst quality,worst detail,sketch,nsfw,explicit
-```
 ------
 # Install and Run
 ## *IMPORTANT* `Save settings` will NOT overwrite your `settings.json`, it saved as `tmp_settings.json`    
 1. Clone the repository to wherever you like   
 2. Dbclick `#run_XX.bat`   
-3. Have fun   
+3. Have fun
+   
 ------
-
 # Setup Model List for model switch
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
@@ -63,9 +41,9 @@ bad quality,worst quality,worst detail,sketch,nsfw,explicit
 # Original Characters
 1. You can add/remove character (who not in list) in `original_character.json`    
 2. I already put some of my OC in it, feel free to use or modify    
-3. Original Characters is NOT support thumb image for now   
-------
+3. Original Characters is NOT support thumb image for now
 
+------
 # Right to Left UI
 Modify `#run_EN.bat`   
 ```
@@ -82,8 +60,8 @@ Modify `#run_CN.bat`
 py -m app_right_to_left
 pause
 ```
-------
 
+------
 # AI prompt
 ## Remote   
 1. Modify `json/settings.json`    
@@ -102,9 +80,9 @@ pause
 4. Set `AI Prompt Generator` to `Local`
 5. Set `Local Llama.cpp server` to your Local AI address    
 6. (Optional) You may need to check API settings for any other Local AI service     
-7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`    
-------
+7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`
 
+------
 # API Call for Local Image Generator   
 ## ComfyUI   
 1. Enable `DEV mode` in ComfyUI Settings, and load `examples\workflow_comfyui.png` into your ComfyUI ([FAQ:ComfyUI API not working](https://github.com/mirabarukaso/character_select_stand_alone_app/tree/main#comfyui-api-not-working))    
@@ -118,8 +96,8 @@ pause
 3. Select `Local Image Generator API` to `WebUI`   
 4. Make sure `Local Image Generator IP Address:Port` same as your WerUI page   
 5. Have fun
+   
 ------
-
 # Hires Fix and Image Color Transfer
 Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_Mira#image-color-transfer) for more details about Image Color Transfer.   
 
@@ -127,9 +105,9 @@ Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_M
 2. Comfyui needs to download upscale models by yourself. Select `Manager`->`Model Manager` and filter with `upscale`, then download them.   
 3. Upscale model list can be modity in your `settings.json` -> `api_hf_upscaler_list`    
 3.1. For WebUI, copy and paste them from WebUI, and add `(W)` in the end.        
-3.2. For ComfyUI, check your model's name from `ComfyUI/models/upscale_models`, and add `(C)` in the end.     
-------
+3.2. For ComfyUI, check your model's name from `ComfyUI/models/upscale_models`, and add `(C)` in the end.
 
+------
 # FAQ
 ## Not working???
 Install [Python](https://www.python.org/downloads/) 3.11~3.13 recommend.     
