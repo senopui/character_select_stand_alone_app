@@ -23,6 +23,7 @@ LANG_EN = {
     "character1": "Character list 1",
     "character2": "Character list 2",
     "character3": "Character list 3",
+    "tag_assist": "Character tag assist",
     "original_character": "Original Character",
     "view_angle": "Angle",
     "view_camera": "Camera",
@@ -106,6 +107,7 @@ LANG_CN = {
     "character1": "角色1",
     "character2": "角色2",
     "character3": "角色3",
+    "tag_assist": "角色标签辅助",
     "original_character": "自定义及原创角色",
     "view_angle": "视角",
     "view_camera": "镜头",
@@ -219,6 +221,7 @@ image_outputs_folder = os.path.join(parent_dir, 'outputs')
 
 character_list = ''
 character_dict = {}
+tag_assist_dict = {}
 original_character_list = ''
 original_character_dict = {}
 wai_image_dict = {}
@@ -237,6 +240,7 @@ settings_json = {
     "character1": "random",
     "character2": "none",
     "character3": "none",
+    "tag_assist": False,
     
     "view_angle": "none",
     "view_camera": "none",
@@ -284,6 +288,7 @@ wai_illustrious_character_select_files = [
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
     {'name': 'view_tags', 'file_path': os.path.join(json_folder, 'view_tags.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/view_tags.json'},
     {'name': 'wai_character', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv'},
+    {'name': 'wai_tag_assist', 'file_path': os.path.join(json_folder, 'wai_tag_assist.json'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_tag_assist.json'},
     {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json'},
 ]
 
@@ -400,6 +405,7 @@ def load_jsons():
     global settings_json
     global model_files_list    
     global view_tags
+    global tag_assist_dict
     
     # download file
     for item in wai_illustrious_character_select_files:
@@ -418,7 +424,7 @@ def load_jsons():
 
         with open(file_path, 'r', encoding='utf-8') as file:
             if 'original_character' == name:
-                original_character_dict.update(json.load(file))                
+                original_character_dict.update(json.load(file))   
             elif 'settings' == name:
                 temp_settings_json = {}
                 temp_settings_json.update(json.load(file))
@@ -428,8 +434,11 @@ def load_jsons():
             elif 'wai_character' == name:
                 lines = file.readlines()
                 for line in lines:
+                    #print(f'Loading {line}')
                     key, value = line.split(',')
                     character_dict[key.strip()]=value.strip()
+            elif 'wai_tag_assist' == name:
+                tag_assist_dict.update(json.load(file))
             elif 'wai_image' == name:
                 wai_image_dict = json.load(file)                
                                         
@@ -473,12 +482,12 @@ def remove_duplicates(input_string):
     result = ', '.join(unique_items)
     return result
 
-def illustrious_character_select_ex(character = 'random', optimise_tags = True, random_action_seed = 1):
+def illustrious_character_select_ex(character = 'random', optimise_tags = True, random_action_seed = 1, tag_assist=False):
     chara = ''
     rnd_character = ''
     
     if 'none' == character:
-        return '', '', None
+        return '', '', None, ''
     
     if 'random' == character:
         index = random_action_seed % len(character_list)
@@ -494,6 +503,10 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     else:
         chara = character_dict[rnd_character]
         
+    tas=''
+    if tag_assist and tag_assist_dict.__contains__(chara):
+        tas=tag_assist_dict[chara]
+        
     md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))
     thumb_image = Image.new('RGB', (128, 128), (128, 128, 128))
     if wai_image_dict.keys().__contains__(md5_chara):
@@ -507,7 +520,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     if not opt_chara.endswith(','):
         opt_chara = f'{opt_chara},'   
             
-    return rnd_character, opt_chara, thumb_image
+    return rnd_character, opt_chara, thumb_image, tas
 
 def original_character_select_ex(character = 'random', random_action_seed = 1):
     chara = ''
@@ -546,22 +559,34 @@ def parse_api_image_data(api_image_data,api_image_landscape):
         gr.Warning(LANG["gr_warning_cfgstepwh_mismatch"])
         return 7.0, 30, 1024, 1360, 1
 
-def create_prompt_info(rnd_character1='', opt_chara1='',rnd_character2='', opt_chara2='',rnd_character3='', opt_chara3='' , rnd_oc = '', opt_oc=''):
+def create_prompt_info(rnd_character1, opt_chara1, tas1,
+                        rnd_character2, opt_chara2, tas2,
+                        rnd_character3, opt_chara3, tas3,
+                        rnd_oc, opt_oc):
     info = ''    
     if '' != opt_chara1:
         info += f'Character 1:{rnd_character1}[{opt_chara1}]\n'
+        if ''!= tas1:
+            tas1=f'{tas1},'
+            info += f'Character 1 tag assist:[{tas1}]\n'
         
     if '' != opt_chara2:
         info += f'Character 2:{rnd_character2}[{opt_chara2}]\n'
+        if ''!= tas2:
+            tas2=f'{tas2},'
+            info += f'Character 2 tag assist:[{tas2}]\n'
     
     if '' != opt_chara3:
         info += f'Character 3:{rnd_character3}[{opt_chara3}]\n'
+        if ''!= tas3:
+            tas2=f'{tas3},'
+            info += f'Character 3 tag assist:[{tas3}]\n'
 
     if '' != rnd_oc:
         info += f'Original Character:{rnd_oc}[{opt_oc}]\n'
 
-    prompt = f'{opt_chara1}{opt_chara2}{opt_chara3}{opt_oc}'
-    
+    prompt = f'{tas1}{opt_chara1}{tas2}{opt_chara2}{tas3}{opt_chara3}{opt_oc}'
+
     return prompt, info
 
 def create_image(interface, addr, model_file_select, prompt, neg_prompt, 
@@ -724,14 +749,14 @@ def create_view_tags(view_angle, view_camera, view_background, view_style, seed)
         
     return tag_angle, tag_camera, tag_background, tag_style
 
-def create_prompt(character1, character2, character3, original_character, 
+def create_prompt(character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                     ):
-    return create_prompt_ex(False, character1, character2, character3, original_character, 
+    return create_prompt_ex(False, character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
@@ -739,21 +764,21 @@ def create_prompt(character1, character2, character3, original_character,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
 
 
-def create_random_prompt(character1, character2, character3, original_character, 
+def create_random_prompt(character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                     ):
-    return create_prompt_ex(True, character1, character2, character3, original_character, 
+    return create_prompt_ex(True, character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
 
-def create_prompt_ex(batch_random, character1, character2, character3, original_character, 
+def create_prompt_ex(batch_random, character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
@@ -798,11 +823,11 @@ def create_prompt_ex(batch_random, character1, character2, character3, original_
         seed2 = random.randint(0, 4294967295)
         seed3 = random.randint(0, 4294967295)
         if random_seed == -1:
-            seed1 = random.randint(0, 4294967295)    
+            seed1 = random.randint(0, 4294967295)
         
-        rnd_character1, opt_chara1, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1)        
-        rnd_character2, opt_chara2, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2)
-        rnd_character3, opt_chara3, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3)
+        rnd_character1, opt_chara1, thumb_image1, tas1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1, tag_assist=tag_assist)
+        rnd_character2, opt_chara2, thumb_image2, tas2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2, tag_assist=tag_assist)
+        rnd_character3, opt_chara3, thumb_image3, tas3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3, tag_assist=tag_assist)
         rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
             
         if thumb_image1:
@@ -812,7 +837,10 @@ def create_prompt_ex(batch_random, character1, character2, character3, original_
         if thumb_image3:
             thumb_image.append(thumb_image3)
         
-        prompt, info = create_prompt_info(rnd_character1, opt_chara1, rnd_character2, opt_chara2, rnd_character3, opt_chara3, rnd_oc, opt_oc)   
+        prompt, info = create_prompt_info(rnd_character1, opt_chara1, tas1,
+                                          rnd_character2, opt_chara2, tas2,
+                                          rnd_character3, opt_chara3, tas3,
+                                          rnd_oc, opt_oc)   
         
         if 'none' != ai_interface or 'none' != api_interface:
             gr.Info(LANG["gr_info_create_n"].format(index, loops))
@@ -906,7 +934,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
     
     return ''.join(final_prompts), ''.join(final_infos), api_images
 
-def save_current_setting(character1, character2, character3, 
+def save_current_setting(character1, character2, character3, tag_assist,
                         view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
                         custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
@@ -927,6 +955,7 @@ def save_current_setting(character1, character2, character3,
         "character1": character1,
         "character2": character2,
         "character3": character3,
+        "tag_assist": tag_assist,
         
         "view_angle": view_angle,
         "view_camera": view_camera,
@@ -975,7 +1004,7 @@ def load_saved_setting(file_path):
     gr.Info(LANG["gr_info_settings_loaded"].format(file_path))
     
     
-    return settings_json["character1"],settings_json["character2"],settings_json["character3"],\
+    return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["tag_assist"],\
             settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"], settings_json["view_style"], settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],\
             settings_json["ai_prompt"],settings_json["batch_generate_rule"],settings_json["prompt_ban"],settings_json["ai_interface"],\
@@ -989,14 +1018,14 @@ def batch_generate_rule_change(options_selected):
 def refresh_character_thumb_image(character1, character2, character3):
     thumb_image = []
     if 'none' != character1 and 'random' != character1:
-        _, _, thumb_image1 = illustrious_character_select_ex(character = character1, random_action_seed=42)        
+        _, _, thumb_image1, _ = illustrious_character_select_ex(character = character1, random_action_seed=42)        
         thumb_image.append(thumb_image1)
     
     if 'none' != character2 and 'random' != character2:
-        _, _, thumb_image2 = illustrious_character_select_ex(character = character2, random_action_seed=42)        
+        _, _, thumb_image2, _ = illustrious_character_select_ex(character = character2, random_action_seed=42)        
         thumb_image.append(thumb_image2)
     if 'none' != character3 and 'random' != character3:
-        _, _, thumb_image3 = illustrious_character_select_ex(character = character3, random_action_seed=42)        
+        _, _, thumb_image3, _ = illustrious_character_select_ex(character = character3, random_action_seed=42)        
         thumb_image.append(thumb_image3)
     return thumb_image
 

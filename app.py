@@ -10,7 +10,7 @@ from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 if __name__ == '__main__':
     character_list, view_tags, original_character_list, model_files_list, LANG = init()
     
-    url = f'http://127.0.0.1:{os.environ['GRADIO_SERVER_PORT']}'
+    url = f'http://127.0.0.1:{os.environ["GRADIO_SERVER_PORT"]}'
     webbrowser.open(url, new=0, autoraise=True)
     
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:
@@ -20,6 +20,7 @@ if __name__ == '__main__':
                 label=LANG["character1"],
                 value=settings_json["character1"],
                 allow_custom_value=False,
+                scale=2
             )
             
             character2 = gr.Dropdown(
@@ -27,6 +28,7 @@ if __name__ == '__main__':
                 label=LANG["character2"],
                 value=settings_json["character2"],
                 allow_custom_value=False,
+                scale=2
             )
                             
             character3 = gr.Dropdown(
@@ -34,16 +36,22 @@ if __name__ == '__main__':
                 label=LANG["character3"],
                 value=settings_json["character3"],
                 allow_custom_value=False,
+                scale=2
             )
+            
+            tag_assist = gr.Checkbox(label=LANG["tag_assist"], 
+                                     value=settings_json["tag_assist"], 
+                                     scale=1)
 
             original_character = gr.Dropdown(
                 choices=original_character_list,
                 label=LANG["original_character"],
                 value='none',
                 allow_custom_value=False,
-            )
+                scale=2
+            )            
             
-        with gr.Row(elem_classes='main_row'):            
+        with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -197,7 +205,7 @@ if __name__ == '__main__':
                     ai_system_prompt_text = gr.Textbox(label=LANG["ai_system_prompt_text"], value=LANG["ai_system_prompt"])
         
         run_button.click(fn=create_prompt, 
-                         inputs=[character1, character2, character3, original_character, 
+                         inputs=[character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
@@ -207,7 +215,7 @@ if __name__ == '__main__':
                          outputs=[output_prompt, output_info, thumb_image, api_image])
         
         run_random_button.click(fn=create_random_prompt, 
-                         inputs=[character1, character2, character3, original_character, 
+                         inputs=[character1, character2, character3, tag_assist, original_character, 
                                  view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
@@ -226,7 +234,7 @@ if __name__ == '__main__':
                          outputs=[output_prompt, output_info, api_image])
         
         save_settings_button.click(fn=save_current_setting,
-                                   inputs=[character1, character2, character3, 
+                                   inputs=[character1, character2, character3, tag_assist,
                                            view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
@@ -238,7 +246,7 @@ if __name__ == '__main__':
         
         load_settings_button.upload(fn=load_saved_setting,
                                    inputs=[load_settings_button],
-                                   outputs=[character1, character2, character3, 
+                                   outputs=[character1, character2, character3, tag_assist,
                                            view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
