@@ -68,15 +68,19 @@ LANG_EN = {
     "run_same_button": "Batch (Last Prompt)",
     "save_settings_button": "Save Settings",
     "load_settings_button": "Load Settings",
+    "manual_update_database": "Update wai_character_thumbs.json",
     
     "gr_info_create_n": "Creating {}of{}, please wait ...",
     "gr_info_settings_saved": "Settings Saved to {}",
     "gr_info_settings_loaded": "Settings Loaded {}",
+    "gr_info_manual_update_database": "Now downloading wai_character_thumbs.json, please wait a while, it is also recommended that download the latest version from Github.",
+    "gr_info_manual_update_database_done": " wai_character_thumbs.json updated",
     
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
     "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
     "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"[Warning] \"CFG,Step,W,H,Batch\" data mismatch, use default: 7.0, 30, 1024, 1360, 1",
+    "gr_warning_manual_update_database": "Download wai_character_thumbs.json failed, please check console logs.\n{}",
     
     "gr_error_creating_image":"[Error] Got error from Image API: {}",
     
@@ -144,7 +148,7 @@ LANG_CN = {
     "api_hf_upscaler_selected": "高清修复模型",
     "api_hf_colortransfer": "色彩传递",
     "api_hf_incorrect_upscaler": "选择了错误的高清模型，使用默认 {}",
-    "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下。",
+    "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下",
     "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
     
     "run_button": "单图生成",
@@ -152,15 +156,19 @@ LANG_CN = {
     "run_same_button": "批量（上次生成）",
     "save_settings_button": "保存设置",
     "load_settings_button": "载入设置",
+    "manual_update_database": "更新 wai_character_thumbs.json",
     
     "gr_info_create_n": "正在生成 {} / {}， 请稍候……",
     "gr_info_settings_saved": "配置已保存： {}",
     "gr_info_settings_loaded": "配置已载入： {}",
+    "gr_info_manual_update_database": "正在下载 wai_character_thumbs.json，请稍候，建议同时从Github更新本体程序",
+    "gr_info_manual_update_database_done": " wai_character_thumbs.json 更新完成",
     
     "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
     "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
     "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"注意：“引导,步数,宽,高,批量”设置存在错误，使用默认数据：7.0, 30, 1024, 1360, 1",
+    "gr_warning_manual_update_database": "wai_character_thumbs.json下载失败，请检查控制台日志确认问题\n{}",
     
     "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
     
@@ -287,10 +295,16 @@ wai_illustrious_character_select_files = [
     {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
     {'name': 'view_tags', 'file_path': os.path.join(json_folder, 'view_tags.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/view_tags.json'},
-    {'name': 'wai_character', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv'},
+    {'name': 'wai_characters', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv'},
     {'name': 'wai_tag_assist', 'file_path': os.path.join(json_folder, 'wai_tag_assist.json'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_tag_assist.json'},
-    {'name': 'wai_image', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json'},
+    {'name': 'wai_character_thumbs', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json'},
 ]
+
+def get_url_by_name(name):
+    for item in wai_illustrious_character_select_files:
+        if item['name'] == name:
+            return item['url'], item['file_path']
+    return None, None
 
 def decode_response(response):
     if response.status_code == 200:
@@ -351,6 +365,27 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
         gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
     
     return ''
+
+def manual_update_database():
+    global wai_image_dict
+    
+    try:
+        gr.Info(LANG["gr_info_manual_update_database"], duration=15)
+        url, path = get_url_by_name("wai_character_thumbs")
+        if  None != url:
+            if os.path.exists(path):
+                os.unlink(path)
+                
+            download_file(url, path)
+            with open(path, 'r', encoding='utf-8') as file:
+                wai_image_dict = json.load(file)
+            gr.Info(LANG["gr_info_manual_update_database_done"], duration=15)
+        else:
+            gr.Warning(LANG["gr_warning_manual_update_database"].format("wai_character_thumbs not found!"))        
+    except Exception as e:
+        gr.Warning(LANG["gr_warning_manual_update_database"].format(e))
+        
+    return gr.Button(visible=False)
 
 def download_file(url, file_path):   
     response = requests.get(url)
@@ -431,7 +466,7 @@ def load_jsons():
                 load_settings(temp_settings_json)
             elif 'view_tags' == name:
                 view_tags.update(json.load(file))
-            elif 'wai_character' == name:
+            elif 'wai_characters' == name:
                 lines = file.readlines()
                 for line in lines:
                     #print(f'Loading {line}')
@@ -439,8 +474,8 @@ def load_jsons():
                     character_dict[key.strip()]=value.strip()
             elif 'wai_tag_assist' == name:
                 tag_assist_dict.update(json.load(file))
-            elif 'wai_image' == name:
-                wai_image_dict = json.load(file)                
+            elif 'wai_character_thumbs' == name:
+                wai_image_dict = json.load(file)            
                                         
     # Create list        
     view_tags['angle'].insert(0, "none")
@@ -800,7 +835,6 @@ def create_prompt_ex(batch_random, character1, character2, character3, tag_assis
     if 'none' == ai_interface == api_interface:
         gr.Warning(LANG["gr_warning_interface_both_none"])
         
-    thumb_image = []
     api_images = []
     final_prompts = []
     final_infos = []
@@ -825,18 +859,11 @@ def create_prompt_ex(batch_random, character1, character2, character3, tag_assis
         if random_seed == -1:
             seed1 = random.randint(0, 4294967295)
         
-        rnd_character1, opt_chara1, thumb_image1, tas1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1, tag_assist=tag_assist)
-        rnd_character2, opt_chara2, thumb_image2, tas2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2, tag_assist=tag_assist)
-        rnd_character3, opt_chara3, thumb_image3, tas3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3, tag_assist=tag_assist)
+        rnd_character1, opt_chara1, _, tas1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1, tag_assist=tag_assist)
+        rnd_character2, opt_chara2, _, tas2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2, tag_assist=tag_assist)
+        rnd_character3, opt_chara3, _, tas3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3, tag_assist=tag_assist)
         rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
-            
-        if thumb_image1:
-            thumb_image.append(thumb_image1)
-        if thumb_image2:
-            thumb_image.append(thumb_image2)
-        if thumb_image3:
-            thumb_image.append(thumb_image3)
-        
+                    
         prompt, info = create_prompt_info(rnd_character1, opt_chara1, tas1,
                                           rnd_character2, opt_chara2, tas2,
                                           rnd_character3, opt_chara3, tas3,
@@ -872,7 +899,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, tag_assis
         last_info = info
         last_ai_text = ai_text
         
-    return ''.join(final_prompts), ''.join(final_infos), thumb_image, api_images
+    return ''.join(final_prompts), ''.join(final_infos), api_images
 
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -1002,8 +1029,7 @@ def load_saved_setting(file_path):
         temp_settings_json.update(json.load(file))    
     load_settings(temp_settings_json)        
     gr.Info(LANG["gr_info_settings_loaded"].format(file_path))
-    
-    
+        
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["tag_assist"],\
             settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"], settings_json["view_style"], settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],\

@@ -4,7 +4,7 @@ import os
 import webbrowser
 
 sys.path.append("scripts/")
-from lib import init, create_prompt, create_random_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image
+from lib import init, create_prompt, create_random_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database
 from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
@@ -178,7 +178,7 @@ if __name__ == '__main__':
                         
                         ai_local_addr = gr.Textbox(value=settings_json["ai_local_addr"], label=LANG["ai_local_addr"])   
                         ai_local_temp = gr.Slider(minimum=0.1,
-                            maximum=1,
+                            maximum=2,
                             step=0.05,
                             value=settings_json["ai_local_temp"],
                             label=LANG["ai_local_temp"],
@@ -188,7 +188,9 @@ if __name__ == '__main__':
                             step=128,
                             value=settings_json["ai_local_n_predict"],
                             label=LANG["ai_local_n_predict"],
-                        )                            
+                        )
+                        
+                        manual_update_database_button = gr.Button(value=LANG["manual_update_database"], variant='primary')
                         
                     with gr.Column():
                         # API Image Generator                
@@ -198,11 +200,11 @@ if __name__ == '__main__':
                             value=settings_json["api_interface"],
                             allow_custom_value=False,
                         )
-                        api_addr = gr.Textbox(value=settings_json["api_addr"], label=LANG["api_addr"])                     
+                        api_addr = gr.Textbox(value=settings_json["api_addr"], label=LANG["api_addr"])
                         
                         with gr.Row():
                             save_settings_button = gr.Button(value=LANG["save_settings_button"], variant='stop') 
-                            load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json']) 
+                            load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json'])                         
         
         run_button.click(fn=create_prompt, 
                          inputs=[character1, character2, character3, tag_assist, original_character, 
@@ -212,7 +214,7 @@ if __name__ == '__main__':
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                  ], 
-                         outputs=[output_prompt, output_info, thumb_image, api_image])
+                         outputs=[output_prompt, output_info, api_image])
         
         run_random_button.click(fn=create_random_prompt, 
                          inputs=[character1, character2, character3, tag_assist, original_character, 
@@ -222,7 +224,7 @@ if __name__ == '__main__':
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                  ], 
-                         outputs=[output_prompt, output_info, thumb_image, api_image])
+                         outputs=[output_prompt, output_info, api_image])
         
         run_same_button.click(fn=create_with_last_prompt, 
                          inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
@@ -254,6 +256,10 @@ if __name__ == '__main__':
                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ])
+        
+        manual_update_database_button.click(fn=manual_update_database,
+                                            outputs=[manual_update_database_button]
+                                            )
         
         batch_generate_rule.change(fn=batch_generate_rule_change,
                                 inputs=batch_generate_rule)
