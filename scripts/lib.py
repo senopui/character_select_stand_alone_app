@@ -828,8 +828,9 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
         rnd_seed[1] = int(rnd_seed[0] / 3)
         rnd_seed[2] = int(rnd_seed[0] / 7)
         seed_list.append(rnd_seed[0])
+        oc_seed = 4294967295 - rnd_seed[0]
         
-        rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
+        rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=oc_seed)
         for index in range(0,3):
             rnd_character[index], opt_chara[index], thumb_image[index], tas[index] = illustrious_character_select_ex(character = characters[index], random_action_seed=rnd_seed[index], tag_assist=tag_assist)        
         
