@@ -207,10 +207,10 @@ if __name__ == '__main__':
                     ai_system_prompt_text = gr.Textbox(label=LANG["ai_system_prompt_text"], value=LANG["ai_system_prompt"])                     
         
         run_button.click(fn=create_characters,
-                              inputs=[gr.Checkbox(value=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
+                              inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
                               outputs=[thumb_image]                              
                               ).then(fn=create_prompt_ex, 
-                                    inputs=[gr.Checkbox(value=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
+                                    inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -219,10 +219,10 @@ if __name__ == '__main__':
                          outputs=[output_prompt, output_info, api_image])
         
         run_random_button.click(fn=create_characters,
-                              inputs=[gr.Checkbox(value=True), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
+                              inputs=[gr.Checkbox(value=True, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
                               outputs=[thumb_image]                              
                               ).then(fn=create_prompt_ex, 
-                                    inputs=[gr.Checkbox(value=True), view_angle, view_camera, view_background, view_style, custom_prompt, 
+                                    inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
