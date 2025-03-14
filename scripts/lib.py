@@ -539,11 +539,12 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
         chara = character_dict[rnd_character]
         
     tas=''
-    if tag_assist and tag_assist_dict.__contains__(chara):
+    if tag_assist and tag_assist_dict.__contains__(chara):        
         tas=tag_assist_dict[chara]
+        print(f'{CAT}:Tag assist: [{chara}] add [{tas}]')
         
     md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))
-    thumb_image = Image.new('RGB', (128, 128), (128, 128, 128))
+    thumb_image = None
     if wai_image_dict.keys().__contains__(md5_chara):
         thumb_image = base64_to_image(wai_image_dict.get(md5_chara))
     
@@ -784,37 +785,67 @@ def create_view_tags(view_angle, view_camera, view_background, view_style, seed)
         
     return tag_angle, tag_camera, tag_background, tag_style
 
-def create_prompt(character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
-                    ):
-    return create_prompt_ex(False, character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
+rnd_character_list = []
+opt_chara_list = []
+rnd_oc_list = []
+opt_oc_list = []
+tag_assist_list = []
+seed_list = []
 
+def create_characters(batch_random, character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape):
+    global rnd_character_list
+    global opt_chara_list
+    global rnd_oc_list
+    global opt_oc_list
+    global tag_assist_list
+    global seed_list
+    
+    rnd_character_list = []
+    opt_chara_list = []
+    rnd_oc_list = []
+    opt_oc_list = []
+    tag_assist_list = []
+    seed_list = []
+    
+    generated_thumb_image_list = []
+    
+    _, _, _, _, loops = parse_api_image_data(api_image_data, api_image_landscape)
+    
+    if not batch_random:
+        loops = 1
+    
+    rnd_character = [''] * 3
+    opt_chara = [''] * 3
+    thumb_image = [None] * 3
+    tas = [''] * 3
+    rnd_seed = [0] * 3
+    characters = [character1, character2, character3]
+    for _ in range(0, loops):
+        if random_seed == -1:
+            rnd_seed[0] = random.randint(0, 4294967295)
+        else :
+            rnd_seed[0] = random_seed
+        rnd_seed[1] = int(rnd_seed[0] / 3)
+        rnd_seed[2] = int(rnd_seed[0] / 7)
+        seed_list.append(rnd_seed[0])
+        
+        rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
+        for index in range(0,3):
+            rnd_character[index], opt_chara[index], thumb_image[index], tas[index] = illustrious_character_select_ex(character = characters[index], random_action_seed=rnd_seed[index], tag_assist=tag_assist)        
+        
+        for index in range(0,3):
+            rnd_character_list.append(rnd_character[index])
+            opt_chara_list.append(opt_chara[index])
+            rnd_oc_list.append(rnd_oc)
+            opt_oc_list.append(opt_oc)
+            tag_assist_list.append(tas[index])
+            if thumb_image[index]:
+                generated_thumb_image_list.append(thumb_image[index])
+    
+    return generated_thumb_image_list
+        
 
-def create_random_prompt(character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
-                    ):
-    return create_prompt_ex(True, character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
-
-def create_prompt_ex(batch_random, character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
+def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
@@ -851,22 +882,24 @@ def create_prompt_ex(batch_random, character1, character2, character3, tag_assis
                 ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)     
-                
-    for index in range(1, loops + 1):
-        seed1 = random_seed
-        seed2 = random.randint(0, 4294967295)
-        seed3 = random.randint(0, 4294967295)
-        if random_seed == -1:
-            seed1 = random.randint(0, 4294967295)
-        
-        rnd_character1, opt_chara1, _, tas1 = illustrious_character_select_ex(character = character1, random_action_seed=seed1, tag_assist=tag_assist)
-        rnd_character2, opt_chara2, _, tas2 = illustrious_character_select_ex(character = character2, random_action_seed=seed2, tag_assist=tag_assist)
-        rnd_character3, opt_chara3, _, tas3 = illustrious_character_select_ex(character = character3, random_action_seed=seed3, tag_assist=tag_assist)
-        rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=seed3)
                     
-        prompt, info = create_prompt_info(rnd_character1, opt_chara1, tas1,
-                                          rnd_character2, opt_chara2, tas2,
-                                          rnd_character3, opt_chara3, tas3,
+    for index in range(1, loops + 1):
+        rnd_character = ['','','']
+        opt_chara = ['','','']
+        tas = ['','','']
+        rnd_oc = ''
+        opt_oc = ''
+        seed1 = seed_list[(index-1)]
+        for count in range(0, 3):
+            rnd_character[count] = rnd_character_list[int(3)*(index-int(1)) + count]
+            opt_chara[count] = opt_chara_list[3*(index-1) + count]
+            tas[count] = tag_assist_list[3*(index-1) + count]
+        rnd_oc = rnd_oc_list[(index-1)]
+        opt_oc = opt_oc_list[(index-1)]
+                    
+        prompt, info = create_prompt_info(rnd_character[0], opt_chara[0], tas[0],
+                                          rnd_character[1], opt_chara[1], tas[1],
+                                          rnd_character[2], opt_chara[2], tas[2],
                                           rnd_oc, opt_oc)   
         
         if 'none' != ai_interface or 'none' != api_interface:
@@ -877,7 +910,7 @@ def create_prompt_ex(batch_random, character1, character2, character3, tag_assis
                 ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)         
-        
+                
         tag_angle, tag_camera, tag_background, tag_style = create_view_tags(view_angle, view_camera, view_background, view_style, seed1)            
         to_image_create_prompt = f'{custom_prompt}{tag_angle}{tag_camera}{tag_background}{tag_style}{prompt}{ai_text}{api_prompt}'
         for ban_word in prompt_ban.split(','):
@@ -898,9 +931,9 @@ def create_prompt_ex(batch_random, character1, character2, character3, tag_assis
         last_prompt = prompt
         last_info = info
         last_ai_text = ai_text
-        
-    return ''.join(final_prompts), ''.join(final_infos), api_images
 
+    return ''.join(final_prompts), ''.join(final_infos), api_images
+    
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,

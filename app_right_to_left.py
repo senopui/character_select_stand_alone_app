@@ -4,7 +4,7 @@ import os
 import webbrowser
 
 sys.path.append("scripts/")
-from lib import init, create_prompt, create_random_prompt, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database
+from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':
@@ -206,34 +206,38 @@ if __name__ == '__main__':
                             save_settings_button = gr.Button(value=LANG["save_settings_button"], variant='stop') 
                             load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json'])                         
         
-        run_button.click(fn=create_prompt, 
-                         inputs=[character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
-                                 ], 
+        run_button.click(fn=create_characters,
+                              inputs=[gr.Checkbox(value=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
+                              outputs=[thumb_image]                              
+                              ).then(fn=create_prompt_ex, 
+                                    inputs=[gr.Checkbox(value=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
+                                                ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
+                                                ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                            ], 
                          outputs=[output_prompt, output_info, api_image])
         
-        run_random_button.click(fn=create_random_prompt, 
-                         inputs=[character1, character2, character3, tag_assist, original_character, 
-                                 view_angle, view_camera, view_background, view_style, random_seed, custom_prompt, 
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
-                                 ], 
-                         outputs=[output_prompt, output_info, api_image])
+        run_random_button.click(fn=create_characters,
+                              inputs=[gr.Checkbox(value=True), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
+                              outputs=[thumb_image]                              
+                              ).then(fn=create_prompt_ex, 
+                                    inputs=[gr.Checkbox(value=True), view_angle, view_camera, view_background, view_style, custom_prompt, 
+                                                ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
+                                                ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                            ], 
+                                    outputs=[output_prompt, output_info, api_image])
         
         run_same_button.click(fn=create_with_last_prompt, 
-                         inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
-                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
-                                 ], 
-                         outputs=[output_prompt, output_info, api_image])
+                                inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
+                                        ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
+                                        ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
+                                        api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                        ], 
+                                outputs=[output_prompt, output_info, api_image])
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, tag_assist,
