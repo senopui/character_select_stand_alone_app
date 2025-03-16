@@ -75,10 +75,10 @@ pause
 
 ## Local
 1. Make sure you know how to build [Llama.cpp](https://github.com/ggml-org/llama.cpp) yourself, or download them from trusted source   
-2. Download Model from [HuggingFace](https://huggingface.co/), recommend GGUF like `Llama-3.3-7B-q8`   
-3. Recommend Server args `llama-server.exe -ngl 40 --no-mmap -m "<your GGUF model here>`
+2. Download Model from [HuggingFace](https://huggingface.co/), recommend GGUF like `oh-dcft-v3.1-claude-3-5-sonnet-20241022.Q8_0` ([Here](https://huggingface.co/mradermacher/oh-dcft-v3.1-claude-3-5-sonnet-20241022-GGUF))   
+3. Recommend Server args `llama-server.exe -c 16384 -ngl 40 --port <your local LLM port> --no-mmap -m "<your GGUF model here>`
 4. Set `AI Prompt Generator` to `Local`
-5. Set `Local Llama.cpp server` to your Local AI address    
+5. Set `Local Llama.cpp server` to your Local AI address and port    
 6. (Optional) You may need to check API settings for any other Local AI service     
 7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`
 
@@ -91,7 +91,7 @@ pause
 4. Have fun   
 
 ## WebUI
-1. Enable `API mode` by add `--api` in `COMMANDLINE_ARGS` (webui-user.bat)   
+1. Enable `API mode` by add ` --api` in `COMMANDLINE_ARGS` (webui-user.bat)   
 2. Start WebUI       
 3. Select `Local Image Generator API` to `WebUI`   
 4. Make sure `Local Image Generator IP Address:Port` same as your WerUI page   
