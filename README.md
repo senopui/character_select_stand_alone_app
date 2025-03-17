@@ -30,7 +30,8 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
 4. To use all your local models, modify `model_filter` to `false`    
-5. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
+5. To search subfolder models, modify `search_modelinsubfolder` to `true`    
+6. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
 
 # Default and custom settings
 1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`

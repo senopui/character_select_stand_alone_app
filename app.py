@@ -59,12 +59,14 @@ if __name__ == '__main__':
                             label=LANG["api_model_file_select"],
                             value=settings_json["api_model_file_select"],
                             allow_custom_value=False,
+                            scale=2
                         )            
                     random_seed = gr.Slider(minimum=-1,
                             maximum=4294967295,
                             step=1,
                             value=-1,
                             label=LANG["random_seed"],
+                            scale=1
                         )    
                 with gr.Row():
                     thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb")

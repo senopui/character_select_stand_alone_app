@@ -7,7 +7,7 @@ sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
     character_list, view_tags, original_character_list, model_files_list, LANG = init()
     
     url = f'http://127.0.0.1:{os.environ["GRADIO_SERVER_PORT"]}'
@@ -98,12 +98,14 @@ if __name__ == '__main__':
                             label=LANG["api_model_file_select"],
                             value=settings_json["api_model_file_select"],
                             allow_custom_value=False,
+                            scale=2
                         )            
                     random_seed = gr.Slider(minimum=-1,
                             maximum=4294967295,
                             step=1,
                             value=-1,
                             label=LANG["random_seed"],
+                            scale=1
                         )    
                 with gr.Row():
                     thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb")

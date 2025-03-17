@@ -244,6 +244,7 @@ settings_json = {
     "model_path": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
     "model_filter": False,
     "model_filter_keyword": "waiNSFW",
+    "search_modelinsubfolder": False,
     
     "character1": "random",
     "character2": "none",
@@ -405,13 +406,17 @@ def base64_to_image(base64_data):
     image = Image.open(BytesIO(webp_data))  
     return image
 
-def get_safetensors_files(directory):
+def get_safetensors_files(directory, search_subfolder):
     if not os.path.isdir(directory):
         print(f'[{CAT}]:{directory} not exist, use default')
         return []
     
-    safetensors_files = glob.glob(os.path.join(directory, '*.safetensors'))
-    safetensors_filenames = [os.path.basename(file) for file in safetensors_files]
+    if search_subfolder:
+        safetensors_files = glob.glob(os.path.join(directory, '**', '*.safetensors'), recursive=True)
+    else:
+        safetensors_files = glob.glob(os.path.join(directory, '*.safetensors'))
+        
+    safetensors_filenames = [os.path.relpath(file, directory) for file in safetensors_files]
     
     return safetensors_filenames
 
@@ -500,7 +505,7 @@ def load_jsons():
     original_character_list.insert(0, "random")    
                             
     # Search models
-    files_list = get_safetensors_files(settings_json["model_path"])
+    files_list = get_safetensors_files(settings_json["model_path"], settings_json["search_modelinsubfolder"])
     
     if len(files_list) > 0 :
         for model in files_list:
@@ -1012,6 +1017,7 @@ def save_current_setting(character1, character2, character3, tag_assist,
         "model_path": settings_json["model_path"],
         "model_filter": settings_json["model_filter"],
         "model_filter_keyword": settings_json["model_filter_keyword"],
+        "search_modelinsubfolder": settings_json["search_modelinsubfolder"],
         
         "character1": character1,
         "character2": character2,
