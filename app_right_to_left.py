@@ -18,7 +18,6 @@ if __name__ == '__main__':
         items = []
         if matches:       
             for _, m in enumerate(matches):
-                print(m)
                 key = f"{m['prompt']} ({m['heat']})"
                 items.append([key])
         return gr.Dataset(samples=items)
