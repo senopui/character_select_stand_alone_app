@@ -16,7 +16,7 @@ In case you don't know how to build your own Python enverment, try the [embeded_
 
 # Chinese Translate and Character Verification       
 ### Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.
-#### Silence, 燦夜, 镜流の粉丝, 樱小路朝日, and three more who wish to remain anonymous.
+#### Silence, 燦夜, 镜流の粉丝, 樱小路朝日, 满开之萤, and two more who wish to remain anonymous.
 
 Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) please support his WebUI plugin.   
 
