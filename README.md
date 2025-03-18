@@ -1,6 +1,6 @@
 # Character Select SAA
-This is a Stand Alone App with AI prompt and ComfyUI/WebUI API support.    
-Now supports 5323 (includes multiple costumes) Character list.   
+This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
+Now supports 5058 (includes multiple costumes) Character list.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
 
@@ -12,20 +12,34 @@ In case you don't know how to build your own Python enverment, try the [embeded_
 1. Download and unzip to your computer    
 2. Db-click `##quick_start_download_and_force_update_SAA.bat`, wait for Github download        
 3. Db-click `#run_XX.bat`, wait for 1st time setup and Github/HF download   
+4. Follow setup wizard setup your `model folder` and `API Key`    
 
-# Character List Translate Project    
-Currently a team working on Simplified Chinese translation of the Character list, if you are interested in other languages, please submit an issue ticket!    
-Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) for providing 2000+ Character tags, please support his webui plugin.   
+# Chinese Translate and Character Verification       
+### Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.
+#### Silence, 燦夜, 镜流の粉丝, 樱小路朝日, and three more who wish to remain anonymous.
+
+Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) please support his WebUI plugin.   
 
 ------
 # Install and Run
 ## *IMPORTANT* `Save settings` will NOT overwrite your `settings.json`, it saved as `tmp_settings.json`    
 1. Clone the repository to wherever you like   
 2. Dbclick `#run_XX.bat`   
-3. Have fun
-   
+3. Follow setup wizard setup your `model folder` and `API Key`    
+4. Have fun
+
 ------
-# Setup Model List for model switch
+# Semi-auto Tag Complete
+Tags credits from [a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete/blob/main/tags/danbooru.csv)    
+
+ONLY `Custom Prompt (Head)` supports tag complete.    
+Entering the `first few characters` will automatically search for matching tags, starting with `*` will search for tags with a specific ending, and `*tag*` will search for tags that match in the middle.    
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_completa.png" width=55% height=55%>   
+------
+# Manual Setup by edit settings.json
+
+## Model List for model switch
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
@@ -33,16 +47,17 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 5. To search subfolder models, modify `search_modelinsubfolder` to `true`    
 6. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
 
-# Default and custom settings
+## Default and custom settings
 1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`
 2. Rename to `settings.json` as default settings
 3. `Load Settings` will override current settings with your `renamed_settings.json`
 4. In case you messed up, just `delete` all json files and restart app    
 
-# Original Characters
+## Original Characters
 1. You can add/remove character (who not in list) in `original_character.json`    
 2. I already put some of my OC in it, feel free to use or modify    
-3. Original Characters is NOT support thumb image for now
+3. Original Characters is NOT support thumb image for now   
+4. BACKUP `original_character.json` before you feach new version from GitHub
 
 ------
 # Right to Left UI
@@ -65,7 +80,7 @@ pause
 ------
 # AI prompt
 ## Remote   
-1. Modify `json/settings.json`    
+1. Modify `json/settings.json`, copy and paste your `API KEY` to `remote_ai_api_key`    
 2. Set `remote_ai_api_key` to your Remote AI API Key, and keep it only for yourself     
 3. Run app       
 4. Set `AI Prompt Generator` to `Remote`

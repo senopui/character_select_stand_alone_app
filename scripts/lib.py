@@ -17,6 +17,8 @@ import argparse
 from comfyui import run_comfyui
 from webui import run_webui
 from color_transfer import ColorTransfer
+from tag_autocomplete import PromptSuggester
+from setup_wizard import setup_wizard_window
 
 # Language
 LANG_EN = {
@@ -38,7 +40,7 @@ LANG_EN = {
     "api_image_data": "CFG,Step,W,H,Batch (1-16)",
     "api_image_landscape": "Landscape",
     "ai_prompt": "AI Prompt",
-    "prompt_ban": "Prompt Ban (Remove specific tags e.g. \"masterpiece, quality, amazing\" )",
+    "prompt_ban": "Prompt Ban List",
     "ai_interface": "AI Prompt Generator",
     "remote_ai_base_url": "Remote AI url",
     "remote_ai_model": "Remote AI model",
@@ -68,19 +70,19 @@ LANG_EN = {
     "run_same_button": "Batch (Last Prompt)",
     "save_settings_button": "Save Settings",
     "load_settings_button": "Load Settings",
-    "manual_update_database": "Update wai_character_thumbs.json",
+    "manual_update_database": "Update thumbs and tags",
     
     "gr_info_create_n": "Creating {}of{}, please wait ...",
     "gr_info_settings_saved": "Settings Saved to {}",
     "gr_info_settings_loaded": "Settings Loaded {}",
-    "gr_info_manual_update_database": "Now downloading wai_character_thumbs.json, please wait a while, it is also recommended that download the latest version from Github.",
-    "gr_info_manual_update_database_done": " wai_character_thumbs.json updated",
+    "gr_info_manual_update_database": "Now downloading {}, please wait a while.",
+    "gr_info_manual_update_database_done": " {} updated",
     
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
     "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
     "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"[Warning] \"CFG,Step,W,H,Batch\" data mismatch, use default: 7.0, 30, 1024, 1360, 1",
-    "gr_warning_manual_update_database": "Download wai_character_thumbs.json failed, please check console logs.\n{}",
+    "gr_warning_manual_update_database": "Download files failed, please check console logs.\n{}",
     
     "gr_error_creating_image":"[Error] Got error from Image API: {}",
     
@@ -105,6 +107,21 @@ LANG_EN = {
     9.Output: Provide the answer as a single line of comma-separated keywords.
     Prompt for the following theme:
     """),
+    
+    "setup_greet_title": "Initial Setup Wizard",
+    "setup_greet_message": "Hi there! This wizard will run automatically the first time you start this program, or if you can't find the settings.json configuration file, please follow the instructions to initialize the settings.",
+    "setup_model_folder_title": "Setup Model Folder",
+    "setup_model_folder": "Please specify the directory where the model file safetensors is located. It is recommended to copy it from the Explore's address bar.",    
+    "setup_model_filter_title": "Model File Filter",
+    "setup_model_filter": "Do you want to enable the model name filter?",    
+    "setup_model_filter_keyword_title": "Model Name Whitelist",
+    "setup_model_filter_keyword": "Please set the keyword for the model name in the whitelist",    
+    "setup_search_modelinsubfolder_title": "Subfolder",
+    "setup_search_modelinsubfolder": "Do you want to search for model files in subfolders?",    
+    "setup_remote_ai_api_key_title": "API Key",
+    "setup_remote_ai_api_key": "Enter Remote Large Language Model API key (also changeable in settings.json)",    
+    "setup_webui_comfyui_title": "Important!",
+    "setup_webui_comfyui": "If you are using ComfyUI, enable dev mode in the settings. \nIf you are using WebUI, modify webui-user.bat and COMMANDLINE_ARGS= --api"
 }
 
 LANG_CN = {
@@ -126,7 +143,7 @@ LANG_CN = {
     "api_image_data": "引导,步数,宽,高,批量1-16",
     "api_image_landscape": "宽高互换",
     "ai_prompt": "AI提示词（用于生成填词）",
-    "prompt_ban": "提示词黑名单（用于删除特定标签，例如：\"masterpiece, quality, amazing\" ）",
+    "prompt_ban": "提示词黑名单",
     "ai_interface": "AI填词设置",
     "remote_ai_base_url": "远程AI地址",
     "remote_ai_model": "远程AI模型",
@@ -156,19 +173,19 @@ LANG_CN = {
     "run_same_button": "批量（上次生成）",
     "save_settings_button": "保存设置",
     "load_settings_button": "载入设置",
-    "manual_update_database": "更新 wai_character_thumbs.json",
+    "manual_update_database": "更新缩略图与标签库",
     
     "gr_info_create_n": "正在生成 {} / {}， 请稍候……",
     "gr_info_settings_saved": "配置已保存： {}",
     "gr_info_settings_loaded": "配置已载入： {}",
-    "gr_info_manual_update_database": "正在下载 wai_character_thumbs.json，请稍候，建议同时从Github更新本体程序",
-    "gr_info_manual_update_database_done": " wai_character_thumbs.json 更新完成",
+    "gr_info_manual_update_database": "正在下载 {} 请稍候",
+    "gr_info_manual_update_database_done": " {} 更新完成",
     
     "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
     "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
     "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"注意：“引导,步数,宽,高,批量”设置存在错误，使用默认数据：7.0, 30, 1024, 1360, 1",
-    "gr_warning_manual_update_database": "wai_character_thumbs.json下载失败，请检查控制台日志确认问题\n{}",
+    "gr_warning_manual_update_database": "文件下载失败，请检查控制台日志确认问题\n{}",
     
     "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
     
@@ -193,6 +210,21 @@ LANG_CN = {
     9.输出： 以单行逗号分隔的关键词形式且必须以英文回答。
     Prompt for the following theme:
     """),
+    
+    "setup_greet_title": "初次设定界面",
+    "setup_greet_message": "你好！在本程序第一次启动或找不到settings.json文件时，会自动运行向导程序，请按照说明进行初始化设定。",
+    "setup_model_folder_title": "模型路径",
+    "setup_model_folder": "请设置您的模型文件safetensors所在目录，建议从文件夹地址栏复制",    
+    "setup_model_filter_title": "模型白名单",
+    "setup_model_filter": "请选择是否要开启模型白名单",
+    "setup_model_filter_keyword_title": "白名单关键字",
+    "setup_model_filter_keyword": "请设置过滤器白名单关键字",    
+    "setup_search_modelinsubfolder_title": "子目录",
+    "setup_search_modelinsubfolder": "是否搜索模型文件夹子目录下的模型文件",    
+    "setup_remote_ai_api_key_title": "API密钥",
+    "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥（不需要可以直接跳过）",    
+    "setup_webui_comfyui_title": "重要信息",
+    "setup_webui_comfyui": "如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api"
 }
 
 LANG = LANG_CN
@@ -221,6 +253,7 @@ CSS_SCRIPT = """
 TITLE = "WAI Character Select SAA"
 CAT = "WAI_Character_Select"
 ENGLISH_CHARACTER_NAME = False
+TAG_AUTOCOMPLETE = None
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -235,6 +268,7 @@ original_character_dict = {}
 wai_image_dict = {}
 view_tags = {}
 
+no_local_settings = False
 settings_json = {
     "remote_ai_base_url": "https://api.groq.com/openai/v1/chat/completions",
     "remote_ai_model": "llama-3.3-70b-versatile",
@@ -299,8 +333,49 @@ wai_illustrious_character_select_files = [
     {'name': 'wai_characters', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv'},
     {'name': 'wai_tag_assist', 'file_path': os.path.join(json_folder, 'wai_tag_assist.json'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_tag_assist.json'},
     {'name': 'wai_character_thumbs', 'file_path': os.path.join(json_folder, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json'},
+    {'name': 'danbooru_tag', 'file_path': os.path.join(json_folder, 'danbooru.csv'), 'url': 'https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/refs/heads/main/tags/danbooru.csv'},
 ]
 
+def first_setup():
+    if not no_local_settings:
+        return
+    
+    wiz = setup_wizard_window()
+    wiz.run(LANG["setup_greet_title"], LANG["setup_greet_message"])
+    
+    model_folder = wiz.get_string(LANG["setup_model_folder_title"], LANG["setup_model_folder"], settings_json["model_path"])
+    if model_folder:
+        print(f"model_folder: {model_folder}")
+        settings_json["model_path"] = model_folder
+        get_safetensors()
+    else:
+        print("model_folder: skipped")
+    
+    settings_json["model_filter"] = wiz.ask_yes_no(LANG["setup_model_filter_title"], LANG["setup_model_filter"])
+    
+    if settings_json["model_filter"]:
+        model_filter_keyword = wiz.get_string(LANG["setup_model_filter_keyword_title"], LANG["setup_model_filter_keyword"], settings_json["model_filter_keyword"]) 
+        if model_filter_keyword:
+            print(f"model_filter_keyword: {model_filter_keyword}")
+            settings_json["model_filter_keyword"] = model_filter_keyword
+        else:
+            print("model_filter_keyword: skipped")
+
+    settings_json["search_modelinsubfolder"] = wiz.ask_yes_no(LANG["setup_search_modelinsubfolder_title"], LANG["setup_search_modelinsubfolder"])            
+    
+    
+    remote_ai_api_key = wiz.get_string(LANG["setup_remote_ai_api_key_title"], LANG["setup_remote_ai_api_key"], "<API KEY>")
+    if remote_ai_api_key:
+        print(f"remote_ai_api_key: {remote_ai_api_key}")
+        settings_json["remote_ai_api_key"] = remote_ai_api_key
+    else:
+        print("remote_ai_api_key: skipped")
+
+    wiz.run(LANG["setup_webui_comfyui_title"], LANG["setup_webui_comfyui"])
+
+    save_json(settings_json, 'settings.json')
+    
+ 
 def get_url_by_name(name):
     for item in wai_illustrious_character_select_files:
         if item['name'] == name:
@@ -369,20 +444,27 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
 
 def manual_update_database():
     global wai_image_dict
+    global TAG_AUTOCOMPLETE
     
-    try:
-        gr.Info(LANG["gr_info_manual_update_database"], duration=15)
-        url, path = get_url_by_name("wai_character_thumbs")
-        if  None != url:
-            if os.path.exists(path):
-                os.unlink(path)
-                
-            download_file(url, path)
-            with open(path, 'r', encoding='utf-8') as file:
-                wai_image_dict = json.load(file)
-            gr.Info(LANG["gr_info_manual_update_database_done"], duration=15)
-        else:
-            gr.Warning(LANG["gr_warning_manual_update_database"].format("wai_character_thumbs not found!"))        
+    try:               
+        file_list = ["danbooru_tag", "wai_character_thumbs"]
+        
+        for name in file_list:
+            url, file_path = get_url_by_name(name)
+            if  None != url:
+                gr.Info(LANG["gr_info_manual_update_database"].format(name), duration=15)
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+                    
+                download_file(url, file_path)                
+                if 'wai_character_thumbs' == name:
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        wai_image_dict = json.load(file)
+                elif 'danbooru_tag' == name:
+                    TAG_AUTOCOMPLETE = PromptSuggester(file_path)
+                gr.Info(LANG["gr_info_manual_update_database_done"].format(name), duration=15)
+            else:
+                gr.Warning(LANG["gr_warning_manual_update_database"].format(name))        
     except Exception as e:
         gr.Warning(LANG["gr_warning_manual_update_database"].format(e))
         
@@ -420,6 +502,20 @@ def get_safetensors_files(directory, search_subfolder):
     
     return safetensors_filenames
 
+def get_safetensors():
+    global model_files_list
+    model_files_list=[]
+    files_list = get_safetensors_files(settings_json["model_path"], settings_json["search_modelinsubfolder"])
+    
+    if len(files_list) > 0 :
+        for model in files_list:
+            if settings_json["model_filter"]:
+                if (model).__contains__(settings_json["model_filter_keyword"]):
+                    model_files_list.append(model)
+            else:
+                model_files_list.append(model)            
+    model_files_list.insert(0, 'default')    
+
 def save_json(now_settings_json, file_name):
     tmp_file = os.path.join(json_folder, file_name)
     with open(tmp_file, 'w', encoding='utf-8') as f:
@@ -442,10 +538,11 @@ def load_jsons():
     global original_character_dict
     global original_character_list
     global wai_image_dict
-    global settings_json
-    global model_files_list    
+    global settings_json    
     global view_tags
     global tag_assist_dict
+    global TAG_AUTOCOMPLETE
+    global no_local_settings
     
     # download file
     for item in wai_illustrious_character_select_files:
@@ -454,13 +551,17 @@ def load_jsons():
         url = item['url']        
             
         if 'local' == url:
-           if 'settings' == name and not os.path.exists(file_path):                                        
-                print(f'[{CAT}] Settings: Local settings.json not found, use default. Use Save settings to save your settings, and rename tmp_settings to settings.json.')
-                save_json(settings_json, 'settings.json')
+           if 'settings' == name and not os.path.exists(file_path):
+                print(f'[{CAT}] Settings: Local settings.json not found, use default.')
+                no_local_settings = True                
                 continue
         else:
             if not os.path.exists(file_path):
                 download_file(url, file_path)
+        
+        if 'danbooru_tag' == name:
+            TAG_AUTOCOMPLETE = PromptSuggester(file_path)
+            continue    
 
         with open(file_path, 'r', encoding='utf-8') as file:
             if 'original_character' == name:
@@ -505,16 +606,7 @@ def load_jsons():
     original_character_list.insert(0, "random")    
                             
     # Search models
-    files_list = get_safetensors_files(settings_json["model_path"], settings_json["search_modelinsubfolder"])
-    
-    if len(files_list) > 0 :
-        for model in files_list:
-            if settings_json["model_filter"]:
-                if (model).__contains__(settings_json["model_filter_keyword"]):
-                    model_files_list.append(model)
-            else:
-                model_files_list.append(model)            
-    model_files_list.insert(0, 'default')    
+    get_safetensors()
             
 def remove_duplicates(input_string):
     items = input_string.split(',')    
@@ -1111,7 +1203,8 @@ def init():
         print(f'[{CAT}]:Use tags as Character Name')
         LANG = LANG_EN
         
-    load_jsons()        
+    load_jsons()
+    first_setup()
     print(f'[{CAT}]:Starting...')
     
-    return character_list, view_tags, original_character_list, model_files_list, LANG
+    return character_list, view_tags, original_character_list, model_files_list, LANG, TAG_AUTOCOMPLETE

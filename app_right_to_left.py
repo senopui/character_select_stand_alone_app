@@ -2,16 +2,39 @@ import gradio as gr
 import sys
 import os
 import webbrowser
-
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
 
 if __name__ == '__main__':    
-    character_list, view_tags, original_character_list, model_files_list, LANG = init()
-    
+    try:
+        character_list, view_tags, original_character_list, model_files_list, LANG, TAG_AUTOCOMPLETE = init()
+    except Exception as e:
+        print(f"Initialization failed: {e}")
+        sys.exit(1)
+
+    def update_suggestions(text):
+        matches = TAG_AUTOCOMPLETE.get_suggestions(text)
+        items = []
+        if matches:       
+            for _, m in enumerate(matches):
+                print(m)
+                key = f"{m['prompt']} ({m['heat']})"
+                items.append([key])
+        return gr.Dataset(samples=items)
+        
+    def apply_suggestion(evt: gr.SelectData, text, custom_prompt):        
+        suggestion = evt.value
+        #print(f"You selected {evt.value} at {evt.index} from {evt.target} for {custom_prompt}")
+        if not custom_prompt or not suggestion:
+            return custom_prompt
+            
+        parts = custom_prompt.split(',')
+        parts[-1] = suggestion[0].split(' ')[0].replace('_', ' ').replace(':', ' ')        
+        return ', '.join(parts) + ', '
+  
     url = f'http://127.0.0.1:{os.environ["GRADIO_SERVER_PORT"]}'
-    webbrowser.open(url, new=0, autoraise=True)
+    webbrowser.open(url, new=0, autoraise=True)    
     
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:
         with gr.Row():
@@ -82,7 +105,7 @@ if __name__ == '__main__':
                         allow_custom_value=False,    
                     )                    
                 with gr.Row():
-                    api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=846, label=LANG["api_image"])
+                    api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=828, label=LANG["api_image"])  #OCD FIX
                 with gr.Row():                    
                     output_prompt = gr.Textbox(label=LANG["output_prompt"])
                 with gr.Row():
@@ -144,21 +167,25 @@ if __name__ == '__main__':
                         run_same_button = gr.Button(value=LANG["run_same_button"], scale=3)
                 with gr.Row():
                     with gr.Column():
-                        
-                        # API prompts
-                        custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label=LANG["custom_prompt"], elem_id="custom_prompt_text") 
-                        api_prompt = gr.Textbox(value=settings_json["api_prompt"], label=LANG["api_prompt"], elem_id="positive_prompt_text")
-                        api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label=LANG["api_neg_prompt"], elem_id="negative_prompt_text")                        
                         with gr.Row():
+                            # Prompts
+                            custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label=LANG["custom_prompt"], elem_id="custom_prompt_text", elem_classes='custom_prompt') 
+                        with gr.Row():
+                            with gr.Column(scale=4):
+                                    api_prompt = gr.Textbox(value=settings_json["api_prompt"], label=LANG["api_prompt"], elem_id="positive_prompt_text")
+                                    api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label=LANG["api_neg_prompt"], elem_id="negative_prompt_text")
+                                    ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label=LANG["ai_prompt"], elem_id="ai_prompt_text")
+                                    prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label=LANG["prompt_ban"], elem_id="prompt_ban_text")                
+                            with gr.Column(scale=1):
+                                # Prompt Auto Complete
+                                suggestions = gr.Dataset(components=[custom_prompt], samples_per_page=13, samples=[])
                             # AI prompts
                             batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
                                                         value=settings_json["batch_generate_rule"],
                                                         label=LANG["batch_generate_rule"],
-                                                        scale=7)
+                                                        scale=7)                                
                             api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"], scale=3)
                             api_image_landscape = gr.Checkbox(value=settings_json["api_image_landscape"], label=LANG["api_image_landscape"], scale = 1)
-                        ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label=LANG["ai_prompt"], elem_id="ai_prompt_text")
-                        prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label=LANG["prompt_ban"], elem_id="prompt_ban_text")                
                 with gr.Row():             
                     with gr.Column():                               
                         # AI Prompt Generator                
@@ -263,21 +290,15 @@ if __name__ == '__main__':
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ])
         
-        manual_update_database_button.click(fn=manual_update_database,
-                                            outputs=[manual_update_database_button]
-                                            )
+        manual_update_database_button.click(fn=manual_update_database, outputs=[manual_update_database_button])
         
-        batch_generate_rule.change(fn=batch_generate_rule_change,
-                                inputs=batch_generate_rule)
+        batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
         
-        character1.change(fn=refresh_character_thumb_image,
-                          inputs=[character1,character2,character3],
-                          outputs=[thumb_image])
-        character2.change(fn=refresh_character_thumb_image,
-                          inputs=[character1,character2,character3],
-                          outputs=[thumb_image])
-        character3.change(fn=refresh_character_thumb_image,
-                          inputs=[character1,character2,character3],
-                          outputs=[thumb_image])
+        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
+        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
+        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
         
+        custom_prompt.change(fn=update_suggestions, inputs=[custom_prompt], outputs=[suggestions])
+        suggestions.select(fn=apply_suggestion, inputs=[suggestions, custom_prompt], outputs=[custom_prompt])
+    
     ui.launch()
