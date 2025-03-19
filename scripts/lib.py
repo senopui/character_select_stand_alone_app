@@ -17,7 +17,7 @@ import argparse
 from comfyui import run_comfyui
 from webui import run_webui
 from color_transfer import ColorTransfer
-from tag_autocomplete import PromptSuggester
+from tag_autocomplete import PromptManager
 from setup_wizard import setup_wizard_window
 
 # Language
@@ -253,7 +253,7 @@ CSS_SCRIPT = """
 TITLE = "WAI Character Select SAA"
 CAT = "WAI_Character_Select"
 ENGLISH_CHARACTER_NAME = False
-TAG_AUTOCOMPLETE = None
+PROMPT_MANAGER = None
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -444,7 +444,7 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
 
 def manual_update_database():
     global wai_image_dict
-    global TAG_AUTOCOMPLETE
+    global PROMPT_MANAGER
     
     try:               
         file_list = ["danbooru_tag", "wai_character_thumbs"]
@@ -461,14 +461,12 @@ def manual_update_database():
                     with open(file_path, 'r', encoding='utf-8') as file:
                         wai_image_dict = json.load(file)
                 elif 'danbooru_tag' == name:
-                    TAG_AUTOCOMPLETE = PromptSuggester(file_path)
+                    PROMPT_MANAGER.reload_data()
                 gr.Info(LANG["gr_info_manual_update_database_done"].format(name), duration=15)
             else:
                 gr.Warning(LANG["gr_warning_manual_update_database"].format(name))        
     except Exception as e:
         gr.Warning(LANG["gr_warning_manual_update_database"].format(e))
-        
-    return gr.Button(visible=False)
 
 def download_file(url, file_path):   
     response = requests.get(url)
@@ -541,7 +539,7 @@ def load_jsons():
     global settings_json    
     global view_tags
     global tag_assist_dict
-    global TAG_AUTOCOMPLETE
+    global PROMPT_MANAGER
     global no_local_settings
     
     # download file
@@ -560,7 +558,8 @@ def load_jsons():
                 download_file(url, file_path)
         
         if 'danbooru_tag' == name:
-            TAG_AUTOCOMPLETE = PromptSuggester(file_path)
+            PROMPT_MANAGER = PromptManager(file_path)
+            print(f"[{CAT}]:PROMPT_MANAGER initialized.")
             continue    
 
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -1194,6 +1193,9 @@ def parse_arguments():
 
     return args.english
 
+def get_prompt_manager():
+    return PROMPT_MANAGER
+
 def init():
     global ENGLISH_CHARACTER_NAME
     global LANG
@@ -1207,4 +1209,4 @@ def init():
     first_setup()
     print(f'[{CAT}]:Starting...')
     
-    return character_list, view_tags, original_character_list, model_files_list, LANG, TAG_AUTOCOMPLETE
+    return character_list, view_tags, original_character_list, model_files_list, LANG

@@ -4,36 +4,17 @@ import os
 import webbrowser
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
-from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json
+from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json, get_prompt_manager
 
-if __name__ == '__main__':    
+if __name__ == '__main__':       
     try:
-        character_list, view_tags, original_character_list, model_files_list, LANG, TAG_AUTOCOMPLETE = init()
+        character_list, view_tags, original_character_list, model_files_list, LANG = init()
     except Exception as e:
         print(f"Initialization failed: {e}")
         sys.exit(1)
-
-    def update_suggestions(text):
-        matches = TAG_AUTOCOMPLETE.get_suggestions(text)
-        items = []
-        if matches:       
-            for _, m in enumerate(matches):
-                key = f"{m['prompt']} ({m['heat']})"
-                items.append([key])
-        return gr.Dataset(samples=items)
-        
-    def apply_suggestion(evt: gr.SelectData, text, custom_prompt):        
-        suggestion = evt.value
-        #print(f"You selected {evt.value} at {evt.index} from {evt.target} for {custom_prompt}")
-        if not custom_prompt or not suggestion:
-            return custom_prompt
-            
-        parts = custom_prompt.split(',')
-        parts[-1] = suggestion[0].split(' ')[0].replace('_', ' ').replace(':', ' ')        
-        return ', '.join(parts) + ', '
-  
+    
     url = f'http://127.0.0.1:{os.environ["GRADIO_SERVER_PORT"]}'
-    webbrowser.open(url, new=0, autoraise=True)
+    webbrowser.open(url, new=0, autoraise=True)    
     
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:
         with gr.Row():
@@ -193,7 +174,7 @@ if __name__ == '__main__':
                         
                         with gr.Row():
                             save_settings_button = gr.Button(value=LANG["save_settings_button"], variant='stop') 
-                            load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json'])            
+                            load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json'])                         
             with gr.Column(elem_classes='column_images'):
                 with gr.Row():
                     view_angle = gr.Dropdown(
@@ -232,7 +213,7 @@ if __name__ == '__main__':
                 with gr.Row():
                     gr.Markdown(LANG["ai_system_prompt_warning"])
                 with gr.Row():
-                    ai_system_prompt_text = gr.Textbox(label=LANG["ai_system_prompt_text"], value=LANG["ai_system_prompt"])             
+                    ai_system_prompt_text = gr.Textbox(label=LANG["ai_system_prompt_text"], value=LANG["ai_system_prompt"])
         
         run_button.click(fn=create_characters,
                               inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
@@ -297,7 +278,7 @@ if __name__ == '__main__':
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
         character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
         
-        custom_prompt.change(fn=update_suggestions, inputs=[custom_prompt], outputs=[suggestions])
-        suggestions.select(fn=apply_suggestion, inputs=[suggestions, custom_prompt], outputs=[custom_prompt])
+        custom_prompt.change(fn=get_prompt_manager().update_suggestions, inputs=[custom_prompt], outputs=[suggestions])
+        suggestions.select(fn=get_prompt_manager().apply_suggestion, inputs=[suggestions, custom_prompt], outputs=[custom_prompt, suggestions])
     
     ui.launch()
