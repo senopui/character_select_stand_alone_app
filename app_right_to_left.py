@@ -274,9 +274,9 @@ if __name__ == '__main__':
         
         batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
         
-        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
-        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
-        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image])
+        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
+        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
+        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
         
         custom_prompt.change(fn=get_prompt_manager().update_suggestions, inputs=[custom_prompt], outputs=[suggestions])
         suggestions.select(fn=get_prompt_manager().apply_suggestion, inputs=[suggestions, custom_prompt], outputs=[custom_prompt, suggestions])

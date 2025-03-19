@@ -1174,17 +1174,27 @@ def batch_generate_rule_change(options_selected):
 
 def refresh_character_thumb_image(character1, character2, character3):
     thumb_image = []
+    rnd_character = [''] * 3
+    opt_chara = [''] * 3
+    
     if 'none' != character1 and 'random' != character1:
-        _, _, thumb_image1, _ = illustrious_character_select_ex(character = character1, random_action_seed=42)        
+        rnd_character[0], opt_chara[0], thumb_image1, _ = illustrious_character_select_ex(character = character1, random_action_seed=42)        
         thumb_image.append(thumb_image1)
     
     if 'none' != character2 and 'random' != character2:
-        _, _, thumb_image2, _ = illustrious_character_select_ex(character = character2, random_action_seed=42)        
+        rnd_character[1], opt_chara[1], thumb_image2, _ = illustrious_character_select_ex(character = character2, random_action_seed=42)        
         thumb_image.append(thumb_image2)
+        
     if 'none' != character3 and 'random' != character3:
-        _, _, thumb_image3, _ = illustrious_character_select_ex(character = character3, random_action_seed=42)        
+        rnd_character[2], opt_chara[2], thumb_image3, _ = illustrious_character_select_ex(character = character3, random_action_seed=42)                
         thumb_image.append(thumb_image3)
-    return thumb_image
+        
+    _, character_info = create_prompt_info(rnd_character[0], opt_chara[0], '',
+                                    rnd_character[1], opt_chara[1], '',
+                                    rnd_character[2], opt_chara[2], '',
+                                    '', '')   
+    
+    return thumb_image, character_info
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')
