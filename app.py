@@ -50,7 +50,8 @@ if __name__ == '__main__':
                 scale=2
             )
             
-            dummy = gr.Dropdown(visible=False, allow_custom_value=True)
+            dummy_dropdown = gr.Dropdown(visible=False, allow_custom_value=True)
+            dummy_textbox = gr.Textbox(visible=False)
             
         with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_prompts'):
@@ -272,6 +273,8 @@ if __name__ == '__main__':
         character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
                 
         # Prompt Auto Complete JS
-        custom_prompt.change(fn=get_prompt_manager().update_suggestions_js, inputs=[custom_prompt], outputs=[dummy])
+        # Have to use dummy components
+        # Use custom_prompt, the stupid js console will always report "api_info.ts:423  Too many arguments provided for the endpoint."
+        dummy_textbox.change(fn=get_prompt_manager().update_suggestions_js, inputs=[dummy_textbox], outputs=[dummy_dropdown])
             
     ui.launch()
