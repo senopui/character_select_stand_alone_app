@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import os
 import glob
+import sys
 import textwrap
 import gradio as gr
 import numpy as np
@@ -228,27 +229,6 @@ LANG_CN = {
 }
 
 LANG = LANG_CN
-
-# JavaScript
-JAVA_SCRIPT = """
-function refresh() {
-    const url = new URL(window.location);
-
-    if (url.searchParams.get('__theme') !== 'dark') {
-        url.searchParams.set('__theme', 'dark');
-        window.location.href = url.href;
-    }
-}
-"""
-
-# CSS
-CSS_SCRIPT = """
-#custom_prompt_text textarea {color: darkorange}
-#positive_prompt_text textarea {color: greenyellow}
-#negative_prompt_text textarea {color: red}
-#ai_prompt_text textarea {color: hotpink}
-#prompt_ban_text textarea {color: Khaki}
-"""
 
 TITLE = "WAI Character Select SAA"
 CAT = "WAI_Character_Select"
@@ -529,6 +509,16 @@ def load_settings(temp_settings_json):
             settings_json[key] = value
         else:
             print(f'[{CAT}] Settings: Ignore Unknown [{key}] : [{value}]')    
+
+def load_text_file(file_path):
+    raw_text = ''
+    if os.path.exists(file_path):
+        with open(file_path, 'r', encoding='utf-8') as js_file:
+            raw_text = js_file.read()
+    else:
+        print(f"[{CAT}] ERROR: {file_path} file missing!!!")
+
+    return raw_text
             
 def load_jsons():
     global character_list
@@ -1209,14 +1199,25 @@ def get_prompt_manager():
 def init():
     global ENGLISH_CHARACTER_NAME
     global LANG
+    global JAVA_SCRIPT
         
     ENGLISH_CHARACTER_NAME = parse_arguments()
     if ENGLISH_CHARACTER_NAME:
         print(f'[{CAT}]:Use tags as Character Name')
         LANG = LANG_EN
-        
-    load_jsons()
-    first_setup()
-    print(f'[{CAT}]:Starting...')
     
-    return character_list, view_tags, original_character_list, model_files_list, LANG
+    try:
+        lib_js_path = os.path.join(current_dir, 'lib.js')
+        lib_css_path = os.path.join(current_dir, 'lib.css')
+            
+        load_jsons()
+        js_script = load_text_file(lib_js_path)
+        css_script = load_text_file(lib_css_path)
+        
+        first_setup()
+    except Exception as e:
+        print(f"[{CAT}]:Initialization failed: {e}")
+        sys.exit(1)
+        
+    print(f'[{CAT}]:Starting...')
+    return character_list, view_tags, original_character_list, model_files_list, LANG, js_script, css_script

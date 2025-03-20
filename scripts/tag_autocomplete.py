@@ -118,8 +118,8 @@ class PromptManager:
                     if prompt not in matches or prompt_info['heat'] > matches[prompt]['heat']:
                         matches[prompt] = {'prompt': prompt_info['prompt'], 'heat': prompt_info['heat']}
 
-            # we only need 12 items
-            if len(matches) == 12:
+            # we only need 50 items
+            if len(matches) == 50:
                 break
         
         sorted_matches = sorted(matches.values(), key=lambda x: x['heat'], reverse=True)
@@ -177,9 +177,10 @@ class PromptManager:
             else:
                 # If the part does not contain ':', add it directly
                 processed_parts.append(part)
+        print(f"Processed parts: {processed_parts}")
         return processed_parts
 
-    def update_suggestions(self, text):
+    def update_suggestions_js(self, text):
         """
         Update suggestions based on the current input and update global variables.
         """
@@ -237,7 +238,7 @@ class PromptManager:
         if target_word is not None:
             print(f"Suggestions for '{target_word}': {items}")
         """
-        return gr.Dataset(samples=items)
+        return items
     
     def apply_suggestion(self, evt: gr.SelectData, text, custom_prompt):
         """

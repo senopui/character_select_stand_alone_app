@@ -29,13 +29,15 @@ Special thanks to [lanner0403](https://github.com/lanner0403/WAI-NSFW-illustriou
 4. Have fun
 
 ------
-# Semi-auto Tag Complete
+# Semi-Auto Tag Complete
 Tags credits from [a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete/blob/main/tags/danbooru.csv)    
 
-ONLY `Custom Prompt (Head)` supports tag complete.    
+All five input zones support Auto Tag Complete        
 Entering the `first few characters` will automatically search for matching tags, starting with `*` will search for tags with a specific ending, and `*tag*` will search for tags that match in the middle.    
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_completa.png" width=55% height=55%>   
+Use the `mouse` to select the prompt word, but you can also use the `keyboard up and down` with `Enter` or `Tab` to select, press `Esc` to close the prompt box.     
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_complete.png" width=55% height=55%>   
 
 ------
 # Manual Setup by edit settings.json

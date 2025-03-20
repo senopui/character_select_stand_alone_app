@@ -1,0 +1,52 @@
+#custom_prompt_text textarea {color: darkorange}
+#positive_prompt_text textarea {color: greenyellow}
+#negative_prompt_text textarea {color: red}
+#ai_prompt_text textarea {color: hotpink}
+#prompt_ban_text textarea {color: Khaki}
+
+.suggestion-box {
+    position: absolute;
+    border: 1px solid #888;
+    background-color: #333;
+    color: #ccc;
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 5px;
+    border-radius: 5px;
+    width: auto !important; 
+    min-width: 0 !important; 
+    max-width: none !important; 
+    pointer-events: auto; 
+}
+
+.suggestion-box::-webkit-scrollbar {
+    width: 10px;
+}
+
+.suggestion-box::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 5px;
+}
+
+.suggestion-box::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, #555, #888);
+    border-radius: 5px;
+}
+
+.suggestion-box::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, #777, #aaa);
+}
+
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap; 
+    pointer-events: auto; 
+}
+
+.suggestion-item:hover, .suggestion-item.selected {
+    background-color: #555; 
+}

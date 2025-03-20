@@ -4,14 +4,10 @@ import os
 import webbrowser
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
-from lib import JAVA_SCRIPT, CSS_SCRIPT, TITLE, settings_json, get_prompt_manager
+from lib import TITLE, settings_json, get_prompt_manager
 
-if __name__ == '__main__':       
-    try:
-        character_list, view_tags, original_character_list, model_files_list, LANG = init()
-    except Exception as e:
-        print(f"Initialization failed: {e}")
-        sys.exit(1)
+if __name__ == '__main__':          
+    character_list, view_tags, original_character_list, model_files_list, LANG, JAVA_SCRIPT, CSS_SCRIPT = init()            
     
     url = f'http://127.0.0.1:{os.environ["GRADIO_SERVER_PORT"]}'
     webbrowser.open(url, new=0, autoraise=True)    
@@ -52,7 +48,9 @@ if __name__ == '__main__':
                 value='none',
                 allow_custom_value=False,
                 scale=2
-            )            
+            )
+            
+            dummy = gr.Dropdown(visible=False, allow_custom_value=True)
             
         with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_prompts'):
@@ -107,26 +105,21 @@ if __name__ == '__main__':
                         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1)
                         run_same_button = gr.Button(value=LANG["run_same_button"], scale=3)
                 with gr.Row():
-                    with gr.Column():
+                    with gr.Column():                        
+                        # API prompts
+                        custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label=LANG["custom_prompt"], elem_id="custom_prompt_text") 
+                        api_prompt = gr.Textbox(value=settings_json["api_prompt"], label=LANG["api_prompt"], elem_id="positive_prompt_text")
+                        api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label=LANG["api_neg_prompt"], elem_id="negative_prompt_text")                        
                         with gr.Row():
-                            # Prompts
-                            custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label=LANG["custom_prompt"], elem_id="custom_prompt_text", elem_classes='custom_prompt') 
-                        with gr.Row():
-                            with gr.Column(scale=4):
-                                    api_prompt = gr.Textbox(value=settings_json["api_prompt"], label=LANG["api_prompt"], elem_id="positive_prompt_text")
-                                    api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label=LANG["api_neg_prompt"], elem_id="negative_prompt_text")
-                                    ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label=LANG["ai_prompt"], elem_id="ai_prompt_text")
-                                    prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label=LANG["prompt_ban"], elem_id="prompt_ban_text")                
-                            with gr.Column(scale=1):
-                                # Prompt Auto Complete
-                                suggestions = gr.Dataset(components=[custom_prompt], samples_per_page=13, samples=[])
                             # AI prompts
                             batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
                                                         value=settings_json["batch_generate_rule"],
                                                         label=LANG["batch_generate_rule"],
-                                                        scale=7)                                
+                                                        scale=7)
                             api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"], scale=3)
                             api_image_landscape = gr.Checkbox(value=settings_json["api_image_landscape"], label=LANG["api_image_landscape"], scale = 1)
+                        ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label=LANG["ai_prompt"], elem_id="ai_prompt_text")
+                        prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label=LANG["prompt_ban"], elem_id="prompt_ban_text")                
                 with gr.Row():             
                     with gr.Column():                               
                         # AI Prompt Generator                
@@ -202,10 +195,10 @@ if __name__ == '__main__':
                         choices=view_tags['style'],
                         label=LANG["view_style"],
                         value=settings_json["view_style"],
-                        allow_custom_value=False,    
-                    )                    
+                        allow_custom_value=False,
+                    )
                 with gr.Row():
-                    api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=828, label=LANG["api_image"])  #OCD FIX
+                    api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=846, label=LANG["api_image"])  #OCD FIX
                 with gr.Row():                    
                     output_prompt = gr.Textbox(label=LANG["output_prompt"])
                 with gr.Row():
@@ -277,8 +270,8 @@ if __name__ == '__main__':
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
         character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
-        
-        custom_prompt.change(fn=get_prompt_manager().update_suggestions, inputs=[custom_prompt], outputs=[suggestions])
-        suggestions.select(fn=get_prompt_manager().apply_suggestion, inputs=[suggestions, custom_prompt], outputs=[custom_prompt, suggestions])
-    
+                
+        # Prompt Auto Complete JS
+        custom_prompt.change(fn=get_prompt_manager().update_suggestions_js, inputs=[custom_prompt], outputs=[dummy])
+            
     ui.launch()
