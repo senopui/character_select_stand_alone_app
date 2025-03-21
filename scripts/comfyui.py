@@ -116,11 +116,12 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
     client_id = str(uuid.uuid4())   
     current_file_path = os.path.abspath(__file__)
     current_folder = os.path.dirname(current_file_path)
+    workflow_path = os.path.join(current_folder, 'workflow_api.json')
                 
     ws = websocket.WebSocket()
-    ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))            
+    ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))                    
     
-    my_gen = ComfyUIAPIGenerator(server_address, client_id, current_folder+'\\workflow_api.json')
+    my_gen = ComfyUIAPIGenerator(server_address, client_id, workflow_path)
     
     if 'default' != model_name:
         my_gen.set_model(model_name=model_name, node_id="11")
