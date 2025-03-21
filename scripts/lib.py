@@ -20,6 +20,7 @@ from webui import run_webui
 from color_transfer import ColorTransfer
 from tag_autocomplete import PromptManager
 from setup_wizard import setup_wizard_window
+from custom_gallery import init_custom_gallery, set_custom_gallery_last_api_images
 
 # Language
 LANG_EN = {
@@ -38,7 +39,7 @@ LANG_EN = {
     "api_prompt": "Positive Prompt (Tail)",
     "api_neg_prompt": "Negative Prompt",
     "batch_generate_rule": "AI rule for Batch generate",
-    "api_image_data": "CFG,Step,W,H,Batch (1-16)",
+    "api_image_data": "CFG,Step,W,H,Batch (1-32)",
     "api_image_landscape": "Landscape",
     "ai_prompt": "AI Prompt",
     "prompt_ban": "Prompt Ban List",
@@ -73,7 +74,7 @@ LANG_EN = {
     "load_settings_button": "Load Settings",
     "manual_update_database": "Update thumbs and tags",
     
-    "gr_info_create_n": "Creating {}of{}, please wait ...",
+    "gr_info_create_n": "Creating {} of {}, please wait ...",
     "gr_info_settings_saved": "Settings Saved to {}",
     "gr_info_settings_loaded": "Settings Loaded {}",
     "gr_info_manual_update_database": "Now downloading {}, please wait a while.",
@@ -141,7 +142,7 @@ LANG_CN = {
     "api_prompt": "效果提示词（放在末尾）",
     "api_neg_prompt": "负面提示词",
     "batch_generate_rule": "AI填词规则",
-    "api_image_data": "引导,步数,宽,高,批量1-16",
+    "api_image_data": "引导,步数,宽,高,批量1-32",
     "api_image_landscape": "宽高互换",
     "ai_prompt": "AI提示词（用于生成填词）",
     "prompt_ban": "提示词黑名单",
@@ -395,10 +396,16 @@ def llm_send_request(input_prompt, remote_ai_base_url, remote_ai_model, remote_a
     
     try:
         response = requests.post(remote_ai_base_url, headers={"Content-Type": "application/json", "Authorization": "Bearer " + settings_json["remote_ai_api_key"]}, json=data, timeout=remote_ai_timeout)
-        return decode_response(response)
+        if 200 == response.status_code:
+            return decode_response(response)
+        else:
+            print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
+            gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
+            return ''
+            
     except Exception as e:
-        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
+        print(f"[{CAT}]:Exception: {e}")
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format('Exception:', e))
     
     return ''
 
@@ -415,10 +422,15 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
         }
     try:
         response = requests.post(server, headers={"Content-Type": "application/json"}, json=data)    
-        return decode_response(response)
+        if 200 == response.status_code:
+            return decode_response(response)
+        else:
+            print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
+            gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
+            return ''
     except Exception as e:
-        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
+        print(f"[{CAT}]:Exception: {e}")
+        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format('Exception:', e))
     
     return ''
 
@@ -671,7 +683,7 @@ def original_character_select_ex(character = 'random', random_action_seed = 1):
 def parse_api_image_data(api_image_data,api_image_landscape):
     try:
         cfg, steps, width, height, loops = map(float, api_image_data.split(','))
-        if 1 > int(loops) or 16 < int(loops):
+        if 1 > int(loops) or 32 < int(loops):
             loops = 1
         if not api_image_landscape:
             return float(cfg), int(steps), int(width), int(height), int(loops)
@@ -840,12 +852,14 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                     api_image.save(image_filepath, pnginfo=metadata)                        
                     print(f"[{CAT}]WebUI: Image saved to {image_filepath}")
                                                 
-            return api_image
+            return api_image, 'success'
         except Exception as e:
-            print(f"[{CAT}]Error creating image: {e}")
-            raise gr.Error(LANG["gr_error_creating_image"].format(e))            
+            ret = f"[{CAT}]Error creating image: {e}"
+            print(ret)
+            gr.Warning(LANG["gr_error_creating_image"].format(e))
+            return None, ret
     
-    return None
+    return None, 'Interface is None'
 
 def create_view_tag(view_list, in_tag, seed):
     if 'none' == in_tag:
@@ -894,7 +908,6 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
     seed_list = []
     
     generated_thumb_image_list = []
-    
     _, _, _, _, loops = parse_api_image_data(api_image_data, api_image_landscape)
     
     if not batch_random:
@@ -915,23 +928,23 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
         rnd_seed[2] = int(rnd_seed[0] / 7)
         seed_list.append(rnd_seed[0])
         oc_seed = 4294967295 - rnd_seed[0]
-        
+
         rnd_oc, opt_oc = original_character_select_ex(character = original_character, random_action_seed=oc_seed)
+        rnd_oc_list.append(rnd_oc)
+        opt_oc_list.append(opt_oc)
+        
         for index in range(0,3):
             rnd_character[index], opt_chara[index], thumb_image[index], tas[index] = illustrious_character_select_ex(character = characters[index], random_action_seed=rnd_seed[index], tag_assist=tag_assist)        
         
         for index in range(0,3):
             rnd_character_list.append(rnd_character[index])
-            opt_chara_list.append(opt_chara[index])
-            rnd_oc_list.append(rnd_oc)
-            opt_oc_list.append(opt_oc)
+            opt_chara_list.append(opt_chara[index])            
             tag_assist_list.append(tas[index])
             if thumb_image[index]:
                 generated_thumb_image_list.append(thumb_image[index])
     
-    return generated_thumb_image_list
-        
-
+    return generated_thumb_image_list        
+    
 def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
@@ -942,7 +955,7 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
     global last_info
     global last_ai_text
     global LANG
-        
+    
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
@@ -953,7 +966,7 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
     if 'none' == ai_interface == api_interface:
         gr.Warning(LANG["gr_warning_interface_both_none"])
         
-    api_images = []
+    last_api_images = []
     final_prompts = []
     final_infos = []
     
@@ -1003,14 +1016,14 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         for ban_word in prompt_ban.split(','):
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
 
-        api_image = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
+        api_image, js_ret = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                 seed1, cfg, steps, width, height, 
                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
         
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
-            api_images.append(api_image)
+            last_api_images.append(api_image)
         final_prompts.append(final_prompt)
         final_infos.append(final_info)        
         
@@ -1018,8 +1031,9 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         last_prompt = prompt
         last_info = info
         last_ai_text = ai_text
-
-    return ''.join(final_prompts), ''.join(final_infos), api_images
+        
+    js_images_data = set_custom_gallery_last_api_images(last_api_images, js_ret)
+    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_ret
     
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -1028,6 +1042,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
+    
     if '' == last_prompt and '' == custom_prompt:
         gr.Warning(LANG["gr_warning_click_create_first"])
         return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None
@@ -1036,7 +1051,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
             
-    api_images = []
+    last_api_images = []
     final_prompts = []
     final_infos = []
 
@@ -1068,18 +1083,19 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
         
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{last_info}\nAI Prompt:[{ai_text}]'
-        api_image = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
+        api_image, js_ret = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                  seed, cfg, steps, width, height, 
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
         
         if api_image:
-            api_images.append(api_image)
+            last_api_images.append(api_image)
         final_prompts.append(final_prompt)
         final_infos.append(final_info)
-    
-    return ''.join(final_prompts), ''.join(final_infos), api_images
+        
+    js_images_data = set_custom_gallery_last_api_images(last_api_images, js_ret)
+    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_ret
 
 def save_current_setting(character1, character2, character3, tag_assist,
                         view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
@@ -1214,10 +1230,12 @@ def init():
         js_script = load_text_file(lib_js_path)
         css_script = load_text_file(lib_css_path)
         
+        status_wait, status_error = init_custom_gallery()
+        
         first_setup()
     except Exception as e:
         print(f"[{CAT}]:Initialization failed: {e}")
         sys.exit(1)
         
     print(f'[{CAT}]:Starting...')
-    return character_list, view_tags, original_character_list, model_files_list, LANG, js_script, css_script
+    return character_list, view_tags, original_character_list, model_files_list, LANG, js_script, css_script, status_wait, status_error

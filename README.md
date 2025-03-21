@@ -39,6 +39,19 @@ Use the `mouse` to select the prompt word, but you can also use the `keyboard up
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_complete.png" width=55% height=55%>   
 
+# New Custom Gallery
+Completely redesigned gallery replaces Gradio gallery.     
+
+Supports `Grid Mode`, `Split Mode` and `Full Screen` in browser, press `F11` for `Full Screen`.       
+
+keys:      
+In `Split Mode`, click on the `BLANK` area of the gallery, will switch images.     
+In `Full Screen`, `Left` and `Right` arrow to switch images, also supports `Mouse Drag` and `Mouse Scroll Zoom`.     
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_grid.png" width=35% height=35%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_split.png" width=35% height=35%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_fullscreen.png" width=35% height=35%>   
+
 ------
 # Manual Setup by edit settings.json
 

@@ -1,17 +1,15 @@
 import gradio as gr
 import sys
-import os
-import webbrowser
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import TITLE, settings_json, get_prompt_manager
+from custom_gallery import custom_gallery_default, get_loading_status_images, get_images_dummy
 
-if __name__ == '__main__':          
-    character_list, view_tags, original_character_list, model_files_list, LANG, JAVA_SCRIPT, CSS_SCRIPT = init()            
-    
-    url = f'http://127.0.0.1:{os.environ["GRADIO_SERVER_PORT"]}'
-    webbrowser.open(url, new=0, autoraise=True)    
-    
+if __name__ == '__main__':
+    character_list, view_tags, original_character_list, model_files_list, LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init()            
+        
+    #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+        
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:
         with gr.Row():
             character1 = gr.Dropdown(
@@ -50,8 +48,12 @@ if __name__ == '__main__':
                 scale=2
             )
             
+            # A lot dummy for java script
             dummy_dropdown = gr.Dropdown(visible=False, allow_custom_value=True)
-            dummy_textbox = gr.Textbox(visible=False)
+            dummy_textbox = gr.Textbox(visible=False)  
+            dummy_wait_base64=gr.Text(value=LOADING_WAIT_BASE64, visible=False, interactive=False)
+            dummy_failed_base64=gr.Text(value=LOADING_FAILED_BASE64, visible=False, interactive=False)
+            dummy_images_data = gr.JSON(visible=False, elem_id="images-data-json")
             
         with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_images'):
@@ -84,7 +86,8 @@ if __name__ == '__main__':
                         allow_custom_value=False,
                     )
                 with gr.Row():
-                    api_image = gr.Gallery(type="pil", columns=4, show_download_button=False, object_fit='contain', preview=True, height=846, label=LANG["api_image"])  #OCD FIX
+                    api_image = gr.HTML(custom_gallery_default, label=LANG["api_image"], elem_id="cg-gallery-wrapper", max_height=846, min_height=846)
+                    images_data = gr.JSON(visible=False, elem_id="images-data-json")
                 with gr.Row():                    
                     output_prompt = gr.Textbox(label=LANG["output_prompt"])
                 with gr.Row():
@@ -110,7 +113,7 @@ if __name__ == '__main__':
                             scale=1
                         )    
                 with gr.Row():
-                    thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb")
+                    thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb")                    
                 with gr.Row():
                     with gr.Row(scale=2):
                         api_hf_enable = gr.Checkbox(label=LANG["api_hf_enable"],value=False)
@@ -211,36 +214,62 @@ if __name__ == '__main__':
         
         run_button.click(fn=create_characters,
                               inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
-                              outputs=[thumb_image]                              
-                              ).then(fn=create_prompt_ex, 
+                              outputs=[thumb_image]
+                              ).then(
+                                    fn=get_images_dummy,
+                                    js=" function() { window.cgCustomGallery.showLoading(); }"
+                                ).then(fn=create_prompt_ex, 
                                     inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ], 
-                         outputs=[output_prompt, output_info, api_image])
-        
+                                    outputs=[output_prompt, output_info, images_data, dummy_textbox]
+                                ).then(
+                                    fn=None,                                    
+                                    inputs=[images_data, dummy_textbox],
+                                    outputs=None,
+                                    js="function(data) { window.cgCustomGallery.handleResponse(data); }",
+                                )
+
         run_random_button.click(fn=create_characters,
                               inputs=[gr.Checkbox(value=True, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
-                              outputs=[thumb_image]                              
-                              ).then(fn=create_prompt_ex, 
+                              outputs=[thumb_image]
+                              ).then(
+                                    fn=get_images_dummy,
+                                    js=" function() { window.cgCustomGallery.showLoading(); }"
+                                ).then(fn=create_prompt_ex, 
                                     inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ], 
-                                    outputs=[output_prompt, output_info, api_image])
+                                    outputs=[output_prompt, output_info, images_data, dummy_textbox]
+                                ).then(
+                                    fn=None,                                    
+                                    inputs=[images_data, dummy_textbox],
+                                    outputs=None,
+                                    js="function(data) { window.cgCustomGallery.handleResponse(data); }",
+                                )      
         
-        run_same_button.click(fn=create_with_last_prompt, 
+        run_same_button.click(fn=get_images_dummy,
+                              js=" function() { window.cgCustomGallery.showLoading(); }"
+                                ).then(fn=create_with_last_prompt, 
                                 inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                         ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                         api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                         ], 
-                                outputs=[output_prompt, output_info, api_image])
+                                outputs=[output_prompt, output_info, images_data, dummy_textbox]
+                            ).then(
+                                fn=None,                                    
+                                inputs=[images_data, dummy_textbox],
+                                outputs=None,
+                                js="function(data) { window.cgCustomGallery.handleResponse(data); }",
+                            )         
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, tag_assist,
@@ -276,5 +305,37 @@ if __name__ == '__main__':
         # Have to use dummy components
         # Use custom_prompt, the stupid js console will always report "api_info.ts:423  Too many arguments provided for the endpoint."
         dummy_textbox.change(fn=get_prompt_manager().update_suggestions_js, inputs=[dummy_textbox], outputs=[dummy_dropdown])
-            
-    ui.launch()
+        
+        ui.load(
+            fn=get_loading_status_images,
+            inputs=[dummy_wait_base64, dummy_failed_base64],
+            outputs=[dummy_wait_base64, dummy_failed_base64],
+            js="""
+            function(loading_wait, loading_failed) {
+                if (window.LOADING_WAIT_BASE64 && window.LOADING_FAILED_BASE64) {
+                    console.log('Loading images already initialized.');
+                    return;
+                }
+        
+                window.LOADING_WAIT_BASE64 = loading_wait;
+                window.LOADING_FAILED_BASE64 = loading_failed;
+        
+                console.log('Loading images initialized:', {
+                    loading_wait: window.LOADING_WAIT_BASE64,
+                    loading_failed: window.LOADING_FAILED_BASE64
+                });
+        
+                const container = document.getElementById('cg-custom-gallery');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="cg-loading-container">                        
+                            <div class="cg-loading-text">Initialized, waiting for image generation...</div> 
+                            <img src="${loading_wait}" class="cg-loading-image" alt="Loading">
+                        </div>
+                    `;
+                }
+            }
+            """
+        )
+    
+    ui.launch(inbrowser=True)
