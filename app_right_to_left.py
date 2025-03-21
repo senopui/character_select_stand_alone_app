@@ -324,16 +324,6 @@ if __name__ == '__main__':
                     loading_wait: window.LOADING_WAIT_BASE64,
                     loading_failed: window.LOADING_FAILED_BASE64
                 });
-        
-                const container = document.getElementById('cg-custom-gallery');
-                if (container) {
-                    container.innerHTML = `
-                        <div class="cg-loading-container">                        
-                            <div class="cg-loading-text">Initialized, waiting for image generation...</div> 
-                            <img src="${loading_wait}" class="cg-loading-image" alt="Loading">
-                        </div>
-                    `;
-                }
             }
             """
         )

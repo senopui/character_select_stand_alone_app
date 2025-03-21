@@ -50,6 +50,12 @@ In `Full Screen`, `Left` and `Right` arrow to switch images, also supports `Mous
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_grid.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_split.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_fullscreen.png" width=35% height=35%>   
 
+# New Loading and Error Icon
+You may have noticed that there's a new `Loading` message box in the centre of your browser, you can drag it anywhere .... 
+The error message will also appear in the centre of your browser, you can dismiss it by clicking on it, and the error message will be automatically copied to your clipboard.    
+
+In future release I'll `LOCK` all three `Generate` buttons during generation.      
+
 ------
 # Manual Setup by edit settings.json
 

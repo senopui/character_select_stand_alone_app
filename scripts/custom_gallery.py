@@ -36,7 +36,7 @@ def get_image_base64(file_name):
 def custom_gallery_default():
     return """
     <div id="cg-custom-gallery" class="cg-gallery-container">
-        <div class="cg-loading">Loading Image....</div>
+        <div class="cg-loading"> </div>
     </div>
     """
     

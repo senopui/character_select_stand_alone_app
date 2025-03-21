@@ -406,30 +406,52 @@ function my_custom_js() {
                 console.error('Gallery container not found');
                 return;
             }
-
-            // Use the global Base64 data for the loading image
-            const loadingImage = window.LOADING_WAIT_BASE64 || LOADING_WAIT_BASE64;
-
-            container.innerHTML = `
-                <div class="cg-loading-container">
-                    <div class="cg-loading-text">Generating images...</div>
-                    <img src="${loadingImage}" class="cg-loading-image" alt="Loading">
-                    <div class="cg-timer">Elapsed time: 0 seconds</div>
-                </div>
+        
+            // Create or update the independent loading overlay
+            let loadingOverlay = document.getElementById('cg-loading-overlay');
+            if (!loadingOverlay) {
+                loadingOverlay = document.createElement('div');
+                loadingOverlay.id = 'cg-loading-overlay';
+                loadingOverlay.className = 'cg-overlay';
+                document.body.appendChild(loadingOverlay); 
+        
+                addDragFunctionality(loadingOverlay);
+            }
+        
+            // Check if the overlay is out of the browser's visible range, reset to default position
+            const rect = loadingOverlay.getBoundingClientRect();
+            if (
+                rect.top < 0 ||
+                rect.left < 0 ||
+                rect.bottom > window.innerHeight ||
+                rect.right > window.innerWidth
+            ) {
+                loadingOverlay.style.top = '20%';
+                loadingOverlay.style.left = '50%';
+                loadingOverlay.style.transform = 'translate(-50%, -20%)';
+            }
+        
+            // Set the content of the loading overlay
+            loadingOverlay.style.border = '2px solid #333'; 
+            loadingOverlay.innerHTML = `
+                <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" class="cg-overlay-image">
+                <span>Now generating...</span>
+                <span class="cg-overlay-timer">Elapsed time: 0 seconds</span>
             `;
-            console.log('Displaying loading state on the frontend...');
-
-            startTime = Date.now();
-            timerInterval = setInterval(() => {
+        
+            // Start counter
+            const startTime = Date.now();
+            if (loadingOverlay.dataset.timerInterval) {
+                clearInterval(loadingOverlay.dataset.timerInterval);
+            }
+            const timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const timerElement = container.querySelector('.cg-timer');
+                const timerElement = loadingOverlay.querySelector('.cg-overlay-timer');
                 if (timerElement) {
                     timerElement.textContent = `Elapsed time: ${elapsed} seconds`;
                 }
             }, 1000);
-
-            // Store the timer interval in the container's dataset
-            container.dataset.timerInterval = timerInterval;
+            loadingOverlay.dataset.timerInterval = timerInterval;
         };
 
         // Handles the response from the backend
@@ -440,52 +462,57 @@ function my_custom_js() {
                 return;
             }
         
-            // Clear the loading timer
-            if (container.dataset.timerInterval) {
-                clearInterval(container.dataset.timerInterval);
-                delete container.dataset.timerInterval;
-                console.log('Loading timer stopped');
+            // Remove the loading overlay
+            const loadingOverlay = document.getElementById('cg-loading-overlay');
+            if (loadingOverlay) {
+                if (loadingOverlay.dataset.timerInterval) {
+                    clearInterval(loadingOverlay.dataset.timerInterval);
+                }
+                loadingOverlay.remove();
             }
         
+            // Check if the response is valid
             if (!response) {
                 console.error('Invalid response from the backend: undefined');
-                container.innerHTML = `
-                    <div class="cg-loading-container">
-                        <div class="cg-error-message">Failed to load images: No response from backend</div>
-                    </div>
-                `;
+                displayErrorOverlay('No response from backend');
                 return;
             }
-        
-            // Use the global Base64 data for the failed image
-            const failedImage = window.LOADING_FAILED_BASE64 || "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
-        
             if (!response.data) {
                 const errorMessage = response.error || 'Unknown error';
                 console.error('Failed to fetch image data:', errorMessage);
-                container.innerHTML = `
-                    <div class="cg-loading-container">
-                        <img src="${failedImage}" class="cg-loading-image" alt="Failed">
-                        <div class="cg-error-message">Failed to load images: ${errorMessage}</div>
-                    </div>
-                `;
+                displayErrorOverlay(errorMessage);
                 return;
             }
         
-            console.log('Received response:', response);
-        
+            // If loading is successful, update the gallery content
             if (response.data) {
-                if (window.updateGallery) {
-                    window.updateGallery(response.data);
-                } else {
-                    console.error('updateGallery function is not available');
-                    container.innerHTML = `
-                        <div class="cg-loading-container">
-                            <img src="${failedImage}" class="cg-loading-image" alt="Failed">
-                            <div class="cg-error-message">Failed to load images: Frontend rendering function is unavailable</div>
-                        </div>
-                    `;
+                window.updateGallery(response.data);
+            }
+        
+            // Helper function to display the error overlay
+            function displayErrorOverlay(errorMessage) {
+                let errorOverlay = document.getElementById('cg-error-overlay');
+                if (!errorOverlay) {
+                    errorOverlay = document.createElement('div');
+                    errorOverlay.id = 'cg-error-overlay';
+                    errorOverlay.className = 'cg-overlay cg-overlay-error'; 
+                    document.body.appendChild(errorOverlay); 
                 }
+        
+                errorOverlay.innerHTML = `
+                    <img src="${window.LOADING_FAILED_BASE64}" alt="Error" class="cg-overlay-image">
+                    <span>Failed to load images: ${errorMessage}</span>
+                `;
+        
+                // Close the error overlay on click and copy the error message to the clipboard
+                errorOverlay.addEventListener('click', () => {
+                    navigator.clipboard.writeText(errorMessage).then(() => {
+                        console.log('Error message copied to clipboard:', errorMessage);
+                    }).catch(err => {
+                        console.error('Failed to copy error message to clipboard:', err);
+                    });
+                    errorOverlay.remove();
+                });
             }
         };
     
@@ -602,7 +629,7 @@ function my_custom_js() {
         }
     
         function renderGridMode() {
-            container.innerHTML = '';
+            container.innerHTML = ''; 
             const gallery = document.createElement('div');
             gallery.className = 'cg-image-gallery-container';
         
@@ -613,13 +640,13 @@ function my_custom_js() {
                 const img = document.createElement('img');
                 img.src = url;
                 img.alt = `Image ${index + 1}`;
-                img.addEventListener('click', () => enterFullscreen(index));
+                img.addEventListener('click', () => enterFullscreen(index)); 
         
                 imgContainer.appendChild(img);
                 gallery.appendChild(imgContainer);
             });
         
-            container.appendChild(gallery);    
+            container.appendChild(gallery);
         
             ensureSwitchModeButton(); 
         }
@@ -641,7 +668,7 @@ function my_custom_js() {
             const bottomSection = document.querySelector('.cg-bottom-section');
             const scrollLeft = bottomSection ? bottomSection.scrollLeft : 0;
         
-            container.innerHTML = '';
+            container.innerHTML = ''; 
         
             const topSection = document.createElement('div');
             topSection.className = 'cg-top-section';
@@ -670,9 +697,10 @@ function my_custom_js() {
                 object-fit: contain;
                 cursor: pointer;
             `;
-            largeImg.addEventListener('click', () => enterFullscreen(currentIndex));
+            largeImg.addEventListener('click', () => enterFullscreen(currentIndex)); 
             topSection.appendChild(largeImg);
         
+            // Click blank zone to switch image
             topSection.addEventListener('click', (e) => {
                 const rect = topSection.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
@@ -685,7 +713,7 @@ function my_custom_js() {
                     currentIndex = (currentIndex + 1) % images.length;
                 }
         
-                updateSplitMode();
+                updateSplitMode(); 
             });
         
             container.appendChild(topSection);
@@ -716,7 +744,7 @@ function my_custom_js() {
                     `;
                     thumbImg.addEventListener('click', () => {
                         currentIndex = index;
-                        updateSplitMode();
+                        updateSplitMode(); 
                     });
                     newBottomSection.appendChild(thumbImg);
                 });
@@ -725,7 +753,7 @@ function my_custom_js() {
                 newBottomSection.scrollLeft = scrollLeft;
             }
         
-            ensureSwitchModeButton();
+            ensureSwitchModeButton(); 
         }
         
         function updateSplitMode() {
@@ -769,7 +797,65 @@ function my_custom_js() {
                 container.appendChild(switchModeButton);
             }
         }
-    
+
+        function addDragFunctionality(element) {
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+        
+            element.style.position = 'absolute';
+        
+            element.addEventListener('mousedown', (e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
+        
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+        
+                const rect = element.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+        
+                document.body.style.userSelect = 'none';
+            });
+        
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+        
+                e.preventDefault(); 
+                e.stopPropagation();
+        
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+        
+                element.style.left = `${initialX + deltaX}px`;
+                element.style.top = `${initialY + deltaY}px`;
+                element.style.transform = 'translate(0, 0)'; 
+            });
+        
+            document.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    e.preventDefault(); 
+                    e.stopPropagation();
+        
+                    isDragging = false;        
+                    document.body.style.userSelect = '';
+        
+                    const rect = element.getBoundingClientRect();
+                    if (
+                        rect.top < 0 ||
+                        rect.left < 0 ||
+                        rect.bottom > window.innerHeight ||
+                        rect.right > window.innerWidth
+                    ) {
+                        element.style.top = '20%';
+                        element.style.left = '50%';
+                        element.style.transform = 'translate(-50%, -20%)';
+                    }
+                }
+            });
+        }   
+
         window.updateGallery = function (imageData) {
             if (!Array.isArray(imageData) || imageData.length === 0) {
                 console.error('Invalid or empty image data');

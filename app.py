@@ -55,7 +55,7 @@ if __name__ == '__main__':
             dummy_failed_base64=gr.Text(value=LOADING_FAILED_BASE64, visible=False, interactive=False)
             dummy_images_data = gr.JSON(visible=False, elem_id="images-data-json")
             
-        with gr.Row(elem_classes='main_row'):
+        with gr.Row(elem_classes='main_row'):            
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():
                     api_model_file_select = gr.Dropdown(
@@ -324,16 +324,6 @@ if __name__ == '__main__':
                     loading_wait: window.LOADING_WAIT_BASE64,
                     loading_failed: window.LOADING_FAILED_BASE64
                 });
-        
-                const container = document.getElementById('cg-custom-gallery');
-                if (container) {
-                    container.innerHTML = `
-                        <div class="cg-loading-container">                        
-                            <div class="cg-loading-text">Initialized, waiting for image generation...</div> 
-                            <img src="${loading_wait}" class="cg-loading-image" alt="Loading">
-                        </div>
-                    `;
-                }
             }
             """
         )
