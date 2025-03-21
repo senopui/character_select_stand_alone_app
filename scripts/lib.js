@@ -623,7 +623,7 @@ function my_custom_js() {
             ensureSwitchModeButton(); 
         }
     
-        function renderSplitMode() {        
+        function renderSplitMode() {
             const bottomSection = document.querySelector('.cg-bottom-section');
             const scrollLeft = bottomSection ? bottomSection.scrollLeft : 0;
         
@@ -632,7 +632,7 @@ function my_custom_js() {
             const topSection = document.createElement('div');
             topSection.className = 'cg-top-section';
             topSection.style.cssText = `
-                height: 88%;
+                height: ${images.length === 1 ? '100%' : '88%'};
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -651,54 +651,57 @@ function my_custom_js() {
             largeImg.addEventListener('click', () => enterFullscreen(currentIndex));
             topSection.appendChild(largeImg);
         
-            topSection.addEventListener('click', (e) => {
-                const rect = topSection.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
+            container.appendChild(topSection);
         
-                e.preventDefault();
+            if (images.length > 1) {
+                topSection.addEventListener('click', (e) => {
+                    const rect = topSection.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
         
-                if (clickX < rect.width / 2) {
-                    currentIndex = (currentIndex - 1 + images.length) % images.length;
-                } else {
-                    currentIndex = (currentIndex + 1) % images.length;
-                }
+                    e.preventDefault();
         
-                updateSplitMode();
-            });
+                    if (clickX < rect.width / 2) {
+                        currentIndex = (currentIndex - 1 + images.length) % images.length;
+                    } else {
+                        currentIndex = (currentIndex + 1) % images.length;
+                    }
         
-            const newBottomSection = document.createElement('div');
-            newBottomSection.className = 'cg-bottom-section';
-            newBottomSection.style.cssText = `
-                height: 10%;
-                display: flex;
-                overflow-x: auto;
-                overflow-y: hidden;
-                background: #333;
-                padding: 5px;
-                gap: 5px;
-                border-radius: 5px;
-            `;
-        
-            images.forEach((url, index) => {
-                const thumbImg = document.createElement('img');
-                thumbImg.src = url;
-                thumbImg.style.cssText = `
-                    width: 64px;
-                    height: 64px;
-                    object-fit: cover;
-                    cursor: pointer;
-                    border: ${index === currentIndex ? '2px solid #3498db' : 'none'};
-                `;
-                thumbImg.addEventListener('click', () => {
-                    currentIndex = index;
                     updateSplitMode();
                 });
-                newBottomSection.appendChild(thumbImg);
-            });
         
-            container.appendChild(topSection);
-            container.appendChild(newBottomSection);
-            newBottomSection.scrollLeft = scrollLeft;
+                const newBottomSection = document.createElement('div');
+                newBottomSection.className = 'cg-bottom-section';
+                newBottomSection.style.cssText = `
+                    height: 10%;
+                    display: flex;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    background: #333;
+                    padding: 5px;
+                    gap: 5px;
+                    border-radius: 5px;
+                `;
+        
+                images.forEach((url, index) => {
+                    const thumbImg = document.createElement('img');
+                    thumbImg.src = url;
+                    thumbImg.style.cssText = `
+                        width: 64px;
+                        height: 64px;
+                        object-fit: cover;
+                        cursor: pointer;
+                        border: ${index === currentIndex ? '2px solid #3498db' : 'none'};
+                    `;
+                    thumbImg.addEventListener('click', () => {
+                        currentIndex = index;
+                        updateSplitMode();
+                    });
+                    newBottomSection.appendChild(thumbImg);
+                });
+        
+                container.appendChild(newBottomSection);
+                newBottomSection.scrollLeft = scrollLeft;
+            }
         
             ensureSwitchModeButton();
         }
