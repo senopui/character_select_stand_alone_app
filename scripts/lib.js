@@ -673,6 +673,21 @@ function my_custom_js() {
             largeImg.addEventListener('click', () => enterFullscreen(currentIndex));
             topSection.appendChild(largeImg);
         
+            topSection.addEventListener('click', (e) => {
+                const rect = topSection.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+        
+                e.preventDefault();
+        
+                if (clickX < rect.width / 2) {
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                } else {
+                    currentIndex = (currentIndex + 1) % images.length;
+                }
+        
+                updateSplitMode();
+            });
+        
             container.appendChild(topSection);
         
             if (images.length > 1) {
