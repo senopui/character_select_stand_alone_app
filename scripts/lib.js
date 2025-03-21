@@ -373,6 +373,7 @@ function my_custom_js() {
             console.log('Gallery is already set up.');
             return;
         }
+        
         isGallerySetup = true;
     
         console.log('Setting up the gallery...');
@@ -624,6 +625,19 @@ function my_custom_js() {
         }
     
         function renderSplitMode() {
+            if (!images || images.length === 0) {
+                console.error('No images available for renderSplitMode');
+                container.innerHTML = `
+                    <div class="cg-error-message">No images to display</div>
+                `;
+                return;
+            }
+        
+            if (currentIndex < 0 || currentIndex >= images.length) {
+                console.warn('Invalid currentIndex, resetting to 0');
+                currentIndex = 0;
+            }
+        
             const bottomSection = document.querySelector('.cg-bottom-section');
             const scrollLeft = bottomSection ? bottomSection.scrollLeft : 0;
         
@@ -642,6 +656,14 @@ function my_custom_js() {
         
             const largeImg = document.createElement('img');
             largeImg.src = images[currentIndex];
+            if (!largeImg.src) {
+                console.error('Failed to load image at currentIndex:', currentIndex);
+                container.innerHTML = `
+                    <div class="cg-error-message">Failed to load image</div>
+                `;
+                return;
+            }
+        
             largeImg.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
@@ -654,21 +676,6 @@ function my_custom_js() {
             container.appendChild(topSection);
         
             if (images.length > 1) {
-                topSection.addEventListener('click', (e) => {
-                    const rect = topSection.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-        
-                    e.preventDefault();
-        
-                    if (clickX < rect.width / 2) {
-                        currentIndex = (currentIndex - 1 + images.length) % images.length;
-                    } else {
-                        currentIndex = (currentIndex + 1) % images.length;
-                    }
-        
-                    updateSplitMode();
-                });
-        
                 const newBottomSection = document.createElement('div');
                 newBottomSection.className = 'cg-bottom-section';
                 newBottomSection.style.cssText = `
@@ -748,13 +755,13 @@ function my_custom_js() {
             }
         }
     
-        // Updates the gallery with new image data
         window.updateGallery = function (imageData) {
-            if (!Array.isArray(imageData)) {
-                console.error('Invalid image data format');
+            if (!Array.isArray(imageData) || imageData.length === 0) {
+                console.error('Invalid or empty image data');
                 return;
             }
             images = imageData;
+            currentIndex = 0; 
             if (isGridMode) {
                 renderGridMode();
             } else {
