@@ -413,26 +413,26 @@ function my_custom_js() {
                 loadingOverlay = document.createElement('div');
                 loadingOverlay.id = 'cg-loading-overlay';
                 loadingOverlay.className = 'cg-overlay';
-                document.body.appendChild(loadingOverlay); 
+                document.body.appendChild(loadingOverlay);
         
                 addDragFunctionality(loadingOverlay);
             }
         
-            // Check if the overlay is out of the browser's visible range, reset to default position
-            const rect = loadingOverlay.getBoundingClientRect();
-            if (
-                rect.top < 0 ||
-                rect.left < 0 ||
-                rect.bottom > window.innerHeight ||
-                rect.right > window.innerWidth
-            ) {
+            // Restore the last position from localStorage
+            const lastPosition = JSON.parse(localStorage.getItem('loadingOverlayPosition'));
+            if (lastPosition && lastPosition.top !== undefined && lastPosition.left !== undefined) {
+                loadingOverlay.style.top = `${lastPosition.top}px`;
+                loadingOverlay.style.left = `${lastPosition.left}px`;
+                loadingOverlay.style.transform = 'translate(0, 0)';
+            } else {
+                // Default position if no saved position exists
                 loadingOverlay.style.top = '20%';
                 loadingOverlay.style.left = '50%';
                 loadingOverlay.style.transform = 'translate(-50%, -20%)';
             }
         
             // Set the content of the loading overlay
-            loadingOverlay.style.border = '2px solid #333'; 
+            loadingOverlay.style.border = '2px solid #333';
             loadingOverlay.innerHTML = `
                 <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" class="cg-overlay-image">
                 <span>Now generating...</span>
@@ -802,10 +802,10 @@ function my_custom_js() {
             let isDragging = false;
             let startX, startY, initialX, initialY;
         
-            element.style.position = 'absolute';
+            element.style.position = 'fixed'; 
         
             element.addEventListener('mousedown', (e) => {
-                e.preventDefault(); 
+                e.preventDefault();
                 e.stopPropagation();
         
                 isDragging = true;
@@ -816,32 +816,39 @@ function my_custom_js() {
                 initialX = rect.left;
                 initialY = rect.top;
         
-                document.body.style.userSelect = 'none';
+                document.body.style.userSelect = 'none'; // Disable text selection during drag
             });
         
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
         
-                e.preventDefault(); 
+                e.preventDefault();
                 e.stopPropagation();
         
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
         
+                // Update the position of the element
                 element.style.left = `${initialX + deltaX}px`;
                 element.style.top = `${initialY + deltaY}px`;
-                element.style.transform = 'translate(0, 0)'; 
             });
         
             document.addEventListener('mouseup', (e) => {
                 if (isDragging) {
-                    e.preventDefault(); 
+                    e.preventDefault();
                     e.stopPropagation();
         
-                    isDragging = false;        
-                    document.body.style.userSelect = '';
+                    isDragging = false;
+                    document.body.style.userSelect = ''; // Re-enable text selection
         
+                    // Save the current position to localStorage
                     const rect = element.getBoundingClientRect();
+                    localStorage.setItem(
+                        'loadingOverlayPosition',
+                        JSON.stringify({ top: rect.top, left: rect.left })
+                    );
+        
+                    // Check if the element is out of the browser's visible range
                     if (
                         rect.top < 0 ||
                         rect.left < 0 ||
@@ -851,10 +858,12 @@ function my_custom_js() {
                         element.style.top = '20%';
                         element.style.left = '50%';
                         element.style.transform = 'translate(-50%, -20%)';
+                        // Remove the saved position if it's invalid
+                        localStorage.removeItem('loadingOverlayPosition');
                     }
                 }
             });
-        }   
+        }
 
         window.updateGallery = function (imageData) {
             if (!Array.isArray(imageData) || imageData.length === 0) {
