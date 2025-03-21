@@ -265,17 +265,22 @@ function my_custom_js() {
                 suggestionBox.offsetWidth; // Force a reflow to apply styles
             }
             
-            function formatSuggestion(suggestion) {
+            function formatSuggestion(suggestion) {            
                 // Remove popularity info (number in parentheses) from the suggestion
                 const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
-                
+            
                 // Replace underscores with spaces while preserving parentheses content
-                let formatted = withoutHeat.replace(/_/g, ' ').replace(/:/g, ' ');
+                let formatted = withoutHeat.replace(/_/g, ' ');
             
                 // Escape parentheses
                 formatted = formatted.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+                // If the formatted starts with ':', return it as is
+                if (formatted.startsWith(':')) {                    
+                    return formatted;
+                }
             
-                return formatted;
+                return formatted.replace(/:/g, ' ');
             }
                         
             function applySuggestion(promptText) {
