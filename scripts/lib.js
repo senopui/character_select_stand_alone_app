@@ -889,7 +889,7 @@ function my_custom_js() {
                 tagButton = document.createElement('button');
                 tagButton.id = 'cg-tag-button';
                 tagButton.className = 'cg-button';
-                tagButton.textContent = 'Tag';
+                tagButton.textContent = 'Tags';
                 tagButton.addEventListener('click', () => {
                     if (tags && tags[currentIndex]) {
                         const tagToCopy = tags[currentIndex].trim();
@@ -898,7 +898,7 @@ function my_custom_js() {
                                 console.log(`Tag [${tagToCopy}] copied to clipboard`);
                                 tagButton.textContent = 'Copied!';
                                 setTimeout(() => {
-                                    tagButton.textContent = 'Tag';
+                                    tagButton.textContent = 'Tags';
                                 }, 2000);
                             })
                             .catch(err => {
