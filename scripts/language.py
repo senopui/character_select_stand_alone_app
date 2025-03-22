@@ -64,12 +64,11 @@ LANG_EN = {
     "gr_info_tag_assist_add": "Tag assist: [{}] add to [{}].\nOther characters may be affected when you generate multicharacter images.",
     
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
-    "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
     "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"[Warning] \"CFG,Step,W,H,Batch\" data mismatch, use default: 7.0, 30, 1024, 1360, 1",
     "gr_warning_manual_update_database": "Download files failed, please check console logs.\n{}",
     
-    "gr_error_creating_image":"[Error] Got error from Image API: {}",
+    "gr_error_creating_image":"[Error] Got error from Image API: {}\nCheck your {} console logs, and Local Image Generator API/IP/Port settings.",
     
     "ai_system_prompt": textwrap.dedent("""\
     You are a Stable Diffusion prompt writer. Follow these guidelines to generate prompts:
@@ -170,13 +169,12 @@ LANG_CN = {
     "gr_info_manual_update_database_done": " {} 更新完成",
     
     "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
-    "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
     "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"注意：“引导,步数,宽,高,批量”设置存在错误，使用默认数据：7.0, 30, 1024, 1360, 1",
     "gr_warning_manual_update_database": "文件下载失败，请检查控制台日志确认问题\n{}",
     "gr_info_tag_assist_add": "角色标签辅助：[{}] 追加到角色 [{}].\n如果你在生成多人图像，其他人可能会受到影响，请注意。",
     
-    "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
+    "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]\n请检查{}控制台输出的日志，同时检查本地生图设置是否正确配置。",
     
     "ai_system_prompt": textwrap.dedent("""\
     你是一个Stable Diffusion提示词编写者，按照以下指南生成提示词：

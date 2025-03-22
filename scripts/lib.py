@@ -174,8 +174,9 @@ def decode_response(response):
             ai_text = f'{ai_text},'            
         return ai_text    
     else:
-        print(f"[{CAT}]:Error: Request failed with status code {response.status_code}")        
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, ''))
+        ret = LANG["gr_warning_creating_ai_prompt"].format(response.status_code, '')
+        print(f"[{CAT}]:{ret}")
+        gr.Warning(ret)
         return ''
 
 def llm_send_request(input_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout):
@@ -192,13 +193,15 @@ def llm_send_request(input_prompt, remote_ai_base_url, remote_ai_model, remote_a
         if 200 == response.status_code:
             return decode_response(response)
         else:
-            print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
-            gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
+            ret = LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e)
+            print(f"[{CAT}]:{ret}")
+            gr.Warning(ret)
             return ''
             
     except Exception as e:
-        print(f"[{CAT}]:Exception: {e}")
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format('Exception:', e))
+        ret = LANG["gr_warning_creating_ai_prompt"].format('Exception:', e)
+        print(f"[{CAT}]:{ret}")
+        gr.Warning(ret)
     
     return ''
 
@@ -218,18 +221,23 @@ def llm_send_local_request(input_prompt, server, temperature=0.5, n_predict=512)
         if 200 == response.status_code:
             return decode_response(response)
         else:
-            print(f"[{CAT}]:Error: Request failed with status code {response.status_code}\nException: {e}")
-            gr.Warning(LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e))
+            ret = LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e)
+            print(f"[{CAT}]:{ret}")
+            gr.Warning(ret)
             return ''
     except Exception as e:
-        print(f"[{CAT}]:Exception: {e}")
-        gr.Warning(LANG["gr_warning_creating_ai_prompt"].format('Exception:', e))
+        ret = LANG["gr_warning_creating_ai_prompt"].format('Exception:', e)
+        print(f"[{CAT}]:{ret}")
+        gr.Warning(ret)
     
     return ''
 
-def manual_update_database():
+def manual_update_database(hide=''):
     global wai_image_dict
     global PROMPT_MANAGER
+    
+    if ''== hide:
+        return gr.Button(visible=False)
     
     try:               
         file_list = ["danbooru_tag", "wai_character_thumbs"]
@@ -252,6 +260,8 @@ def manual_update_database():
                 gr.Warning(LANG["gr_warning_manual_update_database"].format(name))        
     except Exception as e:
         gr.Warning(LANG["gr_warning_manual_update_database"].format(e))
+        
+    return gr.Button(value=LANG["manual_update_database"], variant='primary')
 
 def download_file(url, file_path):   
     response = requests.get(url)
@@ -648,12 +658,12 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                                                 
             return api_image, 'success'
         except Exception as e:
-            ret = f"[{CAT}]Error creating image: {e}"
+            ret = LANG["gr_error_creating_image"].format(e, interface)
             print(ret)
-            gr.Warning(LANG["gr_error_creating_image"].format(e))
+            gr.Warning(ret)
             return None, ret
     
-    return None, 'Interface is None'
+    return None, LANG["gr_warning_interface_both_none"]
 
 def create_view_tag(view_list, in_tag, seed):
     if 'none' == in_tag:
@@ -764,6 +774,7 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
     last_api_images = []
     final_prompts = []
     final_infos = []
+    final_seed_list = []
     
     ai_text=''
     LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
@@ -820,15 +831,16 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         if api_image:
             last_api_images.append(api_image)
         final_prompts.append(final_prompt)
-        final_infos.append(final_info)        
+        final_infos.append(final_info)
+        final_seed_list.append(str(seed1))
         
         # Collect prompts
         last_prompt = prompt
         last_info = info
         last_ai_text = ai_text
         
-    js_images_data = set_custom_gallery_last_api_images(last_api_images, js_ret)
-    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_ret
+    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(last_api_images, final_seed_list, final_prompts, js_ret)
+    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_seed, ts_tags
     
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -837,11 +849,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
-    
-    if '' == last_prompt and '' == custom_prompt:
-        gr.Warning(LANG["gr_warning_click_create_first"])
-        return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None, None, LANG["gr_warning_click_create_first"]
-        
+            
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
@@ -849,6 +857,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
     last_api_images = []
     final_prompts = []
     final_infos = []
+    final_seed_list = []
 
     ai_text=''
     if 'none' != batch_generate_rule:         
@@ -888,9 +897,10 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
             last_api_images.append(api_image)
         final_prompts.append(final_prompt)
         final_infos.append(final_info)
+        final_seed_list.append(str(seed))
         
-    js_images_data = set_custom_gallery_last_api_images(last_api_images, js_ret)
-    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_ret
+    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(last_api_images, final_seed_list, final_prompts, js_ret)
+    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_seed, ts_tags
 
 def save_current_setting(character1, character2, character3, tag_assist,
                         view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,

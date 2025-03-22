@@ -1,6 +1,5 @@
 import base64
 import gzip
-from PIL import Image
 from io import BytesIO
 import os
 
@@ -25,7 +24,7 @@ function(images_data) {
 }
 """
 
-JS_HANDLERESPONSE = "function(data) { window.cgCustomGallery.handleResponse(data); }",
+JS_HANDLERESPONSE = "function(image_data, image_seeds, image_tags) { window.cgCustomGallery.handleResponse(image_data, image_seeds, image_tags); }",
 
 JS_SHOWTHUMB = """
 function(images_data) {
@@ -96,16 +95,13 @@ def get_loading_status_images(wait, failed):
     return {"loading_wait": wait},{"loading_failed": failed}
 
 
-def set_custom_gallery_last_api_images(images, ret):
+def set_custom_gallery_last_api_images(images, seeds, tags, ret):
     #if 'success' == ret:
         #print(f"[{CAT}] Get {len(images)} images from lib")
-    
-    return get_images_data(images, ret)
 
-def get_images_data(images, ret):
     if not images:
         print(f"[{CAT}] Got error from backend: {ret}")
-        return {"data": None, "error": f"{ret}"}
+        return {"data": None, "error": f"{ret}"}, '', ''
     
     image_urls = []
     js_error = ''
@@ -121,9 +117,9 @@ def get_images_data(images, ret):
             continue
         
     if len(image_urls) > 0:
-        return {"data": image_urls, "error": None}  
+        return {"data": image_urls, "error": None}, ",".join(seeds), "|".join(tags)
     else:
-        return {"data": None, "error": js_error}  
+        return {"data": None, "error": js_error}, '', ''
 
 
 def decompress_image_data(base64_data):
@@ -154,7 +150,7 @@ def set_custom_gallery_thumb_images(images):
     if len(image_urls) > 0:
         return {"data": image_urls, "error": None}  
     
-    return {"data": None, "error": "No valid thumb image"}  
+    return {"data": None, "error": "No valid thumb image(Not root cause)\nCheck logs for more detail"}
 
 def get_images_dummy(images = None):
     # just a dummy

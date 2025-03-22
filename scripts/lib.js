@@ -1,4 +1,4 @@
-//gosh... this is a mess... I'm sorry... I'll clean it up later... I promise...
+//still a mess...
 function my_custom_js() {    
     function dark_theme() {
         const url = new URL(window.location);
@@ -6,6 +6,106 @@ function my_custom_js() {
             url.searchParams.set('__theme', 'dark');
             window.location.href = url.href;
         }
+    }
+
+    function addDragFunctionality(element, syncElement) {
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+        let hasMoved = false; // Track if significant movement occurred
+        const MOVE_THRESHOLD = 5; // Pixels threshold to consider it a drag
+
+        element.classList.add('cg-draggable');
+        element.style.position = 'fixed';
+
+        let rafId = null;
+        
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            // Check if movement exceeds threshold
+            if (Math.abs(deltaX) > MOVE_THRESHOLD || Math.abs(deltaY) > MOVE_THRESHOLD) {
+                hasMoved = true;
+            }
+
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+                element.style.left = `${initialX + deltaX}px`;
+                element.style.top = `${initialY + deltaY}px`;
+                element.style.transform = 'none';
+
+                if (syncElement && syncElement.style.display !== 'none') {
+                    syncElement.style.left = `${initialX + deltaX}px`;
+                    syncElement.style.top = `${initialY + deltaY}px`;
+                    syncElement.style.transform = 'none';
+                }
+            });
+        };
+
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            document.body.style.userSelect = '';
+            cancelAnimationFrame(rafId);
+            
+            const rect = element.getBoundingClientRect();
+            localStorage.setItem(
+                'overlayPosition',
+                JSON.stringify({ top: rect.top, left: rect.left })
+            );
+
+            if (syncElement) {
+                syncElement.style.left = `${rect.left}px`;
+                syncElement.style.top = `${rect.top}px`;
+                syncElement.style.transform = 'none';
+            }
+
+            if (rect.top < 0 || rect.left < 0 || 
+                rect.bottom > window.innerHeight || 
+                rect.right > window.innerWidth) {
+                element.style.top = '20%';
+                element.style.left = '50%';
+                element.style.transform = 'translate(-50%, -20%)';
+                if (syncElement) {
+                    syncElement.style.top = '20%';
+                    syncElement.style.left = '50%';
+                    syncElement.style.transform = 'translate(-50%, -20%)';
+                }
+                localStorage.removeItem('overlayPosition');
+            }
+
+            // If significant movement occurred, prevent click
+            if (hasMoved) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        element.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            isDragging = true;
+            hasMoved = false; // Reset movement flag
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const rect = element.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
+
+            document.body.style.userSelect = 'none';
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
     }
     
     function setupSuggestionSystem() {              
@@ -28,8 +128,7 @@ function my_custom_js() {
             console.log("Setting up suggestion system for", textbox);
             
             let suggestionBox = document.createElement('div');
-            suggestionBox.className = 'suggestion-box';
-            // Hide the suggestion box initially
+            suggestionBox.className = 'suggestion-box scroll-container'; 
             suggestionBox.style.display = 'none';
             
             // Append the suggestion box to the body element
@@ -374,18 +473,16 @@ function my_custom_js() {
 
     let isGallerySetup = false;
     function setupGallery() {
-        if (isGallerySetup) {
-            //console.log('Gallery is already set up.');
-            return;
-        }
-        
+        if (isGallerySetup) return;
         isGallerySetup = true;
-    
+
         console.log('Setting up the gallery...');
+
         let isGridMode = false;
         let currentIndex = 0;
         let images = [];
-        let handleFullscreenKeyDown;
+        let seeds = []
+        let tags = []
     
         const container = document.getElementById('cg-custom-gallery');
         if (!container) {
@@ -399,58 +496,59 @@ function my_custom_js() {
                 startTime: null      // Shared start time
             };
         }
-
-        // Default Base64 placeholders for loading and failed images
-        let LOADING_WAIT_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
-        let LOADING_FAILED_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
-
-        window.cgCustomGallery.showLoading = function () {        
-            // Create or update the loading overlay
-            const loadingOverlay = customCommonOverlay().createLoadingOverlay();
         
-            // Restore the last position from localStorage
-            const lastPosition = JSON.parse(localStorage.getItem('loadingOverlayPosition'));
+        window.cgCustomGallery.showLoading = function () {        
+            const loadingOverlay = customCommonOverlay().createLoadingOverlay();
+            const buttonOverlay = document.getElementById('cg-button-overlay');
+            
+            // Use shared position
+            const lastPosition = JSON.parse(localStorage.getItem('overlayPosition'));
             if (lastPosition && lastPosition.top !== undefined && lastPosition.left !== undefined) {
                 loadingOverlay.style.top = `${lastPosition.top}px`;
                 loadingOverlay.style.left = `${lastPosition.left}px`;
-                loadingOverlay.style.transform = 'translate(0, 0)';
+                loadingOverlay.style.transform = 'none';
             } else {
-                // Default position if no saved position exists
                 loadingOverlay.style.top = '20%';
                 loadingOverlay.style.left = '50%';
                 loadingOverlay.style.transform = 'translate(-50%, -20%)';
             }
         
-            addDragFunctionality(loadingOverlay);
+            // Pass buttonOverlay as syncElement
+            addDragFunctionality(loadingOverlay, buttonOverlay);
         };
 
-        window.cgCustomGallery.handleResponse = function (response) {
-            // Remove the loading overlay
+        window.cgCustomGallery.handleResponse = function (response, image_seeds, image_tags) {
             const loadingOverlay = document.getElementById('cg-loading-overlay');
+            const buttonOverlay = document.getElementById('cg-button-overlay');
+            
             if (loadingOverlay) {
                 if (loadingOverlay.dataset.timerInterval) {
                     clearInterval(loadingOverlay.dataset.timerInterval);
                 }
+                // Before removing, sync position to buttonOverlay
+                const rect = loadingOverlay.getBoundingClientRect();
+                if (buttonOverlay) {
+                    buttonOverlay.style.left = `${rect.left}px`;
+                    buttonOverlay.style.top = `${rect.top}px`;
+                    buttonOverlay.style.transform = 'none';
+                }
                 loadingOverlay.remove();
             }
         
-            // Check if the response is valid
-            if (!response) {
-                console.error('Invalid response from the backend: undefined');
-                customCommonOverlay().createErrorOverlay('No response from backend');
-                return;
+            seeds = image_seeds.split(',').map(seed => seed.trim()); 
+            tags = image_tags.split('|');
+            if (seeds.length !== tags.length) {
+                console.warn('Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
             }
-            if (!response.data) {
-                const errorMessage = response.error || 'Unknown error';
+        
+            if (!response || !response.data) {
+                const errorMessage = response?.error || 'Unknown error';
                 console.error('Failed to fetch image data:', errorMessage);
                 customCommonOverlay().createErrorOverlay(errorMessage);
                 return;
             }
         
-            // If loading is successful, update the gallery content
-            if (response.data) {
-                window.updateGallery(response.data);
-            }
+            window.updateGallery(response.data);
         };
     
         function enterFullscreen(index) {
@@ -460,32 +558,12 @@ function my_custom_js() {
                 return;
             }
         
-            // Create fullscreen overlay
             const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.9);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 10000;
-                overflow: hidden;
-            `;
+            overlay.className = 'cg-fullscreen-overlay'; 
         
-            // Create fullscreen image
             const fullScreenImg = document.createElement('img');
             fullScreenImg.src = imgUrl;
-            fullScreenImg.style.cssText = `
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-                cursor: grab;
-                transform: translate(0px, 0px) scale(1);
-            `;
+            fullScreenImg.className = 'cg-fullscreen-image';
         
             // Variables for dragging
             let isDragging = false;
@@ -544,7 +622,7 @@ function my_custom_js() {
                 }
             });
         
-            document.addEventListener('keydown', handleFullscreenKeyDown = (e) => {
+            const handleFullscreenKeyDown = (e) => { 
                 if (e.key === 'Escape') {
                     exitFullscreen();
                 } else if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -554,8 +632,8 @@ function my_custom_js() {
                     currentIndex = (currentIndex - 1 + images.length) % images.length;
                     fullScreenImg.src = images[currentIndex];
                 }
-            });
-        
+            };
+            document.addEventListener('keydown', handleFullscreenKeyDown);
             overlay.appendChild(fullScreenImg);
             document.body.appendChild(overlay);
         
@@ -566,18 +644,9 @@ function my_custom_js() {
         }
 
         function gallery_renderGridMode() {
-            container.innerHTML = ''; 
-        
+            container.innerHTML = '';
             const gallery = document.createElement('div');
-            gallery.className = 'cg-gallery-grid-container scroll-container'; 
-            gallery.style.cssText = `
-                display: grid;
-                gap: 10px;
-                justify-content: center;
-                grid-auto-rows: auto;
-                overflow-y: auto; 
-                height: 100%;
-            `;
+            gallery.className = 'cg-gallery-grid-container scroll-container';
         
             // Get container width
             const containerWidth = container.offsetWidth;
@@ -595,27 +664,14 @@ function my_custom_js() {
         
                 images.forEach((url, index) => {
                     const imgContainer = document.createElement('div');
-                    imgContainer.className = 'cg-gallery-item';
-                    imgContainer.style.cssText = `
-                        width: ${targetWidth}px;
-                        height: ${targetHeight}px;
-                        overflow: hidden;
-                        border-radius: 5px;
-                        background: #333;
-                    `;
+                    imgContainer.className = 'cg-gallery-item'; 
+                    imgContainer.style.width = `${targetWidth}px`;
+                    imgContainer.style.height = `${targetHeight}px`;
         
                     const img = document.createElement('img');
                     img.src = url;
-                    img.style.cssText = `
-                        width: 100%;
-                        height: 100%;
-                        object-fit: contain;
-                        cursor: pointer; 
-                    `;
-        
-                    img.addEventListener('click', () => {
-                        enterFullscreen(index);
-                    });
+                    img.className = 'cg-gallery-image'; 
+                    img.addEventListener('click', () => enterFullscreen(index));
         
                     imgContainer.appendChild(img);
                     gallery.appendChild(imgContainer);
@@ -628,95 +684,65 @@ function my_custom_js() {
     
         function gallery_renderSplitMode() {
             if (!images || images.length === 0) {
-                console.error('No images available for gallery_renderSplitMode');
-                container.innerHTML = `
-                    <div class="cg-error-message">No images to display</div>
-                `;
+                container.innerHTML = '<div class="cg-error-message">No images to display</div>';
                 return;
             }
         
-            container.innerHTML = ''; 
-        
+            container.innerHTML = '';
             const mainImageContainer = document.createElement('div');
-            mainImageContainer.style.cssText = `
-                width: 100%;
-                height: 90%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                overflow: hidden;
-                position: relative;
-                cursor: pointer; 
-            `;
+            mainImageContainer.className = 'cg-main-image-container';
         
             const mainImage = document.createElement('img');
             mainImage.src = images[currentIndex];
-            mainImage.style.cssText = `
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-                cursor: pointer;
-            `;
-        
-            mainImage.addEventListener('click', () => {
+            mainImage.className = 'cg-main-image';
+            mainImage.addEventListener('click', (e) => {
+                e.stopPropagation();
                 enterFullscreen(currentIndex);
-            });
-        
-            mainImageContainer.addEventListener('click', (e) => {
-                const rect = mainImageContainer.getBoundingClientRect();
-                const clickX = e.clientX - rect.left; 
-                const isLeft = clickX < rect.width / 2; // click left or right
-        
-                if (isLeft) {
-                    currentIndex = (currentIndex - 1 + images.length) % images.length;
-                } else {
-                    currentIndex = (currentIndex + 1) % images.length;
-                }
-        
-                mainImage.src = images[currentIndex];
-        
-                Array.from(previewContainer.children).forEach((child, i) => {
-                    child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
-                });
             });
         
             mainImageContainer.appendChild(mainImage);
             container.appendChild(mainImageContainer);
         
+            mainImageContainer.addEventListener('click', (e) => {
+                e.preventDefault();
+                const rect = mainImageContainer.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const isLeft = clickX < rect.width / 2;
+        
+                if (isLeft && images.length > 1) {
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                } else if (!isLeft && images.length > 1) {
+                    currentIndex = (currentIndex + 1) % images.length;
+                }
+        
+                mainImage.src = images[currentIndex];
+                Array.from(previewContainer.children).forEach((child, i) => {
+                    child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
+                });
+        
+                const selectedPreview = previewContainer.children[currentIndex];
+                if (selectedPreview) {
+                    selectedPreview.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+            });
+        
             const previewContainer = document.createElement('div');
-            previewContainer.className = 'thumb-scroll-container scroll-container';
-            previewContainer.style.cssText = `
-                width: 100%;
-                height: 10%;
-                display: flex;
-                justify-content: center; /* 中央对齐 */
-                gap: 10px;
-                overflow-x: auto;
-                overflow-y: hidden;
-                cursor: grab;
-                align-items: center;
-                padding: 5px 0;
-            `;
+            previewContainer.className = 'cg-preview-container scroll-container';
         
             images.forEach((url, index) => {
                 const previewImage = document.createElement('img');
                 previewImage.src = url;
-                previewImage.style.cssText = `
-                    height: 100%;
-                    object-fit: contain;
-                    cursor: pointer;
-                    border: ${index === currentIndex ? '2px solid #3498db' : 'none'};
-                    border-radius: 5px;
-                `;
-        
-                previewImage.addEventListener('click', () => {
+                previewImage.className = 'cg-preview-image';
+                previewImage.style.border = index === currentIndex ? '2px solid #3498db' : 'none';
+                previewImage.addEventListener('click', (e) => {
+                    e.preventDefault();
                     currentIndex = index;
                     mainImage.src = images[currentIndex];
                     Array.from(previewContainer.children).forEach((child, i) => {
                         child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
                     });
+                    previewImage.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                 });
-        
                 previewContainer.appendChild(previewImage);
             });
         
@@ -729,28 +755,55 @@ function my_custom_js() {
                 previewContainer.style.cursor = 'grabbing';
                 startX = e.pageX - previewContainer.offsetLeft;
                 scrollLeft = previewContainer.scrollLeft;
+                document.body.style.userSelect = 'none';
             });
         
             previewContainer.addEventListener('mouseleave', () => {
                 isDragging = false;
                 previewContainer.style.cursor = 'grab';
+                document.body.style.userSelect = '';
             });
         
             previewContainer.addEventListener('mouseup', () => {
                 isDragging = false;
                 previewContainer.style.cursor = 'grab';
+                document.body.style.userSelect = '';
             });
         
             previewContainer.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
                 e.preventDefault();
                 const x = e.pageX - previewContainer.offsetLeft;
-                const walk = (x - startX) * 1; 
+                const walk = (x - startX) * 1;
                 previewContainer.scrollLeft = scrollLeft - walk;
             });
         
             container.appendChild(previewContainer);
             ensureSwitchModeButton();
+            ensureSeedButton();
+            ensureTagButton();
+        
+            const previewImages = previewContainer.querySelectorAll('.cg-preview-image');
+            if (previewImages.length > 0) {
+                previewImages[0].onload = () => {
+                    const containerWidth = previewContainer.offsetWidth;
+                    const firstImageWidth = previewImages[0].offsetWidth || 50;
+                    const totalImagesWidth = firstImageWidth * previewImages.length;
+            
+                    if (totalImagesWidth < (containerWidth - firstImageWidth)) {
+                        previewContainer.style.justifyContent = 'center';
+                    } else {
+                        previewContainer.style.justifyContent = 'flex-start';
+                        if (previewImages.length > 10) {
+                            const minWidth = Math.max(50, containerWidth / previewImages.length);
+                            previewImages.forEach(img => {
+                                img.style.maxWidth = `${minWidth}px`;
+                            });
+                        }
+                    }
+                    previewContainer.scrollLeft = 0;
+                };
+            }
         }
             
         function ensureSwitchModeButton() {
@@ -758,19 +811,8 @@ function my_custom_js() {
             if (!switchModeButton) {
                 switchModeButton = document.createElement('button');
                 switchModeButton.id = 'cg-switch-mode-button';
+                switchModeButton.className = 'cg-button'; 
                 switchModeButton.textContent = '<>';
-                switchModeButton.style.cssText = `
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    z-index: 1000;
-                    padding: 5px 10px;
-                    background: #3498db;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                `;
                 switchModeButton.addEventListener('click', () => {
                     isGridMode = !isGridMode;
                     if (isGridMode) {
@@ -783,71 +825,91 @@ function my_custom_js() {
             }
         }
 
-        function addDragFunctionality(element) {
-            let isDragging = false;
-            let startX, startY, initialX, initialY;
+        function ensureSeedButton() {
+            let seedButton = document.getElementById('cg-seed-button');
+            if (!seedButton) {
+                seedButton = document.createElement('button');
+                seedButton.id = 'cg-seed-button';
+                seedButton.className = 'cg-button'; 
+                seedButton.textContent = 'Seed';
+                seedButton.addEventListener('click', () => {
+                    if (seeds && seeds[currentIndex]) {
+                        const seedToCopy = seeds[currentIndex].trim();
+                        navigator.clipboard.writeText(seedToCopy)
+                            .then(() => {
+                                console.log(`Seed ${seedToCopy} copied to clipboard`);
+                                seedButton.textContent = 'Copied!';
+                                setTimeout(() => {
+                                    seedButton.textContent = 'Seed';
+                                }, 2000);
         
-            element.style.position = 'fixed'; 
+                                // Update Gradio Slider 
+                                const sliderContainer = document.getElementById('random_seed');
+                                if (sliderContainer) {
+                                    // Find number and range 
+                                    const numberInput = sliderContainer.querySelector('input[type="number"]');
+                                    const rangeInput = sliderContainer.querySelector('input[type="range"]');
+                                    
+                                    if (numberInput && rangeInput) {
+                                        const seedValue = parseInt(seedToCopy, 10); 
+                                        if (!isNaN(seedValue) && seedValue >= -1 && seedValue <= 4294967295) {
+                                            // update number
+                                            numberInput.value = seedValue;
+                                            numberInput.dispatchEvent(new Event('input', { bubbles: true }));
         
-            element.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                                            // update range
+                                            rangeInput.value = seedValue;
+                                            rangeInput.dispatchEvent(new Event('input', { bubbles: true }));
         
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-        
-                const rect = element.getBoundingClientRect();
-                initialX = rect.left;
-                initialY = rect.top;
-        
-                document.body.style.userSelect = 'none'; // Disable text selection during drag
-            });
-        
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-        
-                e.preventDefault();
-                e.stopPropagation();
-        
-                const deltaX = e.clientX - startX;
-                const deltaY = e.clientY - startY;
-        
-                // Update the position of the element
-                element.style.left = `${initialX + deltaX}px`;
-                element.style.top = `${initialY + deltaY}px`;
-            });
-        
-            document.addEventListener('mouseup', (e) => {
-                if (isDragging) {
-                    e.preventDefault();
-                    e.stopPropagation();
-        
-                    isDragging = false;
-                    document.body.style.userSelect = ''; // Re-enable text selection
-        
-                    // Save the current position to localStorage
-                    const rect = element.getBoundingClientRect();
-                    localStorage.setItem(
-                        'loadingOverlayPosition',
-                        JSON.stringify({ top: rect.top, left: rect.left })
-                    );
-        
-                    // Check if the element is out of the browser's visible range
-                    if (
-                        rect.top < 0 ||
-                        rect.left < 0 ||
-                        rect.bottom > window.innerHeight ||
-                        rect.right > window.innerWidth
-                    ) {
-                        element.style.top = '20%';
-                        element.style.left = '50%';
-                        element.style.transform = 'translate(-50%, -20%)';
-                        // Remove the saved position if it's invalid
-                        localStorage.removeItem('loadingOverlayPosition');
+                                            console.log(`Updated random_seed to ${seedValue}`);
+                                        } else {
+                                            console.error(`Seed value ${seedToCopy} is invalid or out of range (-1 to 4294967295)`);
+                                        }
+                                    } else {
+                                        console.error('Number or range input not found in random_seed');
+                                    }
+                                } else {
+                                    console.error('Slider with ID random_seed not found');
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Failed to copy seed to clipboard:', err);
+                            });
+                    } else {
+                        console.error('No seed available for current index:', currentIndex);
                     }
-                }
-            });
+                });
+                container.appendChild(seedButton);
+            }
+        }
+
+        function ensureTagButton() {
+            let tagButton = document.getElementById('cg-tag-button');
+            if (!tagButton) {
+                tagButton = document.createElement('button');
+                tagButton.id = 'cg-tag-button';
+                tagButton.className = 'cg-button';
+                tagButton.textContent = 'Tag';
+                tagButton.addEventListener('click', () => {
+                    if (tags && tags[currentIndex]) {
+                        const tagToCopy = tags[currentIndex].trim();
+                        navigator.clipboard.writeText(tagToCopy)
+                            .then(() => {
+                                console.log(`Tag [${tagToCopy}] copied to clipboard`);
+                                tagButton.textContent = 'Copied!';
+                                setTimeout(() => {
+                                    tagButton.textContent = 'Tag';
+                                }, 2000);
+                            })
+                            .catch(err => {
+                                console.error('Failed to copy tag to clipboard:', err);
+                            });
+                    } else {
+                        console.error('No tag available for current index:', currentIndex);
+                    }
+                });
+                container.appendChild(tagButton);
+            }
         }
 
         window.updateGallery = function (imageData) {
@@ -895,7 +957,7 @@ function my_custom_js() {
         }
 
         if (isThumbSetup) {
-            console.log('Thumbnail gallery is already set up.');
+            //console.log('Thumbnail gallery is already set up.');
             return;
         }
 
@@ -904,18 +966,9 @@ function my_custom_js() {
         console.log('Setting up the thumbnail gallery', container);
 
         function thumb_renderGridMode() {
-            container.innerHTML = ''; 
-        
+            container.innerHTML = '';
             const gallery = document.createElement('div');
-            gallery.className = 'cg-thumb-grid-container scroll-container'; 
-            gallery.style.cssText = `
-                display: grid;
-                gap: 10px;
-                justify-content: center;
-                grid-auto-rows: auto;
-                overflow-y: auto; 
-                height: 100%;
-            `;
+            gallery.className = 'cg-thumb-grid-container scroll-container';
         
             const containerWidth = container.offsetWidth;
             const containerHeight = container.offsetHeight;
@@ -923,32 +976,21 @@ function my_custom_js() {
             const firstImage = new Image();
             firstImage.src = images[0];
             firstImage.onload = () => {
-                const aspectRatio = firstImage.width / firstImage.height; 
-                const targetHeight = containerHeight / 1.15; 
-                const targetWidth = targetHeight * aspectRatio; 
-                const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10)); 
-        
-                gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
+                const aspectRatio = firstImage.width / firstImage.height;
+                const targetHeight = containerHeight / 1.15;
+                const targetWidth = targetHeight * aspectRatio;
+                const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10));
+                gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`; 
         
                 images.forEach((url) => {
                     const imgContainer = document.createElement('div');
                     imgContainer.className = 'cg-thumb-item';
-                    imgContainer.style.cssText = `
-                        width: ${targetWidth}px;
-                        height: ${targetHeight}px;
-                        overflow: hidden;
-                        border-radius: 5px;
-                        background: #333;
-                    `;
+                    imgContainer.style.width = `${targetWidth}px`; 
+                    imgContainer.style.height = `${targetHeight}px`;
         
                     const img = document.createElement('img');
                     img.src = url;
-                    img.style.cssText = `
-                        width: 100%;
-                        height: 100%;
-                        object-fit: contain;
-                    `;
-        
+                    img.className = 'cg-thumb-image';
                     imgContainer.appendChild(img);
                     gallery.appendChild(imgContainer);
                 });
@@ -959,30 +1001,17 @@ function my_custom_js() {
         }
 
         function thumb_renderSplitMode() {
-            container.innerHTML = ''; 
-
+            container.innerHTML = '';
             const scrollContainer = document.createElement('div');
-            scrollContainer.className = 'cg-thumb-scroll-container scroll-container'; 
-            scrollContainer.style.cssText = `
-                display: flex;
-                gap: 10px;
-                overflow-x: auto;
-                overflow-y: hidden;
-                height: 100%;
-                cursor: grab;
-            `;
-
+            scrollContainer.className = 'cg-thumb-scroll-container scroll-container';
+        
             images.forEach((url) => {
                 const img = document.createElement('img');
                 img.src = url;
-                img.style.cssText = `
-                    height: 100%;
-                    object-fit: contain;
-                `;
+                img.className = 'cg-thumb-scroll-image'; 
                 scrollContainer.appendChild(img);
             });
 
-            // 添加鼠标拖拽功能
             let isDragging = false;
             let startX, scrollLeft;
 
@@ -1021,19 +1050,8 @@ function my_custom_js() {
             if (!switchModeButton) {
                 switchModeButton = document.createElement('button');
                 switchModeButton.id = 'cg-thumb-switch-mode-button';
+                switchModeButton.className = 'cg-button'; 
                 switchModeButton.textContent = '<>';
-                switchModeButton.style.cssText = `
-                    position: absolute;
-                    top: 10px;
-                    right: 10px;
-                    z-index: 1000;
-                    padding: 5px 10px;
-                    background: #3498db;
-                    color: white;
-                    border: none;
-                    border-radius: 5px;
-                    cursor: pointer;
-                `;
                 switchModeButton.addEventListener('click', () => {
                     isGridMode = !isGridMode;
                     if (isGridMode) {
@@ -1078,10 +1096,17 @@ function my_custom_js() {
                 id: 'cg-error-overlay',
                 className: 'cg-overlay-error',
                 content: `
-                    <img src="${window.LOADING_FAILED_BASE64}" alt="Error" class="cg-overlay-image">
-                    <span>Failed to load images: ${errorMessage}</span>
+                    <img src="${window.LOADING_FAILED_BASE64}" alt="Error" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
+                    <span>${errorMessage}</span>
                 `,
                 onClick: () => {
+                    navigator.clipboard.writeText(errorMessage)
+                        .then(() => {
+                            console.log(`Error message "${errorMessage}" copied to clipboard`);
+                        })
+                        .catch(err => {
+                            console.error('Failed to copy error message to clipboard:', err);
+                        });
                     document.getElementById('cg-error-overlay').remove();
                 }
             });
@@ -1092,13 +1117,12 @@ function my_custom_js() {
                 id: 'cg-loading-overlay',
                 className: '',
                 content: `
-                    <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" class="cg-overlay-image">
+                    <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
                     <span>Now generating...</span>
                     <span class="cg-overlay-timer">Elapsed time: 0 seconds</span>
                 `
             });
-    
-            // Start timer
+        
             const startTime = Date.now();
             if (overlay.dataset.timerInterval) {
                 clearInterval(overlay.dataset.timerInterval);
@@ -1111,14 +1135,195 @@ function my_custom_js() {
                 }
             }, 1000);
             overlay.dataset.timerInterval = timerInterval;
-    
+        
             return overlay;
         }
     
-        // Return the functions as an object
         return {
             createErrorOverlay,
             createLoadingOverlay
+        };
+    }
+
+    function setupButtonOverlay() {
+        console.log("Setting up button overlay");
+    
+        const generateButtons = document.getElementById('generate_buttons');
+        if (!generateButtons) {
+            console.error('Generate buttons container not found');
+            return;
+        }
+    
+        const buttonOverlay = document.createElement('div');
+        buttonOverlay.id = 'cg-button-overlay';
+        buttonOverlay.className = 'cg-overlay cg-button-overlay';
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'cg-button-container';
+        buttonContainer.style.paddingTop = '25px';
+    
+        const minimizeButton = document.createElement('button');
+        minimizeButton.className = 'cg-minimize-button';
+        minimizeButton.style.backgroundColor = '#3498db';
+        minimizeButton.style.width = '12px';
+        minimizeButton.style.height = '12px';
+        minimizeButton.style.minWidth = '12px';
+        minimizeButton.style.minHeight = '12px';
+        minimizeButton.style.borderRadius = '50%';
+        minimizeButton.style.border = 'none';
+        minimizeButton.style.padding = '0';
+        minimizeButton.style.margin = '0';
+        minimizeButton.style.cursor = 'pointer';
+        minimizeButton.style.position = 'absolute';
+        minimizeButton.style.top = '8px'; 
+        minimizeButton.style.left = '8px';
+        minimizeButton.style.boxSizing = 'border-box';
+        minimizeButton.style.transform = 'none';
+    
+        minimizeButton.addEventListener('load', () => {
+            console.log('Minimize button rendered size:', {
+                width: minimizeButton.offsetWidth,
+                height: minimizeButton.offsetHeight
+            });
+        });
+    
+        const runButton = document.getElementById('run_button');
+        const runRandomButton = document.getElementById('run_random_button');
+    
+        const clonedRunButton = runButton.cloneNode(true);
+        const clonedRandomButton = runRandomButton.cloneNode(true);
+    
+        const preventClickIfDragged = (clonedButton, originalButton) => {
+            let isDraggingButton = false;
+            let hasMoved = false;
+            const MOVE_THRESHOLD = 5;
+    
+            clonedButton.addEventListener('mousedown', (e) => {
+                isDraggingButton = true;
+                hasMoved = false;
+                const startX = e.clientX;
+                const startY = e.clientY;
+    
+                const onMove = (moveEvent) => {
+                    const deltaX = moveEvent.clientX - startX;
+                    const deltaY = moveEvent.clientY - startY;
+                    if (Math.abs(deltaX) > MOVE_THRESHOLD || Math.abs(deltaY) > MOVE_THRESHOLD) {
+                        hasMoved = true;
+                    }
+                };
+    
+                const onUp = (upEvent) => {
+                    if (!hasMoved) {
+                        originalButton.click();
+                    }
+                    isDraggingButton = false;
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                };
+    
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        };
+    
+        preventClickIfDragged(clonedRandomButton, runRandomButton);
+        preventClickIfDragged(clonedRunButton, runButton);
+    
+        buttonContainer.appendChild(clonedRandomButton);
+        buttonContainer.appendChild(clonedRunButton);
+        
+        buttonOverlay.appendChild(minimizeButton);
+        buttonOverlay.appendChild(buttonContainer);
+        document.body.appendChild(buttonOverlay);
+    
+        const loadingOverlay = document.getElementById('cg-loading-overlay');
+        addDragFunctionality(buttonOverlay, loadingOverlay);
+    
+        let isMinimized = false;
+        let lastFullPosition = null;
+    
+        function setMinimizedState(overlay, container, button, isMin) {
+            if (isMin) {
+                overlay.style.top = '0px';
+                overlay.style.left = '0px';
+                overlay.style.transform = 'none';
+                overlay.style.width = '30px';
+                overlay.style.height = '30px';
+                overlay.style.padding = '0';
+                container.style.display = 'none';
+                button.style.top = '7px';
+                button.style.left = '7px';
+            } else {
+                overlay.style.width = '220px';
+                overlay.style.padding = '20px';
+                container.style.paddingTop = '25px';
+                const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+                if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+                    overlay.style.top = `${savedPosition.top}px`;
+                    overlay.style.left = `${savedPosition.left}px`;
+                    overlay.style.transform = 'none';
+                }
+            }
+        }
+    
+        minimizeButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!isMinimized) {
+                const rect = buttonOverlay.getBoundingClientRect();
+                lastFullPosition = { top: rect.top, left: rect.left };
+                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, true);
+                isMinimized = true;
+            } else {
+                buttonContainer.style.display = 'flex';
+                buttonOverlay.style.height = '';
+                minimizeButton.style.top = '8px';
+                minimizeButton.style.left = '8px';
+                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, false);
+                isMinimized = false;
+            }
+        });
+    
+        function toggleButtonOverlayVisibility() {
+            const loadingOverlay = document.getElementById('cg-loading-overlay');
+            const errorOverlay = document.getElementById('cg-error-overlay');
+            
+            if (loadingOverlay || errorOverlay) {
+                buttonOverlay.style.display = 'none';
+            } else {
+                buttonOverlay.style.display = 'flex';
+                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, isMinimized);
+            }
+        }
+    
+        buttonOverlay.style.width = '220px';
+        buttonOverlay.style.padding = '20px';
+        const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+        if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+            buttonOverlay.style.top = `${savedPosition.top}px`;
+            buttonOverlay.style.left = `${savedPosition.left}px`;
+            buttonOverlay.style.transform = 'none';
+        } else {
+            buttonOverlay.style.top = '80%';
+            buttonOverlay.style.left = '50%';
+            buttonOverlay.style.transform = 'translate(-50%, -20%)';
+        }
+    
+        toggleButtonOverlayVisibility();
+    
+        const observer = new MutationObserver(() => {
+            toggleButtonOverlayVisibility();
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    
+        return function cleanup() {
+            observer.disconnect();
+            if (buttonOverlay && buttonOverlay.parentNode) {
+                buttonOverlay.parentNode.removeChild(buttonOverlay);
+            }
         };
     }
 
@@ -1126,5 +1331,6 @@ function my_custom_js() {
     setupSuggestionSystem();
     setupGallery();
     setupThumb();
+    setupButtonOverlay();
     dark_theme();
 }

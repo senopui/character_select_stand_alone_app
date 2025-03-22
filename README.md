@@ -44,17 +44,20 @@ Completely redesigned gallery replaces Gradio gallery.
 
 Supports `Grid Mode`, `Split Mode` and `Full Screen` in browser, press `F11` for `Full Screen`.       
 
-keys:      
-In `Split Mode`, click on the `BLANK` area of the gallery, will switch images.     
-In `Full Screen`, `Left` and `Right` arrow to switch images, also supports `Mouse Drag` and `Mouse Scroll Zoom`.     
+Hightlights:      
+`Split Mode`
+1. Click on the `BLANK` area of the gallery, will switch images.     
+2. Click `Seed` will copy seed to clipboard and override your current seed setting.    
+3. Click `Tags` will copy full positive prompts to clipboard.    
+
+`Full Screen`, `Left` and `Right` arrow to switch images, also supports `Mouse Drag` and `Mouse Scroll Zoom`.     
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_grid.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_split.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_fullscreen.png" width=35% height=35%>   
 
-# New Loading and Error Icon
-You may have noticed that there's a new `Loading` message box in the centre of your browser, you can drag it anywhere .... 
+# Overlay Generate Button, Generating and Error Overlay
+You can drag the `Button` overlay and `Generating` overlay anywhere you like.    
+The Button overlay load by default, you can simply minimize it by click the `Blue` dot, it will hide in the `Top Left` of your browser.    
 The error message will also appear in the centre of your browser, you can dismiss it by clicking on it, and the error message will be automatically copied to your clipboard.    
-
-In future release I'll `LOCK` all three `Generate` buttons during generation.      
 
 ------
 # Manual Setup by edit settings.json

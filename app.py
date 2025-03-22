@@ -17,7 +17,7 @@ if __name__ == '__main__':
         run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, interactive=False)
         return run_button, run_random_button, run_same_button
     
-    def generate_unlock(images_data, dummy_textbox):
+    def generate_unlock(images_data, images_seed, images_tag):
         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, interactive=True)
         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, interactive=True)
         run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, interactive=True)
@@ -63,7 +63,8 @@ if __name__ == '__main__':
             
             # A lot dummy for java script
             dummy_dropdown = gr.Dropdown(visible=False, allow_custom_value=True)
-            dummy_textbox = gr.Textbox(visible=False)  
+            dummy_textbox1 = gr.Textbox(visible=False)
+            dummy_textbox2 = gr.Textbox(visible=False)
             dummy_wait_base64=gr.Text(value=LOADING_WAIT_BASE64, visible=False, interactive=False)
             dummy_failed_base64=gr.Text(value=LOADING_FAILED_BASE64, visible=False, interactive=False)
             dummy_images_data = gr.JSON(visible=False, elem_id="images-data-json")
@@ -76,7 +77,8 @@ if __name__ == '__main__':
                             step=1,
                             value=-1,
                             label=LANG["random_seed"],
-                            scale=2
+                            scale=2,
+                            elem_id="random_seed"
                         )    
                     api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"], scale=2)
                     api_image_landscape = gr.Checkbox(value=settings_json["api_image_landscape"], label=LANG["api_image_landscape"], scale = 1)
@@ -114,10 +116,10 @@ if __name__ == '__main__':
                                     value=settings_json["api_hf_denoise"],
                                     label=LANG["api_hf_denoise"],
                                 )
-                with gr.Row():                    
-                        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4)
-                        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1)
-                        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3)
+                with gr.Row(elem_id="generate_buttons"):                    
+                        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button")
+                        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button")
+                        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, elem_id="run_same_button")
                 with gr.Row():
                     with gr.Column():
                         # API prompts
@@ -245,10 +247,10 @@ if __name__ == '__main__':
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ], 
-                                    outputs=[output_prompt, output_info, images_data, dummy_textbox]
+                                    outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
-                                    inputs=[images_data, dummy_textbox],
+                                    inputs=[images_data, dummy_textbox1, dummy_textbox2],
                                     outputs=[run_button, run_random_button, run_same_button],
                                     js=JS_HANDLERESPONSE
                                 )
@@ -267,10 +269,10 @@ if __name__ == '__main__':
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ], 
-                                    outputs=[output_prompt, output_info, images_data, dummy_textbox]
+                                    outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
-                                    inputs=[images_data, dummy_textbox],
+                                    inputs=[images_data, dummy_textbox1, dummy_textbox2],
                                     outputs=[run_button, run_random_button, run_same_button],
                                     js=JS_HANDLERESPONSE
                                 )
@@ -286,10 +288,10 @@ if __name__ == '__main__':
                                         api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                         ], 
-                                outputs=[output_prompt, output_info, images_data, dummy_textbox]
+                                outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                             ).then(
                                     fn=generate_unlock,                                    
-                                    inputs=[images_data, dummy_textbox],
+                                    inputs=[images_data, dummy_textbox1, dummy_textbox2],
                                     outputs=[run_button, run_random_button, run_same_button],
                                     js=JS_HANDLERESPONSE
                                 )
@@ -316,7 +318,7 @@ if __name__ == '__main__':
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
                                             ])
         
-        manual_update_database_button.click(fn=manual_update_database, outputs=[manual_update_database_button])
+        manual_update_database_button.click(fn=manual_update_database, inputs=None).then(fn=manual_update_database, inputs=[manual_update_database_button], outputs=[manual_update_database_button])
         
         batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
         
@@ -327,7 +329,7 @@ if __name__ == '__main__':
         # Prompt Auto Complete JS
         # Have to use dummy components
         # Use custom_prompt, the stupid js console will always report "api_info.ts:423  Too many arguments provided for the endpoint."
-        dummy_textbox.change(fn=get_prompt_manager().update_suggestions_js, inputs=[dummy_textbox], outputs=[dummy_dropdown])
+        dummy_textbox1.change(fn=get_prompt_manager().update_suggestions_js, inputs=[dummy_textbox1], outputs=[dummy_dropdown])
         
         ui.load(
             fn=get_loading_status_images,
