@@ -433,6 +433,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     if tag_assist and tag_assist_dict.__contains__(chara):        
         tas=tag_assist_dict[chara]
         print(f'{CAT}:Tag assist: [{chara}] add [{tas}]')
+        gr.Warning(LANG["gr_info_tag_assist_add"].format(tas, chara))
         
     md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))
     thumb_image = None

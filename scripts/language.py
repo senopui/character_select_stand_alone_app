@@ -14,6 +14,7 @@ LANG_EN = {
     "view_style": "Style",
     "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v120)",
     "random_seed": "Random Seed",
+    "thumb_image": "Character Thumb Preview",
     "custom_prompt": "Custom Prompt (Head)",
     "api_prompt": "Positive Prompt (Tail)",
     "api_neg_prompt": "Negative Prompt",
@@ -36,7 +37,9 @@ LANG_EN = {
     "output_info": "Information",
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>",
     "ai_system_prompt_text": "AI System Prompt",
+    "system_settings": "Settings",
     
+    "api_hf": "Hires Fix",
     "api_hf_enable": "Enable Hires Fix",
     "api_hf_scale": "Upscale by",
     "api_hf_denoise": "Denoising",
@@ -58,6 +61,7 @@ LANG_EN = {
     "gr_info_settings_loaded": "Settings Loaded {}",
     "gr_info_manual_update_database": "Now downloading {}, please wait a while.",
     "gr_info_manual_update_database_done": " {} updated",
+    "gr_info_tag_assist_add": "Tag assist: [{}] add to [{}].\nOther characters may be affected when you generate multicharacter images.",
     
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
     "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
@@ -117,6 +121,7 @@ LANG_CN = {
     "view_style": "风格",
     "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v120)",
     "random_seed": "种子",
+    "thumb_image": "角色预览",
     "custom_prompt": "自定义提示词（放在最前）",
     "api_prompt": "效果提示词（放在末尾）",
     "api_neg_prompt": "负面提示词",
@@ -139,8 +144,10 @@ LANG_CN = {
     "output_info": "相关信息",
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">AI系统提示词，建议使用英文<br>如果你不清楚这是干什么的，不要修改！！！</span></h1>",
     "ai_system_prompt_text": "AI系统提示词",
+    "system_settings": "设置",
     
-    "api_hf_enable": "高清修复",
+    "api_hf": "高清修复",
+    "api_hf_enable": "启动高清修复",
     "api_hf_scale": "放大倍率",
     "api_hf_denoise": "降噪强度",
     "api_hf_upscaler_selected": "高清修复模型",
@@ -167,6 +174,7 @@ LANG_CN = {
     "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
     "gr_warning_cfgstepwh_mismatch":"注意：“引导,步数,宽,高,批量”设置存在错误，使用默认数据：7.0, 30, 1024, 1360, 1",
     "gr_warning_manual_update_database": "文件下载失败，请检查控制台日志确认问题\n{}",
+    "gr_info_tag_assist_add": "角色标签辅助：[{}] 追加到角色 [{}].\n如果你在生成多人图像，其他人可能会受到影响，请注意。",
     
     "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
     

@@ -901,7 +901,7 @@ function my_custom_js() {
 
         isThumbSetup = true;
 
-        console.log('Setting up the thumbnail gallery...');
+        console.log('Setting up the thumbnail gallery', container);
 
         function thumb_renderGridMode() {
             container.innerHTML = ''; 

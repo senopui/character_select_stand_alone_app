@@ -10,16 +10,21 @@ DEFAULT_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAf
 LOADING_WAIT_BASE64 = DEFAULT_BASE64
 LOADING_FAILED_BASE64 = DEFAULT_BASE64
 
-JS_SHOWLOADING = """
+JS_SHOWLOADING_WITHTHUMB = """
 function(images_data) {
-    // Show loading overlay
     window.cgCustomGallery.showLoading();
 
-    // Update the thumbnail gallery
     const newThumbImages = images_data.data;
     window.updateThumbGallery(newThumbImages);
 }
 """
+
+JS_SHOWLOADING = """
+function(images_data) {
+    window.cgCustomGallery.showLoading();
+}
+"""
+
 JS_HANDLERESPONSE = "function(data) { window.cgCustomGallery.handleResponse(data); }",
 
 JS_SHOWTHUMB = """
@@ -92,8 +97,8 @@ def get_loading_status_images(wait, failed):
 
 
 def set_custom_gallery_last_api_images(images, ret):
-    if 'success' == ret:
-        print(f"[{CAT}] Get {len(images)} images from lib")
+    #if 'success' == ret:
+        #print(f"[{CAT}] Get {len(images)} images from lib")
     
     return get_images_data(images, ret)
 
@@ -131,7 +136,7 @@ def decompress_image_data(base64_data):
         return None
 
 def set_custom_gallery_thumb_images(images):
-    print(f"[{CAT}] Get {len(images)} thumb images from lib")
+    #print(f"[{CAT}] Get {len(images)} thumb images from lib")
     
     image_urls = []
     for img in images:
