@@ -1,4 +1,6 @@
 import base64
+import gzip
+from PIL import Image
 from io import BytesIO
 import os
 
@@ -8,12 +10,42 @@ DEFAULT_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAf
 LOADING_WAIT_BASE64 = DEFAULT_BASE64
 LOADING_FAILED_BASE64 = DEFAULT_BASE64
 
+JS_SHOWLOADING = """
+function(images_data) {
+    // Show loading overlay
+    window.cgCustomGallery.showLoading();
 
-def set_custom_gallery_last_api_images(images, ret):
-    if 'success' == ret:
-        print(f"[{CAT}] Get {len(images)} images from lib")
-    
-    return get_images_data(images, ret)
+    // Update the thumbnail gallery
+    const newThumbImages = images_data.data;
+    window.updateThumbGallery(newThumbImages);
+}
+"""
+JS_HANDLERESPONSE = "function(data) { window.cgCustomGallery.handleResponse(data); }",
+
+JS_SHOWTHUMB = """
+function(images_data) {
+    // Update the thumbnail gallery
+    const newThumbImages = images_data.data;
+    window.updateThumbGallery(newThumbImages);
+}
+"""
+
+JS_GALLERY_INIT = """
+function(loading_wait, loading_failed) {
+    if (window.LOADING_WAIT_BASE64 && window.LOADING_FAILED_BASE64) {
+        console.log('Loading images already initialized.');
+        return;
+    }
+
+    window.LOADING_WAIT_BASE64 = loading_wait;
+    window.LOADING_FAILED_BASE64 = loading_failed;
+
+    console.log('Loading images initialized:', {
+        loading_wait: window.LOADING_WAIT_BASE64,
+        loading_failed: window.LOADING_FAILED_BASE64
+    });
+}
+"""
 
 def get_image_base64(file_name):
     base_dir = os.path.dirname(__file__)
@@ -39,6 +71,12 @@ def custom_gallery_default():
         <div class="cg-loading"> </div>
     </div>
     """
+def custom_thumb_default():
+    return """
+    <div id="cg-custom-thumb" class="cg-thumb-container">
+        <div class="cg-thumb-loading"> </div>
+    </div>
+    """
     
 def init_custom_gallery():
     global LOADING_WAIT_BASE64
@@ -51,6 +89,13 @@ def init_custom_gallery():
 
 def get_loading_status_images(wait, failed):
     return {"loading_wait": wait},{"loading_failed": failed}
+
+
+def set_custom_gallery_last_api_images(images, ret):
+    if 'success' == ret:
+        print(f"[{CAT}] Get {len(images)} images from lib")
+    
+    return get_images_data(images, ret)
 
 def get_images_data(images, ret):
     if not images:
@@ -75,7 +120,38 @@ def get_images_data(images, ret):
     else:
         return {"data": None, "error": js_error}  
 
-def get_images_dummy():
+
+def decompress_image_data(base64_data):
+    try:
+        compressed_data = base64.b64decode(base64_data)
+        webp_data = gzip.decompress(compressed_data)
+        return webp_data
+    except Exception as e:
+        print(f"[{CAT}] Error decompressing image data: {e}")
+        return None
+
+def set_custom_gallery_thumb_images(images):
+    print(f"[{CAT}] Get {len(images)} thumb images from lib")
+    
+    image_urls = []
+    for img in images:
+        try:
+            webp_data = decompress_image_data(img)
+            if webp_data is None:
+                continue
+            
+            img_base64 = base64.b64encode(webp_data).decode("utf-8")
+            image_urls.append(f"data:image/webp;base64,{img_base64}")
+        except Exception as e:
+            print(f"[{CAT}] Error processing thumb image: {e}")
+            continue
+        
+    if len(image_urls) > 0:
+        return {"data": image_urls, "error": None}  
+    
+    return {"data": None, "error": "No valid thumb image"}  
+
+def get_images_dummy(images = None):
     # just a dummy
     return
     

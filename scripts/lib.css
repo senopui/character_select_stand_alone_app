@@ -1,56 +1,64 @@
-#custom_prompt_text textarea {color: darkorange}
-#positive_prompt_text textarea {color: greenyellow}
-#negative_prompt_text textarea {color: red}
-#ai_prompt_text textarea {color: hotpink}
-#prompt_ban_text textarea {color: Khaki}
+/* Prompt Text Colors */
+#custom_prompt_text textarea {color: darkorange;}
+#positive_prompt_text textarea {color: greenyellow;}
+#negative_prompt_text textarea {color: red;}
+#ai_prompt_text textarea {color: hotpink;}
+#prompt_ban_text textarea {color: khaki;}
 
+/* Suggestion Box */
 .suggestion-box {
     position: absolute;
-    border: 1px solid #888;
-    background-color: #333;
-    color: #ccc;
+    border: 2px solid #333;
+    background-color: rgba(17, 17, 17, 0.8);
+    color: white;
     z-index: 1000;
     max-height: 300px;
     overflow-y: auto;
     overflow-x: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    padding: 5px;
-    border-radius: 5px;
-    width: auto !important; 
-    min-width: 0 !important; 
-    max-width: none !important; 
-    pointer-events: auto; 
-}
-
-.suggestion-box::-webkit-scrollbar {
-    width: 10px;
-}
-
-.suggestion-box::-webkit-scrollbar-track {
-    background: #333;
-    border-radius: 5px;
-}
-
-.suggestion-box::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #555, #888);
-    border-radius: 5px;
-}
-
-.suggestion-box::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #777, #aaa);
+    padding: 10px;
+    border-radius: 8px;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    pointer-events: auto;
 }
 
 .suggestion-item {
     padding: 8px 12px;
     cursor: pointer;
-    white-space: nowrap; 
-    pointer-events: auto; 
+    white-space: nowrap;
+    pointer-events: auto;
+    color: #ccc;
+    transition: background-color 0.3s ease;
 }
 
 .suggestion-item:hover, .suggestion-item.selected {
-    background-color: #555; 
+    background-color: #555;
+    color: white;
 }
 
+/* Scrollbar Styles */
+.scroll-container::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+
+.scroll-container::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 5px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, #555, #888);
+    border-radius: 5px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, #777, #aaa);
+}
+
+/* Custom Gallery */
 #cg-custom-gallery {
     box-sizing: border-box;
     padding: 10px;
@@ -62,131 +70,99 @@
     overflow-x: hidden;
 }
 
-.cg-image-gallery-container {
+.grid-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
-    height: auto;
-    max-height: 100%;
+    justify-content: center;
+    grid-auto-rows: auto;
+    overflow-y: auto;
+    height: 100%;
+}
+
+.grid-item {
+    overflow: hidden;
+    border-radius: 5px;
+    background: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+/* Custom Thumb */
+#cg-custom-thumb {
+    box-sizing: border-box;
+    padding: 10px;
+    background: #111;
+    border-radius: 8px;
+    border: 2px solid #333;
+    height: 232px;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-.cg-image-gallery-container::-webkit-scrollbar {
-    width: 10px;
+.thumb-grid-container {
+    display: grid;
+    gap: 10px;
+    justify-content: center;
+    grid-auto-rows: auto;
+    overflow-y: auto;
+    height: 100%;
 }
 
-.cg-image-gallery-container::-webkit-scrollbar-track {
+.thumb-item {
+    overflow: hidden;
+    border-radius: 5px;
     background: #333;
-    border-radius: 5px;
-}
-
-.cg-image-gallery-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #555, #888);
-    border-radius: 5px;
-}
-
-.cg-image-gallery-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #777, #aaa);
-}
-
-.cg-image-item img {
-    width: 100%;
-    height: auto;
-    display: block;
-    object-fit: cover;
-    aspect-ratio: 1/1;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-#cg-custom-gallery .cg-top-section {
-    height: 88%;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #000;
 }
 
-#cg-custom-gallery .cg-bottom-section {
-    height: 10%;
+.thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+/* Split Mode Scroll Container */
+.thumb-scroll-container {
     display: flex;
-    overflow-x: auto;
-    overflow-y: hidden;
-    background: #333;
-    padding: 5px;
-    gap: 5px;
-    border-radius: 5px;
+    flex-direction: row; 
+    gap: 10px;
+    overflow-x: auto; 
+    overflow-y: hidden; 
+    height: 100%;
+    cursor: grab;
 }
 
-#cg-custom-gallery .cg-bottom-section::-webkit-scrollbar {
-    height: 10px;
+.thumb-scroll-container img {
+    height: 100%; 
+    object-fit: contain;
+    cursor: pointer;
 }
 
-#cg-custom-gallery .cg-bottom-section::-webkit-scrollbar-track {
-    background: #333;
-    border-radius: 5px;
-}
-
-#cg-custom-gallery .cg-bottom-section::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #555, #888);
-    border-radius: 5px;
-}
-
-#cg-custom-gallery .cg-bottom-section::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #777, #aaa);
-}
-
-#cg-fullscreen-overlay {
-    overflow: hidden;
-}
-
-#cg-custom-gallery .cg-error-message {
+/* Error Message */
+.error-message {
     color: #ff4d4f;
     font-size: 16px;
     text-align: center;
     margin-top: 20px;
 }
 
-#cg-custom-gallery .cg-loading {
-    color: #ccc;
-    font-size: 16px;
-    text-align: center;
-    margin-top: 20px;
-}
-
-#cg-custom-gallery .cg-loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-}
-
-#cg-custom-gallery .cg-loading-text {
-    color: #ccc;
-    font-size: 16px;
-    margin-bottom: 10px;
-}
-
-#cg-custom-gallery .cg-loading-image {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
-}
-
-#cg-custom-gallery .cg-timer {
-    color: #999;
-    font-size: 14px;
-    margin-top: 10px;
-}
-
 .cg-overlay {
-    position: absolute; 
-    top: 20%; 
+    position: fixed;
+    top: 20%;
     left: 50%;
     transform: translate(-50%, -20%);
-    background: rgba(0, 0, 0, 0.8); 
+    background: rgba(17, 17, 17, 0.8);
     color: white;
     padding: 15px;
     border-radius: 8px;
@@ -194,28 +170,19 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    z-index: 10000; 
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); 
-    border: 2px solid #333; 
-    cursor: grab; 
-}
-
-.cg-overlay:active {
-    cursor: grabbing; 
+    z-index: 10000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid #333;
 }
 
 .cg-overlay-error {
-    border: 2px solid #ff4d4f; 
-    background: rgba(0, 0, 0, 0.8); 
+    border: 2px solid #ff4d4f;
+    background: rgba(17, 17, 17, 0.9);
 }
 
 .cg-overlay-image {
-    width: 64px;
-    height: 64px;
+    max-width: 100px;
+    max-height: 100px;
     object-fit: contain;
-}
-
-.cg-overlay-timer {
-    color: #ccc;
-    font-size: 14px;
+    margin-bottom: 10px;
 }

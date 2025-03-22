@@ -20,217 +20,10 @@ from webui import run_webui
 from color_transfer import ColorTransfer
 from tag_autocomplete import PromptManager
 from setup_wizard import setup_wizard_window
-from custom_gallery import init_custom_gallery, set_custom_gallery_last_api_images
-
-# Language
-LANG_EN = {
-    "character1": "Character list 1",
-    "character2": "Character list 2",
-    "character3": "Character list 3",
-    "tag_assist": "Character tag assist",
-    "original_character": "Original Character",
-    "view_angle": "Angle",
-    "view_camera": "Camera",
-    "view_background": "Background",
-    "view_style": "Style",
-    "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v120)",
-    "random_seed": "Random Seed",
-    "custom_prompt": "Custom Prompt (Head)",
-    "api_prompt": "Positive Prompt (Tail)",
-    "api_neg_prompt": "Negative Prompt",
-    "batch_generate_rule": "AI rule for Batch generate",
-    "api_image_data": "CFG,Step,W,H,Batch (1-32)",
-    "api_image_landscape": "Landscape",
-    "ai_prompt": "AI Prompt",
-    "prompt_ban": "Prompt Ban List",
-    "ai_interface": "AI Prompt Generator",
-    "remote_ai_base_url": "Remote AI url",
-    "remote_ai_model": "Remote AI model",
-    "remote_ai_timeout": "Remote AI connection timeout",
-    "ai_local_addr": "Local Llama.cpp server",
-    "ai_local_temp": "Local AI Temperature",
-    "ai_local_n_predict": "Local AI n_predict",
-    "api_interface": "Local Image Generator API",
-    "api_addr": "Local Image Generator IP Address:Port",
-    "api_image": "Gallery",
-    "output_prompt": "Prompt",
-    "output_info": "Information",
-    "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>",
-    "ai_system_prompt_text": "AI System Prompt",
-    
-    "api_hf_enable": "Enable Hires Fix",
-    "api_hf_scale": "Upscale by",
-    "api_hf_denoise": "Denoising",
-    "api_hf_upscaler_selected": "Upscaler",
-    "api_hf_colortransfer": "Color Transfer",
-    "api_hf_incorrect_upscaler": "Incorrect Upscaler selected, reset to default {}",
-    "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
-    "api_webui_savepath_override": "WebUI Save to \".\\outputs\"",
-    
-    "run_button": "Create Prompt",
-    "run_random_button": "Batch (Random)",
-    "run_same_button": "Batch (Last Prompt)",
-    "save_settings_button": "Save Settings",
-    "load_settings_button": "Load Settings",
-    "manual_update_database": "Update thumbs and tags",
-    
-    "gr_info_create_n": "Creating {} of {}, please wait ...",
-    "gr_info_settings_saved": "Settings Saved to {}",
-    "gr_info_settings_loaded": "Settings Loaded {}",
-    "gr_info_manual_update_database": "Now downloading {}, please wait a while.",
-    "gr_info_manual_update_database_done": " {} updated",
-    
-    "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
-    "gr_warning_click_create_first": "[Warning] Click \"Create Prompt\" first batch generate",
-    "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
-    "gr_warning_cfgstepwh_mismatch":"[Warning] \"CFG,Step,W,H,Batch\" data mismatch, use default: 7.0, 30, 1024, 1360, 1",
-    "gr_warning_manual_update_database": "Download files failed, please check console logs.\n{}",
-    
-    "gr_error_creating_image":"[Error] Got error from Image API: {}",
-    
-    "ai_system_prompt": textwrap.dedent("""\
-    You are a Stable Diffusion prompt writer. Follow these guidelines to generate prompts:
-    1.Prohibited keywords: Do not use any gender-related words such as "man," "woman," "boy," "girl," "person," or similar terms.
-    2.Format: Provide 8 to 16 keywords separated by commas, keeping the prompt concise.
-    3.Content focus: Concentrate solely on visual elements of the image; avoid abstract concepts, art commentary, or descriptions of intent.
-    4.Keyword categories: Ensure the prompt includes keywords from the following categories:
-        - Theme or style (e.g., cyberpunk, fantasy, wasteland)
-        - Location or scene (e.g., back alley, forest, street)
-        - Visual elements or atmosphere (e.g., neon lights, fog, ruined)
-        - Camera angle or composition (e.g., front view, side view, close-up)
-        - Action or expression (e.g., standing, jumping, smirk, calm)
-        - Environmental details (e.g., graffiti, trees)
-        - Time of day or lighting (e.g., sunny day, night, golden hour)
-        - Additional effects (e.g., depth of field, blurry background)
-    5.Creativity and coherence: Select keywords that are diverse and creative, forming a vivid and coherent scene.
-    6.User input: Incorporate the exact keywords from the user's query into the prompt where appropriate.
-    7.Emphasis handling: If the user emphasizes a particular aspect, you may increase the number of keywords in that category (up to 6), but ensure the total number of keywords remains between 8 and 16.
-    8.Character description: You may describe actions and expressions but must not mention specific character traits (such as gender or age). Words that imply a character (e.g., "warrior") are allowed as long as they do not violate the prohibited keywords.
-    9.Output: Provide the answer as a single line of comma-separated keywords.
-    Prompt for the following theme:
-    """),
-    
-    "setup_greet_title": "Initial Setup Wizard",
-    "setup_greet_message": "Hi there! This wizard will run automatically the first time you start this program, or if you can't find the settings.json configuration file, please follow the instructions to initialize the settings.",
-    "setup_model_folder_title": "Setup Model Folder",
-    "setup_model_folder": "Please specify the directory where the model file safetensors is located. It is recommended to copy it from the Explore's address bar.",    
-    "setup_model_filter_title": "Model File Filter",
-    "setup_model_filter": "Do you want to enable the model name filter?",    
-    "setup_model_filter_keyword_title": "Model Name Whitelist",
-    "setup_model_filter_keyword": "Please set the keyword for the model name in the whitelist",    
-    "setup_search_modelinsubfolder_title": "Subfolder",
-    "setup_search_modelinsubfolder": "Do you want to search for model files in subfolders?",    
-    "setup_remote_ai_api_key_title": "API Key",
-    "setup_remote_ai_api_key": "Enter Remote Large Language Model API key (also changeable in settings.json)",    
-    "setup_webui_comfyui_title": "Important!",
-    "setup_webui_comfyui": "If you are using ComfyUI, enable dev mode in the settings. \nIf you are using WebUI, modify webui-user.bat and COMMANDLINE_ARGS= --api"
-}
-
-LANG_CN = {
-    "character1": "角色1",
-    "character2": "角色2",
-    "character3": "角色3",
-    "tag_assist": "角色标签辅助",
-    "original_character": "自定义及原创角色",
-    "view_angle": "视角",
-    "view_camera": "镜头",
-    "view_background": "背景",
-    "view_style": "风格",
-    "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v120)",
-    "random_seed": "种子",
-    "custom_prompt": "自定义提示词（放在最前）",
-    "api_prompt": "效果提示词（放在末尾）",
-    "api_neg_prompt": "负面提示词",
-    "batch_generate_rule": "AI填词规则",
-    "api_image_data": "引导,步数,宽,高,批量1-32",
-    "api_image_landscape": "宽高互换",
-    "ai_prompt": "AI提示词（用于生成填词）",
-    "prompt_ban": "提示词黑名单",
-    "ai_interface": "AI填词设置",
-    "remote_ai_base_url": "远程AI地址",
-    "remote_ai_model": "远程AI模型",
-    "remote_ai_timeout": "远程AI超时（秒）",
-    "ai_local_addr": "本地 Llama.cpp 服务地址",
-    "ai_local_temp": "本地AI温度（Temperature）",
-    "ai_local_n_predict": "本地AI回复长度（n_predict）",
-    "api_interface": "本地生图设置",
-    "api_addr": "本地生图API地址（IP Address:Port）",
-    "api_image": "输出",
-    "output_prompt": "最终提示词",
-    "output_info": "相关信息",
-    "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">AI系统提示词，建议使用英文<br>如果你不清楚这是干什么的，不要修改！！！</span></h1>",
-    "ai_system_prompt_text": "AI系统提示词",
-    
-    "api_hf_enable": "高清修复",
-    "api_hf_scale": "放大倍率",
-    "api_hf_denoise": "降噪强度",
-    "api_hf_upscaler_selected": "高清修复模型",
-    "api_hf_colortransfer": "色彩传递",
-    "api_hf_incorrect_upscaler": "选择了错误的高清模型，使用默认 {}",
-    "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下",
-    "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
-    
-    "run_button": "单图生成",
-    "run_random_button": "批量（随机）",
-    "run_same_button": "批量（上次生成）",
-    "save_settings_button": "保存设置",
-    "load_settings_button": "载入设置",
-    "manual_update_database": "更新缩略图与标签库",
-    
-    "gr_info_create_n": "正在生成 {} / {}， 请稍候……",
-    "gr_info_settings_saved": "配置已保存： {}",
-    "gr_info_settings_loaded": "配置已载入： {}",
-    "gr_info_manual_update_database": "正在下载 {} 请稍候",
-    "gr_info_manual_update_database_done": " {} 更新完成",
-    
-    "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
-    "gr_warning_click_create_first": "注意：批量生成前需要先点 \"Create Prompt\"",
-    "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",
-    "gr_warning_cfgstepwh_mismatch":"注意：“引导,步数,宽,高,批量”设置存在错误，使用默认数据：7.0, 30, 1024, 1360, 1",
-    "gr_warning_manual_update_database": "文件下载失败，请检查控制台日志确认问题\n{}",
-    
-    "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]",    
-    
-    "ai_system_prompt": textwrap.dedent("""\
-    你是一个Stable Diffusion提示词编写者，按照以下指南生成提示词：
-    1.禁止关键词： 不得使用任何性别相关词，如“man”、“woman”、“boy”、“girl”、“person”或类似词。
-    2.格式： 提供8到16个关键词，用逗号分隔，保持简洁。
-    3.内容重点： 仅关注图像的可视元素，避免抽象概念、艺术评论或意图描述。
-    4.关键词类别： 确保提示词涵盖以下类别：
-        - 主题或风格 (e.g., cyberpunk, fantasy, wasteland)
-        - 地点或场景 (e.g., back alley, forest, street)
-        - 可视元素或氛围 (e.g., neon lights, fog, ruined)
-        - 镜头视角或构图 (e.g., front view, side view, close-up)
-        - 动作姿势或表情情绪 (e.g., standing, jumping, smirk, calm)        
-        - 环境细节 (e.g., graffiti, trees)
-        - 时间或光线 (e.g., sunny day, night, golden hour)
-        - 额外效果 (e.g., depth of field, blurry background)        
-    5.创意与连贯性： 关键词选择需多样且富有创意，形成一个生动连贯的场景。
-    6.用户输入： 将用户查询中的关键词逐字纳入，适当融入提示词。
-    7.强调处理： 若用户强调某方面，可增加该类别关键词（最多6个），但总数保持在8到16个。
-    8.角色描述： 可描述动作和表情，但不得提及角色特征（如性别、年龄）。允许使用暗示角色的词（如warrior），只要不涉及禁止词。
-    9.输出： 以单行逗号分隔的关键词形式且必须以英文回答。
-    Prompt for the following theme:
-    """),
-    
-    "setup_greet_title": "初次设定界面",
-    "setup_greet_message": "你好！在本程序第一次启动或找不到settings.json文件时，会自动运行向导程序，请按照说明进行初始化设定。",
-    "setup_model_folder_title": "模型路径",
-    "setup_model_folder": "请设置您的模型文件safetensors所在目录，建议从文件夹地址栏复制",    
-    "setup_model_filter_title": "模型白名单",
-    "setup_model_filter": "请选择是否要开启模型白名单",
-    "setup_model_filter_keyword_title": "白名单关键字",
-    "setup_model_filter_keyword": "请设置过滤器白名单关键字",    
-    "setup_search_modelinsubfolder_title": "子目录",
-    "setup_search_modelinsubfolder": "是否搜索模型文件夹子目录下的模型文件",    
-    "setup_remote_ai_api_key_title": "API密钥",
-    "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥（不需要可以直接跳过）",    
-    "setup_webui_comfyui_title": "重要信息",
-    "setup_webui_comfyui": "如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api"
-}
+from custom_gallery import init_custom_gallery, set_custom_gallery_last_api_images, set_custom_gallery_thumb_images
+from language import *
 
 LANG = LANG_CN
-
 TITLE = "WAI Character Select SAA"
 CAT = "WAI_Character_Select"
 ENGLISH_CHARACTER_NAME = False
@@ -644,7 +437,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     md5_chara = get_md5_hash(chara.replace('(','\\(').replace(')','\\)'))
     thumb_image = None
     if wai_image_dict.keys().__contains__(md5_chara):
-        thumb_image = base64_to_image(wai_image_dict.get(md5_chara))
+        thumb_image = wai_image_dict.get(md5_chara)
     
     opt_chara = chara
     if optimise_tags:
@@ -943,7 +736,8 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
             if thumb_image[index]:
                 generated_thumb_image_list.append(thumb_image[index])
     
-    return generated_thumb_image_list        
+    js_generated_thumb_image_list = set_custom_gallery_thumb_images(generated_thumb_image_list)
+    return js_generated_thumb_image_list        
     
 def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -1045,7 +839,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
     
     if '' == last_prompt and '' == custom_prompt:
         gr.Warning(LANG["gr_warning_click_create_first"])
-        return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None
+        return 'Click \"Create Prompt" or add some \"Custom prompt\" first', '', None, None, LANG["gr_warning_click_create_first"]
         
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
@@ -1200,7 +994,8 @@ def refresh_character_thumb_image(character1, character2, character3):
                                     rnd_character[2], opt_chara[2], '',
                                     '', '')   
     
-    return thumb_image, character_info
+    js_generated_thumb_image_list = set_custom_gallery_thumb_images(thumb_image)
+    return character_info, js_generated_thumb_image_list
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')

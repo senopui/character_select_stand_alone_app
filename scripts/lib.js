@@ -375,7 +375,7 @@ function my_custom_js() {
     let isGallerySetup = false;
     function setupGallery() {
         if (isGallerySetup) {
-            console.log('Gallery is already set up.');
+            //console.log('Gallery is already set up.');
             return;
         }
         
@@ -393,35 +393,20 @@ function my_custom_js() {
             return;
         }
     
-        let timerInterval = null; // Timer interval for loading state
-        let startTime = null;   // Start time for the loading timer
-
         if (!window.cgCustomGallery) {
-            window.cgCustomGallery = {};
+            window.cgCustomGallery = {
+                timerInterval: null, // Shared timer interval
+                startTime: null      // Shared start time
+            };
         }
 
         // Default Base64 placeholders for loading and failed images
         let LOADING_WAIT_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
         let LOADING_FAILED_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
 
-        // Displays the loading state with a timer
-        window.cgCustomGallery.showLoading = function () {
-            const container = document.getElementById('cg-custom-gallery');
-            if (!container) {
-                console.error('Gallery container not found');
-                return;
-            }
-        
-            // Create or update the independent loading overlay
-            let loadingOverlay = document.getElementById('cg-loading-overlay');
-            if (!loadingOverlay) {
-                loadingOverlay = document.createElement('div');
-                loadingOverlay.id = 'cg-loading-overlay';
-                loadingOverlay.className = 'cg-overlay';
-                document.body.appendChild(loadingOverlay);
-        
-                addDragFunctionality(loadingOverlay);
-            }
+        window.cgCustomGallery.showLoading = function () {        
+            // Create or update the loading overlay
+            const loadingOverlay = customCommonOverlay().createLoadingOverlay();
         
             // Restore the last position from localStorage
             const lastPosition = JSON.parse(localStorage.getItem('loadingOverlayPosition'));
@@ -436,37 +421,10 @@ function my_custom_js() {
                 loadingOverlay.style.transform = 'translate(-50%, -20%)';
             }
         
-            // Set the content of the loading overlay
-            loadingOverlay.style.border = '2px solid #333';
-            loadingOverlay.innerHTML = `
-                <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" class="cg-overlay-image">
-                <span>Now generating...</span>
-                <span class="cg-overlay-timer">Elapsed time: 0 seconds</span>
-            `;
-        
-            // Start counter
-            const startTime = Date.now();
-            if (loadingOverlay.dataset.timerInterval) {
-                clearInterval(loadingOverlay.dataset.timerInterval);
-            }
-            const timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const timerElement = loadingOverlay.querySelector('.cg-overlay-timer');
-                if (timerElement) {
-                    timerElement.textContent = `Elapsed time: ${elapsed} seconds`;
-                }
-            }, 1000);
-            loadingOverlay.dataset.timerInterval = timerInterval;
+            addDragFunctionality(loadingOverlay);
         };
 
-        // Handles the response from the backend
         window.cgCustomGallery.handleResponse = function (response) {
-            const container = document.getElementById('cg-custom-gallery');
-            if (!container) {
-                console.error('Gallery container not found');
-                return;
-            }
-        
             // Remove the loading overlay
             const loadingOverlay = document.getElementById('cg-loading-overlay');
             if (loadingOverlay) {
@@ -479,45 +437,19 @@ function my_custom_js() {
             // Check if the response is valid
             if (!response) {
                 console.error('Invalid response from the backend: undefined');
-                displayErrorOverlay('No response from backend');
+                customCommonOverlay().createErrorOverlay('No response from backend');
                 return;
             }
             if (!response.data) {
                 const errorMessage = response.error || 'Unknown error';
                 console.error('Failed to fetch image data:', errorMessage);
-                displayErrorOverlay(errorMessage);
+                customCommonOverlay().createErrorOverlay(errorMessage);
                 return;
             }
         
             // If loading is successful, update the gallery content
             if (response.data) {
                 window.updateGallery(response.data);
-            }
-        
-            // Helper function to display the error overlay
-            function displayErrorOverlay(errorMessage) {
-                let errorOverlay = document.getElementById('cg-error-overlay');
-                if (!errorOverlay) {
-                    errorOverlay = document.createElement('div');
-                    errorOverlay.id = 'cg-error-overlay';
-                    errorOverlay.className = 'cg-overlay cg-overlay-error'; 
-                    document.body.appendChild(errorOverlay); 
-                }
-        
-                errorOverlay.innerHTML = `
-                    <img src="${window.LOADING_FAILED_BASE64}" alt="Error" class="cg-overlay-image">
-                    <span>Failed to load images: ${errorMessage}</span>
-                `;
-        
-                // Close the error overlay on click and copy the error message to the clipboard
-                errorOverlay.addEventListener('click', () => {
-                    navigator.clipboard.writeText(errorMessage).then(() => {
-                        console.log('Error message copied to clipboard:', errorMessage);
-                    }).catch(err => {
-                        console.error('Failed to copy error message to clipboard:', err);
-                    });
-                    errorOverlay.remove();
-                });
             }
         };
     
@@ -600,7 +532,7 @@ function my_custom_js() {
             let scale = 1;
             fullScreenImg.addEventListener('wheel', (e) => {
                 e.preventDefault();
-                scale += e.deltaY * -0.01;
+                scale += e.deltaY * -0.001;
                 scale = Math.min(Math.max(0.5, scale), 4); // Limit zoom scale
                 fullScreenImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
             });
@@ -632,147 +564,195 @@ function my_custom_js() {
                 document.removeEventListener('keydown', handleFullscreenKeyDown);
             }
         }
-    
-        function renderGridMode() {
+
+        function gallery_renderGridMode() {
             container.innerHTML = ''; 
+        
             const gallery = document.createElement('div');
-            gallery.className = 'cg-image-gallery-container';
+            gallery.className = 'cg-gallery-grid-container scroll-container'; 
+            gallery.style.cssText = `
+                display: grid;
+                gap: 10px;
+                justify-content: center;
+                grid-auto-rows: auto;
+                overflow-y: auto; 
+                height: 100%;
+            `;
         
-            images.forEach((url, index) => {
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'cg-image-item';
+            // Get container width
+            const containerWidth = container.offsetWidth;
         
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = `Image ${index + 1}`;
-                img.addEventListener('click', () => enterFullscreen(index)); 
+            // Get first image w/h ratio
+            const firstImage = new Image();
+            firstImage.src = images[0];
+            firstImage.onload = () => {
+                const aspectRatio = firstImage.width / firstImage.height; 
+                const targetHeight = 200; 
+                const targetWidth = targetHeight * aspectRatio; 
+                const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10)); // max image per row
         
-                imgContainer.appendChild(img);
-                gallery.appendChild(imgContainer);
-            });
+                gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
         
-            container.appendChild(gallery);
+                images.forEach((url, index) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'cg-gallery-item';
+                    imgContainer.style.cssText = `
+                        width: ${targetWidth}px;
+                        height: ${targetHeight}px;
+                        overflow: hidden;
+                        border-radius: 5px;
+                        background: #333;
+                    `;
         
-            ensureSwitchModeButton(); 
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.cssText = `
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                        cursor: pointer; 
+                    `;
+        
+                    img.addEventListener('click', () => {
+                        enterFullscreen(index);
+                    });
+        
+                    imgContainer.appendChild(img);
+                    gallery.appendChild(imgContainer);
+                });
+        
+                container.appendChild(gallery);
+                ensureSwitchModeButton();
+            };
         }
     
-        function renderSplitMode() {
+        function gallery_renderSplitMode() {
             if (!images || images.length === 0) {
-                console.error('No images available for renderSplitMode');
+                console.error('No images available for gallery_renderSplitMode');
                 container.innerHTML = `
                     <div class="cg-error-message">No images to display</div>
                 `;
                 return;
             }
         
-            if (currentIndex < 0 || currentIndex >= images.length) {
-                console.warn('Invalid currentIndex, resetting to 0');
-                currentIndex = 0;
-            }
-        
-            const bottomSection = document.querySelector('.cg-bottom-section');
-            const scrollLeft = bottomSection ? bottomSection.scrollLeft : 0;
-        
             container.innerHTML = ''; 
         
-            const topSection = document.createElement('div');
-            topSection.className = 'cg-top-section';
-            topSection.style.cssText = `
-                height: ${images.length === 1 ? '100%' : '88%'};
+            const mainImageContainer = document.createElement('div');
+            mainImageContainer.style.cssText = `
+                width: 100%;
+                height: 90%;
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                background: #000;
+                overflow: hidden;
                 position: relative;
+                cursor: pointer; 
             `;
         
-            const largeImg = document.createElement('img');
-            largeImg.src = images[currentIndex];
-            if (!largeImg.src) {
-                console.error('Failed to load image at currentIndex:', currentIndex);
-                container.innerHTML = `
-                    <div class="cg-error-message">Failed to load image</div>
-                `;
-                return;
-            }
-        
-            largeImg.style.cssText = `
+            const mainImage = document.createElement('img');
+            mainImage.src = images[currentIndex];
+            mainImage.style.cssText = `
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
                 cursor: pointer;
             `;
-            largeImg.addEventListener('click', () => enterFullscreen(currentIndex)); 
-            topSection.appendChild(largeImg);
         
-            // Click blank zone to switch image
-            topSection.addEventListener('click', (e) => {
-                const rect = topSection.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
+            mainImage.addEventListener('click', () => {
+                enterFullscreen(currentIndex);
+            });
         
-                e.preventDefault();
+            mainImageContainer.addEventListener('click', (e) => {
+                const rect = mainImageContainer.getBoundingClientRect();
+                const clickX = e.clientX - rect.left; 
+                const isLeft = clickX < rect.width / 2; // click left or right
         
-                if (clickX < rect.width / 2) {
+                if (isLeft) {
                     currentIndex = (currentIndex - 1 + images.length) % images.length;
                 } else {
                     currentIndex = (currentIndex + 1) % images.length;
                 }
         
-                updateSplitMode(); 
+                mainImage.src = images[currentIndex];
+        
+                Array.from(previewContainer.children).forEach((child, i) => {
+                    child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
+                });
             });
         
-            container.appendChild(topSection);
+            mainImageContainer.appendChild(mainImage);
+            container.appendChild(mainImageContainer);
         
-            if (images.length > 1) {
-                const newBottomSection = document.createElement('div');
-                newBottomSection.className = 'cg-bottom-section';
-                newBottomSection.style.cssText = `
-                    height: 10%;
-                    display: flex;
-                    overflow-x: auto;
-                    overflow-y: hidden;
-                    background: #333;
-                    padding: 5px;
-                    gap: 5px;
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'thumb-scroll-container scroll-container';
+            previewContainer.style.cssText = `
+                width: 100%;
+                height: 10%;
+                display: flex;
+                justify-content: center; /* 中央对齐 */
+                gap: 10px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                cursor: grab;
+                align-items: center;
+                padding: 5px 0;
+            `;
+        
+            images.forEach((url, index) => {
+                const previewImage = document.createElement('img');
+                previewImage.src = url;
+                previewImage.style.cssText = `
+                    height: 100%;
+                    object-fit: contain;
+                    cursor: pointer;
+                    border: ${index === currentIndex ? '2px solid #3498db' : 'none'};
                     border-radius: 5px;
                 `;
         
-                images.forEach((url, index) => {
-                    const thumbImg = document.createElement('img');
-                    thumbImg.src = url;
-                    thumbImg.style.cssText = `
-                        width: 64px;
-                        height: 64px;
-                        object-fit: cover;
-                        cursor: pointer;
-                        border: ${index === currentIndex ? '2px solid #3498db' : 'none'};
-                    `;
-                    thumbImg.addEventListener('click', () => {
-                        currentIndex = index;
-                        updateSplitMode(); 
+                previewImage.addEventListener('click', () => {
+                    currentIndex = index;
+                    mainImage.src = images[currentIndex];
+                    Array.from(previewContainer.children).forEach((child, i) => {
+                        child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
                     });
-                    newBottomSection.appendChild(thumbImg);
                 });
         
-                container.appendChild(newBottomSection);
-                newBottomSection.scrollLeft = scrollLeft;
-            }
-        
-            ensureSwitchModeButton(); 
-        }
-        
-        function updateSplitMode() {
-            const topSection = document.querySelector('.cg-top-section img');
-            if (topSection) {
-                topSection.src = images[currentIndex];
-            }
-        
-            const thumbnails = document.querySelectorAll('.cg-bottom-section img');
-            thumbnails.forEach((thumbImg, index) => {
-                thumbImg.style.border = index === currentIndex ? '2px solid #3498db' : 'none';
+                previewContainer.appendChild(previewImage);
             });
+        
+            let isDragging = false;
+            let startX, scrollLeft;
+        
+            previewContainer.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isDragging = true;
+                previewContainer.style.cursor = 'grabbing';
+                startX = e.pageX - previewContainer.offsetLeft;
+                scrollLeft = previewContainer.scrollLeft;
+            });
+        
+            previewContainer.addEventListener('mouseleave', () => {
+                isDragging = false;
+                previewContainer.style.cursor = 'grab';
+            });
+        
+            previewContainer.addEventListener('mouseup', () => {
+                isDragging = false;
+                previewContainer.style.cursor = 'grab';
+            });
+        
+            previewContainer.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const x = e.pageX - previewContainer.offsetLeft;
+                const walk = (x - startX) * 1; 
+                previewContainer.scrollLeft = scrollLeft - walk;
+            });
+        
+            container.appendChild(previewContainer);
+            ensureSwitchModeButton();
         }
-    
+            
         function ensureSwitchModeButton() {
             let switchModeButton = document.getElementById('cg-switch-mode-button');
             if (!switchModeButton) {
@@ -794,9 +774,9 @@ function my_custom_js() {
                 switchModeButton.addEventListener('click', () => {
                     isGridMode = !isGridMode;
                     if (isGridMode) {
-                        renderGridMode();
+                        gallery_renderGridMode();
                     } else {
-                        renderSplitMode();
+                        gallery_renderSplitMode();
                     }
                 });
                 container.appendChild(switchModeButton);
@@ -872,21 +852,279 @@ function my_custom_js() {
 
         window.updateGallery = function (imageData) {
             if (!Array.isArray(imageData) || imageData.length === 0) {
-                console.error('Invalid or empty image data');
+                //console.error('Invalid or empty image data');
                 return;
             }
             images = imageData;
             currentIndex = 0; 
             if (isGridMode) {
-                renderGridMode();
+                gallery_renderGridMode();
             } else {
-                renderSplitMode();
+                gallery_renderSplitMode();
             }
+        };
+    }
+
+    function createInfoOverlay({ id, content, className = '', onClick = null }) {
+        let overlay = document.getElementById(id);
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = id;
+            overlay.className = `cg-overlay ${className}`;
+            document.body.appendChild(overlay);
+        }
+
+        overlay.innerHTML = content;
+
+        if (onClick) {
+            overlay.onclick = onClick;
+        }
+
+        return overlay;
+    }
+
+    let isThumbSetup = false;
+    function setupThumb() {        
+        let isGridMode = true; // Default to grid mode
+        let images = [];
+
+        const container = document.getElementById('cg-custom-thumb');
+        if (!container) {
+            console.error('Thumbnail gallery container not found');
+            return;
+        }
+
+        if (isThumbSetup) {
+            console.log('Thumbnail gallery is already set up.');
+            return;
+        }
+
+        isThumbSetup = true;
+
+        console.log('Setting up the thumbnail gallery...');
+
+        function thumb_renderGridMode() {
+            container.innerHTML = ''; 
+        
+            const gallery = document.createElement('div');
+            gallery.className = 'cg-thumb-grid-container scroll-container'; 
+            gallery.style.cssText = `
+                display: grid;
+                gap: 10px;
+                justify-content: center;
+                grid-auto-rows: auto;
+                overflow-y: auto; 
+                height: 100%;
+            `;
+        
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+        
+            const firstImage = new Image();
+            firstImage.src = images[0];
+            firstImage.onload = () => {
+                const aspectRatio = firstImage.width / firstImage.height; 
+                const targetHeight = containerHeight / 1.15; 
+                const targetWidth = targetHeight * aspectRatio; 
+                const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10)); 
+        
+                gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
+        
+                images.forEach((url) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'cg-thumb-item';
+                    imgContainer.style.cssText = `
+                        width: ${targetWidth}px;
+                        height: ${targetHeight}px;
+                        overflow: hidden;
+                        border-radius: 5px;
+                        background: #333;
+                    `;
+        
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.cssText = `
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                    `;
+        
+                    imgContainer.appendChild(img);
+                    gallery.appendChild(imgContainer);
+                });
+        
+                container.appendChild(gallery);
+                ensureSwitchModeButton();
+            };
+        }
+
+        function thumb_renderSplitMode() {
+            container.innerHTML = ''; 
+
+            const scrollContainer = document.createElement('div');
+            scrollContainer.className = 'cg-thumb-scroll-container scroll-container'; 
+            scrollContainer.style.cssText = `
+                display: flex;
+                gap: 10px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                height: 100%;
+                cursor: grab;
+            `;
+
+            images.forEach((url) => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.style.cssText = `
+                    height: 100%;
+                    object-fit: contain;
+                `;
+                scrollContainer.appendChild(img);
+            });
+
+            // 添加鼠标拖拽功能
+            let isDragging = false;
+            let startX, scrollLeft;
+
+            scrollContainer.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isDragging = true;
+                scrollContainer.style.cursor = 'grabbing';
+                startX = e.pageX - scrollContainer.offsetLeft;
+                scrollLeft = scrollContainer.scrollLeft;
+            });
+
+            scrollContainer.addEventListener('mouseleave', () => {
+                isDragging = false;
+                scrollContainer.style.cursor = 'grab';
+            });
+
+            scrollContainer.addEventListener('mouseup', () => {
+                isDragging = false;
+                scrollContainer.style.cursor = 'grab';
+            });
+
+            scrollContainer.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const x = e.pageX - scrollContainer.offsetLeft;
+                const walk = (x - startX) * 1; // scroll speed
+                scrollContainer.scrollLeft = scrollLeft - walk;
+            });
+
+            container.appendChild(scrollContainer);
+            ensureSwitchModeButton();
+        }
+
+        function ensureSwitchModeButton() {
+            let switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
+            if (!switchModeButton) {
+                switchModeButton = document.createElement('button');
+                switchModeButton.id = 'cg-thumb-switch-mode-button';
+                switchModeButton.textContent = '<>';
+                switchModeButton.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 1000;
+                    padding: 5px 10px;
+                    background: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                `;
+                switchModeButton.addEventListener('click', () => {
+                    isGridMode = !isGridMode;
+                    if (isGridMode) {
+                        thumb_renderGridMode();
+                    } else {
+                        thumb_renderSplitMode();
+                    }
+                });
+                container.appendChild(switchModeButton);
+            }
+        }
+
+        window.updateThumbGallery = function (imageData) {
+            if (!Array.isArray(imageData) || imageData.length === 0) {
+                //OC Character Pass
+                //console.log('No image data provided, might error or OC, clearing thumbnail gallery');
+                container.innerHTML = ''; 
+        
+                const switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
+                if (switchModeButton) {
+                    switchModeButton.remove();
+                }
+                return;
+            }
+
+            images = imageData;
+            currentIndex = 0;
+            if (isGridMode) {
+                thumb_renderGridMode();
+            } else {
+                thumb_renderSplitMode();
+            }
+        };
+
+        // Initial render
+        thumb_renderGridMode();
+    }    
+
+    function customCommonOverlay() {
+        function createErrorOverlay(errorMessage) {
+            return createInfoOverlay({
+                id: 'cg-error-overlay',
+                className: 'cg-overlay-error',
+                content: `
+                    <img src="${window.LOADING_FAILED_BASE64}" alt="Error" class="cg-overlay-image">
+                    <span>Failed to load images: ${errorMessage}</span>
+                `,
+                onClick: () => {
+                    document.getElementById('cg-error-overlay').remove();
+                }
+            });
+        }
+    
+        function createLoadingOverlay() {
+            const overlay = createInfoOverlay({
+                id: 'cg-loading-overlay',
+                className: '',
+                content: `
+                    <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" class="cg-overlay-image">
+                    <span>Now generating...</span>
+                    <span class="cg-overlay-timer">Elapsed time: 0 seconds</span>
+                `
+            });
+    
+            // Start timer
+            const startTime = Date.now();
+            if (overlay.dataset.timerInterval) {
+                clearInterval(overlay.dataset.timerInterval);
+            }
+            const timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const timerElement = overlay.querySelector('.cg-overlay-timer');
+                if (timerElement) {
+                    timerElement.textContent = `Elapsed time: ${elapsed} seconds`;
+                }
+            }, 1000);
+            overlay.dataset.timerInterval = timerInterval;
+    
+            return overlay;
+        }
+    
+        // Return the functions as an object
+        return {
+            createErrorOverlay,
+            createLoadingOverlay
         };
     }
 
     console.log("[My JS] Script loaded, attempting initial setup");
     setupSuggestionSystem();
     setupGallery();
+    setupThumb();
     dark_theme();
 }

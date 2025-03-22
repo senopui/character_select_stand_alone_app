@@ -3,12 +3,25 @@ import sys
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import TITLE, settings_json, get_prompt_manager
-from custom_gallery import custom_gallery_default, get_loading_status_images, get_images_dummy
+from custom_gallery import custom_gallery_default, custom_thumb_default, get_loading_status_images, get_images_dummy
+from custom_gallery import JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_GALLERY_INIT
 
 if __name__ == '__main__':
     character_list, view_tags, original_character_list, model_files_list, LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init()            
         
     #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+    
+    def generate_lock():
+        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, interactive=False)
+        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, interactive=False)
+        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, interactive=False)
+        return run_button, run_random_button, run_same_button
+    
+    def generate_unlock(images_data, dummy_textbox):
+        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, interactive=True)
+        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, interactive=True)
+        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, interactive=True)
+        return run_button, run_random_button, run_same_button
         
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:
         with gr.Row():
@@ -113,7 +126,7 @@ if __name__ == '__main__':
                             scale=1
                         )    
                 with gr.Row():
-                    thumb_image = gr.Gallery(type="pil", columns=3, show_download_button=False, object_fit='scale-down', height=244, label="Thumb")                    
+                    thumb_image = gr.HTML(custom_thumb_default, label=LANG["api_image"], elem_id="cg-thumb-wrapper", max_height=244, min_height=244)
                 with gr.Row():
                     with gr.Row(scale=2):
                         api_hf_enable = gr.Checkbox(label=LANG["api_hf_enable"],value=False)
@@ -212,12 +225,13 @@ if __name__ == '__main__':
                             save_settings_button = gr.Button(value=LANG["save_settings_button"], variant='stop') 
                             load_settings_button = gr.UploadButton(label=LANG["load_settings_button"], file_count='single', file_types=['.json'])                         
         
-        run_button.click(fn=create_characters,
+        run_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
-                              outputs=[thumb_image]
+                              outputs=[images_data]
                               ).then(
                                     fn=get_images_dummy,
-                                    js=" function() { window.cgCustomGallery.showLoading(); }"
+                                    inputs=[images_data],
+                                    js=JS_SHOWLOADING
                                 ).then(fn=create_prompt_ex, 
                                     inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -227,18 +241,19 @@ if __name__ == '__main__':
                                             ], 
                                     outputs=[output_prompt, output_info, images_data, dummy_textbox]
                                 ).then(
-                                    fn=None,                                    
+                                    fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox],
-                                    outputs=None,
-                                    js="function(data) { window.cgCustomGallery.handleResponse(data); }",
+                                    outputs=[run_button, run_random_button, run_same_button],
+                                    js=JS_HANDLERESPONSE
                                 )
 
-        run_random_button.click(fn=create_characters,
+        run_random_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=True, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
-                              outputs=[thumb_image]
+                              outputs=[images_data]
                               ).then(
                                     fn=get_images_dummy,
-                                    js=" function() { window.cgCustomGallery.showLoading(); }"
+                                    inputs=[images_data],
+                                    js=JS_SHOWLOADING
                                 ).then(fn=create_prompt_ex, 
                                     inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -248,14 +263,16 @@ if __name__ == '__main__':
                                             ], 
                                     outputs=[output_prompt, output_info, images_data, dummy_textbox]
                                 ).then(
-                                    fn=None,                                    
+                                    fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox],
-                                    outputs=None,
-                                    js="function(data) { window.cgCustomGallery.handleResponse(data); }",
-                                )      
+                                    outputs=[run_button, run_random_button, run_same_button],
+                                    js=JS_HANDLERESPONSE
+                                )
         
-        run_same_button.click(fn=get_images_dummy,
-                              js=" function() { window.cgCustomGallery.showLoading(); }"
+        run_same_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(
+                                fn=get_images_dummy,
+                                inputs=[images_data],
+                                js=JS_SHOWLOADING
                                 ).then(fn=create_with_last_prompt, 
                                 inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -265,11 +282,11 @@ if __name__ == '__main__':
                                         ], 
                                 outputs=[output_prompt, output_info, images_data, dummy_textbox]
                             ).then(
-                                fn=None,                                    
-                                inputs=[images_data, dummy_textbox],
-                                outputs=None,
-                                js="function(data) { window.cgCustomGallery.handleResponse(data); }",
-                            )         
+                                    fn=generate_unlock,                                    
+                                    inputs=[images_data, dummy_textbox],
+                                    outputs=[run_button, run_random_button, run_same_button],
+                                    js=JS_HANDLERESPONSE
+                                )
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, tag_assist,
@@ -297,9 +314,9 @@ if __name__ == '__main__':
         
         batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
         
-        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
-        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
-        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[thumb_image, output_info])
+        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_images_dummy,inputs=[images_data],js=JS_SHOWTHUMB)
+        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_images_dummy,inputs=[images_data],js=JS_SHOWTHUMB)
+        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_images_dummy,inputs=[images_data],js=JS_SHOWTHUMB)
                 
         # Prompt Auto Complete JS
         # Have to use dummy components
@@ -310,22 +327,7 @@ if __name__ == '__main__':
             fn=get_loading_status_images,
             inputs=[dummy_wait_base64, dummy_failed_base64],
             outputs=[dummy_wait_base64, dummy_failed_base64],
-            js="""
-            function(loading_wait, loading_failed) {
-                if (window.LOADING_WAIT_BASE64 && window.LOADING_FAILED_BASE64) {
-                    console.log('Loading images already initialized.');
-                    return;
-                }
-        
-                window.LOADING_WAIT_BASE64 = loading_wait;
-                window.LOADING_FAILED_BASE64 = loading_failed;
-        
-                console.log('Loading images initialized:', {
-                    loading_wait: window.LOADING_WAIT_BASE64,
-                    loading_failed: window.LOADING_FAILED_BASE64
-                });
-            }
-            """
+            js=JS_GALLERY_INIT
         )
     
     ui.launch(inbrowser=True)
