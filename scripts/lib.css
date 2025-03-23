@@ -11,7 +11,7 @@
     border: 2px solid #333;
     background-color: rgba(17, 17, 17, 0.8);
     color: white;
-    z-index: 1000;
+    z-index: 10002;
     max-height: 300px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -33,32 +33,29 @@
     transition: background-color 0.3s ease;
 }
 
-.suggestion-item:hover, .suggestion-item.selected {
+.suggestion-item:hover,
+.suggestion-item.selected {
     background-color: #555;
     color: white;
 }
 
-/* Scrollbar Styles (合并重复定义) */
-.scroll-container::-webkit-scrollbar,
-.cg-preview-container.scroll-container::-webkit-scrollbar {
+/* Unified Scrollbar Styles */
+.scroll-container::-webkit-scrollbar {
     height: 10px;
     width: 10px;
 }
 
-.scroll-container::-webkit-scrollbar-track,
-.cg-preview-container.scroll-container::-webkit-scrollbar-track {
+.scroll-container::-webkit-scrollbar-track {
     background: #333;
     border-radius: 5px;
 }
 
-.scroll-container::-webkit-scrollbar-thumb,
-.cg-preview-container.scroll-container::-webkit-scrollbar-thumb {
+.scroll-container::-webkit-scrollbar-thumb {
     background: linear-gradient(45deg, #555, #888);
     border-radius: 5px;
 }
 
-.scroll-container::-webkit-scrollbar-thumb:hover,
-.cg-preview-container.scroll-container::-webkit-scrollbar-thumb:hover {
+.scroll-container::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(45deg, #777, #aaa);
 }
 
@@ -108,22 +105,20 @@
 
 /* Switch Mode Button for Gallery */
 #cg-switch-mode-button {
-    left: 10px;  
-    top: 10px;
+    left: 10px;
     background: #3498db;
 }
 
 /* Seed Button for Gallery */
 #cg-seed-button {
-    right: 10px;  
-    top: 10px;
+    right: 10px;
     background: #f39c12;
 }
 
 /* Tag Button for Gallery */
 #cg-tag-button {
-    right: 10px;  
-    top: 50px;    
+    right: 10px;
+    top: 50px;
     background: #e74c3c;
 }
 
@@ -199,7 +194,7 @@
     cursor: pointer;
 }
 
-/* Gallery Split Mode */
+/* Gallery Preview Container */
 .cg-preview-container {
     width: 100%;
     height: 10%;
@@ -284,7 +279,7 @@
     z-index: 10000;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     border: 2px solid #333;
-    max-width: 320px; 
+    max-width: 320px;
 }
 
 .cg-overlay-error {
@@ -292,20 +287,14 @@
     background: rgba(17, 17, 17, 0.9);
 }
 
-.cg-main-image-container:hover {
-    background: rgba(255, 255, 255, 0.1); 
-}
-
 /* Button Overlay Styles */
 .cg-button-overlay {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 20px;
     gap: 15px;
-    width: 220px;
     position: fixed;
-    will-change: left, top;
+    will-change: left, top; /* 恢复拖动优化 */
     transition: none;
     background: rgba(0, 0, 0, 0.8);
     border-radius: 5px;
@@ -318,21 +307,20 @@
     gap: 15px;
     width: 100%;
     align-items: stretch;
-    padding-top: 25px;
 }
 
 .cg-minimize-button {
     background-color: #3498db;
-    width: 12px !important;
-    height: 12px !important;
-    min-width: 12px !important;
-    min-height: 12px !important;
-    border-radius: 50% !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-sizing: border-box !important;
-    transform: none !important;
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    min-height: 12px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    transform: none;
 }
 
 .cg-minimize-button:hover {
@@ -347,20 +335,4 @@
     color: white;
     cursor: pointer;
     transition: opacity 0.3s ease;
-}
-
-.cg-button-overlay button.lg.primary {
-    background: rgb(227, 89, 35);
-}
-
-.cg-button-overlay button.lg.stop {
-    background: rgb(179, 29, 34);
-}
-
-.cg-button-overlay button.lg.secondary {
-    background: rgb(82, 82, 90);
-}
-
-.cg-button-overlay button:hover:not(.cg-minimize-button) {
-    opacity: 0.8;
 }

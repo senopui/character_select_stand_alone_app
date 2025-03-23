@@ -1,5 +1,15 @@
-//still a mess...
-function my_custom_js() {    
+//Better?
+function my_custom_js() {
+    console.log("[My JS] Script loaded, attempting initial setup");
+    dark_theme();
+    requestIdleCallback(() => {
+        setupSuggestionSystem();
+        setupGallery();
+        setupThumb();
+        setupButtonOverlay();
+    });
+
+    // Apply dark theme
     function dark_theme() {
         const url = new URL(window.location);
         if (url.searchParams.get('__theme') !== 'dark') {
@@ -8,504 +18,362 @@ function my_custom_js() {
         }
     }
 
-    function addDragFunctionality(element, syncElement) {
-        let isDragging = false;
-        let startX, startY, initialX, initialY;
-        let hasMoved = false; // Track if significant movement occurred
-        const MOVE_THRESHOLD = 5; // Pixels threshold to consider it a drag
-
-        element.classList.add('cg-draggable');
-        element.style.position = 'fixed';
-
-        let rafId = null;
-        
-        const onMouseMove = (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            e.stopPropagation();
-
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-
-            // Check if movement exceeds threshold
-            if (Math.abs(deltaX) > MOVE_THRESHOLD || Math.abs(deltaY) > MOVE_THRESHOLD) {
-                hasMoved = true;
-            }
-
-            cancelAnimationFrame(rafId);
-            rafId = requestAnimationFrame(() => {
-                element.style.left = `${initialX + deltaX}px`;
-                element.style.top = `${initialY + deltaY}px`;
-                element.style.transform = 'none';
-
-                if (syncElement && syncElement.style.display !== 'none') {
-                    syncElement.style.left = `${initialX + deltaX}px`;
-                    syncElement.style.top = `${initialY + deltaY}px`;
-                    syncElement.style.transform = 'none';
-                }
-            });
+    // Utility: Debounce function to limit frequent calls
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
         };
+    }
 
-        const onMouseUp = (e) => {
-            if (!isDragging) return;
-            isDragging = false;
-            document.body.style.userSelect = '';
-            cancelAnimationFrame(rafId);
-            
-            const rect = element.getBoundingClientRect();
-            localStorage.setItem(
-                'overlayPosition',
-                JSON.stringify({ top: rect.top, left: rect.left })
-            );
-
-            if (syncElement) {
-                syncElement.style.left = `${rect.left}px`;
-                syncElement.style.top = `${rect.top}px`;
-                syncElement.style.transform = 'none';
-            }
-
-            if (rect.top < 0 || rect.left < 0 || 
-                rect.bottom > window.innerHeight || 
-                rect.right > window.innerWidth) {
-                element.style.top = '20%';
-                element.style.left = '50%';
-                element.style.transform = 'translate(-50%, -20%)';
-                if (syncElement) {
-                    syncElement.style.top = '20%';
-                    syncElement.style.left = '50%';
-                    syncElement.style.transform = 'translate(-50%, -20%)';
-                }
-                localStorage.removeItem('overlayPosition');
-            }
-
-            // If significant movement occurred, prevent click
-            if (hasMoved) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-
-        element.addEventListener('mousedown', (e) => {
+    // Utility: Setup scrollable container with drag functionality
+    function setupScrollableContainer(container) {
+        let isDragging = false, startX, scrollLeft;
+        container.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-
             isDragging = true;
-            hasMoved = false; // Reset movement flag
-            startX = e.clientX;
-            startY = e.clientY;
-
-            const rect = element.getBoundingClientRect();
-            initialX = rect.left;
-            initialY = rect.top;
-
+            container.style.cursor = 'grabbing';
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
             document.body.style.userSelect = 'none';
-
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
+        });
+        container.addEventListener('mouseleave', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+            document.body.style.userSelect = '';
+        });
+        container.addEventListener('mouseup', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+            document.body.style.userSelect = '';
+        });
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 1;
+            container.scrollLeft = scrollLeft - walk;
         });
     }
-    
-    function setupSuggestionSystem() {              
-        // Select all textarea elements with specific IDs
+
+    // Utility: Ensure switch mode button with toggle function
+    function ensureSwitchModeButton(container, toggleFunction, id) {
+        let button = document.getElementById(id);
+        if (!button) {
+            button = document.createElement('button');
+            button.id = id;
+            button.className = 'cg-button';
+            button.textContent = '<>';
+            button.addEventListener('click', toggleFunction);
+            container.appendChild(button);
+        }
+    }
+
+    function setupSuggestionSystem() {
         const textboxes = document.querySelectorAll(
-            '#custom_prompt_text textarea, ' +
-            '#positive_prompt_text textarea, ' +
-            '#negative_prompt_text textarea, ' +
-            '#ai_prompt_text textarea, ' +
-            '#prompt_ban_text textarea'
+            '#custom_prompt_text textarea, #positive_prompt_text textarea, #negative_prompt_text textarea, #ai_prompt_text textarea, #prompt_ban_text textarea'
         );
-        // Log the number of textboxes found
-        //console.log("Found specific textboxes:", textboxes.length);
-        
+
+        let lastWordSent = ''; // Cache last sent word to avoid duplicate requests
+
         textboxes.forEach(textbox => {
-            // Skip if the suggestion system is already set up for this textbox
             if (textbox.dataset.suggestionSetup) return;
-            
-            // Log that the suggestion system is being set up for this textbox
-            console.log("Setting up suggestion system for", textbox);
-            
-            let suggestionBox = document.createElement('div');
-            suggestionBox.className = 'suggestion-box scroll-container'; 
+
+            console.log('Setting up the Suggestion System for ', textbox);
+
+            const suggestionBox = document.createElement('div');
+            suggestionBox.className = 'suggestion-box scroll-container';
             suggestionBox.style.display = 'none';
-            
-            // Append the suggestion box to the body element
             document.body.appendChild(suggestionBox);
-            
-            let selectedIndex = -1; // Index of the currently selected suggestion item
-            let currentSuggestions = []; // Array to store the current suggestion items
-            
-            // Handle input events on the textbox
-            textbox.addEventListener('input', async function () {
-                const value = textbox.value; // Current value of the textbox
-                const cursorPosition = textbox.selectionStart; // Current cursor position in the textbox
 
-                // Extract the word to send for suggestions
-                let wordToSend = '';
-                if (cursorPosition === value.length) {
-                    // If cursor is at the end, extract the word after the last comma
-                    const lastCommaIndex = value.lastIndexOf(',');
-                    wordToSend = value.slice(lastCommaIndex + 1).trim();
-                } else {
-                    // If cursor is not at the end, extract the word between the nearest commas
-                    const beforeCursor = value.slice(0, cursorPosition);
-                    const afterCursor = value.slice(cursorPosition);
+            let selectedIndex = -1;
+            let currentSuggestions = [];
+            const textboxWidth = textbox.offsetWidth; // Cache width
 
-                    const lastCommaBeforeCursor = beforeCursor.lastIndexOf(',');
-                    const firstCommaAfterCursor = afterCursor.indexOf(',');
+            // Event delegation for suggestion items
+            suggestionBox.addEventListener('click', (e) => {
+                const item = e.target.closest('.suggestion-item');
+                if (item) applySuggestion(item.dataset.value);
+            });
 
-                    const start = lastCommaBeforeCursor >= 0 ? lastCommaBeforeCursor + 1 : 0; // Start position for word extraction
-                    const end = firstCommaAfterCursor >= 0 ? cursorPosition + firstCommaAfterCursor : value.length; // End position for word extraction
+            textbox.addEventListener('input', debounce(async () => {
+                updateSuggestionBoxPosition();
 
-                    wordToSend = value.slice(start, end).trim();
-                }
+                const value = textbox.value;
+                const cursorPosition = textbox.selectionStart;
+                let wordToSend = extractWordToSend(value, cursorPosition);
 
-                // If no word is extracted, hide the suggestion box and skip the API request
-                if (!wordToSend) {
-                    //console.log("Skipping API request due to empty word.");
+                if (!wordToSend || wordToSend === lastWordSent) {
                     suggestionBox.style.display = 'none';
                     return;
                 }
-            
-                // Log the word being sent for the initial API request
-                //console.log("Sending initial API request with word:", wordToSend);
-                
-                let eventId; // Variable to store the event ID from the API response
+                lastWordSent = wordToSend;
+
                 try {
-                    // Make the first API request to get an event ID
                     const initialResponse = await fetch('/gradio_api/call/update_suggestions_js', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            fn_index: 0,
-                            data: [wordToSend] // Send the extracted word instead of the full textbox content
-                        })
+                        body: JSON.stringify({ fn_index: 0, data: [wordToSend] })
                     });
-                
-                    // Log the status of the initial API response
-                    //console.log("Initial API response status:", initialResponse.status);
-                
-                    // Check if the initial API request failed
-                    if (!initialResponse.ok) {
-                        console.error("Initial API request failed:", initialResponse.status, initialResponse.statusText);
-                        return;
-                    }
-                
+
+                    if (!initialResponse.ok) throw new Error(`Initial API failed: ${initialResponse.status}`);
+
                     const initialResult = await initialResponse.json();
-                    // Log the data received from the initial API response
-                    //console.log("Initial API response data:", initialResult);
-                
-                    // Extract the event ID from the response
-                    eventId = initialResult.event_id;
-                    if (!eventId) {
-                        console.error("No event_id found in initial API response:", initialResult);
-                        return;
-                    }
-                
-                    // Log the extracted event ID
-                    //console.log("Extracted event_id:", eventId);
-                } catch (error) {
-                    // Log any errors that occur during the initial API request
-                    console.error("Error during initial API request:", error);
-                    return;
-                }
-            
-                let suggestions; // Variable to store the suggestion data
-                try {
-                    // Make the second API request to get suggestion data using the event ID
+                    const eventId = initialResult.event_id;
+                    if (!eventId) throw new Error('No event_id in response');
+
                     const suggestionResponse = await fetch(`/gradio_api/call/update_suggestions_js/${eventId}`, {
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json' }
                     });
-            
-                    // Log the status of the suggestion API response
-                    //console.log("Suggestion API response status:", suggestionResponse.status);
-            
-                    // Check if the suggestion API request failed
-                    if (!suggestionResponse.ok) {
-                        console.error("Suggestion API request failed:", suggestionResponse.status, suggestionResponse.statusText);
-                        return;
-                    }
 
-                    // Log the full suggestion API response object
-                    //console.log("Suggestion API response object:", suggestionResponse);
-            
-                    // Get the raw suggestion data as text
+                    if (!suggestionResponse.ok) throw new Error(`Suggestion API failed: ${suggestionResponse.status}`);
+
                     const rawSuggestions = await suggestionResponse.text();
-                    // Log the raw suggestion data received
-                    //console.log("Raw suggestions received:", rawSuggestions);
-            
-                    // Parse the Python-formatted list into a JavaScript array
-                    const lines = rawSuggestions.split('\n'); // Split the response into lines
-                    let dataLine = lines.find(line => line.startsWith('data:')); // Find the line starting with "data:"
-                
-                    if (!dataLine) {
-                        console.error("No data line found in raw suggestions:", rawSuggestions);
+                    const dataLine = rawSuggestions.split('\n').find(line => line.startsWith('data:'));
+                    if (!dataLine) throw new Error('No data in response');
+
+                    const suggestions = JSON.parse(dataLine.replace('data:', '').trim());
+
+                    if (!suggestions || suggestions.length === 0 || suggestions.every(s => s.length === 0)) {
+                        suggestionBox.style.display = 'none';
                         return;
                     }
-                
-                    // Remove the "data:" prefix and parse the JSON string into an array
-                    const jsonString = dataLine.replace('data:', '').trim();
-                    suggestions = JSON.parse(jsonString);
-                    // Log the parsed suggestion data
-                    //console.log("Parsed suggestions:", suggestions);
-                } catch (error) {
-                    // Log any errors that occur during the suggestion API request
-                    console.error("Error during suggestion API request:", error);
-                    return;
-                }
-            
-                // Clear the suggestion box content
-                suggestionBox.innerHTML = '';
-                currentSuggestions = []; // Reset the current suggestions array
 
-                // Check if there are no valid suggestions to display
-                if (!suggestions || suggestions.length === 0 || suggestions.every(suggestion => suggestion.length === 0)) {
-                    //console.log("No suggestions available.");
-                    suggestionBox.style.display = 'none';
-                    return;
-                }
-                
-                // Calculate the width of the longest suggestion item
-                let maxWidth = 0;
-                const tempDiv = document.createElement('div'); // Temporary div to measure text width
-                tempDiv.style.position = 'absolute';
-                tempDiv.style.visibility = 'hidden';
-                tempDiv.style.whiteSpace = 'nowrap';
-                document.body.appendChild(tempDiv);
+                    const fragment = document.createDocumentFragment();
+                    let maxWidth = 0;
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.position = 'absolute';
+                    tempDiv.style.visibility = 'hidden';
+                    tempDiv.style.whiteSpace = 'nowrap';
+                    document.body.appendChild(tempDiv);
 
-                // Bind click events to suggestion items during input event
-                suggestions.forEach((suggestion, index) => {
-                    if (!Array.isArray(suggestion) || suggestion.length === 0) {
-                        console.warn(`Invalid suggestion format at index ${index}:`, suggestion);
-                        return;
-                    }
-                    suggestion.forEach(element => {
-                        const item = document.createElement('div');
-                        item.className = 'suggestion-item';
-                        item.textContent = element;
-                        item.dataset.value = element;
-                        tempDiv.textContent = element;
-                        maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
-                        currentSuggestions.push({ prompt: element });
-                        item.addEventListener('click', () => applySuggestion(element));
-                        suggestionBox.appendChild(item);
+                    currentSuggestions = [];
+                    suggestions.forEach((suggestion, index) => {
+                        if (!Array.isArray(suggestion) || suggestion.length === 0) return;
+                        suggestion.forEach(element => {
+                            const item = document.createElement('div');
+                            item.className = 'suggestion-item';
+                            item.textContent = element;
+                            item.dataset.value = element;
+                            tempDiv.textContent = element;
+                            maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
+                            currentSuggestions.push({ prompt: element });
+                            fragment.appendChild(item);
+                        });
                     });
-                });
-                
-                // Remove the temporary div after measuring
-                document.body.removeChild(tempDiv);
-                
-                // Update the suggestion box position if it is already visible
-                if (suggestionBox.style.display !== 'none') {
-                    updateSuggestionBoxPosition();                        
-                }              
 
-                // Set the width of the suggestion box
-                setSuggestionBoxWidth(maxWidth);
-                
-                // Log the set width of the suggestion box
-                //console.log("Set suggestionBox width:", suggestionBox.style.width);
-                // Log the actual rendered width of the suggestion box
-                //console.log("Actual suggestionBox width:", suggestionBox.offsetWidth);
+                    document.body.removeChild(tempDiv);
+                    suggestionBox.innerHTML = '';
+                    suggestionBox.appendChild(fragment);
+                    suggestionBox.style.width = `${Math.min(maxWidth + 20, 600)}px`;
+                    suggestionBox.style.display = 'block';
+                    selectedIndex = -1;
 
-                selectedIndex = -1; // Reset the selected index
+                } catch (error) {
+                    console.error('Suggestion system error:', error);
+                    suggestionBox.style.display = 'none';
+                }
+            }, 50));
 
-                // Log that the suggestions have been successfully displayed
-                //console.log("Suggestions successfully displayed.");
-            });
-
-            // Handle keyboard navigation for the suggestion box
-            textbox.addEventListener('keydown', function (e) {
-                if (suggestionBox.style.display === 'none') 
-                    return; // Exit if the suggestion box is not visible
+            textbox.addEventListener('keydown', (e) => {
+                if (suggestionBox.style.display === 'none') return;
 
                 const items = suggestionBox.querySelectorAll('.suggestion-item');
-                if (items.length === 0) return; // Exit if there are no suggestion items
-            
+                if (items.length === 0) return;
+
                 if (e.key === 'Tab' || e.key === 'Enter') {
-                    e.preventDefault(); // Prevent default behavior
+                    e.preventDefault();
                     if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
-                        applySuggestion(currentSuggestions[selectedIndex].prompt); // Apply the selected suggestion
+                        applySuggestion(currentSuggestions[selectedIndex].prompt[0]);
                     } else if (items.length > 0) {
-                        applySuggestion(currentSuggestions[0].prompt); // Apply the first suggestion if none selected
+                        applySuggestion(currentSuggestions[0].prompt[0]);
                     }
                 } else if (e.key === 'ArrowDown') {
-                    e.preventDefault(); // Prevent default scrolling
-                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1); // Move selection down
-                    items.forEach((item, idx) => item.classList.toggle('selected', idx === selectedIndex));
-                    if (selectedIndex >= 0) items[selectedIndex].scrollIntoView({ block: 'nearest' });
-                    textbox.focus(); // Keep focus on the textbox
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
                 } else if (e.key === 'ArrowUp') {
-                    e.preventDefault(); // Prevent default scrolling
-                    selectedIndex = Math.max(selectedIndex - 1, 0); // Move selection up
-                    items.forEach((item, idx) => item.classList.toggle('selected', idx === selectedIndex));
-                    if (selectedIndex >= 0) items[selectedIndex].scrollIntoView({ block: 'nearest' });
-                    textbox.focus(); // Keep focus on the textbox
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateSelection(items);
                 } else if (e.key === 'Escape') {
-                    suggestionBox.style.display = 'none'; // Hide the suggestion box
+                    suggestionBox.style.display = 'none';
                 }
             });
-            
-            // Hide the suggestion box when clicking outside
-            document.addEventListener('click', function(e) {
+
+            document.addEventListener('click', (e) => {
                 if (!suggestionBox.contains(e.target) && e.target !== textbox) {
-                    suggestionBox.style.display = 'none'; // Hide if click is outside textbox and suggestion box
+                    suggestionBox.style.display = 'none';
                 }
             });
 
-            function setSuggestionBoxWidth(maxWidth) {
-                suggestionBox.style.display = 'block'; // Show the suggestion box
-                suggestionBox.style.width = `${Math.min(maxWidth + 20, 600)}px`; // Set width based on max suggestion width
-                suggestionBox.style.minWidth = '0px'; // Remove minimum width restriction
-                suggestionBox.style.maxWidth = 'none'; // Remove maximum width restriction
-                suggestionBox.offsetWidth; // Force a reflow to apply styles
-            }
-            
-            function formatSuggestion(suggestion) {            
-                // Remove popularity info (number in parentheses) from the suggestion
-                const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
-            
-                // Replace underscores with spaces while preserving parentheses content
-                let formatted = withoutHeat.replace(/_/g, ' ');
-            
-                // Escape parentheses
-                formatted = formatted.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-
-                // If the formatted starts with ':', return it as is
-                if (formatted.startsWith(':')) {                    
-                    return formatted;
-                }
-            
-                return formatted.replace(/:/g, ' ');
-            }
-                        
-            function applySuggestion(promptText) {
-                // Log the prompt text before formatting for debugging
-                //console.log("Debug: promptText before formatting:", promptText);
-                const formattedText = formatSuggestion(promptText[0]); // Format the suggestion text
-                const cursorPosition = textbox.selectionStart; // Get the current cursor position
-                const value = textbox.value; // Get the current textbox value
-            
-                // Split the text around the cursor
-                const beforeCursor = value.slice(0, cursorPosition);
-                const afterCursor = value.slice(cursorPosition);
-            
-                // Find the position of the last comma before the cursor
-                const lastCommaIndex = beforeCursor.lastIndexOf(',');
-            
-                // Determine if a comma is needed after the suggestion
-                const needsComma = afterCursor.trim().length === 0;
-            
-                // Insert the suggestion, replacing the text after the last comma or at the start
-                const newValue = lastCommaIndex >= 0
-                    ? beforeCursor.slice(0, lastCommaIndex + 1) + ` ${formattedText}${needsComma ? ',' : ''}` + afterCursor
-                    : `${formattedText}${needsComma ? ',' : ''} ${afterCursor}`;
-            
-                textbox.value = newValue.trim(); // Update the textbox with the new value
-            
-                // Clear the current suggestions and hide the suggestion box
-                currentSuggestions = [];
-                suggestionBox.style.display = 'none';        
-            
-                // Trigger an input event to notify other listeners
-                textbox.dispatchEvent(new Event('input', { bubbles: true }));
-                textbox.focus(); // Refocus the textbox
-            }
-            
-            // Update the position of the suggestion box dynamically
-            function updateSuggestionBoxPosition() {
-                const rect = textbox.getBoundingClientRect(); // Get the textbox's position and size
-                suggestionBox.style.top = `${rect.bottom + window.scrollY}px`; // Position below the textbox
-                
-                const cursorPosition = textbox.selectionStart; // Get the cursor position
-                const textBeforeCursor = textbox.value.substring(0, cursorPosition); // Text before the cursor
-                
-                // Create a temporary span to measure the cursor position
-                const tempSpan = document.createElement('span');
-                tempSpan.style.position = 'absolute';
-                tempSpan.style.visibility = 'hidden';
-                tempSpan.style.font = window.getComputedStyle(textbox).font; // Match the textbox font
-                tempSpan.textContent = textBeforeCursor;
-                document.body.appendChild(tempSpan);
-                
-                // Calculate the offset of the cursor
-                const cursorOffset = tempSpan.offsetWidth;
-                document.body.removeChild(tempSpan); // Remove the temporary span
-                
-                // Set the left position of the suggestion box based on cursor offset
-                let newLeft = rect.left + window.scrollX + cursorOffset;
-                
-                // Prevent the suggestion box from overflowing the right edge of the viewport
-                const suggestionWidth = suggestionBox.offsetWidth;
-                const windowWidth = window.innerWidth;
-                if (newLeft + suggestionWidth > windowWidth) {
-                    newLeft = windowWidth - suggestionWidth;
-                }
-                // Prevent the suggestion box from going beyond the left edge
-                if (newLeft < 0) {
-                    newLeft = 0;
-                }
-                
-                suggestionBox.style.left = `${newLeft}px`; // Apply the calculated left position
-                
-                // Force a reflow to ensure the position updates
-                suggestionBox.style.transform = 'translateZ(0)';
-            }
-
-            // Update the suggestion box position on input
-            textbox.addEventListener('input', function () {
-                updateSuggestionBoxPosition();
-            });
-            // Update the suggestion box position on scroll
-            document.addEventListener('scroll', function () {
+            document.addEventListener('scroll', debounce(() => {
                 if (suggestionBox.style.display !== 'none') {
                     updateSuggestionBoxPosition();
                 }
-            }, true);
+            }, 100), true);
 
-            textbox.dataset.suggestionSetup = 'true'; // Mark the textbox as having the suggestion system set up
+            function updateSelection(items) {
+                items.forEach((item, idx) => item.classList.toggle('selected', idx === selectedIndex));
+                if (selectedIndex >= 0) items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                textbox.focus();
+            }
+
+            function extractWordToSend(value, cursorPosition) {
+                if (cursorPosition === value.length) {
+                    const lastCommaIndex = value.lastIndexOf(',');
+                    return value.slice(lastCommaIndex + 1).trim();
+                }
+                const beforeCursor = value.slice(0, cursorPosition);
+                const afterCursor = value.slice(cursorPosition);
+                const lastCommaBefore = beforeCursor.lastIndexOf(',');
+                const firstCommaAfter = afterCursor.indexOf(',');
+                const start = lastCommaBefore >= 0 ? lastCommaBefore + 1 : 0;
+                const end = firstCommaAfter >= 0 ? cursorPosition + firstCommaAfter : value.length;
+                return value.slice(start, end).trim();
+            }
+
+            function formatSuggestion(suggestion) {
+                const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
+                let formatted = withoutHeat.replace(/_/g, ' ');
+                formatted = formatted.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+                return formatted.startsWith(':') ? formatted : formatted.replace(/:/g, ' ');
+            }
+
+            function applySuggestion(promptText) {
+                const formattedText = formatSuggestion(promptText);
+                const value = textbox.value;
+
+                const lastCommaOrNewline = Math.max(value.lastIndexOf(','), value.lastIndexOf('\n'));
+                const start = lastCommaOrNewline >= 0 ? lastCommaOrNewline + 1 : 0;
+                const end = value.length;
+
+                const isFirstWordInLine = start === 0 || value[start - 1] === '\n';
+                const prefix = isFirstWordInLine ? '' : ' ';
+                const suffix = ', ';
+
+                const newValue = value.slice(0, start) + prefix + formattedText + suffix + value.slice(end);
+                textbox.value = newValue.trim();
+
+                const newCursorPosition = start + prefix.length + formattedText.length + suffix.length;
+                textbox.setSelectionRange(newCursorPosition, newCursorPosition);
+
+                currentSuggestions = [];
+                suggestionBox.innerHTML = '';
+                suggestionBox.style.display = 'none';
+
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                textbox.focus();
+            }
+
+            function updateSuggestionBoxPosition() {
+                const rect = textbox.getBoundingClientRect();
+                const textboxTop = rect.top + window.scrollY;
+                const textboxBottom = rect.bottom + window.scrollY;
+                const textboxLeft = rect.left + window.scrollX;
+
+                const cursorPosition = Math.min(textbox.selectionStart, textbox.value.length);
+                const textBeforeCursor = textbox.value.substring(0, cursorPosition);
+
+                const lineSpan = document.createElement('span');
+                lineSpan.style.position = 'absolute';
+                lineSpan.style.visibility = 'hidden';
+                lineSpan.style.font = window.getComputedStyle(textbox).font;
+                lineSpan.style.whiteSpace = 'pre-wrap';
+                lineSpan.style.width = `${textboxWidth}px`;
+                document.body.appendChild(lineSpan);
+
+                const lines = [];
+                let currentLine = '';
+                for (let i = 0; i < textBeforeCursor.length; i++) {
+                    lineSpan.textContent = currentLine + textBeforeCursor[i];
+                    if (lineSpan.scrollWidth > textboxWidth || textBeforeCursor[i] === '\n') {
+                        lines.push(currentLine);
+                        currentLine = textBeforeCursor[i] === '\n' ? '' : textBeforeCursor[i];
+                    } else {
+                        currentLine += textBeforeCursor[i];
+                    }
+                }
+                if (currentLine) lines.push(currentLine);
+                document.body.removeChild(lineSpan);
+
+                const widthSpan = document.createElement('span');
+                widthSpan.style.position = 'absolute';
+                widthSpan.style.visibility = 'hidden';
+                widthSpan.style.font = window.getComputedStyle(textbox).font;
+                widthSpan.style.whiteSpace = 'nowrap';
+                widthSpan.textContent = lines[lines.length - 1] || '';
+                document.body.appendChild(widthSpan);
+                const cursorOffset = widthSpan.offsetWidth;
+                document.body.removeChild(widthSpan);
+
+                suggestionBox.style.display = 'block';
+                const suggestionWidth = suggestionBox.offsetWidth || 200;
+                const suggestionHeight = suggestionBox.offsetHeight || 100;
+                if (!suggestionBox.innerHTML) suggestionBox.style.display = 'none';
+
+                let newLeft = textboxLeft + cursorOffset;
+                let newTop = textboxBottom;
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                const paddingX = 24;
+                const paddingY = 12;
+
+                if (newLeft + suggestionWidth > windowWidth - paddingX) {
+                    newLeft = Math.max(0, windowWidth - suggestionWidth - paddingX);
+                }
+                if (newLeft < textboxLeft) newLeft = textboxLeft;
+
+                if (newTop + suggestionHeight > windowHeight + window.scrollY - paddingY) {
+                    newTop = textboxTop - suggestionHeight - paddingY;
+                    if (newTop < window.scrollY) newTop = textboxBottom;
+                }
+
+                suggestionBox.style.left = `${newLeft}px`;
+                suggestionBox.style.top = `${newTop}px`;
+                suggestionBox.style.zIndex = '10002';
+                suggestionBox.style.transform = 'translateZ(0)';
+            }
+
+            textbox.dataset.suggestionSetup = 'true';
         });
     }
-   
 
-    let isGallerySetup = false;
     function setupGallery() {
-        if (isGallerySetup) return;
-        isGallerySetup = true;
-
-        console.log('Setting up the gallery...');
+        if (window.isGallerySetup) return;
+        window.isGallerySetup = true;
 
         let isGridMode = false;
         let currentIndex = 0;
         let images = [];
-        let seeds = []
-        let tags = []
-    
+        let seeds = [];
+        let tags = [];
+
         const container = document.getElementById('cg-custom-gallery');
         if (!container) {
             console.error('Gallery container not found');
             return;
         }
-    
+
         if (!window.cgCustomGallery) {
-            window.cgCustomGallery = {
-                timerInterval: null, // Shared timer interval
-                startTime: null      // Shared start time
-            };
+            window.cgCustomGallery = {};
         }
-        
-        window.cgCustomGallery.showLoading = function () {        
+
+        window.cgCustomGallery.showLoading = function () {
             const loadingOverlay = customCommonOverlay().createLoadingOverlay();
             const buttonOverlay = document.getElementById('cg-button-overlay');
-            
-            // Use shared position
-            const lastPosition = JSON.parse(localStorage.getItem('overlayPosition'));
-            if (lastPosition && lastPosition.top !== undefined && lastPosition.left !== undefined) {
-                loadingOverlay.style.top = `${lastPosition.top}px`;
-                loadingOverlay.style.left = `${lastPosition.left}px`;
+        
+            const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+            if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+                loadingOverlay.style.top = `${savedPosition.top}px`;
+                loadingOverlay.style.left = `${savedPosition.left}px`;
+                loadingOverlay.style.transform = 'none';
+            } else if (buttonOverlay) {
+                const rect = buttonOverlay.getBoundingClientRect();
+                loadingOverlay.style.top = `${rect.top}px`;
+                loadingOverlay.style.left = `${rect.left}px`;
                 loadingOverlay.style.transform = 'none';
             } else {
                 loadingOverlay.style.top = '20%';
@@ -513,19 +381,17 @@ function my_custom_js() {
                 loadingOverlay.style.transform = 'translate(-50%, -20%)';
             }
         
-            // Pass buttonOverlay as syncElement
             addDragFunctionality(loadingOverlay, buttonOverlay);
         };
 
         window.cgCustomGallery.handleResponse = function (response, image_seeds, image_tags) {
             const loadingOverlay = document.getElementById('cg-loading-overlay');
             const buttonOverlay = document.getElementById('cg-button-overlay');
-            
+
             if (loadingOverlay) {
                 if (loadingOverlay.dataset.timerInterval) {
                     clearInterval(loadingOverlay.dataset.timerInterval);
                 }
-                // Before removing, sync position to buttonOverlay
                 const rect = loadingOverlay.getBoundingClientRect();
                 if (buttonOverlay) {
                     buttonOverlay.style.left = `${rect.left}px`;
@@ -534,44 +400,55 @@ function my_custom_js() {
                 }
                 loadingOverlay.remove();
             }
-        
-            seeds = image_seeds.split(',').map(seed => seed.trim()); 
+
+            seeds = image_seeds.split(',').map(seed => seed.trim());
             tags = image_tags.split('|');
             if (seeds.length !== tags.length) {
                 console.warn('Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
             }
-        
+
             if (!response || !response.data) {
                 const errorMessage = response?.error || 'Unknown error';
                 console.error('Failed to fetch image data:', errorMessage);
                 customCommonOverlay().createErrorOverlay(errorMessage);
                 return;
             }
-        
+
             window.updateGallery(response.data);
         };
-    
+
         function enterFullscreen(index) {
             const imgUrl = images[index];
             if (!imgUrl) {
                 console.error('Invalid image index:', index);
                 return;
             }
-        
+
             const overlay = document.createElement('div');
-            overlay.className = 'cg-fullscreen-overlay'; 
-        
+            overlay.className = 'cg-fullscreen-overlay';
+
             const fullScreenImg = document.createElement('img');
             fullScreenImg.src = imgUrl;
             fullScreenImg.className = 'cg-fullscreen-image';
-        
-            // Variables for dragging
-            let isDragging = false;
-            let startX = 0, startY = 0;
-            let translateX = 0, translateY = 0;
-        
+
+            let isDragging = false, startX = 0, startY = 0, translateX = 0, translateY = 0;
+
+            fullScreenImg.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault();
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                fullScreenImg.style.cursor = 'grabbing';
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+
             function onMouseMove(e) {
                 if (!isDragging) return;
+                e.preventDefault();
+                e.stopPropagation();
+
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
                 translateX += deltaX;
@@ -580,49 +457,31 @@ function my_custom_js() {
                 startX = e.clientX;
                 startY = e.clientY;
             }
-            
+
             function onMouseUp() {
                 isDragging = false;
                 fullScreenImg.style.cursor = 'grab';
-            
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             }
-            
-            fullScreenImg.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return; 
-            
-                e.preventDefault();
-            
-                isDragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                fullScreenImg.style.cursor = 'grabbing';
-            
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
-            
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            });
-        
-            // Enable zooming
+
             let scale = 1;
             fullScreenImg.addEventListener('wheel', (e) => {
                 e.preventDefault();
                 scale += e.deltaY * -0.001;
-                scale = Math.min(Math.max(0.5, scale), 4); // Limit zoom scale
+                scale = Math.min(Math.max(0.5, scale), 4);
                 fullScreenImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
             });
-        
-            // Close fullscreen on click outside or ESC key
+
             overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
-                    exitFullscreen();
-                }
+                if (e.target === overlay) exitFullscreen();
             });
-        
-            const handleFullscreenKeyDown = (e) => { 
+
+            document.addEventListener('keydown', handleFullscreenKeyDown);
+            overlay.appendChild(fullScreenImg);
+            document.body.appendChild(overlay);
+
+            function handleFullscreenKeyDown(e) {
                 if (e.key === 'Escape') {
                     exitFullscreen();
                 } else if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -632,11 +491,8 @@ function my_custom_js() {
                     currentIndex = (currentIndex - 1 + images.length) % images.length;
                     fullScreenImg.src = images[currentIndex];
                 }
-            };
-            document.addEventListener('keydown', handleFullscreenKeyDown);
-            overlay.appendChild(fullScreenImg);
-            document.body.appendChild(overlay);
-        
+            }
+
             function exitFullscreen() {
                 document.body.removeChild(overlay);
                 document.removeEventListener('keydown', handleFullscreenKeyDown);
@@ -647,88 +503,81 @@ function my_custom_js() {
             container.innerHTML = '';
             const gallery = document.createElement('div');
             gallery.className = 'cg-gallery-grid-container scroll-container';
-        
-            // Get container width
+
             const containerWidth = container.offsetWidth;
-        
-            // Get first image w/h ratio
             const firstImage = new Image();
             firstImage.src = images[0];
             firstImage.onload = () => {
-                const aspectRatio = firstImage.width / firstImage.height; 
-                const targetHeight = 200; 
-                const targetWidth = targetHeight * aspectRatio; 
-                const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10)); // max image per row
-        
+                const aspectRatio = firstImage.width / firstImage.height;
+                const targetHeight = 200;
+                const targetWidth = targetHeight * aspectRatio;
+                const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10));
                 gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
-        
+
+                const fragment = document.createDocumentFragment();
                 images.forEach((url, index) => {
                     const imgContainer = document.createElement('div');
-                    imgContainer.className = 'cg-gallery-item'; 
+                    imgContainer.className = 'cg-gallery-item';
                     imgContainer.style.width = `${targetWidth}px`;
                     imgContainer.style.height = `${targetHeight}px`;
-        
+
                     const img = document.createElement('img');
                     img.src = url;
-                    img.className = 'cg-gallery-image'; 
+                    img.className = 'cg-gallery-image';
                     img.addEventListener('click', () => enterFullscreen(index));
-        
+
                     imgContainer.appendChild(img);
-                    gallery.appendChild(imgContainer);
+                    fragment.appendChild(imgContainer);
                 });
-        
+
+                gallery.appendChild(fragment);
                 container.appendChild(gallery);
-                ensureSwitchModeButton();
+                ensureSwitchModeButton(container, () => {
+                    isGridMode = !isGridMode;
+                    isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
+                }, 'cg-switch-mode-button');
             };
         }
-    
+
         function gallery_renderSplitMode() {
             if (!images || images.length === 0) {
                 container.innerHTML = '<div class="cg-error-message">No images to display</div>';
                 return;
             }
-        
+
             container.innerHTML = '';
             const mainImageContainer = document.createElement('div');
             mainImageContainer.className = 'cg-main-image-container';
-        
+
             const mainImage = document.createElement('img');
             mainImage.src = images[currentIndex];
             mainImage.className = 'cg-main-image';
-            mainImage.addEventListener('click', (e) => {
-                e.stopPropagation();
-                enterFullscreen(currentIndex);
-            });
-        
+            mainImage.addEventListener('click', () => enterFullscreen(currentIndex));
+
             mainImageContainer.appendChild(mainImage);
             container.appendChild(mainImageContainer);
-        
+
             mainImageContainer.addEventListener('click', (e) => {
                 e.preventDefault();
                 const rect = mainImageContainer.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const isLeft = clickX < rect.width / 2;
-        
+
                 if (isLeft && images.length > 1) {
                     currentIndex = (currentIndex - 1 + images.length) % images.length;
                 } else if (!isLeft && images.length > 1) {
                     currentIndex = (currentIndex + 1) % images.length;
                 }
-        
+
                 mainImage.src = images[currentIndex];
-                Array.from(previewContainer.children).forEach((child, i) => {
-                    child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
-                });
-        
-                const selectedPreview = previewContainer.children[currentIndex];
-                if (selectedPreview) {
-                    selectedPreview.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                }
+                updatePreviewBorders();
             });
-        
+
             const previewContainer = document.createElement('div');
             previewContainer.className = 'cg-preview-container scroll-container';
-        
+            setupScrollableContainer(previewContainer);
+
+            const fragment = document.createDocumentFragment();
             images.forEach((url, index) => {
                 const previewImage = document.createElement('img');
                 previewImage.src = url;
@@ -738,90 +587,55 @@ function my_custom_js() {
                     e.preventDefault();
                     currentIndex = index;
                     mainImage.src = images[currentIndex];
-                    Array.from(previewContainer.children).forEach((child, i) => {
-                        child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
-                    });
+                    updatePreviewBorders();
                     previewImage.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                 });
-                previewContainer.appendChild(previewImage);
+                fragment.appendChild(previewImage);
             });
-        
-            let isDragging = false;
-            let startX, scrollLeft;
-        
-            previewContainer.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                isDragging = true;
-                previewContainer.style.cursor = 'grabbing';
-                startX = e.pageX - previewContainer.offsetLeft;
-                scrollLeft = previewContainer.scrollLeft;
-                document.body.style.userSelect = 'none';
-            });
-        
-            previewContainer.addEventListener('mouseleave', () => {
-                isDragging = false;
-                previewContainer.style.cursor = 'grab';
-                document.body.style.userSelect = '';
-            });
-        
-            previewContainer.addEventListener('mouseup', () => {
-                isDragging = false;
-                previewContainer.style.cursor = 'grab';
-                document.body.style.userSelect = '';
-            });
-        
-            previewContainer.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const x = e.pageX - previewContainer.offsetLeft;
-                const walk = (x - startX) * 1;
-                previewContainer.scrollLeft = scrollLeft - walk;
-            });
-        
+
+            previewContainer.appendChild(fragment);
             container.appendChild(previewContainer);
-            ensureSwitchModeButton();
+
+            ensureSwitchModeButton(container, () => {
+                isGridMode = !isGridMode;
+                isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
+            }, 'cg-switch-mode-button');
             ensureSeedButton();
             ensureTagButton();
-        
+
+            adjustPreviewContainer(previewContainer);
+        }
+
+        function updatePreviewBorders() {
+            const previewImages = container.querySelectorAll('.cg-preview-image');
+            previewImages.forEach((child, i) => {
+                child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
+            });
+            const selectedPreview = previewImages[currentIndex];
+            if (selectedPreview) {
+                selectedPreview.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        }
+
+        function adjustPreviewContainer(previewContainer) {
             const previewImages = previewContainer.querySelectorAll('.cg-preview-image');
             if (previewImages.length > 0) {
                 previewImages[0].onload = () => {
                     const containerWidth = previewContainer.offsetWidth;
                     const firstImageWidth = previewImages[0].offsetWidth || 50;
                     const totalImagesWidth = firstImageWidth * previewImages.length;
-            
+
                     if (totalImagesWidth < (containerWidth - firstImageWidth)) {
                         previewContainer.style.justifyContent = 'center';
                     } else {
                         previewContainer.style.justifyContent = 'flex-start';
                         if (previewImages.length > 10) {
                             const minWidth = Math.max(50, containerWidth / previewImages.length);
-                            previewImages.forEach(img => {
-                                img.style.maxWidth = `${minWidth}px`;
-                            });
+                            previewImages.forEach(img => img.style.maxWidth = `${minWidth}px`);
                         }
                     }
                     previewContainer.scrollLeft = 0;
                 };
-            }
-        }
-            
-        function ensureSwitchModeButton() {
-            let switchModeButton = document.getElementById('cg-switch-mode-button');
-            if (!switchModeButton) {
-                switchModeButton = document.createElement('button');
-                switchModeButton.id = 'cg-switch-mode-button';
-                switchModeButton.className = 'cg-button'; 
-                switchModeButton.textContent = '<>';
-                switchModeButton.addEventListener('click', () => {
-                    isGridMode = !isGridMode;
-                    if (isGridMode) {
-                        gallery_renderGridMode();
-                    } else {
-                        gallery_renderSplitMode();
-                    }
-                });
-                container.appendChild(switchModeButton);
             }
         }
 
@@ -830,53 +644,32 @@ function my_custom_js() {
             if (!seedButton) {
                 seedButton = document.createElement('button');
                 seedButton.id = 'cg-seed-button';
-                seedButton.className = 'cg-button'; 
+                seedButton.className = 'cg-button';
                 seedButton.textContent = 'Seed';
                 seedButton.addEventListener('click', () => {
                     if (seeds && seeds[currentIndex]) {
                         const seedToCopy = seeds[currentIndex].trim();
-                        navigator.clipboard.writeText(seedToCopy)
-                            .then(() => {
-                                console.log(`Seed ${seedToCopy} copied to clipboard`);
-                                seedButton.textContent = 'Copied!';
-                                setTimeout(() => {
-                                    seedButton.textContent = 'Seed';
-                                }, 2000);
-        
-                                // Update Gradio Slider 
-                                const sliderContainer = document.getElementById('random_seed');
-                                if (sliderContainer) {
-                                    // Find number and range 
-                                    const numberInput = sliderContainer.querySelector('input[type="number"]');
-                                    const rangeInput = sliderContainer.querySelector('input[type="range"]');
-                                    
-                                    if (numberInput && rangeInput) {
-                                        const seedValue = parseInt(seedToCopy, 10); 
-                                        if (!isNaN(seedValue) && seedValue >= -1 && seedValue <= 4294967295) {
-                                            // update number
-                                            numberInput.value = seedValue;
-                                            numberInput.dispatchEvent(new Event('input', { bubbles: true }));
-        
-                                            // update range
-                                            rangeInput.value = seedValue;
-                                            rangeInput.dispatchEvent(new Event('input', { bubbles: true }));
-        
-                                            console.log(`Updated random_seed to ${seedValue}`);
-                                        } else {
-                                            console.error(`Seed value ${seedToCopy} is invalid or out of range (-1 to 4294967295)`);
-                                        }
-                                    } else {
-                                        console.error('Number or range input not found in random_seed');
+                        navigator.clipboard.writeText(seedToCopy).then(() => {
+                            console.log(`Seed ${seedToCopy} copied to clipboard`);
+                            seedButton.textContent = 'Copied!';
+                            setTimeout(() => seedButton.textContent = 'Seed', 2000);
+
+                            const sliderContainer = document.getElementById('random_seed');
+                            if (sliderContainer) {
+                                const numberInput = sliderContainer.querySelector('input[type="number"]');
+                                const rangeInput = sliderContainer.querySelector('input[type="range"]');
+                                if (numberInput && rangeInput) {
+                                    const seedValue = parseInt(seedToCopy, 10);
+                                    if (!isNaN(seedValue) && seedValue >= -1 && seedValue <= 4294967295) {
+                                        numberInput.value = seedValue;
+                                        numberInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        rangeInput.value = seedValue;
+                                        rangeInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                        console.log(`Updated random_seed to ${seedValue}`);
                                     }
-                                } else {
-                                    console.error('Slider with ID random_seed not found');
                                 }
-                            })
-                            .catch(err => {
-                                console.error('Failed to copy seed to clipboard:', err);
-                            });
-                    } else {
-                        console.error('No seed available for current index:', currentIndex);
+                            }
+                        }).catch(err => console.error('Failed to copy seed:', err));
                     }
                 });
                 container.appendChild(seedButton);
@@ -893,19 +686,11 @@ function my_custom_js() {
                 tagButton.addEventListener('click', () => {
                     if (tags && tags[currentIndex]) {
                         const tagToCopy = tags[currentIndex].trim();
-                        navigator.clipboard.writeText(tagToCopy)
-                            .then(() => {
-                                console.log(`Tag [${tagToCopy}] copied to clipboard`);
-                                tagButton.textContent = 'Copied!';
-                                setTimeout(() => {
-                                    tagButton.textContent = 'Tags';
-                                }, 2000);
-                            })
-                            .catch(err => {
-                                console.error('Failed to copy tag to clipboard:', err);
-                            });
-                    } else {
-                        console.error('No tag available for current index:', currentIndex);
+                        navigator.clipboard.writeText(tagToCopy).then(() => {
+                            console.log(`Tag [${tagToCopy}] copied to clipboard`);
+                            tagButton.textContent = 'Copied!';
+                            setTimeout(() => tagButton.textContent = 'Tags', 2000);
+                        }).catch(err => console.error('Failed to copy tag:', err));
                     }
                 });
                 container.appendChild(tagButton);
@@ -913,200 +698,150 @@ function my_custom_js() {
         }
 
         window.updateGallery = function (imageData) {
-            if (!Array.isArray(imageData) || imageData.length === 0) {
-                //console.error('Invalid or empty image data');
-                return;
-            }
+            if (!Array.isArray(imageData) || imageData.length === 0) return;
             images = imageData;
-            currentIndex = 0; 
-            if (isGridMode) {
-                gallery_renderGridMode();
-            } else {
-                gallery_renderSplitMode();
-            }
+            currentIndex = 0;
+            isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
         };
     }
 
-    function createInfoOverlay({ id, content, className = '', onClick = null }) {
-        let overlay = document.getElementById(id);
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = id;
-            overlay.className = `cg-overlay ${className}`;
-            document.body.appendChild(overlay);
-        }
-
-        overlay.innerHTML = content;
-
-        if (onClick) {
-            overlay.onclick = onClick;
-        }
-
-        return overlay;
-    }
-
-    let isThumbSetup = false;
-    function setupThumb() {        
-        let isGridMode = true; // Default to grid mode
+    function setupThumb() {
+        if (window.isThumbSetup) return;
+        window.isThumbSetup = true;
+    
+        let isGridMode = false;
         let images = [];
-
+    
         const container = document.getElementById('cg-custom-thumb');
         if (!container) {
             console.error('Thumbnail gallery container not found');
             return;
         }
-
-        if (isThumbSetup) {
-            //console.log('Thumbnail gallery is already set up.');
-            return;
-        }
-
-        isThumbSetup = true;
-
+    
         console.log('Setting up the thumbnail gallery', container);
-
+    
         function thumb_renderGridMode() {
             container.innerHTML = '';
+            if (images.length === 0) {
+                const switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
+                if (switchModeButton) switchModeButton.remove();
+                return;
+            }
+    
             const gallery = document.createElement('div');
             gallery.className = 'cg-thumb-grid-container scroll-container';
-        
+    
             const containerWidth = container.offsetWidth;
             const containerHeight = container.offsetHeight;
-        
+    
             const firstImage = new Image();
             firstImage.src = images[0];
             firstImage.onload = () => {
                 const aspectRatio = firstImage.width / firstImage.height;
-                const targetHeight = containerHeight / 1.15;
+                const targetHeight = containerHeight / 1.2;
                 const targetWidth = targetHeight * aspectRatio;
                 const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10));
-                gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`; 
-        
-                images.forEach((url) => {
+                gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
+    
+                const fragment = document.createDocumentFragment();
+                images.forEach(url => {
                     const imgContainer = document.createElement('div');
                     imgContainer.className = 'cg-thumb-item';
-                    imgContainer.style.width = `${targetWidth}px`; 
+                    imgContainer.style.width = `${targetWidth}px`;
                     imgContainer.style.height = `${targetHeight}px`;
-        
+    
                     const img = document.createElement('img');
                     img.src = url;
                     img.className = 'cg-thumb-image';
                     imgContainer.appendChild(img);
-                    gallery.appendChild(imgContainer);
+                    fragment.appendChild(imgContainer);
                 });
-        
+    
+                gallery.appendChild(fragment);
                 container.appendChild(gallery);
-                ensureSwitchModeButton();
+                ensureSwitchModeButton(container, () => {
+                    isGridMode = !isGridMode;
+                    isGridMode ? thumb_renderGridMode() : thumb_renderSplitMode();
+                }, 'cg-thumb-switch-mode-button');
+            };
+            firstImage.onerror = () => {
+                console.error('Failed to load first image for grid mode');
+                container.innerHTML = '';
+                const switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
+                if (switchModeButton) switchModeButton.remove();
             };
         }
-
+    
         function thumb_renderSplitMode() {
             container.innerHTML = '';
-            const scrollContainer = document.createElement('div');
-            scrollContainer.className = 'cg-thumb-scroll-container scroll-container';
-        
-            images.forEach((url) => {
-                const img = document.createElement('img');
-                img.src = url;
-                img.className = 'cg-thumb-scroll-image'; 
-                scrollContainer.appendChild(img);
-            });
-
-            let isDragging = false;
-            let startX, scrollLeft;
-
-            scrollContainer.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                isDragging = true;
-                scrollContainer.style.cursor = 'grabbing';
-                startX = e.pageX - scrollContainer.offsetLeft;
-                scrollLeft = scrollContainer.scrollLeft;
-            });
-
-            scrollContainer.addEventListener('mouseleave', () => {
-                isDragging = false;
-                scrollContainer.style.cursor = 'grab';
-            });
-
-            scrollContainer.addEventListener('mouseup', () => {
-                isDragging = false;
-                scrollContainer.style.cursor = 'grab';
-            });
-
-            scrollContainer.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const x = e.pageX - scrollContainer.offsetLeft;
-                const walk = (x - startX) * 1; // scroll speed
-                scrollContainer.scrollLeft = scrollLeft - walk;
-            });
-
-            container.appendChild(scrollContainer);
-            ensureSwitchModeButton();
-        }
-
-        function ensureSwitchModeButton() {
-            let switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
-            if (!switchModeButton) {
-                switchModeButton = document.createElement('button');
-                switchModeButton.id = 'cg-thumb-switch-mode-button';
-                switchModeButton.className = 'cg-button'; 
-                switchModeButton.textContent = '<>';
-                switchModeButton.addEventListener('click', () => {
-                    isGridMode = !isGridMode;
-                    if (isGridMode) {
-                        thumb_renderGridMode();
-                    } else {
-                        thumb_renderSplitMode();
-                    }
-                });
-                container.appendChild(switchModeButton);
-            }
-        }
-
-        window.updateThumbGallery = function (imageData) {
-            if (!Array.isArray(imageData) || imageData.length === 0) {
-                //OC Character Pass
-                //console.log('No image data provided, might error or OC, clearing thumbnail gallery');
-                container.innerHTML = ''; 
-        
+            if (images.length === 0) {
                 const switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
-                if (switchModeButton) {
-                    switchModeButton.remove();
-                }
+                if (switchModeButton) switchModeButton.remove();
                 return;
             }
-
-            images = imageData;
-            currentIndex = 0;
-            if (isGridMode) {
-                thumb_renderGridMode();
-            } else {
-                thumb_renderSplitMode();
+    
+            const scrollContainer = document.createElement('div');
+            scrollContainer.className = 'cg-thumb-scroll-container scroll-container';
+            setupScrollableContainer(scrollContainer);
+    
+            const fragment = document.createDocumentFragment();
+            images.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'cg-thumb-scroll-image';
+                fragment.appendChild(img);
+            });
+    
+            scrollContainer.appendChild(fragment);
+            container.appendChild(scrollContainer);
+            ensureSwitchModeButton(container, () => {
+                isGridMode = !isGridMode;
+                isGridMode ? thumb_renderGridMode() : thumb_renderSplitMode();
+            }, 'cg-thumb-switch-mode-button');
+        }
+    
+        window.updateThumbGallery = function (imageData) {
+            if (!Array.isArray(imageData) || imageData.length === 0) {
+                container.innerHTML = '';
+                const switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
+                if (switchModeButton) switchModeButton.remove();
+                images = [];
+                return;
             }
+    
+            images = imageData;
+            isGridMode ? thumb_renderGridMode() : thumb_renderSplitMode();
         };
-
-        // Initial render
+    
         thumb_renderGridMode();
-    }    
+    }
 
     function customCommonOverlay() {
+        function createInfoOverlay({ id, content, className = '', onClick = null }) {
+            let overlay = document.getElementById(id);
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = id;
+                overlay.className = `cg-overlay ${className}`;
+                document.body.appendChild(overlay);
+            }
+            overlay.innerHTML = content;
+            if (onClick) overlay.onclick = onClick;
+            return overlay;
+        }
+    
         function createErrorOverlay(errorMessage) {
             return createInfoOverlay({
                 id: 'cg-error-overlay',
                 className: 'cg-overlay-error',
                 content: `
                     <img src="${window.LOADING_FAILED_BASE64}" alt="Error" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
-                    <span>${errorMessage}</span>
+                    <pre style="white-space: pre-wrap;">${errorMessage}</pre>
                 `,
                 onClick: () => {
                     navigator.clipboard.writeText(errorMessage)
-                        .then(() => {
-                            console.log(`Error message "${errorMessage}" copied to clipboard`);
-                        })
-                        .catch(err => {
-                            console.error('Failed to copy error message to clipboard:', err);
-                        });
+                        .then(() => console.log(`Error message "${errorMessage}" copied to clipboard`))
+                        .catch(err => console.error('Failed to copy error message:', err));
                     document.getElementById('cg-error-overlay').remove();
                 }
             });
@@ -1122,27 +857,102 @@ function my_custom_js() {
                     <span class="cg-overlay-timer">Elapsed time: 0 seconds</span>
                 `
             });
-        
+            overlay.style.zIndex = '10001';
+            overlay.style.pointerEvents = 'auto';
+    
             const startTime = Date.now();
-            if (overlay.dataset.timerInterval) {
-                clearInterval(overlay.dataset.timerInterval);
-            }
+            if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
             const timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const timerElement = overlay.querySelector('.cg-overlay-timer');
-                if (timerElement) {
-                    timerElement.textContent = `Elapsed time: ${elapsed} seconds`;
-                }
+                if (timerElement) timerElement.textContent = `Elapsed time: ${elapsed} seconds`;
             }, 1000);
             overlay.dataset.timerInterval = timerInterval;
-        
             return overlay;
         }
     
-        return {
-            createErrorOverlay,
-            createLoadingOverlay
+        return { createErrorOverlay, createLoadingOverlay };
+    }
+
+    function addDragFunctionality(element, getSyncElement) {
+        let isDragging = false;
+        let startX, startY;
+    
+        element.style.position = 'fixed';
+        element.style.cursor = 'grab';
+    
+        const onMouseDown = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+    
+            isDragging = true;
+    
+            const rect = element.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+    
+            element.style.cursor = 'grabbing';
+            document.body.style.userSelect = 'none';
+    
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
         };
+    
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            e.stopPropagation();
+    
+            const newLeft = e.clientX - startX;
+            const newTop = e.clientY - startY;
+    
+            element.style.left = `${newLeft}px`;
+            element.style.top = `${newTop}px`;
+    
+            const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+            if (syncElement && syncElement.style.display !== 'none') {
+                syncElement.style.left = `${newLeft}px`;
+                syncElement.style.top = `${newTop}px`;
+            }
+        };
+    
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            element.style.cursor = 'grab';
+            document.body.style.userSelect = '';
+    
+            const rect = element.getBoundingClientRect();
+            const newLeft = rect.left;
+            const newTop = rect.top;
+    
+            localStorage.setItem('overlayPosition', JSON.stringify({ top: newTop, left: newLeft }));
+    
+            if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth) {
+                const defaultTop = window.innerHeight * 0.2;
+                const defaultLeft = window.innerWidth * 0.5 - (element.offsetWidth / 2);
+                element.style.top = `${defaultTop}px`;
+                element.style.left = `${defaultLeft}px`;
+                element.style.transform = 'none'; 
+    
+                const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+                if (syncElement) {
+                    syncElement.style.top = `${defaultTop}px`;
+                    syncElement.style.left = `${defaultLeft}px`;
+                    syncElement.style.transform = 'none';
+                }
+                localStorage.removeItem('overlayPosition');
+            } else {
+                element.style.transform = 'none'; 
+                const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+                if (syncElement) syncElement.style.transform = 'none';
+            }
+    
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+    
+        element.addEventListener('mousedown', onMouseDown);
     }
 
     function setupButtonOverlay() {
@@ -1157,45 +967,46 @@ function my_custom_js() {
         const buttonOverlay = document.createElement('div');
         buttonOverlay.id = 'cg-button-overlay';
         buttonOverlay.className = 'cg-overlay cg-button-overlay';
-        
+    
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'cg-button-container';
-        buttonContainer.style.paddingTop = '25px';
+        buttonContainer.style.padding = '20px';
+        buttonContainer.style.width = '240px';
+        buttonContainer.style.boxSizing = 'border-box';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.flexDirection = 'column';
+        buttonContainer.style.gap = '12px';
     
         const minimizeButton = document.createElement('button');
         minimizeButton.className = 'cg-minimize-button';
         minimizeButton.style.backgroundColor = '#3498db';
-        minimizeButton.style.width = '12px';
-        minimizeButton.style.height = '12px';
-        minimizeButton.style.minWidth = '12px';
-        minimizeButton.style.minHeight = '12px';
+        minimizeButton.style.width = '14px';
+        minimizeButton.style.height = '14px';
+        minimizeButton.style.minWidth = '14px';
+        minimizeButton.style.minHeight = '14px';
         minimizeButton.style.borderRadius = '50%';
         minimizeButton.style.border = 'none';
-        minimizeButton.style.padding = '0';
+        minimizeButton.style.padding = '4px';
         minimizeButton.style.margin = '0';
         minimizeButton.style.cursor = 'pointer';
         minimizeButton.style.position = 'absolute';
-        minimizeButton.style.top = '8px'; 
+        minimizeButton.style.top = '8px';
         minimizeButton.style.left = '8px';
         minimizeButton.style.boxSizing = 'border-box';
-        minimizeButton.style.transform = 'none';
-    
-        minimizeButton.addEventListener('load', () => {
-            console.log('Minimize button rendered size:', {
-                width: minimizeButton.offsetWidth,
-                height: minimizeButton.offsetHeight
-            });
-        });
     
         const runButton = document.getElementById('run_button');
         const runRandomButton = document.getElementById('run_random_button');
-    
         const clonedRunButton = runButton.cloneNode(true);
         const clonedRandomButton = runRandomButton.cloneNode(true);
     
-        const preventClickIfDragged = (clonedButton, originalButton) => {
-            let isDraggingButton = false;
-            let hasMoved = false;
+        [clonedRunButton, clonedRandomButton].forEach(button => {
+            button.style.width = '200px';
+            button.style.boxSizing = 'border-box';
+            button.style.padding = '10px 15px';
+        });
+    
+        function preventClickIfDragged(clonedButton, originalButton) {
+            let isDraggingButton = false, hasMoved = false;
             const MOVE_THRESHOLD = 5;
     
             clonedButton.addEventListener('mousedown', (e) => {
@@ -1213,9 +1024,7 @@ function my_custom_js() {
                 };
     
                 const onUp = (upEvent) => {
-                    if (!hasMoved) {
-                        originalButton.click();
-                    }
+                    if (!hasMoved) originalButton.click();
                     isDraggingButton = false;
                     document.removeEventListener('mousemove', onMove);
                     document.removeEventListener('mouseup', onUp);
@@ -1224,100 +1033,111 @@ function my_custom_js() {
                 document.addEventListener('mousemove', onMove);
                 document.addEventListener('mouseup', onUp);
             });
-        };
+        }
     
         preventClickIfDragged(clonedRandomButton, runRandomButton);
         preventClickIfDragged(clonedRunButton, runButton);
     
         buttonContainer.appendChild(clonedRandomButton);
         buttonContainer.appendChild(clonedRunButton);
-        
-        buttonOverlay.appendChild(minimizeButton);
         buttonOverlay.appendChild(buttonContainer);
+        buttonOverlay.appendChild(minimizeButton);
         document.body.appendChild(buttonOverlay);
     
-        const loadingOverlay = document.getElementById('cg-loading-overlay');
-        addDragFunctionality(buttonOverlay, loadingOverlay);
-    
-        let isMinimized = false;
-        let lastFullPosition = null;
-    
-        function setMinimizedState(overlay, container, button, isMin) {
-            if (isMin) {
-                overlay.style.top = '0px';
-                overlay.style.left = '0px';
-                overlay.style.transform = 'none';
-                overlay.style.width = '30px';
-                overlay.style.height = '30px';
-                overlay.style.padding = '0';
-                container.style.display = 'none';
-                button.style.top = '7px';
-                button.style.left = '7px';
-            } else {
-                overlay.style.width = '220px';
-                overlay.style.padding = '20px';
-                container.style.paddingTop = '25px';
-                const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
-                if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
-                    overlay.style.top = `${savedPosition.top}px`;
-                    overlay.style.left = `${savedPosition.left}px`;
-                    overlay.style.transform = 'none';
-                }
-            }
-        }
-    
-        minimizeButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (!isMinimized) {
-                const rect = buttonOverlay.getBoundingClientRect();
-                lastFullPosition = { top: rect.top, left: rect.left };
-                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, true);
-                isMinimized = true;
-            } else {
-                buttonContainer.style.display = 'flex';
-                buttonOverlay.style.height = '';
-                minimizeButton.style.top = '8px';
-                minimizeButton.style.left = '8px';
-                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, false);
-                isMinimized = false;
-            }
-        });
-    
-        function toggleButtonOverlayVisibility() {
-            const loadingOverlay = document.getElementById('cg-loading-overlay');
-            const errorOverlay = document.getElementById('cg-error-overlay');
-            
-            if (loadingOverlay || errorOverlay) {
-                buttonOverlay.style.display = 'none';
-            } else {
-                buttonOverlay.style.display = 'flex';
-                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, isMinimized);
-            }
-        }
-    
-        buttonOverlay.style.width = '220px';
-        buttonOverlay.style.padding = '20px';
+        buttonOverlay.style.width = '240px';
+        buttonOverlay.style.padding = '20px 20px 5px';
+        buttonOverlay.style.boxSizing = 'border-box';
         const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
         if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
             buttonOverlay.style.top = `${savedPosition.top}px`;
             buttonOverlay.style.left = `${savedPosition.left}px`;
             buttonOverlay.style.transform = 'none';
         } else {
-            buttonOverlay.style.top = '80%';
-            buttonOverlay.style.left = '50%';
-            buttonOverlay.style.transform = 'translate(-50%, -20%)';
+            buttonOverlay.style.top = `${window.innerHeight * 0.8}px`;
+            buttonOverlay.style.left = `${window.innerWidth * 0.5 - 120}px`;
+            buttonOverlay.style.transform = 'none';
+        }
+    
+        let isMinimized = false;
+        let dragHandler;
+    
+        function enableDrag() {
+            if (!dragHandler) {
+                dragHandler = addDragFunctionality(buttonOverlay, () => document.getElementById('cg-loading-overlay'));
+            }
+        }
+    
+        function disableDrag() {
+            buttonOverlay.style.cursor = 'default';
+            if (dragHandler) {
+                buttonOverlay.removeEventListener('mousedown', dragHandler);
+                dragHandler = null;
+            }
+            minimizeButton.style.pointerEvents = 'auto';
+        }
+    
+        enableDrag();
+    
+        function setMinimizedState(overlay, container, button, isMin) {
+            if (isMin) {
+                overlay.style.top = '0px';
+                overlay.style.left = '0px';
+                overlay.style.transform = 'none';
+                overlay.style.width = '22px';
+                overlay.style.height = '22px';
+                overlay.style.minWidth = '22px';
+                overlay.style.minHeight = '22px';
+                overlay.style.padding = '0';
+                container.style.display = 'none';
+                button.style.top = '2px';
+                button.style.left = '2px';
+                disableDrag();
+            } else {
+                overlay.style.width = '240px';
+                overlay.style.height = 'auto';
+                overlay.style.minHeight = '110px';
+                overlay.style.padding = '20px 20px 5px';
+                container.style.display = 'flex';
+                container.style.padding = '20px';
+                const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+                if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+                    overlay.style.top = `${savedPosition.top}px`;
+                    overlay.style.left = `${savedPosition.left}px`;
+                    overlay.style.transform = 'none';
+                } else {
+                    overlay.style.top = `${window.innerHeight * 0.8}px`;
+                    overlay.style.left = `${window.innerWidth * 0.5 - 120}px`;
+                    overlay.style.transform = 'none';
+                }
+                overlay.style.pointerEvents = 'auto';
+                enableDrag();
+            }
+        }
+    
+        minimizeButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMinimized = !isMinimized;
+            setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, isMinimized);
+        });
+    
+        function toggleButtonOverlayVisibility() {
+            const loadingOverlay = document.getElementById('cg-loading-overlay');
+            const errorOverlay = document.getElementById('cg-error-overlay');
+            buttonOverlay.style.display = (loadingOverlay || errorOverlay) ? 'none' : 'flex';
+            if (isMinimized) {
+                buttonOverlay.style.top = '0px';
+                buttonOverlay.style.left = '0px';
+                buttonOverlay.style.transform = 'none';
+                disableDrag();
+            } else {
+                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, false);
+            }
         }
     
         toggleButtonOverlayVisibility();
     
-        const observer = new MutationObserver(() => {
-            toggleButtonOverlayVisibility();
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        const observer = new MutationObserver(toggleButtonOverlayVisibility);
+        observer.observe(document.body, { childList: true, subtree: true });
     
         return function cleanup() {
             observer.disconnect();
@@ -1326,11 +1146,4 @@ function my_custom_js() {
             }
         };
     }
-
-    console.log("[My JS] Script loaded, attempting initial setup");
-    setupSuggestionSystem();
-    setupGallery();
-    setupThumb();
-    setupButtonOverlay();
-    dark_theme();
 }
