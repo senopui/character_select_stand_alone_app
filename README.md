@@ -31,6 +31,12 @@ Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com
 4. Have fun
 
 ------
+# LoRA Support 
+Once you have set the correct model folder, the system will automatically search the relative LoRA directory according to the API type and update the LoRA list.    
+WebUI supports it's default LoRA prompt style.    
+ComfyUI supports more detailed configuration of LoRA, for more information please refer to the [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora). 
+**To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.0**   
+
 # Semi-Auto Tag Complete
 Tags credits from [a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete/blob/main/tags/danbooru.csv)    
 
@@ -70,6 +76,7 @@ The error message will also appear in the centre of your browser, you can dismis
 ### Model List for model switch
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
+    2.5. There is a `model_path_2nd` in `settings.json`, if you using WebUI and ComfyUI in same time, set it to another checkpoints folder.     
 3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
 4. To use all your local models, modify `model_filter` to `false`    
 5. To search subfolder models, modify `search_modelinsubfolder` to `true`    

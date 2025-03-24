@@ -110,13 +110,14 @@ class ComfyUIAPIGenerator:
 
 def run_comfyui(server_address, model_name, positive_prompt, negative_prompt, 
                 random_seed, steps, cfg, width, height,
-                hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='4x-UltraSharp', hf_colortransfer='none'
+                hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='4x-UltraSharp', hf_colortransfer='none',
+                workflow = 'workflow_api.json'
                 ):
     global ws
     client_id = str(uuid.uuid4())   
     current_file_path = os.path.abspath(__file__)
     current_folder = os.path.dirname(current_file_path)
-    workflow_path = os.path.join(current_folder, 'workflow_api.json')
+    workflow_path = os.path.join(current_folder, workflow)
                 
     ws = websocket.WebSocket()
     ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))                    

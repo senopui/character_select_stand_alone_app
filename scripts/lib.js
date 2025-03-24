@@ -8,6 +8,8 @@ function my_custom_js() {
         setupThumb();
         setupButtonOverlay();
     });
+    
+    window.customOverlay = customCommonOverlay();
 
     // Apply dark theme
     function dark_theme() {

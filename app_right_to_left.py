@@ -2,12 +2,12 @@ import gradio as gr
 import sys
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
-from lib import TITLE, settings_json, get_prompt_manager
+from lib import TITLE, settings_json, get_prompt_manager, add_lora, warning_lora, update_lora_list
 from custom_gallery import custom_gallery_default, custom_thumb_default, get_loading_status_images, get_images_dummy
-from custom_gallery import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_GALLERY_INIT
+from custom_gallery import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_GALLERY_INIT, JS_SHOWCUSTOM_ERRORMESSAGE
 
 if __name__ == '__main__':
-    character_list, view_tags, original_character_list, model_files_list, LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init()            
+    character_list, view_tags, original_character_list, model_files_list, lora_file_list, LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init()            
         
     #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
     
@@ -162,6 +162,12 @@ if __name__ == '__main__':
                         custom_prompt = gr.Textbox(value=settings_json["custom_prompt"], label=LANG["custom_prompt"], elem_id="custom_prompt_text") 
                         api_prompt = gr.Textbox(value=settings_json["api_prompt"], label=LANG["api_prompt"], elem_id="positive_prompt_text")
                         api_neg_prompt = gr.Textbox(value=settings_json["api_neg_prompt"], label=LANG["api_neg_prompt"], elem_id="negative_prompt_text")                        
+                        with gr.Accordion(label='LoRA', open=False):
+                            with gr.Row():
+                                lora_list = gr.Dropdown(choices=lora_file_list, label='', value='none', allow_custom_value=False, scale=12)
+                                lora_insert = gr.Button(value='+', variant='primary', scale=1)
+                            with gr.Row():
+                                lora_use_new_workflow = gr.Checkbox(label=LANG["api_comfyui_new_workflow"], value=False)                                
                         with gr.Row():
                             # AI prompts
                             batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
@@ -319,9 +325,13 @@ if __name__ == '__main__':
                                             ])
         
         manual_update_database_button.click(fn=manual_update_database, inputs=None).then(fn=manual_update_database, inputs=[manual_update_database_button], outputs=[manual_update_database_button])
+                
+        batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)        
         
-        batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
-        
+        lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface, lora_use_new_workflow], outputs=[api_prompt])    
+        lora_use_new_workflow.change(fn=warning_lora, inputs=[lora_use_new_workflow], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
+        api_interface.change(fn=update_lora_list, inputs=[api_interface], outputs=[lora_list])
+
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_images_dummy,inputs=[images_data],js=JS_SHOWTHUMB)
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_images_dummy,inputs=[images_data],js=JS_SHOWTHUMB)
         character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_images_dummy,inputs=[images_data],js=JS_SHOWTHUMB)

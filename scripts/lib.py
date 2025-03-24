@@ -2,6 +2,7 @@ import datetime
 import gzip
 import hashlib
 import os
+import re
 import glob
 import sys
 import textwrap
@@ -29,6 +30,8 @@ CAT = "WAI_Character_Select"
 ENGLISH_CHARACTER_NAME = False
 PROMPT_MANAGER = None
 
+COMFYUI_WORKFLOW = 'workflow_api.json'
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 json_folder = os.path.join(parent_dir, 'json')
@@ -50,6 +53,7 @@ settings_json = {
     "remote_ai_timeout":30,
     
     "model_path": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
+    "model_path_2nd": "F:\\Stable-diffusion\\stable-diffusion-webui\\models\\Stable-diffusion",
     "model_filter": False,
     "model_filter_keyword": "waiNSFW",
     "search_modelinsubfolder": False,
@@ -597,6 +601,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                 image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, 
                                               positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                               hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer,
+                                              workflow=COMFYUI_WORKFLOW
                                               )
                 image_data_bytes = bytes(image_data_list)  
                 api_image = Image.open(BytesIO(image_data_bytes))
@@ -1008,6 +1013,64 @@ def refresh_character_thumb_image(character1, character2, character3):
     js_generated_thumb_image_list = set_custom_gallery_thumb_images(thumb_image)
     return character_info, js_generated_thumb_image_list
 
+def warning_lora(show):
+    global COMFYUI_WORKFLOW
+    info = 'none'
+    if show:
+        info = LANG['api_warning_lora']
+        COMFYUI_WORKFLOW = 'workflow_api_new.json'
+    else:
+        COMFYUI_WORKFLOW = 'workflow_api.json'
+    return info
+
+def update_lora_list(api_interface, no_dropdown=False):
+    settings_json['api_interface'] = api_interface
+    
+    api_parent_dir = os.path.dirname(settings_json['model_path'])
+    lora_file_dir = 'none'
+    lora_file_list = []
+    if 'WebUI' == settings_json['api_interface']:
+        lora_file_dir = os.path.join(api_parent_dir, 'lora')
+    elif 'ComfyUI' == settings_json['api_interface']:
+        lora_file_dir = os.path.join(api_parent_dir, 'loras')
+    
+    if 'none' != settings_json['api_interface']:
+        if os.path.exists(lora_file_dir):
+            lora_file_list = get_safetensors_files(lora_file_dir, settings_json['search_modelinsubfolder'])
+        else:
+            print(f'[{CAT}]LoRA path not exist {lora_file_dir}, there is a \"model_path_2nd\" in settings.json(if not click save settings), if you using WebUI and ComfyUI in same time, set it to another checkpoints folder.')
+            api_parent_dir = os.path.dirname(settings_json['model_path_2nd'])
+            if 'WebUI' == settings_json['api_interface']:
+                lora_file_dir = os.path.join(api_parent_dir, 'lora')
+            elif 'ComfyUI' == settings_json['api_interface']:
+                lora_file_dir = os.path.join(api_parent_dir, 'loras')
+                
+            if os.path.exists(lora_file_dir):
+                print(f'[{CAT}]Found LoRA in 2nd folder setting: {lora_file_dir}.')
+                lora_file_list = get_safetensors_files(lora_file_dir, settings_json['search_modelinsubfolder'])
+            else:
+                print(f'[{CAT}]2nd LoRA path not exist {lora_file_dir}.')
+    
+    lora_file_list.insert(0, 'none')        
+    print(f'[{CAT}]LoRA list update to {settings_json['api_interface']}, LoRA count: {len(lora_file_list)}')
+    
+    if no_dropdown:
+        return lora_file_list
+    
+    return gr.Dropdown(choices=lora_file_list, label='', value='none', allow_custom_value=False, scale=12)
+
+def add_lora(lora_list, api_prompt, api_interface, lora_use_new_workflow):
+    lora = ''
+    if 'WebUI' == api_interface:
+        pattern = r'([^/\\]+?)(?=\.safetensors$)'
+        match = re.search(pattern, lora_list, re.IGNORECASE)
+        if match:
+            lora = f'\n<lora:{match.group(1)}:1>'
+    elif 'ComfyUI' == api_interface and lora_use_new_workflow:
+        lora = f'\n, <lora:{lora_list}:1>'
+            
+    return f'{api_prompt}{lora}'
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')
     parser.add_argument("--english", type=bool, default=False, required=False, help='Use English Character Name')
@@ -1036,12 +1099,13 @@ def init():
         js_script = load_text_file(lib_js_path)
         css_script = load_text_file(lib_css_path)
         
-        status_wait, status_error = init_custom_gallery()
-        
+        status_wait, status_error = init_custom_gallery()        
+        lora_file_list = update_lora_list(settings_json['api_interface'], no_dropdown=True)
+
         first_setup()
     except Exception as e:
         print(f"[{CAT}]:Initialization failed: {e}")
         sys.exit(1)
         
     print(f'[{CAT}]:Starting...')
-    return character_list, view_tags, original_character_list, model_files_list, LANG, js_script, css_script, status_wait, status_error
+    return character_list, view_tags, original_character_list, model_files_list, lora_file_list, LANG, js_script, css_script, status_wait, status_error

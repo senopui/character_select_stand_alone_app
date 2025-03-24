@@ -48,6 +48,8 @@ LANG_EN = {
     "api_hf_incorrect_upscaler": "Incorrect Upscaler selected, reset to default {}",
     "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
     "api_webui_savepath_override": "WebUI Save to \".\\outputs\"",
+    "api_comfyui_new_workflow": "Use ComfyUI New Workflow for LoRA support (Current workflow might works on limit function)",
+    "api_warning_lora": "Warning: Before you start, make sure you already upgrade custom node ComfyUI_Mira to v0.4.9.0.\nLoRA will not work in earlier version, and you will get error from ComfyUI backend.\nhttps://github.com/mirabarukaso/ComfyUI_Mira#lora \nClick to close and copy the whole information to clip board.",
     
     "run_button": "Create Prompt",
     "run_random_button": "Batch (Random)",
@@ -105,7 +107,7 @@ LANG_EN = {
     "setup_remote_ai_api_key_title": "API Key",
     "setup_remote_ai_api_key": "Enter Remote Large Language Model API key (also changeable in settings.json)",    
     "setup_webui_comfyui_title": "Important!",
-    "setup_webui_comfyui": "If you are using ComfyUI, enable dev mode in the settings. \nIf you are using WebUI, modify webui-user.bat and COMMANDLINE_ARGS= --api"
+    "setup_webui_comfyui": "If you are using ComfyUI, enable dev mode in the settings. \nIf you are using WebUI, modify webui-user.bat and COMMANDLINE_ARGS= --api\nThere is a \"model_path_2nd\" in settings.json, if you using WebUI and ComfyUI in same time, set it to another checkpoints folder."
 }
 
 LANG_CN = {
@@ -154,6 +156,8 @@ LANG_CN = {
     "api_hf_incorrect_upscaler": "选择了错误的高清模型，使用默认 {}",
     "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下",
     "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
+    "api_comfyui_new_workflow": "为ComfyUI启动全新LoRA工作流（不启用或许也可以，但功能有限）",
+    "api_warning_lora": "注意，在你正式开始前，必须把自定义节点 ComfyUI_Mira 升级到至少0.4.9.0或更高。\n否则，LoRA功能不但无法实现，运行生成还会导致ComfyUI后端报错。\nhttps://github.com/mirabarukaso/ComfyUI_Mira#lora \n点击此处会关闭提示，并复制这条信息到剪贴板。",
     
     "run_button": "单图生成",
     "run_random_button": "批量（随机）",
@@ -211,5 +215,5 @@ LANG_CN = {
     "setup_remote_ai_api_key_title": "API密钥",
     "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥（不需要可以直接跳过）",    
     "setup_webui_comfyui_title": "重要信息",
-    "setup_webui_comfyui": "如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api"
+    "setup_webui_comfyui": "如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api\n在settings.json中有一个名叫model_path_2nd的设置项，如果你同时使用WebUI和ComfyUI，可以把它设置为另一个程序的模型所在目录。"
 }

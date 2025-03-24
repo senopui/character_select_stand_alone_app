@@ -24,7 +24,7 @@ function(images_data) {
 }
 """
 
-JS_HANDLERESPONSE = "function(image_data, image_seeds, image_tags) { window.cgCustomGallery.handleResponse(image_data, image_seeds, image_tags); }",
+JS_HANDLERESPONSE = "function(image_data, image_seeds, image_tags) { window.cgCustomGallery.handleResponse(image_data, image_seeds, image_tags); }"
 
 JS_SHOWTHUMB = """
 function(images_data) {
@@ -48,6 +48,14 @@ function(loading_wait, loading_failed) {
         loading_wait: window.LOADING_WAIT_BASE64,
         loading_failed: window.LOADING_FAILED_BASE64
     });
+}
+"""
+
+JS_SHOWCUSTOM_ERRORMESSAGE = """
+function(errorMessage) {
+    if (errorMessage !== "none") {
+        window.customOverlay.createErrorOverlay(errorMessage);
+    }
 }
 """
 
