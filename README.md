@@ -39,6 +39,9 @@ Entering the `first few characters` will automatically search for matching tags,
 
 Use the `mouse` to select the prompt word, but you can also use the `keyboard up and down` with `Enter` or `Tab` to select, press `Esc` to close the prompt box.     
 
+### Weight adjust
+You can use `ctrl + up` and `ctrl + down` arrow to adjust the weight of the current tag, or you can adjust the weight of multiple tags by selecting a fragment, the usage is similar to comfyui and webui, but some details of the logic may be different.    
+
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_complete.png" width=55% height=55%>   
 
 # New Custom Gallery

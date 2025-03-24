@@ -178,30 +178,110 @@ function my_custom_js() {
             }, 50));
 
             textbox.addEventListener('keydown', (e) => {
-                if (suggestionBox.style.display === 'none') return;
+                if (suggestionBox.style.display !== 'none') {
 
-                const items = suggestionBox.querySelectorAll('.suggestion-item');
-                if (items.length === 0) return;
+                    const items = suggestionBox.querySelectorAll('.suggestion-item');
+                    if (items.length === 0) return;
 
-                if (e.key === 'Tab' || e.key === 'Enter') {
-                    e.preventDefault();
-                    if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
-                        applySuggestion(currentSuggestions[selectedIndex].prompt[0]);
-                    } else if (items.length > 0) {
-                        applySuggestion(currentSuggestions[0].prompt[0]);
+                    if (e.key === 'Tab' || e.key === 'Enter') {
+                        e.preventDefault();
+                        if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
+                            applySuggestion(currentSuggestions[selectedIndex].prompt[0]);
+                        } else if (items.length > 0) {
+                            applySuggestion(currentSuggestions[0].prompt[0]);
+                        }
+                    } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                        updateSelection(items);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        selectedIndex = Math.max(selectedIndex - 1, 0);
+                        updateSelection(items);
+                    } else if (e.key === 'Escape') {
+                        suggestionBox.style.display = 'none';
                     }
-                } else if (e.key === 'ArrowDown') {
+                }
+
+                if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
                     e.preventDefault();
-                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                    updateSelection(items);
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    selectedIndex = Math.max(selectedIndex - 1, 0);
-                    updateSelection(items);
-                } else if (e.key === 'Escape') {
-                    suggestionBox.style.display = 'none';
+                    adjustWeight(e.key === 'ArrowUp', textbox);
                 }
             });
+
+            function adjustWeight(isIncrease, textbox) {
+                const value = textbox.value;
+                const startPos = textbox.selectionStart;
+                const endPos = textbox.selectionEnd;
+    
+                let targetText, start, end;
+    
+                if (startPos !== endPos) {
+                    targetText = value.slice(startPos, endPos);
+                    start = startPos;
+                    end = endPos;
+                } else {
+                    const beforeCursor = value.slice(0, startPos);
+                    const afterCursor = value.slice(startPos);
+    
+                    const bracketMatch = findBracketedTag(beforeCursor, afterCursor);
+                    if (bracketMatch) {
+                        targetText = bracketMatch.text;
+                        start = bracketMatch.start;
+                        end = bracketMatch.end;
+                    } else {
+                        const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
+                        const firstSeparatorAfter = afterCursor.indexOf(',') >= 0 ? afterCursor.indexOf(',') : afterCursor.indexOf('\n');
+                        start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
+                        end = firstSeparatorAfter >= 0 ? startPos + firstSeparatorAfter : value.length;
+                        targetText = value.slice(start, end).trim();
+                    }
+                }
+    
+                if (!targetText) return;
+    
+                let currentWeight = 1.0;
+                const weightMatch = targetText.match(/^\((.+):(\d*\.?\d+)\)$/);
+                if (weightMatch) {
+                    targetText = weightMatch[1];
+                    currentWeight = parseFloat(weightMatch[2]);
+                }
+    
+                const step = 0.1;
+                currentWeight = isIncrease ? currentWeight + step : currentWeight - step;
+                if (currentWeight < 0.0 || currentWeight > 3.0) return;
+                currentWeight = parseFloat(currentWeight.toFixed(1));
+    
+                const newTag = currentWeight === 1.0 ? targetText : `(${targetText}:${currentWeight})`;
+    
+                const newValue = value.slice(0, start) + newTag + value.slice(end);
+                textbox.value = newValue;
+    
+                const newCursorPos = start + newTag.length;
+                textbox.setSelectionRange(newCursorPos, newCursorPos);
+    
+                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+    
+            function findBracketedTag(beforeCursor, afterCursor) {
+                const fullText = beforeCursor + afterCursor;
+                const cursorPos = beforeCursor.length;
+    
+                const bracketRegex = /\(([^()]+:\d*\.?\d+)\)/g;
+                let match;
+                while ((match = bracketRegex.exec(fullText)) !== null) {
+                    const start = match.index;
+                    const end = start + match[0].length;
+                    if (start <= cursorPos && cursorPos <= end) {
+                        return {
+                            text: match[0],
+                            start: start,
+                            end: end
+                        };
+                    }
+                }
+                return null;
+            }
 
             document.addEventListener('click', (e) => {
                 if (!suggestionBox.contains(e.target) && e.target !== textbox) {
