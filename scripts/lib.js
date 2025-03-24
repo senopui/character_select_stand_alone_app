@@ -245,25 +245,32 @@ function my_custom_js() {
             function applySuggestion(promptText) {
                 const formattedText = formatSuggestion(promptText);
                 const value = textbox.value;
-
-                const lastCommaOrNewline = Math.max(value.lastIndexOf(','), value.lastIndexOf('\n'));
-                const start = lastCommaOrNewline >= 0 ? lastCommaOrNewline + 1 : 0;
-                const end = value.length;
-
+                const cursorPosition = textbox.selectionStart;
+            
+                const beforeCursor = value.slice(0, cursorPosition);
+                const afterCursor = value.slice(cursorPosition);
+                const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
+                const firstSeparatorAfter = afterCursor.indexOf(',') >= 0 ? afterCursor.indexOf(',') : afterCursor.indexOf('\n');
+                
+                const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
+                const end = firstSeparatorAfter >= 0 ? cursorPosition + firstSeparatorAfter : value.length;
+            
                 const isFirstWordInLine = start === 0 || value[start - 1] === '\n';
                 const prefix = isFirstWordInLine ? '' : ' ';
-                const suffix = ', ';
-
+                
+                const isEndOfText = cursorPosition === value.length;
+                const suffix = isEndOfText ? ', ' : '';
+            
                 const newValue = value.slice(0, start) + prefix + formattedText + suffix + value.slice(end);
                 textbox.value = newValue.trim();
-
+            
                 const newCursorPosition = start + prefix.length + formattedText.length + suffix.length;
                 textbox.setSelectionRange(newCursorPosition, newCursorPosition);
-
+            
                 currentSuggestions = [];
                 suggestionBox.innerHTML = '';
                 suggestionBox.style.display = 'none';
-
+            
                 textbox.dispatchEvent(new Event('input', { bubbles: true }));
                 textbox.focus();
             }
