@@ -920,20 +920,74 @@ function my_custom_js() {
         }
     
         function createErrorOverlay(errorMessage) {
-            return createInfoOverlay({
+            let displayMessage = errorMessage;
+            let copyContent = errorMessage;
+        
+            const hasUrl = /\[COPY_URL\]/.test(errorMessage);
+            const hasCustom = /\[COPY_CUSTOM/.test(errorMessage);
+        
+            if (hasUrl) {
+                displayMessage = displayMessage.replace(
+                    /\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g,
+                    '<a href="$1" target="_blank" style="color: #1e90ff; text-decoration: underline;">$1</a>'
+                );
+                const urlMatches = [...errorMessage.matchAll(/\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g)];
+                if (urlMatches.length > 0) {
+                    copyContent = urlMatches[urlMatches.length - 1][1]; 
+                }
+            }
+        
+            if (hasCustom) {
+                displayMessage = displayMessage.replace(
+                    /\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g,
+                    (match, color, text) => {
+                        const colorStyle = color || '#000000';
+                        return `<span style="color: ${colorStyle}">${text}</span>`;
+                    }
+                );
+
+                if (!hasUrl) {
+                    const customMatches = [...errorMessage.matchAll(/\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g)];
+                    if (customMatches.length > 0) {
+                        copyContent = customMatches[customMatches.length - 1][2];
+                    }
+                }
+            }
+        
+            const overlay = createInfoOverlay({
                 id: 'cg-error-overlay',
                 className: 'cg-overlay-error',
                 content: `
-                    <img src="${window.LOADING_FAILED_BASE64}" alt="Error" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
-                    <pre style="white-space: pre-wrap;">${errorMessage}</pre>
+                    <div class="cg-error-content" style="display: flex; flex-direction: column; align-items: center;">
+                        <img src="${window.LOADING_FAILED_BASE64}" alt="Error" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 15px;">
+                        <pre style="white-space: pre-wrap; padding: 0 20px; margin: 0; max-width: 100%; font-size: 1.2em;">${displayMessage}</pre>
+                    </div>
                 `,
-                onClick: () => {
-                    navigator.clipboard.writeText(errorMessage)
-                        .then(() => console.log(`Error message "${errorMessage}" copied to clipboard`))
-                        .catch(err => console.error('Failed to copy error message:', err));
+                onClick: (e) => {
+                    if (e.target.tagName === 'A') {
+                        e.stopPropagation();
+                        return;
+                    }
+                    navigator.clipboard.writeText(copyContent)
+                        .then(() => console.log(`Copied to clipboard: "${copyContent}"`))
+                        .catch(err => console.error('Failed to copy:', err));
                     document.getElementById('cg-error-overlay').remove();
                 }
             });
+        
+            overlay.style.width = 'fit-content';
+            overlay.style.minWidth = '200px';
+            overlay.style.maxWidth = 'min(1000px, 90vw)';
+            overlay.style.boxSizing = 'border-box';
+            overlay.style.padding = '20px';
+        
+            const contentPre = overlay.querySelector('.cg-error-content pre');
+            if (contentPre) {
+                contentPre.style.boxSizing = 'border-box';
+                contentPre.style.wordWrap = 'break-word';
+            }
+        
+            return overlay;
         }
     
         function createLoadingOverlay() {

@@ -48,8 +48,8 @@ LANG_EN = {
     "api_hf_incorrect_upscaler": "Incorrect Upscaler selected, reset to default {}",
     "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
     "api_webui_savepath_override": "WebUI Save to \".\\outputs\"",
-    "api_comfyui_new_workflow": "Use ComfyUI New Workflow for LoRA support (Current workflow might works on limit function)",
-    "api_warning_lora": "Warning: Before you start, make sure you already upgrade custom node ComfyUI_Mira to v0.4.9.0.\nLoRA will not work in earlier version, and you will get error from ComfyUI backend.\nhttps://github.com/mirabarukaso/ComfyUI_Mira#lora \nClick to close and copy the whole information to clip board.",
+    "api_comfyui_new_workflow": "Use ComfyUI New Workflow for LoRA support (Current not working)",
+    "api_warning_lora": "Warning: Before you start, make sure upgrade custom node ComfyUI_Mira to v0.4.9.0.\n[COPY_CUSTOM=IndianRed]LoRA not working in current workflow, and will get error from ComfyUI backend.[/COPY_CUSTOM]\n\nCheck: [COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\nClick to close and copy URL to clip board.",
     
     "run_button": "Create Prompt",
     "run_random_button": "Batch (Random)",
@@ -70,7 +70,7 @@ LANG_EN = {
     "gr_warning_cfgstepwh_mismatch":"[Warning] \"CFG,Step,W,H,Batch\" data mismatch, use default: 7.0, 30, 1024, 1360, 1",
     "gr_warning_manual_update_database": "Download files failed, please check console logs.\n{}",
     
-    "gr_error_creating_image":"[Error] Got error from Image API: {}\nCheck your {} console logs, and Local Image Generator API/IP/Port settings.",
+    "gr_error_creating_image":"[Error] Got error from Image API:\n[COPY_CUSTOM=red]{}[/COPY_CUSTOM]\nCheck your {} console logs, and Local Image Generator API/IP/Port settings.",
     
     "ai_system_prompt": textwrap.dedent("""\
     You are a Stable Diffusion prompt writer. Follow these guidelines to generate prompts:
@@ -156,8 +156,8 @@ LANG_CN = {
     "api_hf_incorrect_upscaler": "选择了错误的高清模型，使用默认 {}",
     "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下",
     "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
-    "api_comfyui_new_workflow": "为ComfyUI启动全新LoRA工作流（不启用或许也可以，但功能有限）",
-    "api_warning_lora": "注意，在你正式开始前，必须把自定义节点 ComfyUI_Mira 升级到至少0.4.9.0或更高。\n否则，LoRA功能不但无法实现，运行生成还会导致ComfyUI后端报错。\nhttps://github.com/mirabarukaso/ComfyUI_Mira#lora \n点击此处会关闭提示，并复制这条信息到剪贴板。",
+    "api_comfyui_new_workflow": "为ComfyUI启动全新LoRA工作流（否则添加无效）",
+    "api_warning_lora": "注意，在你开始前，必须把自定义节点 ComfyUI_Mira 升级到至少0.4.9.0或更高。\n[COPY_CUSTOM=IndianRed]否则，LoRA功能不但无法生效，运行生成还会导致ComfyUI后端报错。[/COPY_CUSTOM]\n\n参考：[COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\n点击此处会关闭提示，并复制URL到剪贴板。",
     
     "run_button": "单图生成",
     "run_random_button": "批量（随机）",
@@ -178,7 +178,7 @@ LANG_CN = {
     "gr_warning_manual_update_database": "文件下载失败，请检查控制台日志确认问题\n{}",
     "gr_info_tag_assist_add": "角色标签辅助：[{}] 追加到角色 [{}].\n如果你在生成多人图像，其他人可能会受到影响，请注意。",
     
-    "gr_error_creating_image":"错误：生成图片返回故障信息：[{}]\n请检查{}控制台输出的日志，同时检查本地生图设置是否正确配置。",
+    "gr_error_creating_image":"错误：生成图片返回故障信息：\n[COPY_CUSTOM=red]{}[/COPY_CUSTOM]\n请检查{}控制台输出的日志，同时检查本地生图设置是否正确配置。",
     
     "ai_system_prompt": textwrap.dedent("""\
     你是一个Stable Diffusion提示词编写者，按照以下指南生成提示词：
