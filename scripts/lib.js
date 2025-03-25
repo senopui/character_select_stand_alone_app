@@ -341,7 +341,13 @@ function my_custom_js() {
                 const prefix = isFirstWordInLine ? '' : ' ';
                 
                 const isEndOfText = cursorPosition === value.length;
-                const suffix = isEndOfText ? ', ' : '';
+                const hasNewlineAfter = afterCursor.startsWith('\n');
+                let suffix = '';
+                if (isEndOfText) {
+                    suffix = ', ';
+                } else if (hasNewlineAfter) {
+                    suffix = '\n'; 
+                }
             
                 const newValue = value.slice(0, start) + prefix + formattedText + suffix + value.slice(end);
                 textbox.value = newValue.trim();

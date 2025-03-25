@@ -137,7 +137,7 @@ class PromptManager:
         matches = []        
     
         # Split the text by commas
-        current_parts = text.split(',') if text else []
+        current_parts = text.replace('\n',',').split(',') if text else []
         previous_parts = self.previous_custom_prompt.split(',') if self.previous_custom_prompt else []
     
         # Locate the position of the word modified by the user
