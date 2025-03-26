@@ -1052,7 +1052,8 @@ def update_lora_list(api_interface, no_dropdown=False):
                 print(f'[{CAT}]2nd LoRA path not exist {lora_file_dir}.')
     
     lora_file_list.insert(0, 'none')        
-    print(f'[{CAT}]LoRA list update to {settings_json['api_interface']}, LoRA count: {len(lora_file_list)}')
+    interface_text = settings_json['api_interface']
+    print(f'[{CAT}]LoRA list update to {interface_text}, LoRA count: {len(lora_file_list)}')
     
     if no_dropdown:
         return lora_file_list
