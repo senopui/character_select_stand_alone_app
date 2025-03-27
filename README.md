@@ -4,6 +4,14 @@ Now supports 5173 (includes multiple costumes) Character list.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
 
+| Item Support | ComfyUI| WebUI | Forge|
+| --- | --- | --- | --- |
+| LoRA | Yes | Yes | Yes |
+| BREAK | No | Yes | Yes |
+| vPred | Yes | No | Need confirm |
+| Image Color Transfer | Yes | Yes | Yes |
+| Regional Condition | No | No | No |
+
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)
 
 # One-Click embedded package
@@ -77,7 +85,7 @@ The error message will also appear in the centre of your browser, you can dismis
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
     2.5. There is a `model_path_2nd` in `settings.json`, if you using WebUI and ComfyUI in same time, set it to another checkpoints folder.     
-3. To use more `wai` models, modify `model_filter_keyword` to `wai`   
+3. Default is `waiNSFW,waiSHUFFLENOOB`, means it will only accept model name that contains one of those keywords. To use more `wai` models, modify `model_filter_keyword` to `wai`   
 4. To use all your local models, modify `model_filter` to `false`    
 5. To search subfolder models, modify `search_modelinsubfolder` to `true`    
 6. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
