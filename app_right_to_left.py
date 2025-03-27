@@ -40,7 +40,7 @@ if __name__ == '__main__':
             
             # A lot dummy for java script
             dummy_dropdown = gr.Dropdown(visible=False, allow_custom_value=True)
-            dummy_textbox1 = gr.Textbox(visible=False, value=f'{LANG["character1"]},{LANG["character3"]},{LANG["character3"]},{LANG["original_character"]}')
+            dummy_textbox1 = gr.Textbox(visible=False, value=f'{LANG["character1"]},{LANG["character2"]},{LANG["character3"]},{LANG["original_character"]}')
             dummy_textbox2 = gr.Textbox(visible=False, value=f'{LANG["view_angle"]},{LANG["view_camera"]},{LANG["view_background"]},{LANG["view_style"]}')
             
             dummy_wait_base64=gr.Text(value=LOADING_WAIT_BASE64, visible=False)
