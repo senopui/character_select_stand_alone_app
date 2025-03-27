@@ -125,8 +125,7 @@ def first_setup():
     model_folder = wiz.get_string(LANG["setup_model_folder_title"], LANG["setup_model_folder"], settings_json["model_path"])
     if model_folder:
         print(f"model_folder: {model_folder}")
-        settings_json["model_path"] = model_folder
-        get_safetensors()
+        settings_json["model_path"] = model_folder        
     else:
         print("model_folder: skipped")
     
@@ -142,6 +141,7 @@ def first_setup():
 
     settings_json["search_modelinsubfolder"] = wiz.ask_yes_no(LANG["setup_search_modelinsubfolder_title"], LANG["setup_search_modelinsubfolder"])            
     
+    get_safetensors()
     
     remote_ai_api_key = wiz.get_string(LANG["setup_remote_ai_api_key_title"], LANG["setup_remote_ai_api_key"], "<API KEY>")
     if remote_ai_api_key:
