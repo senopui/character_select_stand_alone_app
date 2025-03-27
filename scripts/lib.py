@@ -56,7 +56,7 @@ settings_json = {
     "model_path": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
     "model_path_2nd": "F:\\Stable-diffusion\\stable-diffusion-webui\\models\\Stable-diffusion",
     "model_filter": False,
-    "model_filter_keyword": "waiNSFW",
+    "model_filter_keyword": "waiNSFW,waiSHUFFLENOOB",
     "search_modelinsubfolder": False,
     
     "character1": "random",
@@ -305,13 +305,15 @@ def get_safetensors():
     model_files_list=[]
     files_list = get_safetensors_files(settings_json["model_path"], settings_json["search_modelinsubfolder"])
     
-    if len(files_list) > 0 :
+    if len(files_list) > 0:
+        keywords = [keyword.strip() for keyword in settings_json["model_filter_keyword"].split(',')]
+        
         for model in files_list:
-            if settings_json["model_filter"]:
-                if (model).__contains__(settings_json["model_filter_keyword"]):
+            if settings_json["model_filter"]:                
+                if any(keyword in model for keyword in keywords):
                     model_files_list.append(model)
             else:
-                model_files_list.append(model)            
+                model_files_list.append(model)        
     model_files_list.insert(0, 'default')    
 
 def save_json(now_settings_json, file_name):

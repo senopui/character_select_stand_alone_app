@@ -333,7 +333,7 @@
         0
       ],
       "model": [
-        "11",
+        "35",
         0
       ],
       "clip": [
@@ -344,6 +344,20 @@
     "class_type": "LoRAfromText",
     "_meta": {
       "title": "LoRA Loader from Text"
+    }
+  },
+  "35": {
+    "inputs": {
+      "sampling": "eps",
+      "zsnr": false,
+      "model": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingDiscrete",
+    "_meta": {
+      "title": "ModelSamplingDiscrete"
     }
   }
 }

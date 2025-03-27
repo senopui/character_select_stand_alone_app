@@ -15,6 +15,11 @@ if __name__ == '__main__':
     
     def sync_hf(trigger):
         return trigger
+    
+    def check_vpred(trigger, model_name):
+        if model_name.__contains__('vPred'):
+            return True
+        return trigger
         
     def generate_lock():
         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, interactive=False)
@@ -79,9 +84,10 @@ if __name__ == '__main__':
                         )    
                     api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"])                    
                 with gr.Row():
-                    api_hf_enable_shadow = gr.Checkbox(label=LANG["api_hf_enable"],value=False)
+                    api_hf_enable_shadow = gr.Checkbox(label=LANG["api_hf_enable"],value=False, scale=1)
                     tag_assist = gr.Checkbox(label=LANG["tag_assist"], value=settings_json["tag_assist"], scale=1)
                     api_image_landscape = gr.Checkbox(value=settings_json["api_image_landscape"], label=LANG["api_image_landscape"], scale = 1)
+                    use_new_workflow = gr.Checkbox(label=LANG["api_comfyui_new_workflow"], value=False, scale=2)
                 with gr.Row(elem_id="generate_buttons"):                    
                         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button")
                         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button")
@@ -129,9 +135,7 @@ if __name__ == '__main__':
                         with gr.Accordion(label='LoRA', open=False):
                             with gr.Row():
                                 lora_list = gr.Dropdown(choices=lora_file_list, label='', value='none', allow_custom_value=False, scale=12)
-                                lora_insert = gr.Button(value='+', variant='primary', scale=1)
-                            with gr.Row():
-                                lora_use_new_workflow = gr.Checkbox(label=LANG["api_comfyui_new_workflow"], value=False)                                
+                                lora_insert = gr.Button(value='+', variant='primary', scale=1)                                
                         with gr.Row():
                             # AI prompts
                             batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
@@ -301,8 +305,8 @@ if __name__ == '__main__':
                 
         batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)        
         
-        lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface, lora_use_new_workflow], outputs=[api_prompt])    
-        lora_use_new_workflow.change(fn=warning_lora, inputs=[lora_use_new_workflow], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
+        lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface, use_new_workflow], outputs=[api_prompt])    
+        use_new_workflow.change(fn=warning_lora, inputs=[use_new_workflow], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
         api_interface.change(fn=update_lora_list, inputs=[api_interface], outputs=[lora_list])
 
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
@@ -316,6 +320,8 @@ if __name__ == '__main__':
         
         api_hf_enable_shadow.change(fn=sync_hf, inputs=[api_hf_enable_shadow], outputs=[api_hf_enable])
         api_hf_enable.change(fn=sync_hf, inputs=[api_hf_enable], outputs=[api_hf_enable_shadow])
+        
+        api_model_file_select.change(fn=check_vpred, inputs=[use_new_workflow, api_model_file_select], outputs=[use_new_workflow])
         
         ui.load(
             fn=get_12,

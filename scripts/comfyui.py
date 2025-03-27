@@ -126,6 +126,8 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
     
     if 'default' != model_name:
         my_gen.set_model(model_name=model_name, node_id="11")
+        if model_name.__contains__('vPred'):
+            my_gen.set_ex(node_id="35", inputs="inputs", item="sampling", data="v_prediction")
     
     my_gen.set_steps_cfg(steps=steps, cfg=cfg, node_id="13")
     my_gen.set_seed(seed=random_seed, knode_id="4", snode_id='29')

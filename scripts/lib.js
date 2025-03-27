@@ -761,19 +761,27 @@ function my_custom_js() {
                             console.log(`Seed ${seedToCopy} copied to clipboard`);
                             seedButton.textContent = 'Copied!';
                             setTimeout(() => seedButton.textContent = 'Seed', 2000);
-
+        
                             const sliderContainer = document.getElementById('random_seed');
                             if (sliderContainer) {
                                 const numberInput = sliderContainer.querySelector('input[type="number"]');
                                 const rangeInput = sliderContainer.querySelector('input[type="range"]');
                                 if (numberInput && rangeInput) {
                                     const seedValue = parseInt(seedToCopy, 10);
+                                    const currentValue = parseInt(numberInput.value, 10);
                                     if (!isNaN(seedValue) && seedValue >= -1 && seedValue <= 4294967295) {
-                                        numberInput.value = seedValue;
+                                        let targetValue = seedValue;
+                                        if (currentValue === seedValue) {
+                                            targetValue = -1; 
+                                            console.log(`Seed matches current value (${seedValue}), resetting to -1`);
+                                        } else {
+                                            console.log(`Updating random_seed to ${seedValue}`);
+                                        }
+        
+                                        numberInput.value = targetValue;
                                         numberInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                        rangeInput.value = seedValue;
+                                        rangeInput.value = targetValue;
                                         rangeInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                        console.log(`Updated random_seed to ${seedValue}`);
                                     }
                                 }
                             }
