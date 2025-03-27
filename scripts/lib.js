@@ -1,14 +1,27 @@
-//Better?
+//more functions
 function my_custom_js() {
     console.log("[My JS] Script loaded, attempting initial setup");
     dark_theme();
+
+    window.LOADING_MESSAGE = 'Processing...';
+    window.ELAPSED_TIME_PREFIX = 'Time elapsed: ';
+    window.ELAPSED_TIME_SUFFIX = 'sec';
+
+    // Initialize global dropdowns namespace
+    window.dropdowns = window.dropdowns || {};
+
+    // Synchronously initialize dropdowns to ensure availability
+    myCharacterList();
+    myViewsList();
+
     requestIdleCallback(() => {
         setupSuggestionSystem();
         setupGallery();
         setupThumb();
         setupButtonOverlay();
-    });
-    
+        myCharacterList();  
+        myViewsList();      
+    });    
     window.customOverlay = customCommonOverlay();
 
     // Apply dark theme
@@ -1002,19 +1015,21 @@ function my_custom_js() {
                 className: '',
                 content: `
                     <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
-                    <span>Now generating...</span>
-                    <span class="cg-overlay-timer">Elapsed time: 0 seconds</span>
+                    <span>${window.LOADING_MESSAGE || 'Now generating...'}</span>
+                    <span class="cg-overlay-timer">${window.ELAPSED_TIME_PREFIX || 'Elapsed time:'} 0 ${window.ELAPSED_TIME_SUFFIX || 'seconds'}</span>
                 `
             });
             overlay.style.zIndex = '10001';
             overlay.style.pointerEvents = 'auto';
-    
+        
             const startTime = Date.now();
             if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
             const timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const timerElement = overlay.querySelector('.cg-overlay-timer');
-                if (timerElement) timerElement.textContent = `Elapsed time: ${elapsed} seconds`;
+                if (timerElement) {
+                    timerElement.textContent = `${window.ELAPSED_TIME_PREFIX || 'Elapsed time:'} ${elapsed} ${window.ELAPSED_TIME_SUFFIX || 'seconds'}`;
+                }
             }, 1000);
             overlay.dataset.timerInterval = timerInterval;
             return overlay;
@@ -1294,5 +1309,305 @@ function my_custom_js() {
                 buttonOverlay.parentNode.removeChild(buttonOverlay);
             }
         };
+    }
+
+    function setupMyDropdown({ containerId, dropdownCount, labelPrefixList, textboxIds, optionHandler, enableSearch = true }) {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.dropdownSetup) return;
+    
+        let html = '<div class="mydropdown-container-flex">';
+        for (let i = 0; i < dropdownCount; i++) {
+            html += `
+                <div class="mydropdown-wrapper" data-index="${i}">
+                    <span class="mydropdown-label">${labelPrefixList[i]}</span>
+                    <div class="mydropdown-input-container">
+                        <input type="text" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
+                        <svg class="mydropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                            <path d="M5 8l4 4 4-4z"></path>
+                        </svg>
+                    </div>
+                </div>
+            `;
+        }
+        html += '</div>';
+        container.innerHTML = html;
+    
+        const inputs = container.querySelectorAll('.mydropdown-input');
+        const wrappers = container.querySelectorAll('.mydropdown-wrapper');
+        const optionsList = document.createElement('div');
+        optionsList.className = 'mydropdown-options scroll-container';
+        optionsList.style.display = 'none';
+        document.body.appendChild(optionsList);
+    
+        let textboxes = [];
+        function initializeTextboxes() {
+            textboxes = textboxIds.map(id => {
+                const element = document.getElementById(id);
+                return element ? element.querySelector('textarea') : null;
+            });
+        }
+        initializeTextboxes();
+    
+        let options = Array(dropdownCount).fill([]);
+        let filteredOptions = Array(dropdownCount).fill([]);
+        let activeInput = null;
+        let isEditing = Array(dropdownCount).fill(false);
+        let selectedValues = Array(dropdownCount).fill('');
+    
+        window.dropdowns[containerId] = {
+            setOptions: function(data, oc, labelPrefixList, ...rest) {
+                const defaults = rest.slice(0, dropdownCount);
+                const newEnableSearch = rest[dropdownCount] !== undefined ? rest[dropdownCount] : enableSearch;
+    
+                optionHandler(options, filteredOptions, [data, oc], dropdownCount);
+    
+                let updatedLabelPrefixList = labelPrefixList;
+                if (typeof labelPrefixList === 'string') {
+                    updatedLabelPrefixList = labelPrefixList.split(',').map(label => label.trim());
+                }
+                if (Array.isArray(updatedLabelPrefixList) && updatedLabelPrefixList.length === dropdownCount) {
+                    labelPrefixList = updatedLabelPrefixList;
+                }
+    
+                inputs.forEach((input, index) => {
+                    const value = defaults[index] || '';
+                    selectedValues[index] = value;
+                    input.value = value;
+                    if (!newEnableSearch) input.setAttribute('readonly', 'readonly');
+                    if (textboxes[index] && textboxes[index].value !== undefined) {
+                        textboxes[index].value = value;
+                        textboxes[index].dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+                const labels = container.querySelectorAll('.mydropdown-label');
+                labels.forEach((label, index) => label.textContent = labelPrefixList[index]);
+                updateOptionsList(0);
+            },
+            updateDefaults: function(...defaults) {
+                const defaultValues = defaults.slice(0, dropdownCount);
+                inputs.forEach((input, index) => {
+                    if (!isEditing[index]) {
+                        const value = defaultValues[index] || '';
+                        selectedValues[index] = value;
+                        input.value = value;
+                        if (textboxes[index] && textboxes[index].value !== undefined) {
+                            textboxes[index].value = value;
+                            textboxes[index].dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                });
+            },
+            getValue: function() {
+                return selectedValues.slice();
+            }
+        };
+    
+        if (enableSearch) {
+            wrappers.forEach((wrapper, index) => {
+                wrapper.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'INPUT' && isEditing[index]) return;
+                    activeInput = inputs[index];
+                    filteredOptions[index] = [...options[index]];
+                    updateOptionsList(index);
+                    updateOptionsPosition(index);
+                    optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
+                });
+            });
+    
+            inputs.forEach((input, index) => {
+                input.addEventListener('click', (e) => {
+                    if (optionsList.style.display === 'block' && !isEditing[index]) {
+                        e.preventDefault();
+                        activeInput = input;
+                        isEditing[index] = true;
+                        input.value = '';
+                        filteredOptions[index] = [...options[index]];
+                        updateOptionsList(index);
+                        updateOptionsPosition(index);
+                        optionsList.style.display = 'block';
+                        input.focus();
+                    }
+                });
+    
+                input.addEventListener('input', debounce(() => {
+                    activeInput = input;
+                    const searchText = input.value.toLowerCase();
+                    const index = parseInt(input.closest('.mydropdown-wrapper').dataset.index);
+                    filteredOptions[index] = options[index].filter(option =>
+                        option.key.toLowerCase().includes(searchText) ||
+                        (index !== 3 && option.value.toLowerCase().includes(searchText))
+                    );
+                    updateOptionsList(index);
+                    updateOptionsPosition(index);
+                    optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
+                }, 100));
+            });
+        } else {
+            inputs.forEach((input, index) => {
+                input.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (activeInput === input && optionsList.style.display === 'block') {
+                        optionsList.style.display = 'none';
+                        activeInput = null;
+                    } else {
+                        if (activeInput !== null) {
+                            const prevIndex = parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index);
+                            inputs[prevIndex].value = selectedValues[prevIndex];
+                        }
+                        activeInput = input;
+                        filteredOptions[index] = [...options[index]];
+                        updateOptionsList(index);
+                        updateOptionsPosition(index);
+                        optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
+                    }
+                    input.value = selectedValues[index];
+                });
+            });
+        }
+    
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target) && !optionsList.contains(e.target)) {
+                optionsList.style.display = 'none';
+                inputs.forEach((input, index) => {
+                    input.value = selectedValues[index];
+                    isEditing[index] = false;
+                });
+                activeInput = null;
+            }
+        });
+    
+        function updateOptionsPosition(index) {
+            if (!activeInput) activeInput = inputs[index];
+            const rect = activeInput.getBoundingClientRect();
+            const inputBottom = rect.bottom + window.scrollY;
+            const inputLeft = rect.left + window.scrollX;
+            const inputWidth = rect.width;
+    
+            optionsList.style.width = `${Math.min(inputWidth, 600)}px`;
+            optionsList.style.left = `${inputLeft}px`;
+            optionsList.style.top = `${inputBottom}px`;
+            optionsList.style.zIndex = '10002';
+    
+            const itemHeight = 40;
+            const maxItems = 30;
+            const maxHeight = Math.min(maxItems * itemHeight, window.innerHeight * 0.8);
+            optionsList.style.maxHeight = `${maxHeight}px`;
+        }
+    
+        function updateOptionsList(activeIndex = 0) {
+            optionsList.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            if (!filteredOptions[activeIndex]) return;
+            filteredOptions[activeIndex].forEach(option => {
+                const item = document.createElement('div');
+                item.className = 'mydropdown-item';
+                item.textContent = activeIndex === 3 ? option.key : (option.key === option.value ? option.key : `${option.key}\n(${option.value})`);
+                item.addEventListener('click', () => {
+                    const index = activeInput ? parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index) : activeIndex;
+                    selectedValues[index] = option.key;
+                    activeInput.value = option.key;
+                    if (textboxes[index] && textboxes[index].value !== undefined) {
+                        textboxes[index].value = option.key;
+                        textboxes[index].dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    optionsList.style.display = 'none';
+                    isEditing[index] = false;
+                    const event = new CustomEvent(`${containerId}-change`, { detail: { value: selectedValues } });
+                    document.dispatchEvent(event);
+                });
+                fragment.appendChild(item);
+            });
+            optionsList.appendChild(fragment);
+        }
+    
+        document.addEventListener('scroll', debounce(() => {
+            if (optionsList.style.display !== 'none' && activeInput) {
+                const index = parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index);
+                updateOptionsPosition(index);
+            }
+        }, 100), true);
+    
+        container.dataset.dropdownSetup = 'true';
+    }
+    
+    function myCharacterList() {
+        console.log('[myCharacterList] Initializing...');
+    
+        function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
+            //console.log('[handleCharacterOptions] Args received:', args);
+            const [[keys, values], oc] = args;
+            if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
+                console.error('[handleCharacterOptions] Invalid keys or values:', keys, values);
+                return;
+            }
+            if (!Array.isArray(oc)) {
+                console.error('[handleCharacterOptions] Invalid oc:', oc);
+                return;
+            }
+    
+            const charOptions = keys.map((key, idx) => ({ key, value: values[idx] }));
+            //console.log('[handleCharacterOptions] Generated charOptions:', charOptions);
+            for (let i = 0; i < dropdownCount - 1; i++) {
+                options[i] = charOptions;
+                filteredOptions[i] = [...charOptions];
+            }
+    
+            const originalOptions = oc.map(key => ({ key, value: key }));
+            //console.log('[handleCharacterOptions] Generated originalOptions:', originalOptions);
+            options[dropdownCount - 1] = originalOptions;
+            filteredOptions[dropdownCount - 1] = [...originalOptions];
+            //console.log('[handleCharacterOptions] Options updated:', options);
+        }
+    
+        //console.log('[myCharacterList] Setting up dropdown...');
+        setupMyDropdown({
+            containerId: 'mydropdown-container',
+            dropdownCount: 4,
+            labelPrefixList: ['character1', 'character2', 'character3', 'original_character'],
+            textboxIds: ['cd-character1', 'cd-character2', 'cd-character3', 'cd-original-character'],
+            optionHandler: handleCharacterOptions,
+            enableSearch: true
+        });
+    
+        window.setMyCharacterOptions = function(data, oc, chara_text, character1, character2, character3, oc_default, enableSearch) {
+            //console.log('[setMyCharacterOptions] Called with:', { data, oc, chara_text, character1, character2, character3, oc_default, enableSearch });
+            window.dropdowns['mydropdown-container'].setOptions(data, oc, chara_text, character1, character2, character3, oc_default, enableSearch);
+            //console.log('[setMyCharacterOptions] setOptions executed');
+        };
+    
+        window.updateMyCharacterDefaults = window.dropdowns['mydropdown-container'].updateDefaults;
+        window.getMyCharacterValue = window.dropdowns['mydropdown-container'].getValue;
+    
+        //console.log('[myCharacterList] Setup complete');
+    }
+    
+    function myViewsList() {
+        function handleViewOptions(options, filteredOptions, args, dropdownCount) {
+            const [data] = args;
+            if (typeof data !== 'object' || data === null || Object.keys(data).length !== dropdownCount) return;
+            const keys = ['angle', 'camera', 'background', 'style'];
+            options.forEach((_, index) => {
+                const key = keys[index];
+                options[index] = data[key].map(item => ({ key: item, value: item }));
+                filteredOptions[index] = [...options[index]];
+            });
+        }
+    
+        setupMyDropdown({
+            containerId: 'myviews-container',
+            dropdownCount: 4,
+            labelPrefixList: ['angle', 'camera', 'background', 'view'],
+            textboxIds: ['cd-view-angle', 'cd-view-camera', 'cd-view-background', 'cd-view-style'],
+            optionHandler: handleViewOptions,
+            enableSearch: true
+        });
+    
+        window.setMyViewsOptions = function(view_data, view_text, ...rest) {
+            window.dropdowns['myviews-container'].setOptions(view_data, null, view_text, ...rest);
+        };
+    
+        window.updateMyViewsDefaults = window.dropdowns['myviews-container'].updateDefaults;
+        window.getMyViewsValue = window.dropdowns['myviews-container'].getValue;
     }
 }

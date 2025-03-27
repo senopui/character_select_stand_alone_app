@@ -94,6 +94,10 @@ LANG_EN = {
     Prompt for the following theme:
     """),
     
+    "overlay_title": "Now generating...",
+    "overlay_te": "Elapsed time:",
+    "overlay_sec": "seconds",
+    
     "setup_greet_title": "Initial Setup Wizard",
     "setup_greet_message": "Hi there! This wizard will run automatically the first time you start this program, or if you can't find the settings.json configuration file, please follow the instructions to initialize the settings.",
     "setup_model_folder_title": "Setup Model Folder",
@@ -201,6 +205,10 @@ LANG_CN = {
     9.输出： 以单行逗号分隔的关键词形式且必须以英文回答。
     Prompt for the following theme:
     """),
+    
+    "overlay_title": "后端正在生成……",
+    "overlay_te": "经过时间：",
+    "overlay_sec": "秒",
     
     "setup_greet_title": "初次设定界面",
     "setup_greet_message": "你好！在本程序第一次启动或找不到settings.json文件时，会自动运行向导程序，请按照说明进行初始化设定。",

@@ -21,7 +21,7 @@ from webui import run_webui
 from color_transfer import ColorTransfer
 from tag_autocomplete import PromptManager
 from setup_wizard import setup_wizard_window
-from custom_gallery import init_custom_gallery, set_custom_gallery_last_api_images, set_custom_gallery_thumb_images
+from custom_com import init_custom_com, set_custom_gallery_last_api_images, set_custom_gallery_thumb_images
 from language import *
 
 LANG = LANG_CN
@@ -38,6 +38,7 @@ json_folder = os.path.join(parent_dir, 'json')
 image_outputs_folder = os.path.join(parent_dir, 'outputs')
 
 character_list = ''
+character_list_values = ''
 character_dict = {}
 tag_assist_dict = {}
 original_character_list = ''
@@ -105,8 +106,8 @@ last_info = ''
 last_ai_text = ''
 
 wai_illustrious_character_select_files = [       
-    {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
+    {'name': 'original_character', 'file_path': os.path.join(json_folder, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json'},
     {'name': 'view_tags', 'file_path': os.path.join(json_folder, 'view_tags.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/view_tags.json'},
     {'name': 'wai_characters', 'file_path': os.path.join(json_folder, 'wai_characters.csv'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv'},
     {'name': 'wai_tag_assist', 'file_path': os.path.join(json_folder, 'wai_tag_assist.json'), 'url':'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_tag_assist.json'},
@@ -341,6 +342,7 @@ def load_text_file(file_path):
             
 def load_jsons():
     global character_list
+    global character_list_values
     global character_dict
     global original_character_dict
     global original_character_list
@@ -403,11 +405,15 @@ def load_jsons():
                 
     if ENGLISH_CHARACTER_NAME:
         character_list = list(character_dict.values())   
+        character_list_values = list(character_dict.values())
     else:
         character_list = list(character_dict.keys())   
+        character_list_values = list(character_dict.values())   
     
     character_list.insert(0, "none")
     character_list.insert(0, "random")
+    character_list_values.insert(0, "none")
+    character_list_values.insert(0, "random")
     
     original_character_list = list(original_character_dict.keys())    
     original_character_list.insert(0, "none")
@@ -426,7 +432,7 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
     chara = ''
     rnd_character = ''
     
-    if 'none' == character:
+    if 'none' == character or '' == character or not character:
         return '', '', None, ''
     
     if 'random' == character:
@@ -992,7 +998,7 @@ def refresh_character_thumb_image(character1, character2, character3):
     thumb_image = []
     rnd_character = [''] * 3
     opt_chara = [''] * 3
-    
+        
     if 'none' != character1 and 'random' != character1:
         rnd_character[0], opt_chara[0], thumb_image1, _ = illustrious_character_select_ex(character = character1, random_action_seed=42)        
         thumb_image.append(thumb_image1)
@@ -1100,7 +1106,7 @@ def init():
         js_script = load_text_file(lib_js_path)
         css_script = load_text_file(lib_css_path)
         
-        status_wait, status_error = init_custom_gallery()        
+        status_wait, status_error = init_custom_com()        
         lora_file_list = update_lora_list(settings_json['api_interface'], no_dropdown=True)
 
         first_setup()
@@ -1109,4 +1115,4 @@ def init():
         sys.exit(1)
         
     print(f'[{CAT}]:Starting...')
-    return character_list, view_tags, original_character_list, model_files_list, lora_file_list, LANG, js_script, css_script, status_wait, status_error
+    return character_list, character_list_values, view_tags, original_character_list, model_files_list, lora_file_list, LANG, js_script, css_script, status_wait, status_error
