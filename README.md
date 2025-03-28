@@ -18,9 +18,8 @@ Try Online Character Select Simple Advanced App [Hugging Face Space](https://hug
 In case you don't know how to build your own Python enverment, try the [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)    
 
 1. Download and unzip to your computer    
-2. Db-click `##quick_start_download_and_force_update_SAA.bat`, wait for Github download        
-3. Db-click `#run_XX.bat`, wait for 1st time setup and Github/HF download   
-4. Follow setup wizard setup your `model folder` and `API Key`    
+2. Db-click `#run_XX.bat`
+3. Follow setup wizard setup your `model folder` and `API Key`    
 
 # Chinese Translate and Character Verification       
 ### Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.
