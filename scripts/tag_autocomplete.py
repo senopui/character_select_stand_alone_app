@@ -1,7 +1,5 @@
 import os
-import re
 from typing import List, Dict
-import gradio as gr
 
 CAT = "Auto Tag Complete"
 
@@ -58,14 +56,16 @@ class PromptManager:
             if translate_file_path and os.path.exists(translate_file_path):
                 prompt_dict = {p['prompt']: p for p in self.prompts}  
                 with open(translate_file_path, 'r', encoding='utf-8') as f:
+                    index = 0
                     for line in f:
                         line = line.strip()
+                        index = index + 1
                         if not line:
                             continue
                         
                         parts = line.split(',', 2)  
                         if len(parts) < 3:
-                            print(f"Skipping invalid line in {translate_file_path}: {line}")
+                            print(f"[{CAT}] Skipping invalid line in {index}: {line}")
                             continue
                         
                         prompt, group, new_aliases = parts[0].strip(), parts[1].strip(), parts[2].strip()
