@@ -358,7 +358,7 @@ function my_custom_js() {
                     if (promptText.startsWith(':')) {
                         formattedText = promptText.trim();
                     } else {
-                        formattedText = promptText.split(':')[0].trim();
+                        formattedText = formatSuggestion(promptText.split(':')[0].trim());
                     }
                 }
                 
