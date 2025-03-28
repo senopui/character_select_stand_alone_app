@@ -371,7 +371,8 @@ def load_jsons():
                 download_file(url, file_path)
         
         if 'danbooru_tag' == name:
-            PROMPT_MANAGER = PromptManager(file_path)
+            zh_cn = os.path.join(json_folder, 'danbooru_zh_cn.csv')
+            PROMPT_MANAGER = PromptManager(file_path, zh_cn, not ENGLISH_CHARACTER_NAME)
             print(f"[{CAT}]:PROMPT_MANAGER initialized.")
             continue    
 

@@ -89,73 +89,73 @@ function my_custom_js() {
         const textboxes = document.querySelectorAll(
             '#custom_prompt_text textarea, #positive_prompt_text textarea, #negative_prompt_text textarea, #ai_prompt_text textarea, #prompt_ban_text textarea'
         );
-
-        let lastWordSent = ''; // Cache last sent word to avoid duplicate requests
-
+    
+        let lastWordSent = '';
+    
         textboxes.forEach(textbox => {
             if (textbox.dataset.suggestionSetup) return;
-
+    
             console.log('Setting up the Suggestion System for ', textbox);
-
+    
             const suggestionBox = document.createElement('div');
             suggestionBox.className = 'suggestion-box scroll-container';
             suggestionBox.style.display = 'none';
             document.body.appendChild(suggestionBox);
-
+    
             let selectedIndex = -1;
             let currentSuggestions = [];
-            const textboxWidth = textbox.offsetWidth; // Cache width
-
-            // Event delegation for suggestion items
+            const textboxWidth = textbox.offsetWidth;
+    
             suggestionBox.addEventListener('click', (e) => {
                 const item = e.target.closest('.suggestion-item');
                 if (item) applySuggestion(item.dataset.value);
             });
-
+    
             textbox.addEventListener('input', debounce(async () => {
                 updateSuggestionBoxPosition();
-
+    
                 const value = textbox.value;
                 const cursorPosition = textbox.selectionStart;
                 let wordToSend = extractWordToSend(value, cursorPosition);
-
+    
                 if (!wordToSend || wordToSend === lastWordSent) {
                     suggestionBox.style.display = 'none';
                     return;
                 }
                 lastWordSent = wordToSend;
-
+    
                 try {
                     const initialResponse = await fetch('/gradio_api/call/update_suggestions_js', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ fn_index: 0, data: [wordToSend] })
                     });
-
+    
                     if (!initialResponse.ok) throw new Error(`Initial API failed: ${initialResponse.status}`);
-
+    
                     const initialResult = await initialResponse.json();
                     const eventId = initialResult.event_id;
                     if (!eventId) throw new Error('No event_id in response');
-
+    
                     const suggestionResponse = await fetch(`/gradio_api/call/update_suggestions_js/${eventId}`, {
                         method: 'GET',
                         headers: { 'Content-Type': 'application/json' }
                     });
-
+    
                     if (!suggestionResponse.ok) throw new Error(`Suggestion API failed: ${suggestionResponse.status}`);
-
+    
                     const rawSuggestions = await suggestionResponse.text();
                     const dataLine = rawSuggestions.split('\n').find(line => line.startsWith('data:'));
                     if (!dataLine) throw new Error('No data in response');
-
+    
                     const suggestions = JSON.parse(dataLine.replace('data:', '').trim());
-
+                    //console.log('Parsed suggestions:', suggestions);
+    
                     if (!suggestions || suggestions.length === 0 || suggestions.every(s => s.length === 0)) {
                         suggestionBox.style.display = 'none';
                         return;
                     }
-
+    
                     const fragment = document.createDocumentFragment();
                     let maxWidth = 0;
                     const tempDiv = document.createElement('div');
@@ -163,29 +163,41 @@ function my_custom_js() {
                     tempDiv.style.visibility = 'hidden';
                     tempDiv.style.whiteSpace = 'nowrap';
                     document.body.appendChild(tempDiv);
-
+    
                     currentSuggestions = [];
-                    suggestions.forEach((suggestion, index) => {
-                        if (!Array.isArray(suggestion) || suggestion.length === 0) return;
-                        suggestion.forEach(element => {
-                            const item = document.createElement('div');
-                            item.className = 'suggestion-item';
-                            item.textContent = element;
-                            item.dataset.value = element;
-                            tempDiv.textContent = element;
-                            maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
-                            currentSuggestions.push({ prompt: element });
-                            fragment.appendChild(item);
-                        });
+                    //console.log('Suggestions array length:', suggestions[0].length); 
+                    suggestions[0].forEach((suggestion, index) => {
+                        //console.log(`Processing suggestion ${index}:`, suggestion); 
+                        if (!Array.isArray(suggestion) || suggestion.length === 0) {
+                            console.warn('Invalid suggestion format at index', index, suggestion);
+                            return;
+                        }
+                        const element = suggestion[0];
+                        if (typeof element !== 'string') {
+                            console.error('Unexpected element type at index', index, ':', typeof element, element);
+                            return;
+                        }
+                        const item = document.createElement('div');
+                        item.className = 'suggestion-item';
+                        item.innerHTML = element;
+                        const promptMatch = element.match(/<b>(.*?)<\/b>/);
+                        item.dataset.value = promptMatch ? promptMatch[1] : element.split(':')[0].trim();
+                        tempDiv.textContent = element.replace(/<[^>]+>/g, '');
+                        maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
+                        currentSuggestions.push({ prompt: element });
+                        fragment.appendChild(item);
+                        //console.log(`Added suggestion ${index}:`, element);
                     });
-
+    
+                    //console.log('Total suggestions added:', currentSuggestions.length);
+                    //console.log('Fragment children:', fragment.children.length);
                     document.body.removeChild(tempDiv);
                     suggestionBox.innerHTML = '';
                     suggestionBox.appendChild(fragment);
-                    suggestionBox.style.width = `${Math.min(maxWidth + 20, 600)}px`;
+                    suggestionBox.style.width = `${Math.min(maxWidth + 20, 300)}px`;
                     suggestionBox.style.display = 'block';
                     selectedIndex = -1;
-
+    
                 } catch (error) {
                     console.error('Suggestion system error:', error);
                     suggestionBox.style.display = 'none';
@@ -201,9 +213,9 @@ function my_custom_js() {
                     if (e.key === 'Tab' || e.key === 'Enter') {
                         e.preventDefault();
                         if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
-                            applySuggestion(currentSuggestions[selectedIndex].prompt[0]);
+                            applySuggestion(currentSuggestions[selectedIndex].prompt);
                         } else if (items.length > 0) {
-                            applySuggestion(currentSuggestions[0].prompt[0]);
+                            applySuggestion(currentSuggestions[0].prompt);
                         }
                     } else if (e.key === 'ArrowDown') {
                         e.preventDefault();
@@ -338,7 +350,8 @@ function my_custom_js() {
             }
 
             function applySuggestion(promptText) {
-                const formattedText = formatSuggestion(promptText);
+                const promptMatch = promptText.match(/<b>(.*?)<\/b>/);
+                const formattedText = formatSuggestion(promptMatch ? promptMatch[1] : promptText.split(':')[0].trim());
                 const value = textbox.value;
                 const cursorPosition = textbox.selectionStart;
             
