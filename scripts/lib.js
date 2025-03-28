@@ -274,10 +274,10 @@ function my_custom_js() {
                     currentWeight = parseFloat(weightMatch[2]);
                 }
     
-                const step = 0.1;
+                const step = 0.05;
                 currentWeight = isIncrease ? currentWeight + step : currentWeight - step;
                 if (currentWeight < 0.0 || currentWeight > 3.0) return;
-                currentWeight = parseFloat(currentWeight.toFixed(1));
+                currentWeight = parseFloat(currentWeight.toFixed(2));
     
                 const newTag = currentWeight === 1.0 ? targetText : `(${targetText}:${currentWeight})`;
     
@@ -350,8 +350,18 @@ function my_custom_js() {
             }
 
             function applySuggestion(promptText) {
-                const promptMatch = promptText.match(/<b>(.*?)<\/b>/);
-                const formattedText = formatSuggestion(promptMatch ? promptMatch[1] : promptText.split(':')[0].trim());
+                const promptMatch = promptText.match(/<b>(.*?)<\/b>/);                
+                let formattedText = '';
+                if (promptMatch){
+                    formattedText = formatSuggestion(promptMatch[1]);
+                } else {
+                    if (promptText.startsWith(':')) {
+                        formattedText = promptText.trim();
+                    } else {
+                        formattedText = promptText.split(':')[0].trim();
+                    }
+                }
+                
                 const value = textbox.value;
                 const cursorPosition = textbox.selectionStart;
             
