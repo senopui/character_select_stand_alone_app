@@ -335,17 +335,39 @@ function my_custom_js() {
             }
 
             function extractWordToSend(value, cursorPosition) {
-                if (cursorPosition === value.length) {
-                    const lastCommaIndex = value.lastIndexOf(',');
-                    return value.slice(lastCommaIndex + 1).trim();
-                }
                 const beforeCursor = value.slice(0, cursorPosition);
                 const afterCursor = value.slice(cursorPosition);
+                
+                // Find the last separator (comma or newline) before the cursor
                 const lastCommaBefore = beforeCursor.lastIndexOf(',');
+                const lastNewlineBefore = beforeCursor.lastIndexOf('\n');
+                const start = Math.max(lastCommaBefore, lastNewlineBefore) >= 0 
+                    ? Math.max(lastCommaBefore, lastNewlineBefore) + 1 
+                    : 0;
+            
+                // Find the first separator (comma or newline) after the cursor
                 const firstCommaAfter = afterCursor.indexOf(',');
-                const start = lastCommaBefore >= 0 ? lastCommaBefore + 1 : 0;
-                const end = firstCommaAfter >= 0 ? cursorPosition + firstCommaAfter : value.length;
-                return value.slice(start, end).trim();
+                const firstNewlineAfter = afterCursor.indexOf('\n');
+                
+                let end;
+                if (firstNewlineAfter === 0) {
+                    // If cursor is immediately followed by a newline, end at cursor
+                    end = cursorPosition;
+                } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
+                    // Use the nearest separator after cursor
+                    end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
+                        ? cursorPosition + firstCommaAfter
+                        : firstNewlineAfter >= 0
+                        ? cursorPosition + firstNewlineAfter
+                        : value.length;
+                } else {
+                    end = value.length;
+                }
+            
+                // Extract the word, trim only leading/trailing spaces, not newlines
+                const extracted = value.slice(start, end).trim();
+                // If the extracted content ends with a comma or is empty, return empty string
+                return extracted.endsWith(',') || extracted === '' ? '' : extracted;
             }
 
             function formatSuggestion(suggestion) {
