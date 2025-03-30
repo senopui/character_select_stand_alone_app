@@ -91,6 +91,7 @@ function my_custom_js() {
         );
     
         let lastWordSent = '';
+        let skipSuggestion = false;
     
         textboxes.forEach(textbox => {
             if (textbox.dataset.suggestionSetup) return;
@@ -112,6 +113,11 @@ function my_custom_js() {
             });
     
             textbox.addEventListener('input', debounce(async () => {
+                if (skipSuggestion) {
+                    skipSuggestion = false;
+                    return; // Skip suggestion generation if marked
+                }
+
                 updateSuggestionBoxPosition();
     
                 const value = textbox.value;
@@ -352,7 +358,7 @@ function my_custom_js() {
             function applySuggestion(promptText) {
                 const promptMatch = promptText.match(/<b>(.*?)<\/b>/);                
                 let formattedText = '';
-                if (promptMatch){
+                if (promptMatch) {
                     formattedText = formatSuggestion(promptMatch[1]);
                 } else {
                     if (promptText.startsWith(':')) {
@@ -361,41 +367,56 @@ function my_custom_js() {
                         formattedText = formatSuggestion(promptText.split(':')[0].trim());
                     }
                 }
-                
+            
                 const value = textbox.value;
                 const cursorPosition = textbox.selectionStart;
             
                 const beforeCursor = value.slice(0, cursorPosition);
                 const afterCursor = value.slice(cursorPosition);
                 const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
-                const firstSeparatorAfter = afterCursor.indexOf(',') >= 0 ? afterCursor.indexOf(',') : afterCursor.indexOf('\n');
+                const firstCommaAfter = afterCursor.indexOf(',');
+                const firstNewlineAfter = afterCursor.indexOf('\n');
                 
+                // Determine the start and end of the word being replaced
                 const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
-                const end = firstSeparatorAfter >= 0 ? cursorPosition + firstSeparatorAfter : value.length;
+                let end = cursorPosition; // Default to cursor position
+                let suffix = ', '; // Default suffix
+            
+                // Handle cases based on what follows the cursor
+                if (firstNewlineAfter === 0) {
+                    // Cursor is followed by a newline: add comma only
+                    end = cursorPosition; // Don't overwrite the newline
+                    suffix = ','; // Add comma before preserving newline
+                } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
+                    // Use the nearest separator after cursor, but don't overwrite full words unnecessarily
+                    end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
+                        ? cursorPosition + firstCommaAfter
+                        : firstNewlineAfter >= 0
+                        ? cursorPosition + firstNewlineAfter
+                        : value.length;
+                    suffix = firstCommaAfter >= 0 ? '' : firstNewlineAfter >= 0 ? ',' : ', ';
+                }
             
                 const isFirstWordInLine = start === 0 || value[start - 1] === '\n';
                 const prefix = isFirstWordInLine ? '' : ' ';
-                
-                const isEndOfText = cursorPosition === value.length;
-                const hasNewlineAfter = afterCursor.startsWith('\n');
-                let suffix = '';
-                if (isEndOfText) {
-                    suffix = ', ';
-                } else if (hasNewlineAfter) {
-                    suffix = '\n'; 
-                }
             
+                // Construct the new value
                 const newValue = value.slice(0, start) + prefix + formattedText + suffix + value.slice(end);
                 textbox.value = newValue.trim();
             
-                const newCursorPosition = start + prefix.length + formattedText.length + suffix.length;
+                // Set cursor position after the inserted text and comma (if present)
+                const newCursorPosition = start + prefix.length + formattedText.length + (suffix.startsWith(',') ? 1 : 0);
                 textbox.setSelectionRange(newCursorPosition, newCursorPosition);
             
+                // Clear suggestions and hide suggestion box
                 currentSuggestions = [];
                 suggestionBox.innerHTML = '';
                 suggestionBox.style.display = 'none';
             
-                textbox.dispatchEvent(new Event('input', { bubbles: true }));
+                // Dispatch input event to notify changes, but mark it to skip suggestion generation
+                const inputEvent = new Event('input', { bubbles: true });
+                skipSuggestion = true; 
+                textbox.dispatchEvent(inputEvent);
                 textbox.focus();
             }
 
