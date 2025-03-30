@@ -1,6 +1,6 @@
 # Character Select SAA
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
-Now supports 5173 (includes multiple costumes) Character list.   
+Now supports 5174 (includes multiple costumes) Character list.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
 
