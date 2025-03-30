@@ -198,7 +198,7 @@ def llm_send_request(input_prompt, remote_ai_base_url, remote_ai_model, remote_a
         if 200 == response.status_code:
             return decode_response(response)
         else:
-            ret = LANG["gr_warning_creating_ai_prompt"].format(response.status_code, e)
+            ret = LANG["gr_warning_creating_ai_prompt"].format('response.status_code', response.status_code)
             print(f"[{CAT}]:{ret}")
             gr.Warning(ret)
             return ''

@@ -90,7 +90,8 @@ LANG_EN = {
     6.User input: Incorporate the exact keywords from the user's query into the prompt where appropriate.
     7.Emphasis handling: If the user emphasizes a particular aspect, you may increase the number of keywords in that category (up to 6), but ensure the total number of keywords remains between 8 and 16.
     8.Character description: You may describe actions and expressions but must not mention specific character traits (such as gender or age). Words that imply a character (e.g., "warrior") are allowed as long as they do not violate the prohibited keywords.
-    9.Output: Provide the answer as a single line of comma-separated keywords.
+    9.Output: Provide the answer as a single line of comma-separated keywords in English, do not include any responses other than keywords.
+    10. Output Example:nature style, eating, forest, meadow, sunlight, vibrant colors, close-up, detailed, serene, peaceful, green foliage, wild berries, natural textures, soft focus, shallow depth of field, tranquil atmosphere
     Prompt for the following theme:
     """),
     
@@ -202,7 +203,8 @@ LANG_CN = {
     6.用户输入： 将用户查询中的关键词逐字纳入，适当融入提示词。
     7.强调处理： 若用户强调某方面，可增加该类别关键词（最多6个），但总数保持在8到16个。
     8.角色描述： 可描述动作和表情，但不得提及角色特征（如性别、年龄）。允许使用暗示角色的词（如warrior），只要不涉及禁止词。
-    9.输出： 以单行逗号分隔的关键词形式且必须以英文回答。
+    9.输出： 仅以单行逗号分隔的关键词形式且必须以英文回答，不要加入关键词以外的任何回复。
+    10.输出示例：nature style, eating, forest, meadow, sunlight, vibrant colors, close-up, detailed, serene, peaceful, green foliage, wild berries, natural textures, soft focus, shallow depth of field, tranquil atmosphere
     Prompt for the following theme:
     """),
     
