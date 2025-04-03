@@ -176,7 +176,7 @@ py -m pip install -r requirements.txt
 ```
 
 ### ComfyUI API not working???
-Load `examples\workflow_comfyui.png` in to your ComfyUI, and make sure you have install all custom nodes below:   
+Load `examples\workflow_comfyui.png` or `scripts\workflow_api_new.json` in to your ComfyUI, and make sure you have install all custom nodes below:   
 
 [ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver)   
 [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)   
