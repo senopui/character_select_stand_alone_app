@@ -22,16 +22,16 @@ In case you don't know how to build your own Python enverment, try the [embeded_
 3. Follow setup wizard setup your `model folder` and `API Key`    
 
 # Chinese Translate and Character Verification       
-### Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.
-#### Silence, 燦夜, 镜流の粉丝, 樱小路朝日, 满开之萤, and two more who wish to remain anonymous.
+Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.
+Silence, 燦夜, 镜流の粉丝, 樱小路朝日, 满开之萤, and two more who wish to remain anonymous.
 
-### Special thanks
+Special thanks
 lanner0403 [WAI-NSFW-illustrious-character-select](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) 2000+  Verified Character List, please support his WebUI plugin.   
 Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com/articles/10242/illustrious-xl-v01-recognized-characters-list) more than 100+ Verified Character List.     
 
 ------
 # Install and Run
-## *IMPORTANT* `Save settings` will NOT overwrite your `settings.json`, it saved as `tmp_settings.json`    
+*IMPORTANT* `Save settings` will NOT overwrite your `settings.json`, it saved as `tmp_settings.json`    
 1. Clone the repository to wherever you like   
 2. Dbclick `#run_XX.bat`   
 3. Follow setup wizard setup your `model folder` and `API Key`    
@@ -52,7 +52,7 @@ Entering the `first few characters` will automatically search for matching tags,
 
 Use the `mouse` to select the prompt word, but you can also use the `keyboard up and down` with `Enter` or `Tab` to select, press `Esc` to close the prompt box.     
 
-### Weight adjust
+## Weight adjust
 You can use `ctrl + up` and `ctrl + down` arrow to adjust the weight of the current tag, or you can adjust the weight of multiple tags by selecting a fragment, the usage is similar to comfyui and webui, but some details of the logic may be different.    
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_complete.png" width=55% height=55%>   
@@ -80,7 +80,7 @@ The error message will also appear in the centre of your browser, you can dismis
 ------
 # Manual Setup by edit settings.json
 
-### Model List for model switch
+Model List for model switch    
 1. Modify `json/settings.json` 
 2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
     2.5. There is a `model_path_2nd` in `settings.json`, if you using WebUI and ComfyUI in same time, set it to another checkpoints folder.     
@@ -89,13 +89,13 @@ The error message will also appear in the centre of your browser, you can dismis
 5. To search subfolder models, modify `search_modelinsubfolder` to `true`    
 6. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
 
-### Default and custom settings
+Default and custom settings    
 1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`
 2. Rename to `settings.json` as default settings
 3. `Load Settings` will override current settings with your `renamed_settings.json`
 4. In case you messed up, just `delete` all json files and restart app    
 
-### Original Characters
+Original Characters    
 1. You can add/remove character (who not in list) in `original_character.json`    
 2. I already put some of my OC in it, feel free to use or modify    
 3. Original Characters is NOT support thumb image for now   
@@ -121,17 +121,17 @@ pause
 
 ------
 # AI prompt
-### Remote   
+Remote    
 1. Modify `json/settings.json`, copy and paste your `API KEY` to `remote_ai_api_key`    
 2. Set `remote_ai_api_key` to your Remote AI API Key, and keep it only for yourself     
 3. Run app       
 4. Set `AI Prompt Generator` to `Remote`
 5. Set `Remote AI url` to your remote AI API address
-6. Set `Remote AI model` to your selected remote model
-6.5. Got feed back: *For some DSR1 model provider, you man need change `Remote AI connection timeout` from 30s to 60~120+*
+6. Set `Remote AI model` to your selected remote model    
+6.5. Got feed back: *For some DSR1 model provider, you may need change `Remote AI connection timeout` from 30s to 60~120+*
 7. Put something in `AI Prompt` e.g. `make character furry, and I want a detailed portrait`     
 
-### Local
+Local    
 1. Make sure you know how to build [Llama.cpp](https://github.com/ggml-org/llama.cpp) yourself, or download them from trusted source   
 2. Download Model from [HuggingFace](https://huggingface.co/), recommend GGUF like `oh-dcft-v3.1-claude-3-5-sonnet-20241022.Q8_0` ([Here](https://huggingface.co/mradermacher/oh-dcft-v3.1-claude-3-5-sonnet-20241022-GGUF))   
 3. Recommend Server args `llama-server.exe -c 16384 -ngl 40 --port <your local LLM port> --no-mmap -m "<your GGUF model here>`
@@ -142,13 +142,13 @@ pause
 
 ------
 # API Call for Local Image Generator   
-### ComfyUI   
+ComfyUI    
 1. Enable `DEV mode` in ComfyUI Settings, and load `examples\workflow_comfyui.png` into your ComfyUI ([FAQ:ComfyUI API not working](https://github.com/mirabarukaso/character_select_stand_alone_app/tree/main#comfyui-api-not-working))    
 2. Select `Local Image Generator API` to `ComfyUI`   
 3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
 4. Have fun   
 
-### WebUI
+WebUI    
 1. Enable `API mode` by add ` --api` in `COMMANDLINE_ARGS` (webui-user.bat)   
 2. Start WebUI       
 3. Select `Local Image Generator API` to `WebUI`   
@@ -167,7 +167,7 @@ Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_M
 
 ------
 # FAQ
-### Not working???
+## Not working???    
 Install [Python](https://www.python.org/downloads/) 3.11~3.13 recommend.     
 
 Then copy and paste the following command into your command line with Python environment.    
@@ -175,17 +175,17 @@ Then copy and paste the following command into your command line with Python env
 py -m pip install -r requirements.txt
 ```
 
-### ComfyUI API not working???
+## ComfyUI API not working???
 Load `examples\workflow_comfyui.png` or `scripts\workflow_api_new.json` in to your ComfyUI, and make sure you have install all custom nodes below:   
 
 [ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver)   
 [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)   
 
-### WebUI API works, but WebUI not working anymore!!!
+## WebUI API works, but WebUI not working anymore!!!
 It seems some plugin caused that issue, try update to the latest version.    
 Still not working? Unfortunately, you can't use both the API and WebUI in this case unless you uninstall the buggy plugin.   
 
-### WebUI Http 500 / ComfyUI model not found
+## WebUI Http 500 / ComfyUI model not found
 Make sure you have `waiNSFWIllustrious_v110` model in your `models/Stable-diffusion` folder.    
 Check `Setup Model List` section, setup your proper models folder and set `model_filter` to `false`    
 
