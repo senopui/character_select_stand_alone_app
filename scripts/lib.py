@@ -97,9 +97,15 @@ settings_json = {
     "api_hf_upscaler_list": ["ESRGAN_4x(W)", "R-ESRGAN 2x+(W)", "R-ESRGAN 4x+(W)", "R-ESRGAN 4x+ Anime6B(W)", "4x_NMKD-Siax_200k(C)", "8x_NMKD-Superscale_150000_G(C)", "4x-AnimeSharp(C)", "4x-UltraSharp(C)", "ESRGAN_4x(C)","RealESRGAN_x2(C)","RealESRGAN_x4(C)"],
     "api_hf_upscaler_selected": "R-ESRGAN 4x+(W)",
     "api_hf_colortransfer": "none",
+    "api_hf_random_seed": False,
+    
+    "api_refiner_enable": False,
+    "api_refiner_model": "none",
+    "api_refiner_ratio": 0.4,
 }
 
 model_files_list = []
+refiner_model_files_list = []
 
 last_prompt = ''
 last_info = ''
@@ -302,7 +308,10 @@ def get_safetensors_files(directory, search_subfolder):
 
 def get_safetensors():
     global model_files_list
+    global refiner_model_files_list
+    
     model_files_list=[]
+    refiner_model_files_list=[]
     files_list = get_safetensors_files(settings_json["model_path"], settings_json["search_modelinsubfolder"])
     
     if len(files_list) > 0:
@@ -314,7 +323,9 @@ def get_safetensors():
                     model_files_list.append(model)
             else:
                 model_files_list.append(model)        
+            refiner_model_files_list.append(model)
     model_files_list.insert(0, 'default')    
+    refiner_model_files_list.insert(0, 'none')
 
 def save_json(now_settings_json, file_name):
     tmp_file = os.path.join(json_folder, file_name)
@@ -542,8 +553,9 @@ def create_prompt_info(rnd_character1, opt_chara1, tas1,
 
 def create_image(interface, addr, model_file_select, prompt, neg_prompt, 
                  seed, cfg, steps, width, height, 
-                 api_hf_enable, ai_hf_scale, ai_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override):
-    def convert_to_condensed_format(data, api_webui_savepath_override):
+                 api_hf_enable, ai_hf_scale, ai_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
+                 refiner_enable, refiner_model, refiner_ratio):
+    def convert_to_condensed_format(data, hf_enable, refiner_enable):
         # Ensure data is a dictionary by parsing it if it's a string
         if isinstance(data, str):
             data = json.loads(data)
@@ -569,7 +581,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
         vae_hash = data.get("sd_vae_hash", "unknown")
         vae = data.get("sd_vae_name", "unknown")
         denoising = data["denoising_strength"]
-        clip_skip = data.get("clip_skip", 2)
+        clip_skip = data.get("clip_skip", 2)        
         
         # High-resolution parameters from extra_generation_params
         extra_params = data.get("extra_generation_params", {})
@@ -578,18 +590,25 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
         hires_upscaler = extra_params.get("Hires upscaler", "R-ESRGAN 4x+")
         downcast = extra_params.get("Downcast alphas_cumprod", True)
         version = data.get("version", "unknown")
+        refiner = extra_params.get("Refiner", "none")
+        refiner_switch_at = extra_params.get("Refiner switch at", 0)
+        
 
         # Construct the condensed format
         condensed = f"{main_prompt}\n"
         condensed += f"Negative prompt: {negative_prompt}\n"
         condensed += f"Steps: {steps}, Sampler: {sampler}, Schedule type: Automatic, CFG scale: {cfg_scale}, Seed: {seed}, "
         condensed += f"Size: {width}x{height}, Model hash: {model_hash}, Model: {model}, "        
-        if api_webui_savepath_override:
+        if hf_enable:
             condensed += f"VAE hash: {vae_hash}, VAE: {vae}, Denoising strength: {denoising}, Clip skip: {clip_skip}, "
             condensed += f"Hires upscale: {hires_upscale}, Hires steps: {hires_steps}, Hires upscaler: {hires_upscaler}, "
         else:
             condensed += f"VAE hash: {vae_hash}, VAE: {vae}, Clip skip: {clip_skip}, "
-        condensed += f"Downcast alphas_cumprod: {downcast}, Version: {version}"
+        
+        if refiner_enable:
+            condensed += f"Downcast alphas_cumprod: {downcast}, Refiner: {refiner}, Refiner switch at: {refiner_switch_at}, Version: {version}"
+        else:
+            condensed += f"Downcast alphas_cumprod: {downcast}, Version: {version}"
 
         return condensed
 
@@ -609,7 +628,8 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                     
                 image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, 
                                               positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                              hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer,
+                                              hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer, hf_seed=hf_random_seed,
+                                              refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio, 
                                               workflow=COMFYUI_WORKFLOW
                                               )
                 image_data_bytes = bytes(image_data_list)  
@@ -627,14 +647,17 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                         
                     src_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
                                     positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                    hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override)
-                    
+                                    hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
+                                    refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)                    
                     
                     if 'none' != api_hf_colortransfer:
-                        gr.Warning(LANG["colortransfer_webui_warning"])
+                        if not api_webui_savepath_override:
+                            gr.Warning(LANG["gr_info_color_transfer_webui_warning"])
+                        gr.Info(LANG["gr_info_color_transfer_webui"])
                         ref_image, _, ref_info = run_webui(server_address=addr, model_name=model_file_select, 
                                             positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                            hf_enable=False, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override)  
+                                            hf_enable=False, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
+                                            refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio) 
                         
                         PT = ColorTransfer()        
                         if "Mean" == api_hf_colortransfer:
@@ -649,7 +672,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")                                                
                         image_filename = f"{current_time}_{seed}_reference.png"
                         image_filepath = os.path.join(image_outputs_folder, image_filename)
-                        ref_para = convert_to_condensed_format(''.join(ref_info), False)
+                        ref_para = convert_to_condensed_format(''.join(ref_info), False, refiner_enable)
                         metadata.add_text("parameters", ref_para)                        
                         ref_image.save(image_filepath, pnginfo=metadata)
                         print(f"[{CAT}]Color Transfer: Reference Image saved to {image_filepath}")                        
@@ -658,14 +681,15 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                 else:
                     api_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
                                         positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                        hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override)                                    
+                                        hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
+                                        refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)
                 
                 if api_webui_savepath_override:
                     if not current_time:
                         current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                     image_filename = f"{current_time}_{seed}.png"
                     image_filepath = os.path.join(image_outputs_folder, image_filename)                        
-                    str_para = convert_to_condensed_format(''.join(src_info), api_hf_enable)
+                    str_para = convert_to_condensed_format(''.join(src_info), api_hf_enable, refiner_enable)
                     metadata.add_text("parameters", str_para)       
                     api_image.save(image_filepath, pnginfo=metadata)                        
                     print(f"[{CAT}]WebUI: Image saved to {image_filepath}")
@@ -768,7 +792,8 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                  api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                 api_refiner_enable, api_refiner_model_list, api_refiner_ratio
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
     global last_info
@@ -836,11 +861,19 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         for ban_word in prompt_ban.split(','):
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
 
+        hf_random_seed = seed1
+        if api_hf_random_seed:
+            hf_random_seed = random.randint(0, 4294967295)
+            
         api_image, js_ret = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                 seed1, cfg, steps, width, height, 
-                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
+                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
+                                api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                )
         
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
+        if api_hf_enable and api_hf_random_seed:
+            final_info += f'Hires Fix Seed:[{hf_random_seed}]\n'            
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
             last_api_images.append(api_image)
@@ -860,7 +893,8 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                             api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                            api_refiner_enable, api_refiner_model_list, api_refiner_ratio
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
             
@@ -903,7 +937,9 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{last_info}\nAI Prompt:[{ai_text}]'
         api_image, js_ret = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                  seed, cfg, steps, width, height, 
-                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override)
+                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                 api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                 )
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
         
@@ -922,7 +958,8 @@ def save_current_setting(character1, character2, character3, tag_assist,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                         remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                         ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
-                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                        api_refiner_enable, api_refiner_model_list, api_refiner_ratio
                         ):        
     now_settings_json = {        
         "remote_ai_base_url": remote_ai_base_url,
@@ -973,6 +1010,11 @@ def save_current_setting(character1, character2, character3, tag_assist,
         "api_hf_upscaler_selected": api_hf_upscaler_selected,
         "api_hf_colortransfer": api_hf_colortransfer,
         "api_webui_savepath_override": api_webui_savepath_override,
+        "api_hf_random_seed": api_hf_random_seed,
+        
+        "api_refiner_enable": api_refiner_enable,
+        "api_refiner_model": api_refiner_model_list,
+        "api_refiner_ratio": api_refiner_ratio,
     }
     
     tmp_file = save_json(now_settings_json=now_settings_json, file_name='tmp_settings.json')
@@ -992,7 +1034,8 @@ def load_saved_setting(file_path):
             settings_json["ai_prompt"],settings_json["batch_generate_rule"],settings_json["prompt_ban"],settings_json["ai_interface"],\
             settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\
             settings_json["ai_local_addr"],settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"],\
-            settings_json["api_hf_enable"],settings_json["api_hf_scale"],settings_json["api_hf_denoise"],settings_json["api_hf_upscaler_selected"],settings_json["api_hf_colortransfer"],settings_json["api_webui_savepath_override"]
+            settings_json["api_hf_enable"],settings_json["api_hf_scale"],settings_json["api_hf_denoise"],settings_json["api_hf_upscaler_selected"],settings_json["api_hf_colortransfer"],settings_json["api_webui_savepath_override"],settings_json["api_hf_random_seed"],\
+            settings_json["api_refiner_enable"],settings_json["api_refiner_model"],settings_json["api_refiner_ratio"]
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
@@ -1121,4 +1164,4 @@ def init():
         sys.exit(1)
         
     print(f'[{CAT}]:Starting...')
-    return character_list, character_list_values, view_tags, original_character_list, model_files_list, lora_file_list, LANG, js_script, css_script, status_wait, status_error
+    return character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list, LANG, js_script, css_script, status_wait, status_error

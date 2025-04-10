@@ -9,7 +9,8 @@ def run_webui(
     server_address = 'http://127.0.0.1:7860', model_name = 'waiNSFWIllustrious_v120.safetensors',
     positive_prompt = 'miqo\'te',negative_prompt = 'nsfw', random_seed = -1, steps= 20, cfg = 7, 
     my_sampler_name='Euler a', height = 512, width = 512, 
-    hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='R-ESRGAN 4x+', savepath_override = False
+    hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='R-ESRGAN 4x+', savepath_override = False,
+    refiner_enable = False, refiner_model_name='none', refiner_ratio=0.4, 
     ):        
     if 'default' != model_name:            
         option_payload = {
@@ -34,18 +35,7 @@ def run_webui(
     }
     
     if hf_enable:
-        payload = {
-            "prompt": positive_prompt,
-            "negative_prompt": negative_prompt,
-            "steps": steps,
-            "width": width,
-            "height": height,
-            "sampler_index": my_sampler_name,
-            "scheduler": 'Automatic',
-            "seed": random_seed,
-            "cfg_scale": cfg,
-            "save_images": not savepath_override,
-            
+        payload.update({            
             "enable_hr": True,
             "denoising_strength": hf_denoising_strength,
             "firstphase_width": width,
@@ -57,7 +47,13 @@ def run_webui(
             "hr_scheduler": "Automatic",
             "hr_prompt": positive_prompt,
             "hr_negative_prompt": negative_prompt,
-        }
+        })
+        
+    if refiner_enable and 'none' != refiner_model_name and model_name != refiner_model_name:
+        payload.update({
+            "refiner_checkpoint": refiner_model_name,
+            "refiner_switch_at": refiner_ratio,
+        })
 
     response = requests.post(url=f'http://{server_address}/sdapi/v1/txt2img', json=payload)
     if response.status_code != 200:

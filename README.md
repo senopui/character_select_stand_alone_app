@@ -9,6 +9,7 @@ Now supports 5177 (includes multiple costumes) Character list.
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |
 | vPred | Yes | Yes(dev branch) | Yes |
+| Refiner | Yes | Yes | Yes |
 | Image Color Transfer | Yes | Yes | Yes |
 | Regional Condition | No | No | No |
 

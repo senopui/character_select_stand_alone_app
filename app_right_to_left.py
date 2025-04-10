@@ -1,3 +1,4 @@
+import os
 import gradio as gr
 import sys
 sys.path.append("scripts/")
@@ -8,7 +9,7 @@ from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPON
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
 
 if __name__ == '__main__':
-    character_list, character_list_values, view_tags, original_character_list, model_files_list, lora_file_list,\
+    character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list,\
         LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init()            
                         
     #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
@@ -106,13 +107,16 @@ if __name__ == '__main__':
                                     label=LANG["api_hf_upscaler_selected"],
                                     value=settings_json["api_hf_upscaler_selected"],
                                     allow_custom_value=False,
+                                    scale=2
                                 )
                                 api_hf_colortransfer = gr.Dropdown(
                                     choices=["none", "Mean", "Lab"],
                                     label=LANG["api_hf_colortransfer"],
                                     value=settings_json["api_hf_colortransfer"],
                                     allow_custom_value=False,
+                                    scale=1
                                 )
+                                api_hf_random_seed = gr.Checkbox(label=LANG["api_hf_random_seed"], value=False, scale=2)
                             with gr.Row():
                                 api_hf_scale = gr.Slider(minimum=1.2,
                                     maximum=2.0,
@@ -126,6 +130,22 @@ if __name__ == '__main__':
                                     value=settings_json["api_hf_denoise"],
                                     label=LANG["api_hf_denoise"],
                                 )                
+                            with gr.Row():
+                                api_refiner_enable = gr.Checkbox(label=LANG["api_refiner_enable"],value=False, scale=1)
+                                api_refiner_model_list = gr.Dropdown(
+                                        choices=refiner_model_files_list,
+                                        label=LANG["api_refiner_model"],
+                                        value=settings_json["api_refiner_model"],
+                                        allow_custom_value=False,
+                                        scale=4
+                                    )  
+                                api_refiner_ratio = gr.Slider(minimum=0.1,
+                                    maximum=1.0,
+                                    step=0.05,
+                                    value=settings_json["api_refiner_ratio"],
+                                    label=LANG["api_refiner_ratio"],
+                                    scale=2
+                                )                                
                 with gr.Row():
                     with gr.Column():
                         # API prompts
@@ -219,7 +239,8 @@ if __name__ == '__main__':
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                                api_refiner_enable, api_refiner_model_list, api_refiner_ratio
                                             ], 
                                     outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                                 ).then(
@@ -241,7 +262,8 @@ if __name__ == '__main__':
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                                api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                                api_refiner_enable, api_refiner_model_list, api_refiner_ratio
                                             ], 
                                     outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                                 ).then(
@@ -260,7 +282,8 @@ if __name__ == '__main__':
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                         ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
                                         api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
-                                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                        api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                        api_refiner_enable, api_refiner_model_list, api_refiner_ratio
                                         ], 
                                 outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                             ).then(
@@ -277,7 +300,8 @@ if __name__ == '__main__':
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
-                                           api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                           api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                           api_refiner_enable, api_refiner_model_list, api_refiner_ratio
                                            ],
                                    outputs=[])
         
@@ -289,7 +313,8 @@ if __name__ == '__main__':
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
-                                           api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override
+                                           api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
+                                           api_refiner_enable, api_refiner_model_list, api_refiner_ratio
                                             ]).then(
                                                 fn=refresh_character_thumb_image,
                                                 inputs=[character1,character2,character3],
