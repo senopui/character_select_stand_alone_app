@@ -198,8 +198,8 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
         my_gen.set_ex(node_id="33", inputs="inputs", item="text", data=negative_prompt)
         
         # Set width and height
-        my_gen.set_ex(node_id="17", inputs="inputs", item="width", data=width)  
-        my_gen.set_ex(node_id="17", inputs="inputs", item="height", data=height)  
+        my_gen.set_ex(node_id="17", inputs="inputs", item="Width", data=width)  
+        my_gen.set_ex(node_id="17", inputs="inputs", item="Height", data=height)  
             
         if not hf_enable:
             # Image Save set to 1st VAE Decode
