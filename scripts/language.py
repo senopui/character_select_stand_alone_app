@@ -49,7 +49,7 @@ LANG_EN = {
     "colortransfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
     "api_webui_savepath_override": "WebUI Save to \".\\outputs\"",
     "api_comfyui_new_workflow": "New Workflow for ComfyUI",
-    "api_warning_lora": "Before you start, upgrade custom node ComfyUI_Mira to v0.4.9.0 or higher.\n[COPY_CUSTOM=IndianRed]LoRA & vPred not working in current workflow, and will get error from backend.[/COPY_CUSTOM]\n\nCheck: [COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\nClick to close and copy URL to clip board.",
+    "api_warning_lora": "Before you start, upgrade custom node ComfyUI_Mira to v0.4.9.2 or higher.\n[COPY_CUSTOM=IndianRed]LoRA & vPred not working in current workflow, and will get error from backend.[/COPY_CUSTOM]\n\nCheck: [COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\nClick to close and copy URL to clip board.",
     
     "run_button": "Create Prompt",
     "run_random_button": "Batch (Random)",
@@ -162,7 +162,7 @@ LANG_CN = {
     "colortransfer_webui_warning" : "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下",
     "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
     "api_comfyui_new_workflow": "ComfyUI新工作流",
-    "api_warning_lora": "注意，在你开始前，必须把自定义节点 ComfyUI_Mira 升级到至少0.4.9.0或更高。\n[COPY_CUSTOM=IndianRed]否则，LoRA与vPred功能不但无法生效，运行生成还会导致ComfyUI后端报错。[/COPY_CUSTOM]\n\n参考：[COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\n点击此处会关闭提示，并复制URL到剪贴板。",
+    "api_warning_lora": "注意，在你开始前，必须把自定义节点 ComfyUI_Mira 升级到至少0.4.9.2或更高。\n[COPY_CUSTOM=IndianRed]否则，LoRA与vPred功能不但无法生效，运行生成还会导致ComfyUI后端报错。[/COPY_CUSTOM]\n\n参考：[COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\n点击此处会关闭提示，并复制URL到剪贴板。",
     
     "run_button": "单图生成",
     "run_random_button": "批量（随机）",
@@ -223,7 +223,7 @@ LANG_CN = {
     "setup_search_modelinsubfolder_title": "子目录",
     "setup_search_modelinsubfolder": "是否搜索模型文件夹子目录下的模型文件",    
     "setup_remote_ai_api_key_title": "API密钥",
-    "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥（不需要可以直接跳过）",    
+    "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥（以后可以修改settings.json来设置）",    
     "setup_webui_comfyui_title": "重要信息",
     "setup_webui_comfyui": "如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api\n在settings.json中有一个名叫model_path_2nd的设置项，如果你同时使用WebUI和ComfyUI，可以把它设置为另一个程序的模型所在目录。"
 }

@@ -269,7 +269,7 @@
         "11",
         3
       ],
-      "sampler_name": "",
+      "sampler_name": "euler_ancestral",
       "scheduler": "normal",
       "positive": [
         "32",
@@ -296,14 +296,14 @@
       "clip_skip": 0,
       "time_format": "%Y-%m-%d-%H%M%S",
       "save_workflow_as_json": false,
-      "embed_workflow_in_png": true,
+      "embed_workflow": true,
       "additional_hashes": "",
       "images": [
         "28",
         0
       ]
     },
-    "class_type": "Image Saver",
+    "class_type": "ImageSaverMira",
     "_meta": {
       "title": "Image Saver"
     }
