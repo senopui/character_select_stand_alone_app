@@ -1077,7 +1077,7 @@ def add_lora(lora_list, api_prompt, api_interface, lora_use_new_workflow):
         if match:
             lora = f'\n<lora:{match.group(1)}:1>'
     elif 'ComfyUI' == api_interface and lora_use_new_workflow:
-        lora = f'\n, <lora:{lora_list}:1>'
+        lora = f'\n<lora:{lora_list}:1>'
             
     return f'{api_prompt}{lora}'
 
@@ -1104,11 +1104,14 @@ def init():
     try:
         lib_js_path = os.path.join(current_dir, 'lib.js')
         lib_css_path = os.path.join(current_dir, 'lib.css')
-            
-        load_jsons()
-        js_script = load_text_file(lib_js_path)
-        css_script = load_text_file(lib_css_path)
         
+        print('Load jsons...')
+        load_jsons()
+        print('Load js_script...')
+        js_script = load_text_file(lib_js_path)
+        print('Load css_script...')
+        css_script = load_text_file(lib_css_path)
+        print('Load init_custom_com...')
         status_wait, status_error = init_custom_com()        
         lora_file_list = update_lora_list(settings_json['api_interface'], no_dropdown=True)
 
