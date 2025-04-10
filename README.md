@@ -176,10 +176,9 @@ py -m pip install -r requirements.txt
 ```
 
 ### ComfyUI API not working???
-Load `examples\workflow_comfyui.png` or `scripts\workflow_api_new.json` in to your ComfyUI, and make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)    
+Load `examples\workflow_comfyui.png` or `scripts\workflow_api_new.json` into your ComfyUI, and make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)    
 
-The following node is no longer required in the `scripts\workflow_api_new.json`, please make sure your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) node is `0.4.9.2` or above.     
-[ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver)    
+The [ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver) node is no longer required in the `scripts\workflow_api_new.json`, please make sure your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) node is `0.4.9.2` or above.         
 
 ### WebUI API works, but WebUI not working anymore!!!
 It seems some plugin caused that issue, try update to the latest version.    
