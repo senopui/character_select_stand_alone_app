@@ -220,7 +220,7 @@
         "13",
         1
       ],
-      "modelname": "model_name",
+      "modelname": "waiNSFWIllustrious_v120.safetensors",
       "sampler_name": "euler_ancestral",
       "scheduler": "normal",
       "positive": [
@@ -444,7 +444,7 @@
   },
   "43": {
     "inputs": {
-      "ckpt_name": "miaomiaoHarem_v16G.safetensors"
+      "ckpt_name": "waiNSFWIllustrious_v120.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
@@ -467,7 +467,7 @@
   },
   "45": {
     "inputs": {
-      "ckpt_name": "waiNSFWIllustrious_v130.safetensors"
+      "ckpt_name": "waiNSFWIllustrious_v120.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {

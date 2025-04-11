@@ -38,6 +38,8 @@ LANG_EN = {
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">System prompt for AI prompt generator.<br>DO NOT MODIFY it if you don\'t understand it!!!</span></h1>",
     "ai_system_prompt_text": "AI System Prompt",
     "system_settings": "Settings",
+    "image_info": "Image Info Reader",
+    "image_info_to_generate": "Send image info to generator",
     
     "api_hf": "Hires Fix & Refiner",
     "api_hf_enable": "Enable Hires Fix",
@@ -158,6 +160,8 @@ LANG_CN = {
     "ai_system_prompt_warning": "<h1><span style=\"color:orangered\">AI系统提示词，建议使用英文<br>如果你不清楚这是干什么的，不要修改！！！</span></h1>",
     "ai_system_prompt_text": "AI系统提示词",
     "system_settings": "设置",
+    "image_info": "读取图片信息",
+    "image_info_to_generate": "传输图片数据到生成器",
     
     "api_hf": "高清修复 & Refiner",
     "api_hf_enable": "启用高清修复",

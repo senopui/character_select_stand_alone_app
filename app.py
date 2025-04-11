@@ -7,6 +7,7 @@ from lib import TITLE, settings_json, get_prompt_manager, add_lora, warning_lora
 from custom_com import custom_gallery_default, custom_thumb_default, get_12, get_7, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
+from image_info import read_image_metadata, send_image_metadata
 
 if __name__ == '__main__':
     character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list,\
@@ -58,7 +59,7 @@ if __name__ == '__main__':
             dummy_values = gr.JSON(visible=False, value=character_list_values)
             dummy_oc = gr.JSON(visible=False, value=original_character_list)
             
-        with gr.Row(elem_classes='main_row'):
+        with gr.Row(elem_classes='main_row'):            
             with gr.Column(elem_classes='column_prompts'):
                 with gr.Row():  
                     random_seed = gr.Slider(minimum=-1,
@@ -221,11 +222,16 @@ if __name__ == '__main__':
                     view_style = gr.Textbox(value=settings_json["view_style"], visible=False, elem_id="cd-view-style")                       
                 with gr.Row():
                     api_image = gr.HTML(custom_gallery_default, label=LANG["api_image"], elem_id="cg-gallery-wrapper", max_height=846, min_height=846, padding=False)
-                    images_data = gr.JSON(visible=False, elem_id="images-data-json")
+                    images_data = gr.JSON(visible=False, elem_id="images-data-json")                
                 with gr.Row():                    
                     output_prompt = gr.Textbox(label=LANG["output_prompt"])
                 with gr.Row():
                     output_info = gr.Textbox(label=LANG["output_info"])
+                with gr.Accordion(label=LANG["image_info"], open=False):
+                    with gr.Row():
+                        image_info_to_generate = gr.Button(value=LANG["image_info_to_generate"], variant='primary')
+                    with gr.Row():
+                        image_info = gr.Image(label=None, elem_id="png-info", type="pil", sources="upload")
         
         run_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
@@ -347,6 +353,10 @@ if __name__ == '__main__':
         api_hf_enable.change(fn=sync_hf, inputs=[api_hf_enable], outputs=[api_hf_enable_shadow])
         
         api_model_file_select.change(fn=check_vpred, inputs=[use_new_workflow, api_model_file_select], outputs=[use_new_workflow])
+        
+        image_info.change(fn=read_image_metadata, inputs=[image_info], outputs=[output_info])
+        image_info_to_generate.click(fn=read_image_metadata, inputs=[image_info], outputs=[output_info]
+                                     ).then(fn=send_image_metadata, inputs=[output_info, api_image_data], outputs=[custom_prompt, api_neg_prompt, api_prompt, random_seed, api_image_data])
         
         ui.load(
             fn=get_12,

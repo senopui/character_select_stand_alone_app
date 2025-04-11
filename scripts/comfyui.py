@@ -158,8 +158,8 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
             if model_name.__contains__('vPred'):
                 my_gen.set_ex(node_id="35", inputs="inputs", item="sampling", data="v_prediction")
         
-        # Set model name to Image Save
-        my_gen.set_ex(node_id="28", inputs="inputs", item="modelname", data=model_name)
+            # Set model name to Image Save
+            my_gen.set_ex(node_id="29", inputs="inputs", item="modelname", data=model_name)
         
         refiner_start_step = 1000
         if refiner_enable and 'none' != refiner_model_name and model_name != refiner_model_name:

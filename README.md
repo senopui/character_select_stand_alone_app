@@ -8,10 +8,14 @@ Now supports 5177 (includes multiple costumes) Character list.
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |
-| vPred | Yes | Yes(dev branch) | Yes |
+| vPred | Yes | Yes(*1) | Yes |
 | Refiner | Yes | Yes | Yes |
 | Image Color Transfer | Yes | Yes | Yes |
+| Image Info to Prompt | Yes(*2) | Yes | Yes |
 | Regional Condition | No | No | No |
+
+*1 Dev branch    
+*2 Image Saved by Image Saver node   
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
