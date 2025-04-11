@@ -82,7 +82,7 @@ In case you need share something NSFW, try `Privacy Ball`. You can create 5 `Pri
 **WARNING: Privacy Ball is a overlay item, it's not encoded to image. You need screen shot apps to capture the covered image, NOT right click Copy Image.**   
 
 Works on full screen mode.    
-Right moude button drag will adjust `Privacy Ball` size.    
+Right button drag to adjust `Privacy Ball` size.    
 Double click on `Privacy Ball` to close it.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_privacyball.png" width=35% height=35%>   
