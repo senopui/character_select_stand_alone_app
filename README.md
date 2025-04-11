@@ -77,6 +77,16 @@ Hightlights:
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_grid.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_split.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_fullscreen.png" width=35% height=35%>   
 
+# Privacy Ball
+In case you need share something NSFW, try `Privacy Ball`. You can create 5 `Privacy Balls` for multiple parts, drag them to anywhere you need.    
+**WARNING: Privacy Ball is a overlay item, it's not encoded to image. You need screen shot apps to capture the covered image, NOT right click Copy Image.**   
+
+Works on full screen mode.    
+Right moude button drag will adjust `Privacy Ball` size.    
+Double click on `Privacy Ball` to close it.   
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_privacyball.png" width=35% height=35%>   
+
 # Overlay Generate Button, Generating and Error Overlay
 You can drag the `Button` overlay and `Generating` overlay anywhere you like.    
 The Button overlay load by default, you can simply minimize it by click the `Blue` dot, it will hide in the `Top Left` of your browser.    

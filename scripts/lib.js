@@ -524,6 +524,7 @@ function my_custom_js() {
         let images = [];
         let seeds = [];
         let tags = [];
+        let privacyBalls = [];
 
         const container = document.getElementById('cg-custom-gallery');
         if (!container) {
@@ -590,6 +591,108 @@ function my_custom_js() {
 
             window.updateGallery(response.data);
         };
+
+        function ensurePrivacyButton() {
+            let privacyButton = document.getElementById('cg-privacy-button');
+            if (!privacyButton) {
+                privacyButton = document.createElement('button');
+                privacyButton.id = 'cg-privacy-button';
+                privacyButton.className = 'cg-button';
+                privacyButton.textContent = '(X)';
+                privacyButton.style.top = '50px'; 
+                privacyButton.style.left = '10px';
+                privacyButton.style.background = 'linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)';
+                privacyButton.addEventListener('click', () => {
+                    if (privacyBalls.length >= 5) {
+                        console.log('Maximum 5 privacy balls reached');
+                        return;
+                    }
+                    createPrivacyBall();
+                });
+                container.appendChild(privacyButton);
+            }
+        }
+    
+        function createPrivacyBall() {
+            const ball = document.createElement('div');
+            ball.className = 'cg-privacy-ball';
+            ball.innerHTML = 'SAA';
+
+            ball.style.width = '100px';
+            ball.style.height = '100px'; 
+        
+            // Set initial position (dynamic, remains in JS)
+            const galleryRect = container.getBoundingClientRect();
+            const left = galleryRect.left + galleryRect.width / 2 - 50; // Center horizontally
+            const top = galleryRect.top + galleryRect.height / 2 - 50; // Center vertically
+            ball.style.left = `${left}px`;
+            ball.style.top = `${top}px`;
+        
+            // Dragging functionality
+            let isDragging = false, startX, startY;
+            ball.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { // Left-click to drag
+                    e.preventDefault();
+                    isDragging = true;
+                    startX = e.clientX - parseFloat(ball.style.left || 0);
+                    startY = e.clientY - parseFloat(ball.style.top || 0);
+                    ball.style.cursor = 'grabbing'; // Override for dragging state
+                    document.body.style.userSelect = 'none';
+                } else if (e.button === 2) { // Right-click to resize
+                    e.preventDefault();
+                    const startY = e.clientY;
+                    const startSize = parseFloat(ball.style.width || 100);
+        
+                    const onMouseMove = (moveEvent) => {
+                        const deltaY = moveEvent.clientY - startY;
+                        let newSize = startSize + deltaY;
+                        newSize = Math.min(Math.max(newSize, 20), 300); // Limit size between 20px and 300px
+                        ball.style.width = `${newSize}px`;
+                        ball.style.height = `${newSize}px`;
+                        ball.style.fontSize = `${newSize * 0.2}px`; // Dynamic font size adjustment
+                    };
+        
+                    const onMouseUp = () => {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+        
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }
+            });
+        
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                ball.style.left = `${e.clientX - startX}px`;
+                ball.style.top = `${e.clientY - startY}px`;
+            });
+        
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    ball.style.cursor = 'grab'; // Reset to default (though CSS handles this via :active)
+                    document.body.style.userSelect = '';
+                }
+            });
+        
+            // Disable context menu
+            ball.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+        
+            // Double-click to remove
+            ball.addEventListener('dblclick', () => {
+                ball.remove();
+                privacyBalls = privacyBalls.filter(b => b !== ball);
+                console.log(`Privacy ball removed. Remaining: ${privacyBalls.length}`);
+            });
+        
+            document.body.appendChild(ball);
+            privacyBalls.push(ball);
+            console.log(`Privacy ball created. Total: ${privacyBalls.length}`);
+        }
 
         function enterFullscreen(index) {
             const imgUrl = images[index];
@@ -667,9 +770,16 @@ function my_custom_js() {
                 }
             }
 
+            privacyBalls.forEach(ball => {
+                ball.style.zIndex = '10003';
+            });
+
             function exitFullscreen() {
                 document.body.removeChild(overlay);
                 document.removeEventListener('keydown', handleFullscreenKeyDown);
+                privacyBalls.forEach(ball => {
+                    ball.style.zIndex = '10003';
+                });
             }
         }
 
@@ -710,6 +820,7 @@ function my_custom_js() {
                     isGridMode = !isGridMode;
                     isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
                 }, 'cg-switch-mode-button');
+                ensurePrivacyButton();
             };
         }
 
@@ -776,7 +887,7 @@ function my_custom_js() {
             }, 'cg-switch-mode-button');
             ensureSeedButton();
             ensureTagButton();
-
+            ensurePrivacyButton();
             adjustPreviewContainer(previewContainer);
         }
 

@@ -58,7 +58,7 @@ def read_image_metadata(image):
     
 def send_image_metadata(metadata, image_data):
     if not isinstance(metadata, str) or "" == metadata:
-        return "", settings_json["api_neg_prompt"], settings_json["api_prompt"], -1, image_data if isinstance(image_data, str) else "7.0,30,1024,1360,1"
+        return settings_json["custom_prompt"], settings_json["api_neg_prompt"], settings_json["api_prompt"], -1, image_data if isinstance(image_data, str) else "7.0,30,1024,1360,1"
         
     try:
         positive_prompt = ""
@@ -125,4 +125,4 @@ def send_image_metadata(metadata, image_data):
         return positive_prompt, negative_prompt, empty_string, seed, combined_params
 
     except Exception:
-        return "", settings_json["api_neg_prompt"], settings_json["api_prompt"], -1, image_data if isinstance(image_data, str) else "7.0,30,1024,1360,1"
+        return settings_json["custom_prompt"], settings_json["api_neg_prompt"], settings_json["api_prompt"], -1, image_data if isinstance(image_data, str) else "7.0,30,1024,1360,1"
