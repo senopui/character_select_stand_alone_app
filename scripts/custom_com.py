@@ -103,6 +103,10 @@ function(character1, character2, character3, view1, view2, view3, view4) {
 }
 """
 
+keep_images = []
+keep_seed = []
+keep_tags = []
+
 def get_image_base64(file_name):
     base_dir = os.path.dirname(__file__)
     img_path = os.path.join(base_dir, "imgs", file_name)
@@ -152,29 +156,38 @@ def get_7(character1, character2, character3, view1, view2, view3, view4):
 def get_1(images = None):
     return
 
-def set_custom_gallery_last_api_images(images, seeds, tags, ret):
-    #if 'success' == ret:
-        #print(f"[{CAT}] Get {len(images)} images from lib")
+def set_custom_gallery_last_api_images(keep_gallery, images, seeds, tags, ret):
+    global keep_images
+    global keep_seed
+    global keep_tags
 
     if not images:
         print(f"[{CAT}] Got error from backend: {ret}")
-        return {"data": None, "error": f"{ret}"}, '', ''
+        return {"data": None, "error": f"{ret}"}, '', ''    
     
-    image_urls = []
+    if not keep_gallery:
+        keep_images = []
+        keep_tags = ""
+        keep_seed = ""
+        
+    queue = 0        
     js_error = ''
     for img in images:
         try:
             buffered = BytesIO()
             img.save(buffered, format="PNG")  
             img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8") 
-            image_urls.append(f"data:image/png;base64,{img_base64}")  
+            keep_images.insert(queue, f"data:image/png;base64,{img_base64}")  
+            queue += 1
         except Exception as e:
             print(f"[{CAT}] Error in processing image: {e}")
             js_error += f"[{CAT}] Error in processing image: {e}\n"
             continue
         
-    if len(image_urls) > 0:
-        return {"data": image_urls, "error": None}, ",".join(seeds), "|".join(tags)
+    if len(keep_images) > 0:
+        keep_seed = f'{",".join(seeds)},{keep_seed}'
+        keep_tags = f'{"|".join(tags)}|{keep_tags}'
+        return {"data": keep_images, "error": None}, keep_seed, keep_tags
     else:
         return {"data": None, "error": js_error}, '', ''
 

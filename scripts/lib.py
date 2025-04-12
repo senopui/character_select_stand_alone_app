@@ -111,9 +111,6 @@ last_prompt = ''
 last_info = ''
 last_ai_text = ''
 skip_next_generate = False
-keep_images = []
-keep_seed = []
-keep_tags = []
 
 wai_illustrious_character_select_files = [       
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
@@ -803,9 +800,6 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
     global last_ai_text
     global LANG
     global skip_next_generate
-    global keep_images
-    global keep_seed
-    global keep_tags
     
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
@@ -816,13 +810,11 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         
     if 'none' == ai_interface == api_interface:
         gr.Warning(LANG["gr_warning_interface_both_none"])
-        
-    if not keep_gallery:
-        keep_images = []
-        keep_tags = []    
-        keep_seed = []
+    
+    now_images = []
+    now_tags = []
+    now_seed = []
     final_infos = []
-    queue = 0
     
     ai_text=''
     LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
@@ -891,10 +883,9 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
             final_info += f'Hires Fix Seed:[{hf_random_seed}]\n'            
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
-            keep_images.insert(queue, api_image)
-            keep_tags.insert(queue, final_prompt)        
-            keep_seed.insert(queue, str(seed1))
-            queue += 1
+            now_images.append(api_image)
+            now_tags.append(final_prompt)        
+            now_seed.append(str(seed1))
         final_infos.append(final_info)
         
         # Collect prompts
@@ -902,8 +893,8 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         last_info = info
         last_ai_text = ai_text            
         
-        js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_images, keep_seed, keep_tags, js_ret)
-    return ''.join(keep_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
+    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_gallery, now_images, now_seed, now_tags, js_ret)
+    return ''.join(now_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
     
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -914,20 +905,15 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
     global skip_next_generate
-    global keep_images
-    global keep_seed
-    global keep_tags
             
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
             
-    if not keep_gallery:
-        keep_images = []
-        keep_tags = []    
-        keep_seed = []
+    now_images = []
+    now_tags = []
+    now_seed = []
     final_infos = []
-    queue = 0
     
     ai_text=''
     if 'none' != batch_generate_rule:         
@@ -972,14 +958,13 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
         
         if api_image:
-            keep_images.insert(queue, api_image)
-            keep_tags.insert(queue, final_prompt)        
-            keep_seed.insert(queue, str(seed))
-            queue += 1
+            now_images.append(api_image)
+            now_tags.append(final_prompt)        
+            now_seed.append(str(seed))
         final_infos.append(final_info)
         
-        js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_images, keep_seed, keep_tags, js_ret)
-    return ''.join(keep_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
+    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_gallery, now_images, now_seed, now_tags, js_ret)
+    return ''.join(now_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
 
 def is_keep_gallery(keep_gallery, js_images_data_local, js_seed_local, ts_tags_local):
     global js_images_data
