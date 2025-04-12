@@ -72,6 +72,7 @@ Hightlights:
 1. Click on the `BLANK` area of the gallery, will switch images.     
 2. Click `Seed` will copy seed to clipboard and override your current seed setting.    
 3. Click `Tags` will copy full positive prompts to clipboard.    
+4. `Privacy Ball` see bwlow.    
 
 `Full Screen`, `Left` and `Right` arrow to switch images, also supports `Mouse Drag` and `Mouse Scroll Zoom`.     
 
@@ -158,7 +159,7 @@ Local
 ------
 # API Call for Local Image Generator   
 ComfyUI    
-1. Enable `DEV mode` in ComfyUI Settings, and load `examples\workflow_comfyui.png` into your ComfyUI ([FAQ:ComfyUI API not working](https://github.com/mirabarukaso/character_select_stand_alone_app/tree/main#comfyui-api-not-working))    
+1. Enable `DEV mode` in ComfyUI Settings, and load `scripts\workflow_api_new.json` into your ComfyUI, make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) **v0.4.9.2** or above from ComfyUI Custom Node Manager.         
 2. Select `Local Image Generator API` to `ComfyUI`   
 3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
 4. Have fun   
@@ -188,18 +189,15 @@ Install [Python](https://www.python.org/downloads/) 3.11~3.13 recommend.
 Then copy and paste the following command into your command line with Python environment.    
 ```
 py -m pip install -r requirements.txt
-```
+```  
 
-### ComfyUI API not working???
-Load `examples\workflow_comfyui.png` or `scripts\workflow_api_new.json` into your ComfyUI, and make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)    
-
-The [ComfyUI-Image-Saver](https://github.com/alexopus/ComfyUI-Image-Saver) node is no longer required in the `scripts\workflow_api_new.json`, please make sure your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) node is `0.4.9.2` or above.         
+Or, try [One-Click embedded package](https://github.com/mirabarukaso/character_select_stand_alone_app#one-click-embedded-package)     
 
 ### WebUI API works, but WebUI not working anymore!!!
 It seems some plugin caused that issue, try update to the latest version.    
 Still not working? Unfortunately, you can't use both the API and WebUI in this case unless you uninstall the buggy plugin.   
 
 ### WebUI Http 500 / ComfyUI model not found
-Make sure you have `waiNSFWIllustrious_v110` model in your `models/Stable-diffusion` folder.    
+Make sure you have `waiNSFWIllustrious_v120` model in your `models/Stable-diffusion` folder.    
 Check `Setup Model List` section, setup your proper models folder and set `model_filter` to `false`    
 

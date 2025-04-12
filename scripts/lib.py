@@ -30,8 +30,6 @@ CAT = "WAI_Character_Select"
 ENGLISH_CHARACTER_NAME = False
 PROMPT_MANAGER = None
 
-COMFYUI_WORKFLOW = 'workflow_api.json'
-
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 json_folder = os.path.join(parent_dir, 'json')
@@ -77,6 +75,7 @@ settings_json = {
     "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor,3d",
     "api_image_data": "7.0,30,1024,1360,1",
     "api_image_landscape": False,
+    "keep_gallery": False,
     
     "batch_generate_rule": "Once",
     "ai_prompt": "",
@@ -100,6 +99,7 @@ settings_json = {
     "api_hf_random_seed": False,
     
     "api_refiner_enable": False,
+    "api_refiner_add_noise": True,
     "api_refiner_model": "none",
     "api_refiner_ratio": 0.4,
 }
@@ -110,6 +110,10 @@ refiner_model_files_list = []
 last_prompt = ''
 last_info = ''
 last_ai_text = ''
+skip_next_generate = False
+keep_images = []
+keep_seed = []
+keep_tags = []
 
 wai_illustrious_character_select_files = [       
     {'name': 'settings', 'file_path': os.path.join(json_folder, 'settings.json'), 'url': 'local'},
@@ -511,7 +515,7 @@ def original_character_select_ex(character = 'random', random_action_seed = 1):
 def parse_api_image_data(api_image_data,api_image_landscape):
     try:
         cfg, steps, width, height, loops = map(float, api_image_data.split(','))
-        if 1 > int(loops) or 32 < int(loops):
+        if 1 > int(loops) or 128 < int(loops):
             loops = 1
         if not api_image_landscape:
             return float(cfg), int(steps), int(width), int(height), int(loops)
@@ -554,7 +558,7 @@ def create_prompt_info(rnd_character1, opt_chara1, tas1,
 def create_image(interface, addr, model_file_select, prompt, neg_prompt, 
                  seed, cfg, steps, width, height, 
                  api_hf_enable, ai_hf_scale, ai_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
-                 refiner_enable, refiner_model, refiner_ratio):
+                 refiner_enable, refiner_add_noise, refiner_model, refiner_ratio):
     def convert_to_condensed_format(data, hf_enable, refiner_enable):
         # Ensure data is a dictionary by parsing it if it's a string
         if isinstance(data, str):
@@ -629,8 +633,7 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                 image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, 
                                               positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                               hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer, hf_seed=hf_random_seed,
-                                              refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio, 
-                                              workflow=COMFYUI_WORKFLOW
+                                              refiner_enable = refiner_enable, refiner_add_noise=refiner_add_noise, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio
                                               )
                 image_data_bytes = bytes(image_data_list)  
                 api_image = Image.open(BytesIO(image_data_bytes))
@@ -791,14 +794,18 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
 def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                 api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                 api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
             ) -> tuple[str, str, Image.Image, Image.Image]:            
     global last_prompt
     global last_info
     global last_ai_text
     global LANG
+    global skip_next_generate
+    global keep_images
+    global keep_seed
+    global keep_tags
     
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
@@ -810,10 +817,11 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
     if 'none' == ai_interface == api_interface:
         gr.Warning(LANG["gr_warning_interface_both_none"])
         
-    last_api_images = []
-    final_prompts = []
+    if not keep_gallery:
+        keep_images = []
+        keep_tags = []    
+        keep_seed = []
     final_infos = []
-    final_seed_list = []
     
     ai_text=''
     LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
@@ -828,7 +836,13 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)     
                     
+    skip_next_generate = False
+    js_ret = ""
     for index in range(1, loops + 1):
+        if skip_next_generate:
+            skip_next_generate = False
+            break
+        
         rnd_character = ['','','']
         opt_chara = ['','','']
         tas = ['','','']
@@ -868,7 +882,7 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         api_image, js_ret = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                 seed1, cfg, steps, width, height, 
                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
-                                api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                 )
         
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
@@ -876,36 +890,41 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
             final_info += f'Hires Fix Seed:[{hf_random_seed}]\n'            
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
-            last_api_images.append(api_image)
-        final_prompts.append(final_prompt)
+            keep_images.append(api_image)
+            keep_tags.append(final_prompt)        
+            keep_seed.append(str(seed1))
         final_infos.append(final_info)
-        final_seed_list.append(str(seed1))
         
         # Collect prompts
         last_prompt = prompt
         last_info = info
-        last_ai_text = ai_text
+        last_ai_text = ai_text            
         
-    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(last_api_images, final_seed_list, final_prompts, js_ret)
-    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_seed, ts_tags
+        js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_images, keep_seed, keep_tags, js_ret)
+    return ''.join(keep_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
     
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                            api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                            api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                            api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                            api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
             ) -> tuple[str, str, Image.Image, Image.Image]:        
     global LANG
+    global skip_next_generate
+    global keep_images
+    global keep_seed
+    global keep_tags
             
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
             
-    last_api_images = []
-    final_prompts = []
+    if not keep_gallery:
+        keep_images = []
+        keep_tags = []    
+        keep_seed = []
     final_infos = []
-    final_seed_list = []
 
     ai_text=''
     if 'none' != batch_generate_rule:         
@@ -916,8 +935,14 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                 ai_text = llm_send_request(ai_prompt, remote_ai_base_url, remote_ai_model, remote_ai_timeout)
             elif 'Local' == ai_interface:
                 ai_text = llm_send_local_request(ai_prompt, ai_local_addr, ai_local_temp, ai_local_n_predict)                
-
-    for index in range(1, loops + 1):       
+    
+    skip_next_generate = False
+    js_ret = ""
+    for index in range(1, loops + 1):
+        if skip_next_generate:
+            skip_next_generate = False
+            break
+        
         gr.Info(LANG["gr_info_create_n"].format(index, loops))
         seed = random_seed
         if random_seed == -1:
@@ -938,28 +963,45 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
         api_image, js_ret = create_image(api_interface, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                  seed, cfg, steps, width, height, 
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                 api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                  )
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
-        
+                
         if api_image:
-            last_api_images.append(api_image)
-        final_prompts.append(final_prompt)
+            keep_images.append(api_image)
+            keep_tags.append(final_prompt)        
+            keep_seed.append(str(seed))
         final_infos.append(final_info)
-        final_seed_list.append(str(seed))
         
-    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(last_api_images, final_seed_list, final_prompts, js_ret)
-    return ''.join(final_prompts), ''.join(final_infos), js_images_data, js_seed, ts_tags
+        js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_images, keep_seed, keep_tags, js_ret)
+    return ''.join(keep_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
+
+def is_keep_gallery(keep_gallery, js_images_data_local, js_seed_local, ts_tags_local):
+    global js_images_data
+    global js_seed
+    global ts_tags    
+    if not keep_gallery:
+        js_images_data, js_seed, ts_tags = js_images_data_local, js_seed_local, ts_tags_local
+    else:
+        js_images_data.append(js_images_data_local)
+        js_seed.append(js_seed_local)
+        ts_tags.append(ts_tags_local)        
+    return js_images_data, js_seed, ts_tags
+
+def skip_next_generate():
+    global skip_next_generate
+    skip_next_generate = True
+    gr.Warning(LANG["gr_info_skip_next_generate"])
 
 def save_current_setting(character1, character2, character3, tag_assist,
                         view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
-                        custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
+                        custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                         remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                         ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                        api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                        api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                         ):        
     now_settings_json = {        
         "remote_ai_base_url": remote_ai_base_url,
@@ -990,6 +1032,7 @@ def save_current_setting(character1, character2, character3, tag_assist,
         "api_neg_prompt": api_neg_prompt,
         "api_image_data": api_image_data,   
         "api_image_landscape": api_image_landscape,   
+        "keep_gallery": keep_gallery,
 
         "batch_generate_rule": batch_generate_rule,
         "ai_prompt" : ai_prompt,                
@@ -1013,6 +1056,7 @@ def save_current_setting(character1, character2, character3, tag_assist,
         "api_hf_random_seed": api_hf_random_seed,
         
         "api_refiner_enable": api_refiner_enable,
+        "api_refiner_add_noise": api_refiner_add_noise,
         "api_refiner_model": api_refiner_model_list,
         "api_refiner_ratio": api_refiner_ratio,
     }
@@ -1030,12 +1074,12 @@ def load_saved_setting(file_path):
         
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["tag_assist"],\
             settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"], settings_json["view_style"], settings_json["api_model_file_select"],settings_json["random_seed"],\
-            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],\
+            settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],settings_json["keep_gallery"],\
             settings_json["ai_prompt"],settings_json["batch_generate_rule"],settings_json["prompt_ban"],settings_json["ai_interface"],\
             settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\
             settings_json["ai_local_addr"],settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_addr"],\
             settings_json["api_hf_enable"],settings_json["api_hf_scale"],settings_json["api_hf_denoise"],settings_json["api_hf_upscaler_selected"],settings_json["api_hf_colortransfer"],settings_json["api_webui_savepath_override"],settings_json["api_hf_random_seed"],\
-            settings_json["api_refiner_enable"],settings_json["api_refiner_model"],settings_json["api_refiner_ratio"]
+            settings_json["api_refiner_enable"],settings_json["api_refiner_add_noise"],settings_json["api_refiner_model"],settings_json["api_refiner_ratio"]
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
@@ -1064,16 +1108,6 @@ def refresh_character_thumb_image(character1, character2, character3):
     
     js_generated_thumb_image_list = set_custom_gallery_thumb_images(thumb_image)
     return character_info, js_generated_thumb_image_list
-
-def warning_lora(show):
-    global COMFYUI_WORKFLOW
-    info = 'none'
-    if show:
-        info = LANG['api_warning_lora']
-        COMFYUI_WORKFLOW = 'workflow_api_new.json'
-    else:
-        COMFYUI_WORKFLOW = 'workflow_api.json'
-    return info
 
 def update_lora_list(api_interface, no_dropdown=False):
     settings_json['api_interface'] = api_interface
@@ -1112,17 +1146,23 @@ def update_lora_list(api_interface, no_dropdown=False):
     
     return gr.Dropdown(choices=lora_file_list, label='', value='none', allow_custom_value=False, scale=12)
 
-def add_lora(lora_list, api_prompt, api_interface, lora_use_new_workflow):
+def add_lora(lora_list, api_prompt, api_interface):
     lora = ''
     if 'WebUI' == api_interface:
         pattern = r'([^/\\]+?)(?=\.safetensors$)'
         match = re.search(pattern, lora_list, re.IGNORECASE)
         if match:
             lora = f'\n<lora:{match.group(1)}:1>'
-    elif 'ComfyUI' == api_interface and lora_use_new_workflow:
+    elif 'ComfyUI' == api_interface:
         lora = f'\n<lora:{lora_list}:1>'
             
     return f'{api_prompt}{lora}'
+
+def warning_lora(api):
+    info = 'none'
+    if 'ComfyUI' == api:
+        info = LANG['api_warning_lora']
+    return info
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Character Select Application')

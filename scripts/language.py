@@ -19,7 +19,7 @@ LANG_EN = {
     "api_prompt": "Positive Prompt (Tail)",
     "api_neg_prompt": "Negative Prompt",
     "batch_generate_rule": "AI rule for Batch generate",
-    "api_image_data": "CFG,Step,W,H,Batch (1-32)",
+    "api_image_data": "CFG,Step,W,H,Batch (1-128)",
     "api_image_landscape": "Landscape",
     "ai_prompt": "AI Prompt",
     "prompt_ban": "Prompt Ban List",
@@ -40,6 +40,7 @@ LANG_EN = {
     "system_settings": "Settings",
     "image_info": "Image Info Reader",
     "image_info_to_generate": "Send image info to generator",
+    "keep_gallery": "Keep Gallery",
     
     "api_hf": "Hires Fix & Refiner",
     "api_hf_enable": "Enable Hires Fix",
@@ -52,15 +53,16 @@ LANG_EN = {
     
     "api_refiner_enable":"Enable Refiner",
     "api_refiner_model":"Refiner Model",
-    "api_refiner_ratio":"Ratio",
+    "api_refiner_ratio":"Refiner Ratio",
+    "api_refiner_add_noise":"Refiner Add Noise(ComfyUI)",
         
     "api_webui_savepath_override": "WebUI Save to \".\\outputs\"",
-    "api_comfyui_new_workflow": "New Workflow for ComfyUI",
-    "api_warning_lora": "Before you start, upgrade custom node ComfyUI_Mira to v0.4.9.2 or higher.\n[COPY_CUSTOM=IndianRed]LoRA, vPred & Refiner not working in old workflow.[/COPY_CUSTOM]\n\nCheck: [COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\nClick to close and copy URL to clip board.",
+    "api_warning_lora": "[COPY_CUSTOM=lime]New workflow need ComfyUI_Mira v0.4.9.2 or above.[/COPY_CUSTOM]\n\nCheck: [COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira[/COPY_URL]\n\nClick to close and copy URL to clip board.",
     
     "run_button": "Create Prompt",
     "run_random_button": "Batch (Random)",
     "run_same_button": "Batch (Last Prompt)",
+    "run_skip_button": "Skip follow-up generation",
     "save_settings_button": "Save Settings",
     "load_settings_button": "Load Settings",
     "manual_update_database": "Update thumbs and tags",
@@ -73,6 +75,7 @@ LANG_EN = {
     "gr_info_tag_assist_add": "Tag assist: [{}] add to [{}].\nOther characters may be affected when you generate multicharacter images.",
     "gr_info_color_transfer_webui": "Creating refernect image for WebUI Color Transfer...",
     "gr_info_color_transfer_webui_warning": "Image Color Transfer is not a webUI embedded feature, so images are saved separately to the \".\\outputs\" directory of this App.",
+    "gr_info_skip_next_generate": "Skip follow-up generation",
     
     "gr_warning_interface_both_none": "[Warning] Both AI Gen and Image Gen mode are \"none\" nothing will output",
     "gr_warning_creating_ai_prompt":"[Warning] AI prompt request failed with Code [{}] {}",
@@ -141,7 +144,7 @@ LANG_CN = {
     "api_prompt": "效果提示词（放在末尾）",
     "api_neg_prompt": "负面提示词",
     "batch_generate_rule": "AI填词规则",
-    "api_image_data": "引导,步数,宽,高,批量1-32",
+    "api_image_data": "引导,步数,宽,高,批量1-128",
     "api_image_landscape": "宽高互换",
     "ai_prompt": "AI提示词（用于生成填词）",
     "prompt_ban": "提示词黑名单",
@@ -162,6 +165,7 @@ LANG_CN = {
     "system_settings": "设置",
     "image_info": "读取图片信息",
     "image_info_to_generate": "传输图片数据到生成器",
+    "keep_gallery": "保留图库",
     
     "api_hf": "高清修复 & Refiner",
     "api_hf_enable": "启用高清修复",
@@ -174,15 +178,16 @@ LANG_CN = {
     
     "api_refiner_enable":"启用Refiner",
     "api_refiner_model":"Refiner模型",
-    "api_refiner_ratio":"比例",
+    "api_refiner_ratio":"Refiner比例",
+    "api_refiner_add_noise":"Refiner添加噪点(ComfyUI)",
     
     "api_webui_savepath_override": "WebUI 存盘重定向 \".\\outputs\"",
-    "api_comfyui_new_workflow": "ComfyUI新工作流",
-    "api_warning_lora": "注意，在你开始前，必须把自定义节点 ComfyUI_Mira 升级到至少0.4.9.2或更高。\n[COPY_CUSTOM=IndianRed]LoRA、vPred、Refiner功能需要新工作流。[/COPY_CUSTOM]\n\n参考：[COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira#lora[/COPY_URL]\n\n点击此处会关闭提示，并复制URL到剪贴板。",
+    "api_warning_lora": "[COPY_CUSTOM=lime]已启用新工作流，请确认 ComfyUI_Mira 升级到 0.4.9.2 或更高版本。[/COPY_CUSTOM]\n\n参考：[COPY_URL]https://github.com/mirabarukaso/ComfyUI_Mira[/COPY_URL]\n\n点击此处会关闭提示，并复制URL到剪贴板。",
     
     "run_button": "单图生成",
     "run_random_button": "批量（随机）",
     "run_same_button": "批量（上次生成）",
+    "run_skip_button": "跳过后续生成",
     "save_settings_button": "保存设置",
     "load_settings_button": "载入设置",
     "manual_update_database": "更新缩略图与标签库",
@@ -194,6 +199,7 @@ LANG_CN = {
     "gr_info_manual_update_database_done": " {} 更新完成",
     "gr_info_color_transfer_webui": "正在生成参考图像用于WebUI色彩传递...",
     "gr_info_color_transfer_webui_warning": "注意：色彩传递并非WebUI内嵌功能，色彩传递后的图片保存至 \".\\outputs\" 目录下",
+    "gr_info_skip_next_generate": "跳过后续生成",
     
     "gr_warning_interface_both_none": "注意：AI题词和图片生成接口都被设定为 \"none\"，此时执行没有图片输出",
     "gr_warning_creating_ai_prompt":"注意：AI题词请求失败，代码： [{}] {}",

@@ -2,8 +2,8 @@ import os
 import gradio as gr
 import sys
 sys.path.append("scripts/")
-from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
-from lib import TITLE, settings_json, get_prompt_manager, add_lora, warning_lora, update_lora_list
+from lib import init, create_prompt_ex, create_with_last_prompt, skip_next_generate, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
+from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora
 from custom_com import custom_gallery_default, custom_thumb_default, get_12, get_7, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
@@ -15,25 +15,26 @@ if __name__ == '__main__':
                         
     #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
     
-    def sync_hf(trigger):
+    def sync_trigger(trigger):
         return trigger
-    
-    def check_vpred(trigger, model_name):
-        if model_name.__contains__('vPred'):
-            return True
-        return trigger
-        
+            
     def generate_lock():
-        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, interactive=False)
-        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, interactive=False)
-        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, interactive=False)
-        return run_button, run_random_button, run_same_button
+        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button", visible=False)
+        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button", visible=False)
+        run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button", visible=False)
+        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", interactive=True, visible=True)        
+        return run_button, run_random_button, run_same_button, run_skip_button
     
     def generate_unlock(images_data, images_seed, images_tag):
-        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, interactive=True)
-        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, interactive=True)
-        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, interactive=True)
-        return run_button, run_random_button, run_same_button
+        run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button", visible=True)
+        run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button", visible=True)
+        run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button", visible=True)
+        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", visible=False)        
+        return run_button, run_random_button, run_same_button, run_skip_button
+    
+    def lock_skip():
+        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", interactive=False)        
+        return run_skip_button
         
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:        
         with gr.Row():
@@ -87,26 +88,29 @@ if __name__ == '__main__':
                             step=1,
                             value=-1,
                             label=LANG["random_seed"],
-                            elem_id="random_seed"
+                            elem_id="random_seed",
+                            scale = 2
                         )    
-                    api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"])                    
-                with gr.Row():
-                    api_hf_enable_shadow = gr.Checkbox(label=LANG["api_hf_enable"],value=False, scale=1)
-                    tag_assist = gr.Checkbox(label=LANG["tag_assist"], value=settings_json["tag_assist"], scale=1)
+                    api_image_data = gr.Textbox(value=settings_json["api_image_data"], label=LANG["api_image_data"], scale = 2)
                     api_image_landscape = gr.Checkbox(value=settings_json["api_image_landscape"], label=LANG["api_image_landscape"], scale = 1)
-                    use_new_workflow = gr.Checkbox(label=LANG["api_comfyui_new_workflow"], value=False, scale=2)
+                with gr.Row():
+                    api_hf_enable_shadow = gr.Checkbox(label=LANG["api_hf_enable"],value=settings_json["api_hf_enable"])
+                    api_refiner_enable_shadow = gr.Checkbox(label=LANG["api_refiner_enable"],value=settings_json["api_refiner_enable"])
+                    tag_assist = gr.Checkbox(label=LANG["tag_assist"], value=settings_json["tag_assist"])                    
+                    keep_gallery = gr.Checkbox(label=LANG["keep_gallery"], value=settings_json["keep_gallery"])
                 with gr.Row(elem_id="generate_buttons"):                    
                         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button")
                         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button")
-                        run_same_button = gr.Button(value=LANG["run_same_button"], scale=3, elem_id="run_same_button")
+                        run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button")
+                        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", visible=False)
                 with gr.Accordion(label=LANG["thumb_image"], open=True):
                     thumb_image = gr.HTML(custom_thumb_default, label=LANG["api_image"], elem_id="cg-thumb-wrapper", max_height=274, min_height=274, padding=False)                
                 with gr.Row():
                     with gr.Accordion(label=LANG["api_hf"], open=False):
                         with gr.Column():
                             with gr.Row():
-                                api_hf_enable = gr.Checkbox(label=LANG["api_hf_enable"],value=False)
-                                api_webui_savepath_override = gr.Checkbox(label=LANG["api_webui_savepath_override"], value=False)
+                                api_hf_enable = gr.Checkbox(label=LANG["api_hf_enable"],value=settings_json["api_hf_enable"])
+                                api_webui_savepath_override = gr.Checkbox(label=LANG["api_webui_savepath_override"], value=settings_json["api_webui_savepath_override"])
                             with gr.Row():
                                 api_hf_upscaler_selected = gr.Dropdown(
                                     choices=settings_json["api_hf_upscaler_list"],
@@ -122,7 +126,7 @@ if __name__ == '__main__':
                                     allow_custom_value=False,
                                     scale=1
                                 )
-                                api_hf_random_seed = gr.Checkbox(label=LANG["api_hf_random_seed"], value=False, scale=2)
+                                api_hf_random_seed = gr.Checkbox(label=LANG["api_hf_random_seed"], value=settings_json["api_hf_random_seed"], scale=2)
                             with gr.Row():
                                 api_hf_scale = gr.Slider(minimum=1.2,
                                     maximum=2.0,
@@ -137,20 +141,22 @@ if __name__ == '__main__':
                                     label=LANG["api_hf_denoise"],
                                 )                
                             with gr.Row():
-                                api_refiner_enable = gr.Checkbox(label=LANG["api_refiner_enable"],value=False, scale=1)
+                                api_refiner_enable = gr.Checkbox(label=LANG["api_refiner_enable"],value=settings_json["api_refiner_enable"], scale=1)
+                                api_refiner_add_noise = gr.Checkbox(label=LANG["api_refiner_add_noise"],value=settings_json["api_refiner_add_noise"], scale=1)
+                            with gr.Row():
                                 api_refiner_model_list = gr.Dropdown(
                                         choices=refiner_model_files_list,
                                         label=LANG["api_refiner_model"],
                                         value=settings_json["api_refiner_model"],
                                         allow_custom_value=False,
-                                        scale=4
+                                        scale=2
                                     )  
                                 api_refiner_ratio = gr.Slider(minimum=0.1,
                                     maximum=1.0,
                                     step=0.05,
                                     value=settings_json["api_refiner_ratio"],
                                     label=LANG["api_refiner_ratio"],
-                                    scale=2
+                                    scale=1
                                 )                                
                 with gr.Row():
                     with gr.Column():
@@ -233,7 +239,7 @@ if __name__ == '__main__':
                         with gr.Row():
                             ai_system_prompt_text = gr.Textbox(value=LANG["ai_system_prompt"], show_label=False, lines=24)
         
-        run_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(fn=create_characters,
+        run_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
                               outputs=[images_data]
                               ).then(
@@ -244,19 +250,19 @@ if __name__ == '__main__':
                                     inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                                api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                                api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
                                     outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox1, dummy_textbox2],
-                                    outputs=[run_button, run_random_button, run_same_button],
+                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button],
                                     js=JS_HANDLERESPONSE
                                 )
 
-        run_random_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(fn=create_characters,
+        run_random_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=True, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
                               outputs=[images_data]
                               ).then(
@@ -267,19 +273,19 @@ if __name__ == '__main__':
                                     inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                                api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                                api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
                                     outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox1, dummy_textbox2],
-                                    outputs=[run_button, run_random_button, run_same_button],
+                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button],
                                     js=JS_HANDLERESPONSE
                                 )
         
-        run_same_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button]).then(
+        run_same_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button]).then(
                                 fn=get_1,
                                 inputs=[images_data],
                                 js=JS_SHOWLOADING
@@ -287,27 +293,28 @@ if __name__ == '__main__':
                                 inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                         ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                        api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, api_model_file_select,
+                                        api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                        api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                        api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                         ], 
                                 outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
                             ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox1, dummy_textbox2],
-                                    outputs=[run_button, run_random_button, run_same_button],
+                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button],
                                     js=JS_HANDLERESPONSE
                                 )
+        run_skip_button.click(fn=skip_next_generate).then(fn=lock_skip, outputs=[run_skip_button])
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, tag_assist,
                                            view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
-                                           custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
+                                           custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                           api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                           api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                            ],
                                    outputs=[])
         
@@ -315,12 +322,12 @@ if __name__ == '__main__':
                                    inputs=[load_settings_button],
                                    outputs=[character1, character2, character3, tag_assist,
                                            view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
-                                           custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
+                                           custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                            ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
-                                           api_refiner_enable, api_refiner_model_list, api_refiner_ratio
+                                           api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ]).then(
                                                 fn=refresh_character_thumb_image,
                                                 inputs=[character1,character2,character3],
@@ -336,24 +343,21 @@ if __name__ == '__main__':
                 
         batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)        
         
-        lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface, use_new_workflow], outputs=[api_prompt])    
-        use_new_workflow.change(fn=warning_lora, inputs=[use_new_workflow], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
+        lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface], outputs=[api_prompt])            
         api_interface.change(fn=update_lora_list, inputs=[api_interface], outputs=[lora_list])
 
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
         character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
                        
-        # Prompt Auto Complete JS
-        # Have to use dummy components
-        # Use custom_prompt, the stupid js console will always report "api_info.ts:423  Too many arguments provided for the endpoint."
         dummy_textbox1.change(fn=get_prompt_manager().update_suggestions_js, inputs=[dummy_textbox1], outputs=[dummy_dropdown])
         
-        api_hf_enable_shadow.change(fn=sync_hf, inputs=[api_hf_enable_shadow], outputs=[api_hf_enable])
-        api_hf_enable.change(fn=sync_hf, inputs=[api_hf_enable], outputs=[api_hf_enable_shadow])
+        api_hf_enable_shadow.change(fn=sync_trigger, inputs=[api_hf_enable_shadow], outputs=[api_hf_enable])
+        api_hf_enable.change(fn=sync_trigger, inputs=[api_hf_enable], outputs=[api_hf_enable_shadow])
         
-        api_model_file_select.change(fn=check_vpred, inputs=[use_new_workflow, api_model_file_select], outputs=[use_new_workflow])
-        
+        api_refiner_enable_shadow.change(fn=sync_trigger, inputs=[api_refiner_enable_shadow], outputs=[api_refiner_enable])
+        api_refiner_enable.change(fn=sync_trigger, inputs=[api_refiner_enable], outputs=[api_refiner_enable_shadow])
+                
         image_info.change(fn=read_image_metadata, inputs=[image_info], outputs=[output_info])
         image_info_to_generate.click(fn=read_image_metadata, inputs=[image_info], outputs=[output_info]
                                      ).then(fn=send_image_metadata, inputs=[output_info, api_image_data], outputs=[custom_prompt, api_neg_prompt, api_prompt, random_seed, api_image_data])
@@ -362,13 +366,12 @@ if __name__ == '__main__':
             fn=get_12,
             inputs=[dummy_wait_base64, dummy_failed_base64, dummy_show_loading_text, dummy_keys, dummy_values, dummy_oc, dummy_textbox1, character1, character2, character3, dummy_view_data, dummy_textbox2],
             js=JS_INIT
-        ).then(
-            fn=refresh_character_thumb_image,
-            inputs=[character1,character2,character3],
-            outputs=[output_info, images_data]
-            ).then(fn=get_1,
-                   inputs=[images_data],
-                   js=JS_SHOWTHUMB)
-        
-    
+            ).then(
+                fn=refresh_character_thumb_image,
+                inputs=[character1,character2,character3],
+                outputs=[output_info, images_data]
+                ).then(fn=get_1,
+                    inputs=[images_data],
+                    js=JS_SHOWTHUMB).then(fn=warning_lora, inputs=[api_interface], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
+            
     ui.launch(inbrowser=True)

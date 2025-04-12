@@ -847,15 +847,16 @@ function my_custom_js() {
                 const rect = mainImageContainer.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const isLeft = clickX < rect.width / 2;
-
-                if (isLeft && images.length > 1) {
-                    currentIndex = (currentIndex - 1 + images.length) % images.length;
-                } else if (!isLeft && images.length > 1) {
-                    currentIndex = (currentIndex + 1) % images.length;
+            
+                if (e.target !== mainImage && images.length > 1) {
+                    if (isLeft) {
+                        currentIndex = (currentIndex - 1 + images.length) % images.length;
+                    } else {
+                        currentIndex = (currentIndex + 1) % images.length;
+                    }
+                    mainImage.src = images[currentIndex];
+                    updatePreviewBorders();
                 }
-
-                mainImage.src = images[currentIndex];
-                updatePreviewBorders();
             });
 
             const previewContainer = document.createElement('div');
