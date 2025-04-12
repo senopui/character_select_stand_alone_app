@@ -822,6 +822,7 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         keep_tags = []    
         keep_seed = []
     final_infos = []
+    queue = 0
     
     ai_text=''
     LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
@@ -890,9 +891,10 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
             final_info += f'Hires Fix Seed:[{hf_random_seed}]\n'            
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         if api_image:
-            keep_images.append(api_image)
-            keep_tags.append(final_prompt)        
-            keep_seed.append(str(seed1))
+            keep_images.insert(queue, api_image)
+            keep_tags.insert(queue, final_prompt)        
+            keep_seed.insert(queue, str(seed1))
+            queue += 1
         final_infos.append(final_info)
         
         # Collect prompts
@@ -925,7 +927,8 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
         keep_tags = []    
         keep_seed = []
     final_infos = []
-
+    queue = 0
+    
     ai_text=''
     if 'none' != batch_generate_rule:         
         ai_text = last_ai_text        
@@ -967,11 +970,12 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                                  )
         final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
-                
+        
         if api_image:
-            keep_images.append(api_image)
-            keep_tags.append(final_prompt)        
-            keep_seed.append(str(seed))
+            keep_images.insert(queue, api_image)
+            keep_tags.insert(queue, final_prompt)        
+            keep_seed.insert(queue, str(seed))
+            queue += 1
         final_infos.append(final_info)
         
         js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_images, keep_seed, keep_tags, js_ret)
