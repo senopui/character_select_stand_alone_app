@@ -618,76 +618,87 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
         api_image = None
         src_info = ''
         current_time = None
-        try:            
-            if 'ComfyUI' == interface:
-                if api_hf_enable: 
-                    if not str(api_hf_upscaler_selected).__contains__('(C)'):
-                        print(f"[{CAT}]Reset {api_hf_upscaler_selected} to 4x-UltraSharp")
-                        api_hf_upscaler_selected = '4x-UltraSharp'
-                        gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler_selected))
-                    else:
-                        api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(C)', '')
-                    
+        
+        ret = 'success'
+        if 'ComfyUI' == interface:
+            if api_hf_enable: 
+                if not str(api_hf_upscaler_selected).__contains__('(C)'):
+                    print(f"[{CAT}]Reset {api_hf_upscaler_selected} to 4x-UltraSharp")
+                    api_hf_upscaler_selected = '4x-UltraSharp'
+                    gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler_selected))
+                else:
+                    api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(C)', '')
+            
+            try:
                 image_data_list = run_comfyui(server_address=addr, model_name=model_file_select, 
-                                              positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                              hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer, hf_seed=hf_random_seed,
-                                              refiner_enable = refiner_enable, refiner_add_noise=refiner_add_noise, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio
-                                              )
+                                            positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
+                                            hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer, hf_seed=hf_random_seed,
+                                            refiner_enable = refiner_enable, refiner_add_noise=refiner_add_noise, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio
+                                            )
                 image_data_bytes = bytes(image_data_list)  
-                api_image = Image.open(BytesIO(image_data_bytes))
-            elif 'WebUI' == interface:                
-                metadata = PngImagePlugin.PngInfo()
-                
-                if api_hf_enable: 
-                    if not str(api_hf_upscaler_selected).__contains__('(W)'):
-                        print(f"[{CAT}]Reset {api_hf_upscaler_selected} to R-ESRGAN 4x+")
-                        api_hf_upscaler_selected = 'R-ESRGAN 4x+'
-                        gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler_selected))
-                    else:
-                        api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(W)', '')
+                api_image = Image.open(BytesIO(image_data_bytes))                
+                return api_image, ret
                         
-                    src_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
-                                    positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
-                                    hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
-                                    refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)                    
-                    
-                    if 'none' != api_hf_colortransfer:
-                        if not api_webui_savepath_override:
-                            gr.Warning(LANG["gr_info_color_transfer_webui_warning"])
-                        gr.Info(LANG["gr_info_color_transfer_webui"])
-                        ref_image, _, ref_info = run_webui(server_address=addr, model_name=model_file_select, 
+            except Exception as ret_info:
+                ret = LANG["gr_error_creating_image"].format(ret_info, interface)      
+                api_image = None
+                                                   
+        elif 'WebUI' == interface:                
+            metadata = PngImagePlugin.PngInfo()                            
+            current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")   
+            
+            if api_hf_enable: 
+                if not str(api_hf_upscaler_selected).__contains__('(W)'):
+                    print(f"[{CAT}]Reset {api_hf_upscaler_selected} to R-ESRGAN 4x+")
+                    api_hf_upscaler_selected = 'R-ESRGAN 4x+'
+                    gr.Warning(LANG["api_hf_incorrect_upscaler"].format(api_hf_upscaler_selected))
+                else:
+                    api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(W)', '')                        
+
+                if 'none' == api_hf_colortransfer:
+                    api_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
+                                            positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
+                                            hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
+                                            refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)    
+                else:
+                    gr.Warning(LANG["gr_info_color_transfer_webui"])                                    
+                    ref_image, _, ref_info = run_webui(server_address=addr, model_name=model_file_select, 
                                             positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                             hf_enable=False, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
-                                            refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio) 
-                        
-                        PT = ColorTransfer()        
-                        if "Mean" == api_hf_colortransfer:
-                            s = np.array(src_image).astype(np.float32)     
-                            r = np.array(ref_image).astype(np.float32)       
-                            api_image = Image.fromarray(PT.mean_std_transfer(img_arr_in=s, img_arr_ref=r))
-                        elif "Lab" == api_hf_colortransfer:
-                            s = np.array(src_image).astype(np.uint8)     
-                            r = np.array(ref_image).astype(np.uint8)       
-                            api_image = Image.fromarray(PT.lab_transfer(img_arr_in=s, img_arr_ref=r))
-                            
-                        current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")                                                
-                        image_filename = f"{current_time}_{seed}_reference.png"
-                        image_filepath = os.path.join(image_outputs_folder, image_filename)
-                        ref_para = convert_to_condensed_format(''.join(ref_info), False, refiner_enable)
-                        metadata.add_text("parameters", ref_para)                        
-                        ref_image.save(image_filepath, pnginfo=metadata)
-                        print(f"[{CAT}]Color Transfer: Reference Image saved to {image_filepath}")                        
-                    else:
-                        api_image = src_image                    
-                else:
+                                            refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)
+                    
                     api_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
                                         positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                         hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
-                                        refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)
-                
-                if api_webui_savepath_override:
-                    if not current_time:
-                        current_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                                        refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio) 
+                    
+                    PT = ColorTransfer()        
+                    if "Mean" == api_hf_colortransfer:
+                        s = np.array(api_image).astype(np.float32)     
+                        r = np.array(ref_image).astype(np.float32)       
+                        api_image = Image.fromarray(PT.mean_std_transfer(img_arr_in=s, img_arr_ref=r))
+                    elif "Lab" == api_hf_colortransfer:
+                        s = np.array(api_image).astype(np.uint8)     
+                        r = np.array(ref_image).astype(np.uint8)       
+                        api_image = Image.fromarray(PT.lab_transfer(img_arr_in=s, img_arr_ref=r))     
+                                                                                                        
+                    image_filename = f"{current_time}_{seed}_reference.png"
+                    image_filepath = os.path.join(image_outputs_folder, image_filename)
+                    ref_para = convert_to_condensed_format(''.join(ref_info), False, refiner_enable)
+                    metadata.add_text("parameters", ref_para)                        
+                    ref_image.save(image_filepath, pnginfo=metadata)
+                    print(f"[{CAT}]Color Transfer: Reference Image saved to {image_filepath}")        
+            else:
+                api_image, _, src_info = run_webui(server_address=addr, model_name=model_file_select, 
+                                        positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
+                                        hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
+                                        refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio) 
+                        
+            if api_image:
+                if api_webui_savepath_override or ('none' != api_hf_colortransfer and not api_webui_savepath_override):
+                    if not api_webui_savepath_override:
+                        gr.Warning(LANG["gr_info_color_transfer_webui_warning"])
+                        
                     image_filename = f"{current_time}_{seed}.png"
                     image_filepath = os.path.join(image_outputs_folder, image_filename)                        
                     str_para = convert_to_condensed_format(''.join(src_info), api_hf_enable, refiner_enable)
@@ -695,12 +706,12 @@ def create_image(interface, addr, model_file_select, prompt, neg_prompt,
                     api_image.save(image_filepath, pnginfo=metadata)                        
                     print(f"[{CAT}]WebUI: Image saved to {image_filepath}")
                                                 
-            return api_image, 'success'
-        except Exception as e:
-            ret = LANG["gr_error_creating_image"].format(e, interface)
-            print(ret)
-            gr.Warning(ret)
-            return None, ret
+                return api_image, ret
+            
+            ret = LANG["gr_error_creating_image"].format(src_info, interface)
+            
+        gr.Warning(ret)
+        return None, ret
     
     return None, LANG["gr_warning_interface_both_none"]
 

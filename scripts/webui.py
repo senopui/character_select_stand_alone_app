@@ -18,8 +18,9 @@ def run_webui(
         }
         response = requests.post(url=f'http://{server_address}/sdapi/v1/options', json=option_payload)
         if response.status_code != 200:
-            print(f'{CAT}Failed to connect to server, error code: {response.status_code}')
-            return None
+            ret_info = f'{CAT}Failed to connect to server, error code: {response.status_code}'
+            print(ret_info)
+            return None, {}, ret_info
     
     payload = {        
         "prompt": positive_prompt,
@@ -57,8 +58,9 @@ def run_webui(
 
     response = requests.post(url=f'http://{server_address}/sdapi/v1/txt2img', json=payload)
     if response.status_code != 200:
-        print(f'{CAT}Failed to connect to server, error code: {response.status_code}')
-        return None
+        ret_info = f'{CAT}Failed to connect to server, error code: {response.status_code}'
+        print(ret_info)
+        return None, {}, ret_info
     
     res = response.json()
     image = Image.open(io.BytesIO(base64.b64decode(res["images"][0])))    
@@ -68,5 +70,5 @@ def run_webui(
     if image:        
         return image, parameters, info
     
-    return None, {}, ''
+    return None, {}, 'Unknown Error from WebUI backend'
 

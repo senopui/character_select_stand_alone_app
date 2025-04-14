@@ -94,7 +94,7 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
     workflow_path = os.path.join(current_folder, workflow)
                 
     ws = websocket.WebSocket()
-    ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id))                    
+    ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id)) 
     
     my_gen = ComfyUIAPIGenerator(server_address, client_id, workflow_path)
     
