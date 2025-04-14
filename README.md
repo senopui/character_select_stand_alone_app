@@ -47,6 +47,8 @@ Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com
 Once you have set the correct model folder, the system will automatically search the relative LoRA directory according to the API type and update the LoRA list.    
 WebUI supports it's default LoRA prompt style.    
 ComfyUI supports more detailed configuration of LoRA, for more information please refer to the [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
+Also support check LoRA info by click `?` button in LoRA tab. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
+
 **To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**   
 
 # Semi-Auto Tag Complete

@@ -78,6 +78,12 @@ function(errorMessage) {
 }
 """
 
+JS_SHOWCUSTOM_MESSAGE = """
+function(image, message) {
+    window.customOverlay.createCustomOverlay(image, message);
+}
+"""
+
 JS_CUSTOM_CHARACTERS_DROPDOWN = """
 <div id="mydropdown-container"></div>
 <script>

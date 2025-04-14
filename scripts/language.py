@@ -111,6 +111,11 @@ LANG_EN = {
     "overlay_te": "Elapsed time:",
     "overlay_sec": "seconds",
     
+    "lora_info": "LoRA info:",
+    "lora_trigger_words": "Trigger Words (Top 10): ",
+    "lora_metadata": "Metadata:",
+    "lora_no_metadata": "File read error or metadata was intentionally removed",
+    
     "setup_greet_title": "Initial Setup Wizard",
     "setup_greet_message": "Hi there! This wizard will run automatically the first time you start this program, or if you can't find the settings.json configuration file, please follow the instructions to initialize the settings.",
     "setup_model_folder_title": "Setup Model Folder",
@@ -235,6 +240,11 @@ LANG_CN = {
     "overlay_title": "后端正在生成……",
     "overlay_te": "经过时间：",
     "overlay_sec": "秒",
+    
+    "lora_info": "LoRA信息：",
+    "lora_trigger_words": "触发词（热度前10）：",
+    "lora_metadata": "元数据：",
+    "lora_no_metadata": "文件读取错误或元数据被清除",
     
     "setup_greet_title": "初次设定界面",
     "setup_greet_message": "你好！在本程序第一次启动或找不到settings.json文件时，会自动运行向导程序，请按照说明进行初始化设定。",

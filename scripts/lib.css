@@ -296,7 +296,7 @@
     align-items: center;
     gap: 15px;
     position: fixed;
-    will-change: left, top; /* 恢复拖动优化 */
+    will-change: left, top;
     transition: none;
     background: rgba(0, 0, 0, 0.8);
     border-radius: 5px;
@@ -463,4 +463,128 @@
 
 .cg-privacy-ball:active {
     cursor: grabbing;
+}
+
+/* Custom Overlay Styles */
+.cg-custom-overlay {
+    position: fixed;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -10%);
+    background: rgba(17, 17, 17, 0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 9999;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid #333;
+    max-width: min(1600px, 90vw);
+    min-width: 200px;
+    min-height: 300px;
+    box-sizing: border-box;
+}
+
+.cg-custom-overlay.dragging .cg-drag-handle {
+    cursor: grabbing;
+}
+
+.cg-custom-overlay.resizing {
+    cursor: default;
+}
+
+.cg-close-button {
+    background-color: #ff0000;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+}
+
+.cg-close-button:hover {
+    opacity: 0.8;
+}
+
+.cg-resize-handle {
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 16px;
+    height: 16px;
+    background: #888;
+    clip-path: polygon(0 100%, 100% 0, 100% 100%);
+    cursor: se-resize;
+    z-index: 20;
+}
+
+.cg-resize-handle:hover {
+    background: rgba(30, 30, 30, 0.8);
+}
+
+.cg-drag-handle {
+    width: 100%;
+    height: 40px;
+    background: rgba(17, 17, 17, 0.8);
+    border-bottom: 1px solid #333;
+    cursor: grab;
+    z-index: 10;
+}
+
+.cg-custom-content {
+    width: 100%;
+    height: calc(100% - 40px); 
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.cg-custom-textbox {
+    width: 100%;
+    height: calc(100% - 40px);
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    padding: 10px;
+    user-select: text;
+}
+
+.cg-custom-textbox::-webkit-scrollbar {
+    width: 10px;
+}
+
+.cg-custom-textbox::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 5px;
+}
+
+.cg-custom-textbox::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, #555, #888);
+    border-radius: 5px;
+}
+
+.cg-custom-textbox::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, #777, #aaa);
+}
+
+.cg-custom-textbox pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    padding: 0;
+    font-size: 1.2em;
+    box-sizing: border-box;
+    color: inherit;
+    width: 100%;
+    user-select: text; 
 }

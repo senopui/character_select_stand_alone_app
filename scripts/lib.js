@@ -24,6 +24,23 @@ function my_custom_js() {
     });    
     window.customOverlay = customCommonOverlay();
 
+    window.addEventListener('resize', () => {
+        const overlays = ['cg-button-overlay', 'cg-loading-overlay'];
+        overlays.forEach(id => {
+            const overlay = document.getElementById(id);
+            if (overlay && !overlay.classList.contains('minimized')) {
+                restrictOverlayPosition(overlay, {
+                    translateX: id === 'cg-loading-overlay' 
+                        ? (window.innerWidth - overlay.offsetWidth) / 2 
+                        : window.innerWidth * 0.5 - 120,
+                    translateY: id === 'cg-loading-overlay' 
+                        ? window.innerHeight * 0.2 - overlay.offsetHeight * 0.2 
+                        : window.innerHeight * 0.8
+                });
+            }
+        });
+    });
+
     // Apply dark theme
     function dark_theme() {
         const url = new URL(window.location);
@@ -155,7 +172,6 @@ function my_custom_js() {
                     if (!dataLine) throw new Error('No data in response');
     
                     const suggestions = JSON.parse(dataLine.replace('data:', '').trim());
-                    //console.log('Parsed suggestions:', suggestions);
     
                     if (!suggestions || suggestions.length === 0 || suggestions.every(s => s.length === 0)) {
                         suggestionBox.style.display = 'none';
@@ -171,9 +187,7 @@ function my_custom_js() {
                     document.body.appendChild(tempDiv);
     
                     currentSuggestions = [];
-                    //console.log('Suggestions array length:', suggestions[0].length); 
                     suggestions[0].forEach((suggestion, index) => {
-                        //console.log(`Processing suggestion ${index}:`, suggestion); 
                         if (!Array.isArray(suggestion) || suggestion.length === 0) {
                             console.warn('Invalid suggestion format at index', index, suggestion);
                             return;
@@ -192,11 +206,8 @@ function my_custom_js() {
                         maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
                         currentSuggestions.push({ prompt: element });
                         fragment.appendChild(item);
-                        //console.log(`Added suggestion ${index}:`, element);
                     });
     
-                    //console.log('Total suggestions added:', currentSuggestions.length);
-                    //console.log('Fragment children:', fragment.children.length);
                     document.body.removeChild(tempDiv);
                     suggestionBox.innerHTML = '';
                     suggestionBox.appendChild(fragment);
@@ -401,14 +412,13 @@ function my_custom_js() {
                 
                 // Determine the start and end of the word being replaced
                 const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
-                let end = cursorPosition; // Default to cursor position
-                let suffix = ', '; // Default suffix
+                let end = cursorPosition; 
+                let suffix = ', ';
             
                 // Handle cases based on what follows the cursor
                 if (firstNewlineAfter === 0) {
-                    // Cursor is followed by a newline: add comma only
-                    end = cursorPosition; // Don't overwrite the newline
-                    suffix = ','; // Add comma before preserving newline
+                    end = cursorPosition; 
+                    suffix = ','; 
                 } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
                     // Use the nearest separator after cursor, but don't overwrite full words unnecessarily
                     end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
@@ -562,33 +572,37 @@ function my_custom_js() {
         window.cgCustomGallery.handleResponse = function (response, image_seeds, image_tags) {
             const loadingOverlay = document.getElementById('cg-loading-overlay');
             const buttonOverlay = document.getElementById('cg-button-overlay');
-
+        
             if (loadingOverlay) {
                 if (loadingOverlay.dataset.timerInterval) {
                     clearInterval(loadingOverlay.dataset.timerInterval);
                 }
-                const rect = loadingOverlay.getBoundingClientRect();
-                if (buttonOverlay) {
-                    buttonOverlay.style.left = `${rect.left}px`;
-                    buttonOverlay.style.top = `${rect.top}px`;
-                    buttonOverlay.style.transform = 'none';
+                
+                if (buttonOverlay && !buttonOverlay.classList.contains('minimized')) {
+                    const rect = loadingOverlay.getBoundingClientRect();
+                    buttonOverlay.style.left = '0';
+                    buttonOverlay.style.top = '0';
+                    buttonOverlay.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
+                    if (buttonOverlay.updateDragPosition) {
+                        buttonOverlay.updateDragPosition(rect.left, rect.top);
+                    }
                 }
                 loadingOverlay.remove();
             }
-
+        
             seeds = image_seeds.split(',').map(seed => seed.trim());
             tags = image_tags.split('|');
             if (seeds.length !== tags.length) {
                 console.warn('Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
             }
-
+        
             if (!response || !response.data) {
                 const errorMessage = response?.error || 'Unknown error';
                 console.error('Failed to fetch image data:', errorMessage);
                 customCommonOverlay().createErrorOverlay(errorMessage);
                 return;
             }
-
+        
             window.updateGallery(response.data);
         };
 
@@ -623,22 +637,22 @@ function my_custom_js() {
         
             // Set initial position (dynamic, remains in JS)
             const galleryRect = container.getBoundingClientRect();
-            const left = galleryRect.left + galleryRect.width / 2 - 50; // Center horizontally
-            const top = galleryRect.top + galleryRect.height / 2 - 50; // Center vertically
+            const left = galleryRect.left + galleryRect.width / 2 - 50; 
+            const top = galleryRect.top + galleryRect.height / 2 - 50; 
             ball.style.left = `${left}px`;
             ball.style.top = `${top}px`;
         
             // Dragging functionality
             let isDragging = false, startX, startY;
             ball.addEventListener('mousedown', (e) => {
-                if (e.button === 0) { // Left-click to drag
+                if (e.button === 0) { 
                     e.preventDefault();
                     isDragging = true;
                     startX = e.clientX - parseFloat(ball.style.left || 0);
                     startY = e.clientY - parseFloat(ball.style.top || 0);
-                    ball.style.cursor = 'grabbing'; // Override for dragging state
+                    ball.style.cursor = 'grabbing'; 
                     document.body.style.userSelect = 'none';
-                } else if (e.button === 2) { // Right-click to resize
+                } else if (e.button === 2) { 
                     e.preventDefault();
                     const startY = e.clientY;
                     const startSize = parseFloat(ball.style.width || 100);
@@ -646,10 +660,10 @@ function my_custom_js() {
                     const onMouseMove = (moveEvent) => {
                         const deltaY = moveEvent.clientY - startY;
                         let newSize = startSize + deltaY;
-                        newSize = Math.min(Math.max(newSize, 20), 300); // Limit size between 20px and 300px
+                        newSize = Math.min(Math.max(newSize, 20), 300); 
                         ball.style.width = `${newSize}px`;
                         ball.style.height = `${newSize}px`;
-                        ball.style.fontSize = `${newSize * 0.2}px`; // Dynamic font size adjustment
+                        ball.style.fontSize = `${newSize * 0.2}px`; 
                     };
         
                     const onMouseUp = () => {
@@ -672,7 +686,7 @@ function my_custom_js() {
             document.addEventListener('mouseup', () => {
                 if (isDragging) {
                     isDragging = false;
-                    ball.style.cursor = 'grab'; // Reset to default (though CSS handles this via :active)
+                    ball.style.cursor = 'grab'; 
                     document.body.style.userSelect = '';
                 }
             });
@@ -1150,7 +1164,7 @@ function my_custom_js() {
                         return `<span style="color: ${colorStyle}">${text}</span>`;
                     }
                 );
-
+    
                 if (!hasUrl) {
                     const customMatches = [...errorMessage.matchAll(/\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g)];
                     if (customMatches.length > 0) {
@@ -1208,6 +1222,35 @@ function my_custom_js() {
             overlay.style.zIndex = '10001';
             overlay.style.pointerEvents = 'auto';
         
+            const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+            const buttonOverlay = document.getElementById('cg-button-overlay');
+            let translateX, translateY;
+        
+            if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+                translateX = savedPosition.left;
+                translateY = savedPosition.top;
+            } else if (buttonOverlay && !buttonOverlay.classList.contains('minimized')) {
+                const rect = buttonOverlay.getBoundingClientRect();
+                translateX = rect.left;
+                translateY = rect.top;
+            } else {
+                translateX = (window.innerWidth - overlay.offsetWidth) / 2;
+                translateY = window.innerHeight * 0.2 - overlay.offsetHeight * 0.2;
+            }
+        
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
+        
+            if (overlay.updateDragPosition) {
+                overlay.updateDragPosition(translateX, translateY);
+            }
+        
+            restrictOverlayPosition(overlay, {
+                translateX: (window.innerWidth - overlay.offsetWidth) / 2,
+                translateY: window.innerHeight * 0.2 - overlay.offsetHeight * 0.2
+            });
+        
             const startTime = Date.now();
             if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
             const timerInterval = setInterval(() => {
@@ -1218,91 +1261,360 @@ function my_custom_js() {
                 }
             }, 1000);
             overlay.dataset.timerInterval = timerInterval;
+        
             return overlay;
         }
     
-        return { createErrorOverlay, createLoadingOverlay };
-    }
-
-    function addDragFunctionality(element, getSyncElement) {
-        let isDragging = false;
-        let startX, startY;
-    
-        element.style.position = 'fixed';
-        element.style.cursor = 'grab';
-    
-        const onMouseDown = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-    
-            isDragging = true;
-    
-            const rect = element.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
-    
-            element.style.cursor = 'grabbing';
-            document.body.style.userSelect = 'none';
-    
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        };
-    
-        const onMouseMove = (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            e.stopPropagation();
-    
-            const newLeft = e.clientX - startX;
-            const newTop = e.clientY - startY;
-    
-            element.style.left = `${newLeft}px`;
-            element.style.top = `${newTop}px`;
-    
-            const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
-            if (syncElement && syncElement.style.display !== 'none') {
-                syncElement.style.left = `${newLeft}px`;
-                syncElement.style.top = `${newTop}px`;
+        function createCustomOverlay(image, message) {
+            const displayMessage = (typeof message === 'string' && message.trim()) ? message : ' ';
+            const hasImage = image && image !== 'none' && typeof image === 'string' && image.startsWith('data:');
+        
+            let processedMessage = displayMessage.replace(
+                /\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g,
+                '<a href="$1" target="_blank" style="color: #1e90ff; text-decoration: underline;">$1</a>'
+            ).replace(
+                /\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g,
+                (match, color, text) => {
+                    const colorStyle = color || '#ffffff';
+                    return `<span style="color: ${colorStyle}">${text}</span>`;
+                }
+            );
+        
+            const overlay = createInfoOverlay({
+                id: 'cg-custom-overlay',
+                className: 'cg-custom-overlay',
+                content: `
+                    <div class="cg-custom-content">
+                        <div class="cg-drag-handle"></div>
+                        <div class="cg-custom-textbox scroll-container"></div>
+                    </div>
+                `
+            });
+        
+            const textbox = overlay.querySelector('.cg-custom-textbox');
+            textbox.style.display = 'flex';
+            textbox.style.flexDirection = 'column';
+            textbox.style.gap = '10px';
+            textbox.style.alignItems = 'center';
+        
+            const fragment = document.createDocumentFragment();
+        
+            if (hasImage) {
+                const img = document.createElement('img');
+                img.src = image;
+                img.alt = 'Overlay Image';
+                img.style.maxWidth = '384px';
+                img.style.maxHeight = '384px';
+                img.style.objectFit = 'contain';
+                img.style.display = 'block';
+                img.style.margin = '0 auto';
+                fragment.appendChild(img);
             }
-        };
+        
+            const textPre = document.createElement('pre');
+            textPre.innerHTML = processedMessage;
+            textPre.style.textAlign = 'inherit';
+            textPre.style.overflow = 'visible';
+            textPre.style.width = '100%';
+            fragment.appendChild(textPre);
+        
+            textbox.appendChild(fragment);
+        
+            const closeButton = document.createElement('button');
+            closeButton.className = 'cg-close-button';
+            closeButton.style.backgroundColor = '#ff0000';
+            closeButton.style.width = '14px';
+            closeButton.style.height = '14px';
+            closeButton.style.minWidth = '14px';
+            closeButton.style.minHeight = '14px';
+            closeButton.style.borderRadius = '50%';
+            closeButton.style.border = 'none';
+            closeButton.style.padding = '0';
+            closeButton.style.margin = '0';
+            closeButton.style.cursor = 'pointer';
+            closeButton.style.position = 'absolute';
+            closeButton.style.top = '8px';
+            closeButton.style.left = '8px';
+            closeButton.style.boxSizing = 'border-box';
+            closeButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                overlay.remove();
+                document.removeEventListener('mousemove', overlay._onMouseMove);
+                document.removeEventListener('mouseup', overlay._onMouseUp);
+                document.removeEventListener('mousemove', overlay._onResizeMove);
+                document.removeEventListener('mouseup', overlay._onResizeUp);
+                if (overlay._cleanup) overlay._cleanup();
+            });
+            overlay.appendChild(closeButton);
+        
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'cg-resize-handle';
+            overlay.appendChild(resizeHandle);
+        
+            overlay.style.minWidth = '200px';
+            overlay.style.maxWidth = 'min(1600px, 90vw)';
+            overlay.style.minHeight = '150px';
+            overlay.style.boxSizing = 'border-box';
+            overlay.style.padding = '20px';
+            overlay.style.pointerEvents = 'auto';
+            overlay.style.zIndex = '9999';
+        
+            const defaultWidth = 600;
+            const defaultHeight = 800;
+            const savedSize = localStorage.getItem('customOverlaySize') ? JSON.parse(localStorage.getItem('customOverlaySize')) : null;
+            let initialWidth = defaultWidth;
+            let initialHeight = defaultHeight;
+        
+            if (savedSize && savedSize.width >= 200 && savedSize.width <= 1600 && savedSize.height >= 150 && savedSize.height <= 1600) {
+                initialWidth = savedSize.width;
+                initialHeight = savedSize.height;
+            }
+        
+            overlay.style.width = `${initialWidth}px`;
+            overlay.style.height = `${initialHeight}px`;
+        
+            const savedPosition = localStorage.getItem('customOverlayPosition') ? JSON.parse(localStorage.getItem('customOverlayPosition')) : null;
+            if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+                overlay.style.position = 'fixed';
+                overlay.style.top = `${savedPosition.top}px`;
+                overlay.style.left = `${savedPosition.left}px`;
+                overlay.style.transform = 'none';
+            } else {
+                overlay.style.position = 'fixed';
+                overlay.style.top = '10%';
+                overlay.style.left = '50%';
+                overlay.style.transform = 'translate(-50%, -10%)';
+            }
+        
+            const adjustOverlaySize = () => {
+                const rect = overlay.getBoundingClientRect();
+                const resizeHandleOffset = 4; 
+                const rightEdge = rect.left + rect.width - resizeHandleOffset;
+                const bottomEdge = rect.top + rect.height - resizeHandleOffset;
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const padding = 10; 
+        
+                let newWidth = rect.width;
+                let newHeight = rect.height;
+        
+                if (rightEdge > viewportWidth - padding) {
+                    newWidth = viewportWidth - rect.left - padding;
+                    newWidth = Math.max(newWidth, 200); 
+                }
+                if (bottomEdge > viewportHeight - padding) {
+                    newHeight = viewportHeight - rect.top - padding;
+                    newHeight = Math.max(newHeight, 150); 
+                }
+        
+                if (newWidth !== rect.width || newHeight !== rect.height) {
+                    overlay.style.width = `${newWidth}px`;
+                    overlay.style.height = `${newHeight}px`;
+                    localStorage.setItem('customOverlaySize', JSON.stringify({
+                        width: newWidth,
+                        height: newHeight
+                    }));
+                }
+            };
+        
+            requestAnimationFrame(adjustOverlaySize);
+        
+            const resizeCleanup = addResizeFunctionality(overlay, resizeHandle);
+            const dragHandle = overlay.querySelector('.cg-drag-handle');
+            const dragCleanup = addCustomOverlayDragFunctionality(overlay, dragHandle, () => null, 'customOverlayPosition');
+        
+            overlay._cleanup = () => {
+                dragCleanup();
+                resizeCleanup();
+            };
+        
+            if (hasImage) {
+                const imgElement = textbox.querySelector('img');
+                imgElement.onerror = () => {
+                    console.warn('Failed to load image, removing from overlay');
+                    imgElement.remove();
+                };
+            }
+        
+            return overlay;
+        }
     
-        const onMouseUp = (e) => {
-            if (!isDragging) return;
-            isDragging = false;
-            element.style.cursor = 'grab';
-            document.body.style.userSelect = '';
+        function addCustomOverlayDragFunctionality(element, dragHandle, getSyncElement, storageKey = 'overlayPosition') {
+            let isDragging = false;
+            let startX, startY;
     
-            const rect = element.getBoundingClientRect();
-            const newLeft = rect.left;
-            const newTop = rect.top;
+            element.style.position = 'fixed';
+            dragHandle.style.cursor = 'grab';
     
-            localStorage.setItem('overlayPosition', JSON.stringify({ top: newTop, left: newLeft }));
+            const onMouseDown = (e) => {
+                const target = e.target;
+                if (!target.closest('.cg-drag-handle') ||
+                    target.closest('.cg-close-button') ||
+                    target.closest('.cg-minimize-button') ||
+                    target.closest('.cg-resize-handle') ||
+                    target.closest('.cg-button-container')) {
+                    return;
+                }
     
-            if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth) {
-                const defaultTop = window.innerHeight * 0.2;
-                const defaultLeft = window.innerWidth * 0.5 - (element.offsetWidth / 2);
-                element.style.top = `${defaultTop}px`;
-                element.style.left = `${defaultLeft}px`;
-                element.style.transform = 'none'; 
+                e.preventDefault();
+                e.stopPropagation();
+    
+                isDragging = true;
+    
+                const computedStyle = window.getComputedStyle(element);
+                if (computedStyle.transform !== 'none' && !element.dataset.transformReset) {
+                    const rect = element.getBoundingClientRect();
+                    element.style.left = `${rect.left}px`;
+                    element.style.top = `${rect.top}px`;
+                    element.style.transform = 'none';
+                    element.dataset.transformReset = 'true';
+                }
+    
+                const rect = element.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+    
+                element.classList.add('dragging');
+                dragHandle.style.cursor = 'grabbing';
+                dragHandle.style.userSelect = 'none';
+    
+                element._onMouseMove = onMouseMove;
+                element._onMouseUp = onMouseUp;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+    
+            const onMouseMove = (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                e.stopPropagation();
+    
+                const newLeft = e.clientX - startX;
+                const newTop = e.clientY - startY;
+    
+                element.style.left = `${newLeft}px`;
+                element.style.top = `${newTop}px`;
+                element.style.transform = 'none';
     
                 const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
-                if (syncElement) {
-                    syncElement.style.top = `${defaultTop}px`;
-                    syncElement.style.left = `${defaultLeft}px`;
+                if (syncElement && syncElement.style.display !== 'none') {
+                    syncElement.style.left = `${newLeft}px`;
+                    syncElement.style.top = `${newTop}px`;
                     syncElement.style.transform = 'none';
                 }
-                localStorage.removeItem('overlayPosition');
-            } else {
-                element.style.transform = 'none'; 
-                const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
-                if (syncElement) syncElement.style.transform = 'none';
-            }
+            };
     
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
+            const onMouseUp = (e) => {
+                if (!isDragging) return;
+                isDragging = false;
+                element.classList.remove('dragging');
+                dragHandle.style.cursor = 'grab';
+                dragHandle.style.userSelect = '';
     
-        element.addEventListener('mousedown', onMouseDown);
+                const rect = element.getBoundingClientRect();
+                const newLeft = rect.left;
+                const newTop = rect.top;
+    
+                localStorage.setItem(storageKey, JSON.stringify({ top: newTop, left: newLeft }));
+    
+                if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth) {
+                    const defaultTop = window.innerHeight * 0.1;
+                    const defaultLeft = window.innerWidth * 0.5 - (element.offsetWidth / 2);
+                    element.style.top = `${defaultTop}px`;
+                    element.style.left = `${defaultLeft}px`;
+                    element.style.transform = 'none';
+    
+                    const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+                    if (syncElement) {
+                        syncElement.style.top = `${defaultTop}px`;
+                        syncElement.style.left = `${defaultLeft}px`;
+                        syncElement.style.transform = 'none';
+                    }
+                    localStorage.removeItem(storageKey);
+                } else {
+                    element.style.transform = 'none';
+                    const syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+                    if (syncElement) syncElement.style.transform = 'none';
+                }
+    
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                element._onMouseMove = null;
+                element._onMouseUp = null;
+            };
+    
+            dragHandle.addEventListener('mousedown', onMouseDown);
+    
+            return () => {
+                dragHandle.removeEventListener('mousedown', onMouseDown);
+                if (element._onMouseMove) document.removeEventListener('mousemove', element._onMouseMove);
+                if (element._onMouseUp) document.removeEventListener('mouseup', element._onMouseUp);
+            };
+        }
+    
+        function addResizeFunctionality(element, handle) {
+            let isResizing = false;
+            let startX, startY, startWidth, startHeight;
+    
+            const onMouseDown = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+    
+                isResizing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = parseFloat(getComputedStyle(element).width);
+                startHeight = parseFloat(getComputedStyle(element).height);
+    
+                element.classList.add('resizing');
+                document.body.style.userSelect = 'none';
+                element._onResizeMove = onMouseMove;
+                element._onResizeUp = onMouseUp;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+    
+            const onMouseMove = (e) => {
+                if (!isResizing) return;
+                e.preventDefault();
+                e.stopPropagation();
+    
+                const newWidth = Math.max(200, startWidth + (e.clientX - startX));
+                const newHeight = Math.max(150, startHeight + (e.clientY - startY));
+    
+                element.style.width = `${newWidth}px`;
+                element.style.height = `${newHeight}px`;
+            };
+    
+            const onMouseUp = (e) => {
+                if (!isResizing) return;
+                isResizing = false;
+                element.classList.remove('resizing');
+                document.body.style.userSelect = '';
+    
+                const finalWidth = parseFloat(getComputedStyle(element).width);
+                const finalHeight = parseFloat(getComputedStyle(element).height);
+                localStorage.setItem('customOverlaySize', JSON.stringify({
+                    width: finalWidth,
+                    height: finalHeight
+                }));
+    
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                element._onResizeMove = null;
+                element._onResizeUp = null;
+            };
+    
+            handle.addEventListener('mousedown', onMouseDown, { capture: true });
+    
+            return () => {
+                handle.removeEventListener('mousedown', onMouseDown, { capture: true });
+                if (element._onResizeMove) document.removeEventListener('mousemove', element._onResizeMove);
+                if (element._onResizeUp) document.removeEventListener('mouseup', element._onResizeUp);
+            };
+        }
+    
+        return { createErrorOverlay, createLoadingOverlay, createCustomOverlay };
     }
 
     function setupButtonOverlay() {
@@ -1373,7 +1685,7 @@ function my_custom_js() {
                     }
                 };
     
-                const onUp = (upEvent) => {
+                const onUp = () => {
                     if (!hasMoved) originalButton.click();
                     isDraggingButton = false;
                     document.removeEventListener('mousemove', onMove);
@@ -1397,30 +1709,48 @@ function my_custom_js() {
         buttonOverlay.style.width = '240px';
         buttonOverlay.style.padding = '20px 20px 5px';
         buttonOverlay.style.boxSizing = 'border-box';
+    
+        const defaultPosition = {
+            translateX: window.innerWidth * 0.5 - 120,
+            translateY: window.innerHeight * 0.8
+        };
         const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+        let translateX, translateY;
+    
         if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
-            buttonOverlay.style.top = `${savedPosition.top}px`;
-            buttonOverlay.style.left = `${savedPosition.left}px`;
-            buttonOverlay.style.transform = 'none';
+            translateX = savedPosition.left;
+            translateY = savedPosition.top;
         } else {
-            buttonOverlay.style.top = `${window.innerHeight * 0.8}px`;
-            buttonOverlay.style.left = `${window.innerWidth * 0.5 - 120}px`;
-            buttonOverlay.style.transform = 'none';
+            translateX = defaultPosition.translateX;
+            translateY = defaultPosition.translateY;
         }
+    
+        buttonOverlay.style.top = '0';
+        buttonOverlay.style.left = '0';
+        buttonOverlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    
+        if (buttonOverlay.updateDragPosition) {
+            buttonOverlay.updateDragPosition(translateX, translateY);
+        }
+    
+        restrictOverlayPosition(buttonOverlay, defaultPosition);
     
         let isMinimized = false;
         let dragHandler;
     
         function enableDrag() {
             if (!dragHandler) {
-                dragHandler = addDragFunctionality(buttonOverlay, () => document.getElementById('cg-loading-overlay'));
+                dragHandler = addDragFunctionality(buttonOverlay, () => {
+                    const loadingOverlay = document.getElementById('cg-loading-overlay');
+                    return loadingOverlay && !isMinimized ? loadingOverlay : null;
+                });
             }
         }
     
         function disableDrag() {
             buttonOverlay.style.cursor = 'default';
             if (dragHandler) {
-                buttonOverlay.removeEventListener('mousedown', dragHandler);
+                dragHandler();
                 dragHandler = null;
             }
             minimizeButton.style.pointerEvents = 'auto';
@@ -1430,6 +1760,7 @@ function my_custom_js() {
     
         function setMinimizedState(overlay, container, button, isMin) {
             if (isMin) {
+                overlay.classList.add('minimized');
                 overlay.style.top = '0px';
                 overlay.style.left = '0px';
                 overlay.style.transform = 'none';
@@ -1443,24 +1774,34 @@ function my_custom_js() {
                 button.style.left = '2px';
                 disableDrag();
             } else {
+                overlay.classList.remove('minimized');
                 overlay.style.width = '240px';
                 overlay.style.height = 'auto';
                 overlay.style.minHeight = '110px';
                 overlay.style.padding = '20px 20px 5px';
                 container.style.display = 'flex';
                 container.style.padding = '20px';
+    
                 const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
                 if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
-                    overlay.style.top = `${savedPosition.top}px`;
-                    overlay.style.left = `${savedPosition.left}px`;
-                    overlay.style.transform = 'none';
+                    translateX = savedPosition.left;
+                    translateY = savedPosition.top;
                 } else {
-                    overlay.style.top = `${window.innerHeight * 0.8}px`;
-                    overlay.style.left = `${window.innerWidth * 0.5 - 120}px`;
-                    overlay.style.transform = 'none';
+                    translateX = defaultPosition.translateX;
+                    translateY = defaultPosition.translateY;
                 }
+    
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    
+                if (overlay.updateDragPosition) {
+                    overlay.updateDragPosition(translateX, translateY);
+                }
+    
                 overlay.style.pointerEvents = 'auto';
                 enableDrag();
+                restrictOverlayPosition(overlay, defaultPosition);
             }
         }
     
@@ -1474,13 +1815,25 @@ function my_custom_js() {
             const loadingOverlay = document.getElementById('cg-loading-overlay');
             const errorOverlay = document.getElementById('cg-error-overlay');
             buttonOverlay.style.display = (loadingOverlay || errorOverlay) ? 'none' : 'flex';
-            if (isMinimized) {
-                buttonOverlay.style.top = '0px';
-                buttonOverlay.style.left = '0px';
-                buttonOverlay.style.transform = 'none';
-                disableDrag();
-            } else {
-                setMinimizedState(buttonOverlay, buttonContainer, minimizeButton, false);
+            if (!isMinimized && buttonOverlay.style.display !== 'none') {
+                const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
+                if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+                    translateX = savedPosition.left;
+                    translateY = savedPosition.top;
+                } else {
+                    translateX = defaultPosition.translateX;
+                    translateY = defaultPosition.translateY;
+                }
+    
+                buttonOverlay.style.top = '0';
+                buttonOverlay.style.left = '0';
+                buttonOverlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
+    
+                if (buttonOverlay.updateDragPosition) {
+                    buttonOverlay.updateDragPosition(translateX, translateY);
+                }
+    
+                restrictOverlayPosition(buttonOverlay, defaultPosition);
             }
         }
     
@@ -1715,13 +2068,12 @@ function my_custom_js() {
         }, 100), true);
     
         container.dataset.dropdownSetup = 'true';
-    }
+    }   
     
     function myCharacterList() {
         console.log('[myCharacterList] Initializing...');
     
         function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
-            //console.log('[handleCharacterOptions] Args received:', args);
             const [[keys, values], oc] = args;
             if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
                 console.error('[handleCharacterOptions] Invalid keys or values:', keys, values);
@@ -1733,20 +2085,16 @@ function my_custom_js() {
             }
     
             const charOptions = keys.map((key, idx) => ({ key, value: values[idx] }));
-            //console.log('[handleCharacterOptions] Generated charOptions:', charOptions);
             for (let i = 0; i < dropdownCount - 1; i++) {
                 options[i] = charOptions;
                 filteredOptions[i] = [...charOptions];
             }
     
             const originalOptions = oc.map(key => ({ key, value: key }));
-            //console.log('[handleCharacterOptions] Generated originalOptions:', originalOptions);
             options[dropdownCount - 1] = originalOptions;
             filteredOptions[dropdownCount - 1] = [...originalOptions];
-            //console.log('[handleCharacterOptions] Options updated:', options);
         }
     
-        //console.log('[myCharacterList] Setting up dropdown...');
         setupMyDropdown({
             containerId: 'mydropdown-container',
             dropdownCount: 4,
@@ -1757,15 +2105,11 @@ function my_custom_js() {
         });
     
         window.setMyCharacterOptions = function(data, oc, chara_text, character1, character2, character3, oc_default, enableSearch) {
-            //console.log('[setMyCharacterOptions] Called with:', { data, oc, chara_text, character1, character2, character3, oc_default, enableSearch });
             window.dropdowns['mydropdown-container'].setOptions(data, oc, chara_text, character1, character2, character3, oc_default, enableSearch);
-            //console.log('[setMyCharacterOptions] setOptions executed');
         };
     
         window.updateMyCharacterDefaults = window.dropdowns['mydropdown-container'].updateDefaults;
         window.getMyCharacterValue = window.dropdowns['mydropdown-container'].getValue;
-    
-        //console.log('[myCharacterList] Setup complete');
     }
     
     function myViewsList() {
@@ -1795,5 +2139,157 @@ function my_custom_js() {
     
         window.updateMyViewsDefaults = window.dropdowns['myviews-container'].updateDefaults;
         window.getMyViewsValue = window.dropdowns['myviews-container'].getValue;
+    }
+
+    function restrictOverlayPosition(element, defaultPosition) {
+        if (!element) return;
+    
+        const rect = element.getBoundingClientRect();
+        const isOutOfBounds = rect.top < 0 || rect.left < 0 ||
+                             rect.bottom > window.innerHeight || rect.right > window.innerWidth;
+    
+        if (isOutOfBounds) {           
+            console.log(`Overlay ${element.id} out of bounds, resetting to default position`);
+            let translateX, translateY;
+    
+            if (element.id === 'cg-loading-overlay') {
+                translateX = (window.innerWidth - element.offsetWidth) / 2; 
+                translateY = window.innerHeight * 0.2 - element.offsetHeight * 0.2; 
+            } else {
+                translateX = window.innerWidth * 0.5 - 120;
+                translateY = window.innerHeight * 0.8;
+            }
+            
+            element.style.transition = 'transform 0.3s ease';
+            element.style.transform = `translate(${translateX}px, ${translateY}px)`;            
+            setTimeout(() => element.style.transition = '', 300);
+            element.style.top = '0';
+            element.style.left = '0';
+    
+            if (element.updateDragPosition) {
+                element.updateDragPosition(translateX, translateY);
+            } else {
+                localStorage.setItem('overlayPosition', JSON.stringify({ top: translateY, left: translateX }));
+            }
+        }
+    }
+
+    const dragStates = new WeakMap();
+    function addDragFunctionality(element, getSyncElement) {
+        let isDragging = false;
+        let startX, startY;
+        let state = dragStates.get(element) || { translateX: 0, translateY: 0 };
+        dragStates.set(element, state);
+    
+        let lastUpdate = 0;
+        const THROTTLE_MS = 16;
+    
+        element.style.position = 'fixed';
+        element.style.willChange = 'transform';
+        element.style.cursor = 'grab';
+    
+        let syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+    
+        const updateTransform = () => {
+            element.style.transform = `translate(${state.translateX}px, ${state.translateY}px)`;
+            element.style.top = '0';
+            element.style.left = '0';
+
+            if (syncElement && syncElement.style.display !== 'none' && !syncElement.classList.contains('minimized')) {
+                syncElement.style.transform = `translate(${state.translateX}px, ${state.translateY}px)`;
+                syncElement.style.top = '0';
+                syncElement.style.left = '0';
+            }
+        };
+    
+        const throttledUpdate = (callback) => {
+            if (performance.now() - lastUpdate >= THROTTLE_MS) {
+                callback();
+                lastUpdate = performance.now();
+            } else {
+                requestAnimationFrame(() => throttledUpdate(callback));
+            }
+        };
+    
+        const onMouseDown = (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+    
+            isDragging = true;
+            startX = e.clientX - state.translateX;
+            startY = e.clientY - state.translateY;
+    
+            element.style.cursor = 'grabbing';
+            document.body.style.userSelect = 'none';
+            syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+        };
+    
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            e.stopPropagation();
+    
+            state.translateX = e.clientX - startX;
+            state.translateY = e.clientY - startY;
+    
+            throttledUpdate(updateTransform);
+        };
+    
+        const onMouseUp = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            element.style.cursor = 'grab';
+            document.body.style.userSelect = '';
+    
+            const rect = element.getBoundingClientRect();
+            const isOutOfBounds = rect.top < 0 || rect.left < 0 || 
+                                 rect.bottom > window.innerHeight || rect.right > window.innerWidth;
+    
+            if (isOutOfBounds) {
+                if (element.id === 'cg-loading-overlay') {
+                    state.translateX = (window.innerWidth - element.offsetWidth) / 2;
+                    state.translateY = window.innerHeight * 0.2 - element.offsetHeight * 0.2;
+                } else {
+                    state.translateX = window.innerWidth * 0.5 - 120;
+                    state.translateY = window.innerHeight * 0.8;
+                }
+                localStorage.setItem('overlayPosition', JSON.stringify({ top: state.translateY, left: state.translateX }));
+            } else {
+                localStorage.setItem('overlayPosition', JSON.stringify({ top: state.translateY, left: state.translateX }));
+            }
+            updateTransform();
+        };
+    
+        const savedPosition = localStorage.getItem('overlayPosition');
+        if (savedPosition) {
+            try {
+                const { top, left } = JSON.parse(savedPosition);
+                state.translateX = left || 0;
+                state.translateY = top || 0;
+                updateTransform();
+            } catch (err) {
+                console.error('Failed to parse saved position:', err);
+                localStorage.removeItem('overlayPosition');
+            }
+        }
+    
+        element.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    
+        element.updateDragPosition = (x, y) => {
+            state.translateX = x;
+            state.translateY = y;
+            updateTransform();
+            localStorage.setItem('overlayPosition', JSON.stringify({ top: y, left: x }));
+        };
+    
+        return () => {
+            element.removeEventListener('mousedown', onMouseDown);
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            dragStates.delete(element);
+        };
     }
 }

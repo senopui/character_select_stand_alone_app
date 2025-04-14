@@ -23,6 +23,7 @@ from tag_autocomplete import PromptManager
 from setup_wizard import setup_wizard_window
 from custom_com import init_custom_com, set_custom_gallery_last_api_images, set_custom_gallery_thumb_images
 from language import *
+from metadata import SafetensorsMetadataReader
 
 LANG = LANG_CN
 TITLE = "WAI Character Select SAA"
@@ -1101,24 +1102,15 @@ def refresh_character_thumb_image(character1, character2, character3):
 def update_lora_list(api_interface, no_dropdown=False):
     settings_json['api_interface'] = api_interface
     
-    api_parent_dir = os.path.dirname(settings_json['model_path'])
-    lora_file_dir = 'none'
+    lora_file_dir = get_lora_path(os.path.dirname(settings_json['model_path']))
     lora_file_list = []
-    if 'WebUI' == settings_json['api_interface']:
-        lora_file_dir = os.path.join(api_parent_dir, 'lora')
-    elif 'ComfyUI' == settings_json['api_interface']:
-        lora_file_dir = os.path.join(api_parent_dir, 'loras')
     
     if 'none' != settings_json['api_interface']:
         if os.path.exists(lora_file_dir):
             lora_file_list = get_safetensors_files(lora_file_dir, settings_json['search_modelinsubfolder'])
         else:
             print(f'[{CAT}]LoRA path not exist {lora_file_dir}, there is a \"model_path_2nd\" in settings.json(if not click save settings), if you using WebUI and ComfyUI in same time, set it to another checkpoints folder.')
-            api_parent_dir = os.path.dirname(settings_json['model_path_2nd'])
-            if 'WebUI' == settings_json['api_interface']:
-                lora_file_dir = os.path.join(api_parent_dir, 'lora')
-            elif 'ComfyUI' == settings_json['api_interface']:
-                lora_file_dir = os.path.join(api_parent_dir, 'loras')
+            lora_file_dir = get_lora_path(os.path.dirname(settings_json['model_path_2nd']))
                 
             if os.path.exists(lora_file_dir):
                 print(f'[{CAT}]Found LoRA in 2nd folder setting: {lora_file_dir}.')
@@ -1134,6 +1126,51 @@ def update_lora_list(api_interface, no_dropdown=False):
         return lora_file_list
     
     return gr.Dropdown(choices=lora_file_list, label='', value='none', allow_custom_value=False, scale=12)
+
+def get_lora_path(api_parent_dir):
+    lora_path = 'none'
+    if 'WebUI' == settings_json['api_interface']:
+        lora_path = os.path.join(api_parent_dir, 'lora')
+    elif 'ComfyUI' == settings_json['api_interface']:
+        lora_path = os.path.join(api_parent_dir, 'loras')
+        
+    return lora_path
+
+def get_lora_info(lora_name):
+    lora_file_dir = get_lora_path(os.path.dirname(settings_json['model_path']))
+    lora_full_path = os.path.join(lora_file_dir, lora_name)
+    if not os.path.exists(lora_full_path):
+        print(f'[{CAT}]LoRA path not exist {lora_full_path}, try 2nd folder setting.')
+        lora_file_dir = get_lora_path(os.path.dirname(settings_json['model_path_2nd']))
+        lora_full_path = os.path.join(lora_file_dir, lora_name)
+        if not os.path.exists(lora_full_path):
+            print(f'[{CAT}]LoRA path not exist {lora_full_path}')
+            return 'none'
+        
+    final_str = f'LoRA {lora_full_path} not exist'
+    if os.path.exists(lora_full_path):
+        base64_str = 'none'
+        lora_thumb_path = lora_full_path.replace('.safetensors', '.png')
+        if os.path.exists(lora_thumb_path):            
+            with open(lora_thumb_path, "rb") as f:
+                img_data = f.read()
+                img_base64 = base64.b64encode(img_data).decode("utf-8")
+                base64_str = f"data:image/png;base64,{img_base64}" 
+                
+        reader = SafetensorsMetadataReader(lora_full_path)
+        compact_str = reader.to_compact_string()
+        
+        final_str = f'{lora_name}\n\n{LANG["lora_no_metadata"]}'
+        if '{}' != compact_str:        
+            key_map = {"modelspec.title": "Model Title", "modelspec.architecture": "Architecture","modelspec.date":"Date", "ss_sd_model_name": "Base Model Name","ss_base_model_version": "Base Model Version", "modelspec.resolution": "Resolution", "ss_seed": "Seed", "ss_clip_skip": "Clip Skip", "ss_network_dim": "Network Dim", "ss_network_alpha": "Network Alpha"}
+            formatted_str = reader.extract_and_format(key_map)    
+            top_tags_str = reader.extract_top_tags(top_n=10)
+            trigger_words_str=''
+            if ''!= top_tags_str:
+                trigger_words_str = f'[COPY_CUSTOM=lime]{top_tags_str}[/COPY_CUSTOM]'
+            final_str = f'{lora_name}\n\n{LANG["lora_info"]}\n{formatted_str}\n\n{LANG["lora_trigger_words"]}{trigger_words_str}\n\n{LANG["lora_metadata"]}\n{compact_str}'
+            
+    return base64_str, final_str
 
 def add_lora(lora_list, api_prompt, api_interface):
     lora = ''
