@@ -1,12 +1,71 @@
 import base64
 import requests
 import io
+import os
 from PIL import Image
+import websocket
+import threading
+import time
+import json
 
-CAT = "WebUI:"
+CAT = "WebUI: "
+
+class WebUIAPIGenerator:
+    def __init__(self, webui_server_address, ws_port):
+        self.ws_client = None
+        self.last_image_hash = None
+        self.last_sent_time = 0
+        self.connect_websocket(webui_server_address, ws_port)
+
+    def connect_websocket(self, websocket_address = "127.0.0.1", websocket_port = 47850):
+        try:
+            self.ws_client = websocket.WebSocket()
+            self.ws_client.connect(f'ws://{websocket_address}:{websocket_port}/ws')
+            #print(f"{CAT}WebSocket client connected to ws://{websocket_address}:{websocket_port}/ws")
+        except Exception as e:
+            print(f"{CAT}Failed to connect WebSocket client: {str(e)}")
+            self.ws_client = None
+            
+def poll_progress(webui_server_address, ws_port, preview_refresh_time, stop_event: threading.Event):
+    gen = WebUIAPIGenerator("127.0.0.1", ws_port)
+    try:        
+        progress_url = f'http://{webui_server_address}/sdapi/v1/progress'
+        last_progress = -1
+        retire = 0
+        counter = 0
+        while not stop_event.is_set():                
+                response = requests.get(progress_url)            
+                if response.status_code != 200:
+                    continue
+                
+                data = response.json()
+                progress = data.get('progress', 0.0)                
+                if preview_refresh_time == counter:
+                    current_image = data.get('current_image', '')
+                    counter = 0
+                    if abs(progress - last_progress) >= 0.05:
+                        try:
+                            gen.ws_client.send(json.dumps({"base64": f'data:image/png;base64,{current_image}'}))
+                        except Exception as e:
+                            if retire == 3:
+                                print(f"{CAT}Failed to send WebSocket message: {str(e)}")
+                                break
+                            gen.connect_websocket() 
+                            retire += 1                            
+                        last_progress = progress
+                
+                if progress > 0.9:
+                    break
+                else:
+                    time.sleep(1)
+                    counter += 1
+    except Exception as e:
+        print(f"{CAT}Error polling progress: {str(e)}")
+    finally:
+        gen.ws_client.close()
 
 def run_webui(
-    server_address = 'http://127.0.0.1:7860', model_name = 'waiNSFWIllustrious_v120.safetensors',
+    server_address = 'http://127.0.0.1:7860', ws_port=47850, preview_refresh_time = 0, model_name = 'waiNSFWIllustrious_v120.safetensors',
     positive_prompt = 'miqo\'te',negative_prompt = 'nsfw', random_seed = -1, steps= 20, cfg = 7, 
     my_sampler_name='Euler a', height = 512, width = 512, 
     hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='R-ESRGAN 4x+', savepath_override = False,
@@ -55,20 +114,40 @@ def run_webui(
             "refiner_checkpoint": refiner_model_name,
             "refiner_switch_at": refiner_ratio,
         })
-
-    response = requests.post(url=f'http://{server_address}/sdapi/v1/txt2img', json=payload)
-    if response.status_code != 200:
-        ret_info = f'{CAT}Failed to connect to server, error code: {response.status_code}'
-        print(ret_info)
-        return None, {}, ret_info
     
-    res = response.json()
-    image = Image.open(io.BytesIO(base64.b64decode(res["images"][0])))    
-    parameters = res["parameters"]
-    info = res["info"]
-
-    if image:        
-        return image, parameters, info
+    stop_event = None
+    progress_thread = None
+    if 0 != preview_refresh_time:
+        stop_event = threading.Event()
+        progress_thread = threading.Thread(
+            target=poll_progress,
+            args=(server_address, ws_port, preview_refresh_time, stop_event),
+            daemon=True
+        )
+        progress_thread.start()
     
-    return None, {}, 'Unknown Error from WebUI backend'
+    info = 'Unknown Error from WebUI backend'    
+    try:
+        response = requests.post(url=f'http://{server_address}/sdapi/v1/txt2img', json=payload)
+        if response.status_code != 200:
+            ret_info = f'{CAT}Failed to connect to server, error code: {response.status_code}'
+            return None, {}, ret_info
+        
+        res = response.json()
+        image = Image.open(io.BytesIO(base64.b64decode(res["images"][0])))    
+        parameters = res["parameters"]
+        info = res["info"]
+    except Exception as ret:
+        image = None
+        parameters = {}
+        info = ret
+    finally:
+        if 0 != preview_refresh_time:
+            if progress_thread.is_alive():
+                stop_event.set()
+                progress_thread.join(timeout=1.0)
+                if progress_thread.is_alive():
+                    print(f"{CAT}Progress thread did not terminate gracefully")
+                
+    return image, parameters, info
 

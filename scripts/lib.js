@@ -6,6 +6,7 @@ function my_custom_js() {
     window.LOADING_MESSAGE = 'Processing...';
     window.ELAPSED_TIME_PREFIX = 'Time elapsed: ';
     window.ELAPSED_TIME_SUFFIX = 'sec';
+    window.WS_PORT = 47790
 
     // Initialize global dropdowns namespace
     window.dropdowns = window.dropdowns || {};
@@ -1210,22 +1211,24 @@ function my_custom_js() {
         }
     
         function createLoadingOverlay() {
+            let currentImage = window.LOADING_WAIT_BASE64;
+            let lastBase64 = currentImage;     
             const overlay = createInfoOverlay({
                 id: 'cg-loading-overlay',
                 className: '',
                 content: `
-                    <img src="${window.LOADING_WAIT_BASE64}" alt="Loading" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
+                    <img src="${currentImage}" alt="Loading" style="max-width: 128px; max-height: 128px; object-fit: contain; margin-bottom: 10px;">
                     <span>${window.LOADING_MESSAGE || 'Now generating...'}</span>
                     <span class="cg-overlay-timer">${window.ELAPSED_TIME_PREFIX || 'Elapsed time:'} 0 ${window.ELAPSED_TIME_SUFFIX || 'seconds'}</span>
                 `
             });
             overlay.style.zIndex = '10001';
             overlay.style.pointerEvents = 'auto';
-        
+
             const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
             const buttonOverlay = document.getElementById('cg-button-overlay');
             let translateX, translateY;
-        
+    
             if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
                 translateX = savedPosition.left;
                 translateY = savedPosition.top;
@@ -1237,20 +1240,75 @@ function my_custom_js() {
                 translateX = (window.innerWidth - overlay.offsetWidth) / 2;
                 translateY = window.innerHeight * 0.2 - overlay.offsetHeight * 0.2;
             }
-        
+    
             overlay.style.top = '0';
             overlay.style.left = '0';
             overlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
-        
+    
             if (overlay.updateDragPosition) {
                 overlay.updateDragPosition(translateX, translateY);
             }
-        
+    
             restrictOverlayPosition(overlay, {
                 translateX: (window.innerWidth - overlay.offsetWidth) / 2,
                 translateY: window.innerHeight * 0.2 - overlay.offsetHeight * 0.2
             });
-        
+    
+            let ws = null;
+            try {
+                const ws_server = `ws://127.0.0.1:${window.WS_PORT}/ws`;
+                ws = new WebSocket(ws_server);
+                ws.onopen = () => {
+                    //console.log('[WebSocket] Connected to Python server', ws_server);
+                };
+                ws.onmessage = (event) => {
+                    //console.log('[WebSocket] Raw message received:', event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        //console.log('[WebSocket] Parsed data:', data);
+                        if (data.base64 && data.base64.startsWith('data:image/')) {
+                            const newBase64 = data.base64.trim();
+                            if (newBase64 !== lastBase64) {
+                                lastBase64 = newBase64;
+                                currentImage = newBase64;
+                                const imgElement = overlay.querySelector('img');
+                                if (imgElement) {
+                                    imgElement.src = currentImage;
+                                    imgElement.style.maxWidth = '256px';
+                                    imgElement.style.maxHeight = '384px';
+                                    imgElement.style.objectFit = 'contain';
+                                    //console.log('[WebSocket] Updated image src:', currentImage);
+                                    imgElement.onerror = () => {
+                                        //console.warn('[WebSocket] Failed to load image, reverting to default');
+                                        currentImage = window.LOADING_WAIT_BASE64;
+                                        lastBase64 = currentImage;
+                                        imgElement.src = currentImage;
+                                        imgElement.style.maxWidth = '128px';
+                                        imgElement.style.maxHeight = '128px';
+                                        imgElement.onerror = null;
+                                    };
+                                }
+                            } else {
+                                //console.log('[WebSocket] Skipping duplicate base64');
+                            }
+                        } else {
+                            console.warn('[WebSocket] Invalid data format:', data);
+                        }
+                    } catch (e) {
+                        console.warn('[WebSocket] Failed to process message:', e.message, 'Raw data:', event.data);
+                    }
+                };
+                ws.onerror = (error) => {
+                    console.warn('[WebSocket] Error:', error);
+                };
+                ws.onclose = () => {
+                    //console.log('[WebSocket] Connection closed');
+                    ws = null;
+                };
+            } catch (e) {
+                console.warn('[WebSocket] Failed to initialize:', e.message);
+            }
+    
             const startTime = Date.now();
             if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
             const timerInterval = setInterval(() => {
@@ -1261,7 +1319,18 @@ function my_custom_js() {
                 }
             }, 1000);
             overlay.dataset.timerInterval = timerInterval;
-        
+    
+            overlay._cleanup = () => {
+                if (overlay.dataset.timerInterval) {
+                    clearInterval(overlay.dataset.timerInterval);
+                    delete overlay.dataset.timerInterval;
+                }
+                if (ws) {
+                    ws.close();
+                    ws = null;
+                }
+            };
+    
             return overlay;
         }
     
@@ -2182,7 +2251,7 @@ function my_custom_js() {
         dragStates.set(element, state);
     
         let lastUpdate = 0;
-        const THROTTLE_MS = 16;
+        const THROTTLE_MS = 8; //120fps
     
         element.style.position = 'fixed';
         element.style.willChange = 'transform';

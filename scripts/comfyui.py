@@ -4,21 +4,39 @@ import os
 from typing import Dict, Any, Optional
 import uuid
 import websocket
+import base64
+from io import BytesIO
+from PIL import Image
+import time
 
-CAT = "ComfyUI:"
-
+CAT = "ComfyUI: "
 ws = None
 
 class ComfyUIAPIGenerator:
-    def __init__(self, server_address: str = "127.0.0.1:8188", client_id = "4d42d601-ffd1-4573-9311-38d3ea2faa1c", workflow_path: Optional[str] = None):        
-        self.server_address = server_address    
+    def __init__(self, server_address: str = "127.0.0.1:8188", ws_port=47850, preview_refresh_time = 0, client_id = "4d42d601-ffd1-4573-9311-38d3ea2faa1c", workflow_path: Optional[str] = None):                
+        self.server_address = server_address
+        self.ws_port = ws_port
+        self.preview_refresh_time = preview_refresh_time
         self.client_id = client_id
         if workflow_path is None:
             self.workflow_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'workflow.json')
         else:
-            self.workflow_path = workflow_path
-        
+            self.workflow_path = workflow_path        
         self.nodes = self.load_workflow()
+        
+        self.ws_client = None
+        self.last_image_hash = None
+        self.last_sent_time = 0
+        self.connect_websocket()
+
+    def connect_websocket(self):
+        try:
+            self.ws_client = websocket.WebSocket()
+            self.ws_client.connect(f"ws://127.0.0.1:{self.ws_port}/ws")
+            #print(f"{CAT}WebSocket client connected to ws://127.0.0.1:{self.ws_port}/ws")
+        except Exception as e:
+            print(f"{CAT}Failed to connect WebSocket client: {str(e)}")
+            self.ws_client = None
 
     def load_workflow(self) -> Dict[str, Any]:
         try:
@@ -43,6 +61,9 @@ class ComfyUIAPIGenerator:
             return json.loads(response.read())   
              
     def get_images(self, ws, prompt_id):
+        current_time = time.time()
+        self.last_sent_time = current_time
+        retire = 0
         while True:
             out = ws.recv()
             if isinstance(out, str):
@@ -52,10 +73,33 @@ class ComfyUIAPIGenerator:
                     if data['node'] is None and data['prompt_id'] == prompt_id:
                         break #Execution is done
             else:
-                # If you want to be able to decode the binary stream for latent previews, here is how you can do it:
-                # bytesIO = BytesIO(out[8:])
-                # preview_image = Image.open(bytesIO) # This is your preview in PIL image format, store it in a global
-                continue #previews are binary data
+                current_time = time.time()
+                if current_time - self.last_sent_time < self.preview_refresh_time or 0 == self.preview_refresh_time:
+                    continue
+
+                try:                    
+                    self.last_sent_time = current_time
+
+                    image_data = out[8:] 
+                    bytes_io = BytesIO(image_data)
+                    preview_image = Image.open(bytes_io)
+                    buffered = BytesIO()
+                    preview_image.save(buffered, format="PNG")
+                    base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
+                    base64_image = f"data:image/png;base64,{base64_image}"
+
+                    if self.ws_client:
+                        try:
+                            self.ws_client.send(json.dumps({"base64": base64_image}))
+                        except Exception as e:
+                            if retire == 3:
+                                print(f"{CAT}Failed to send WebSocket message: {str(e)}")
+                                break
+                            self.connect_websocket() 
+                            retire += 1
+                            
+                except Exception as e:
+                    print(f"{CAT}Error processing preview image: {str(e)}")
 
         history = self.get_history(prompt_id)[prompt_id]
         images_output = []
@@ -81,11 +125,11 @@ class ComfyUIAPIGenerator:
         images = self.get_images(ws, prompt_id)        
         return images
 
-def run_comfyui(server_address, model_name, positive_prompt, negative_prompt, 
+def run_comfyui(server_address, preview_refresh_time, model_name, positive_prompt, negative_prompt, 
                 random_seed, steps, cfg, width, height,
                 hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='4x-UltraSharp', hf_colortransfer='none', hf_seed = 42,
                 refiner_enable = False, refiner_add_noise= False, refiner_model_name='none', refiner_ratio=0.4, 
-                workflow = 'workflow_api_new.json'
+                workflow = 'workflow_api_new.json', ws_port=47850,
                 ):
     global ws
     client_id = str(uuid.uuid4())   
@@ -96,7 +140,7 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
     ws = websocket.WebSocket()
     ws.connect("ws://{}/ws?clientId={}".format(server_address, client_id)) 
     
-    my_gen = ComfyUIAPIGenerator(server_address, client_id, workflow_path)
+    my_gen = ComfyUIAPIGenerator(server_address, ws_port, preview_refresh_time, client_id, workflow_path)
     
     if 'default' != model_name:
         # Set model name
@@ -170,6 +214,6 @@ def run_comfyui(server_address, model_name, positive_prompt, negative_prompt,
             my_gen.set_ex(node_id="28", inputs="inputs", item="method", data=hf_colortransfer)
                     
     images = my_gen.queue_prompt()
-    ws.close()            
-        
+    my_gen.ws_client.close()
+    ws.close()                
     return my_gen.pick_image(images)

@@ -35,7 +35,7 @@ function(images_data) {
 """
 
 JS_INIT = """
-function(loading_wait, loading_failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, view_text) {
+function(loading_wait, loading_failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, view_text, ws_port) {
     sl_title = show_loading_text.split(',')[0];
     sl_te = show_loading_text.split(',')[1];
     sl_sec = show_loading_text.split(',')[2];
@@ -43,6 +43,7 @@ function(loading_wait, loading_failed, show_loading_text, keys, values, oc, char
     window.LOADING_MESSAGE = sl_title;
     window.ELAPSED_TIME_PREFIX = sl_te;
     window.ELAPSED_TIME_SUFFIX = sl_sec;
+    window.WS_PORT = parseInt(ws_port);
     
     if (window.LOADING_WAIT_BASE64 && window.LOADING_FAILED_BASE64) {
         console.log('Loading images already initialized.');
@@ -153,7 +154,7 @@ def init_custom_com():
     
     return LOADING_WAIT_BASE64, LOADING_FAILED_BASE64
 
-def get_12(wait, failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, dummy_textbox2):
+def get_13(wait, failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, dummy_textbox2, ws_port):
     return
 
 def get_7(character1, character2, character3, view1, view2, view3, view4):

@@ -1,19 +1,20 @@
 import os
+import signal
+import threading
 import gradio as gr
 import sys
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, skip_next_generate, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info
-from custom_com import custom_gallery_default, custom_thumb_default, get_12, get_7, get_1
+from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
 from image_info import read_image_metadata, send_image_metadata
+from websocket_server import run_websocket_server_in_thread
 
-if __name__ == '__main__':
+def run_gradio():
     character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list,\
-        LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init()            
-                        
-    #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+        LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init(WSPORT)                                        
     
     def sync_trigger(trigger):
         return trigger
@@ -43,7 +44,7 @@ if __name__ == '__main__':
             # hide selected
             character1 = gr.Textbox(value=settings_json["character1"], visible=False, elem_id="cd-character1")
             character2 = gr.Textbox(value=settings_json["character2"], visible=False, elem_id="cd-character2")
-            character3 = gr.Textbox(value=settings_json["character3"], visible=False, elem_id="cd-character3")            
+            character3 = gr.Textbox(value=settings_json["character3"], visible=False, elem_id="cd-character3")
             original_character = gr.Textbox(value='none', visible=False, elem_id="cd-original-character")      
             
             # A lot dummy for java script
@@ -60,6 +61,7 @@ if __name__ == '__main__':
             dummy_keys = gr.JSON(visible=False, value=character_list)
             dummy_values = gr.JSON(visible=False, value=character_list_values)
             dummy_oc = gr.JSON(visible=False, value=original_character_list)
+            dummy_preview_image = gr.Textbox(visible=False, value=f'{WSPORT}')
             
         with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_prompts'):
@@ -211,7 +213,14 @@ if __name__ == '__main__':
                                 value=settings_json["api_interface"],
                                 allow_custom_value=False,
                             )
-                            api_addr = gr.Textbox(value=settings_json["api_addr"], label=LANG["api_addr"])                        
+                            api_preview_refresh_time = gr.Slider(
+                                minimum=0,
+                                maximum=5,
+                                step=1,
+                                value=settings_json["api_preview_refresh_time"],
+                                label=LANG["api_preview_refresh_time"],
+                            )
+                            api_addr = gr.Textbox(value=settings_json["api_addr"], label=LANG["api_addr"])            
                             
                             manual_update_database_button = gr.Button(value=LANG["manual_update_database"], variant='primary')
                 with gr.Row():
@@ -222,8 +231,7 @@ if __name__ == '__main__':
                             ai_system_prompt_text = gr.Textbox(value=LANG["ai_system_prompt"], show_label=False, lines=24)
             with gr.Column(elem_classes='column_images'):
                 with gr.Row():
-                    custom_view_dropdown = gr.HTML(JS_CUSTOM_VIEW_DROPDOWN, padding=False)
-                    
+                    custom_view_dropdown = gr.HTML(JS_CUSTOM_VIEW_DROPDOWN, padding=False)                    
                     view_angle = gr.Textbox(value=settings_json["view_angle"], visible=False, elem_id="cd-view-angle")
                     view_camera = gr.Textbox(value=settings_json["view_camera"], visible=False, elem_id="cd-view-camera")
                     view_background = gr.Textbox(value=settings_json["view_background"], visible=False, elem_id="cd-view-background")
@@ -252,7 +260,7 @@ if __name__ == '__main__':
                                     inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
@@ -275,7 +283,7 @@ if __name__ == '__main__':
                                     inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
@@ -295,7 +303,7 @@ if __name__ == '__main__':
                                 inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                         ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                        api_interface, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                        api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                         api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                         ], 
@@ -314,7 +322,7 @@ if __name__ == '__main__':
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                           ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
+                                           ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_preview_refresh_time, api_addr,
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                            api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                            ],
@@ -327,7 +335,7 @@ if __name__ == '__main__':
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
-                                           ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_addr,
+                                           ai_local_addr, ai_local_temp, ai_local_n_predict, api_interface, api_preview_refresh_time, api_addr,
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                            api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ]).then(
@@ -349,7 +357,7 @@ if __name__ == '__main__':
         lora_info.click(fn=get_lora_info, inputs=[lora_list], outputs=[dummy_text, dummy_textbox2]).then(fn=None,inputs=[dummy_text, dummy_textbox2], js=JS_SHOWCUSTOM_MESSAGE)
         
         # update lora list
-        api_interface.change(fn=update_lora_list, inputs=[api_interface], outputs=[lora_list])                
+        api_interface.change(fn=update_lora_list, inputs=[api_interface], outputs=[lora_list])
 
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
@@ -368,8 +376,8 @@ if __name__ == '__main__':
                                      ).then(fn=send_image_metadata, inputs=[output_info, api_image_data], outputs=[custom_prompt, api_neg_prompt, api_prompt, random_seed, api_image_data])
         
         ui.load(
-            fn=get_12,
-            inputs=[dummy_wait_base64, dummy_failed_base64, dummy_show_loading_text, dummy_keys, dummy_values, dummy_oc, dummy_textbox1, character1, character2, character3, dummy_view_data, dummy_textbox2],
+            fn=get_13,
+            inputs=[dummy_wait_base64, dummy_failed_base64, dummy_show_loading_text, dummy_keys, dummy_values, dummy_oc, dummy_textbox1, character1, character2, character3, dummy_view_data, dummy_textbox2, dummy_preview_image],
             js=JS_INIT
             ).then(
                 fn=refresh_character_thumb_image,
@@ -380,3 +388,17 @@ if __name__ == '__main__':
                     js=JS_SHOWTHUMB).then(fn=warning_lora, inputs=[api_interface], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
             
     ui.launch(inbrowser=True)
+
+if __name__ == '__main__':    
+    #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+    WSPORT = (int(os.environ.get("GRADIO_SERVER_PORT")) - 100)
+    thread, stop_server = run_websocket_server_in_thread(host='127.0.0.1', port=WSPORT)
+        
+    def signal_handler(sig, frame):        
+        print("*** Received shutdown signal")
+        stop_server()
+        sys.exit(0)            
+    signal.signal(signal.SIGINT, signal_handler)
+            
+    run_gradio()
+        

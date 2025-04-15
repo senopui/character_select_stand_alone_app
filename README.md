@@ -10,6 +10,7 @@ Now supports 5177 (includes multiple costumes) Character list.
 | BREAK | No | Yes | Yes |
 | vPred | Yes | Yes(*1) | Yes |
 | Refiner | Yes | Yes | Yes |
+| Preview | Yes | Yes | Yes |
 | Image Color Transfer | Yes | Yes | Yes |
 | Image Info to Prompt | Yes(*2) | Yes | Yes |
 | Regional Condition | No | No | No |
@@ -44,9 +45,9 @@ Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com
 
 ------
 # LoRA Support 
-Once you have set the correct model folder, the system will automatically search the relative LoRA directory according to the API type and update the LoRA list.    
+Once you have setup model folder, the system will automatically search the relative LoRA directory according to the API type and update the LoRA list.    
 WebUI supports it's default LoRA prompt style.    
-ComfyUI supports more detailed configuration of LoRA, for more information please refer to the [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
+ComfyUI supports more detailed configuration of LoRA, for more information please refer to [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
 Also support check LoRA info by click `?` button in LoRA tab. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
 
 **To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**   
@@ -90,10 +91,12 @@ Double click on `Privacy Ball` to close it.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_privacyball.png" width=35% height=35%>   
 
-# Overlay Generate Button, Generating and Error Overlay
-You can drag the `Button` overlay and `Generating` overlay anywhere you like.    
-The Button overlay load by default, you can simply minimize it by click the `Blue` dot, it will hide in the `Top Left` of your browser.    
-The error message will also appear in the centre of your browser, you can dismiss it by clicking on it, and the error message will be automatically copied to your clipboard.    
+# Overlay Generate Button, Generating, LoRA Info and Message Overlay
+You can drag the `Button`, `Generating` and `LoRA Info` overlay anywhere you like.    
+`Button` overlay load by default, you can simply minimize it by click the `Blue` dot, it will hide in the `Top Left` of your browser.    
+`Generating` overlay supports `Image Preview`, check `Generate preview interval (0=OFF)` in settings.     
+`LoRA Info` overlay, by click the `Red` dot will close it.    
+`Message` overlay only appear in the centre of your browser, you can dismiss it by clicking on it, and the error message will be automatically copied to your clipboard.    
 
 ------
 # Manual Setup by edit settings.json
@@ -114,7 +117,7 @@ Default and custom settings
 4. In case you messed up, just `delete` all json files and restart app      
 
 Original Characters    
-1. You can add/remove character (who not in list) in `original_character.json`    
+1. You can add/remove character in `original_character.json`    
 2. I already put some of my OC in it, feel free to use or modify    
 3. Original Characters is NOT support thumb image for now   
 4. BACKUP `original_character.json` before you feach new version from GitHub    
