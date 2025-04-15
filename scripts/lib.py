@@ -1154,13 +1154,10 @@ def get_lora_info(lora_name):
         print(f'[{CAT}]LoRA path not exist {lora_full_path}, try 2nd folder setting.')
         lora_file_dir = get_lora_path(os.path.dirname(settings_json['model_path_2nd']))
         lora_full_path = os.path.join(lora_file_dir, lora_name)
-        if not os.path.exists(lora_full_path):
-            print(f'[{CAT}]LoRA path not exist {lora_full_path}')
-            return 'none'
         
     final_str = f'LoRA {lora_full_path} not exist'
-    if os.path.exists(lora_full_path):
-        base64_str = 'none'
+    base64_str = 'none'
+    if os.path.exists(lora_full_path):        
         lora_thumb_path = lora_full_path.replace('.safetensors', '.png')
         if os.path.exists(lora_thumb_path):            
             with open(lora_thumb_path, "rb") as f:
