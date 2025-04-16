@@ -36,7 +36,6 @@ def run_websocket_server_in_thread(host="127.0.0.1", port=47850):
         except Exception as e:
             print(f"WebSocket loop error: {str(e)}")
         finally:
-            print("Closing WebSocket server")
             server.close()
             loop.run_until_complete(server.wait_closed())
             loop.run_until_complete(loop.shutdown_asyncgens())

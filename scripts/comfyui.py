@@ -11,6 +11,7 @@ import time
 
 CAT = "ComfyUI: "
 ws = None
+cancel_trigger = False
 
 class ComfyUIAPIGenerator:
     def __init__(self, server_address: str = "127.0.0.1:8188", ws_port=47850, preview_refresh_time = 0, client_id = "4d42d601-ffd1-4573-9311-38d3ea2faa1c", workflow_path: Optional[str] = None):                
@@ -61,10 +62,15 @@ class ComfyUIAPIGenerator:
             return json.loads(response.read())   
              
     def get_images(self, ws, prompt_id):
+        global cancel_trigger
         current_time = time.time()
         self.last_sent_time = current_time
         retire = 0
         while True:
+            if cancel_trigger:
+                cancel_trigger = False
+                break
+            
             out = ws.recv()
             if isinstance(out, str):
                 message = json.loads(out)
@@ -132,6 +138,9 @@ def run_comfyui(server_address, preview_refresh_time, model_name, positive_promp
                 workflow = 'workflow_api_new.json', ws_port=47850,
                 ):
     global ws
+    global cancel_trigger
+    
+    cancel_trigger = False
     client_id = str(uuid.uuid4())   
     current_file_path = os.path.abspath(__file__)
     current_folder = os.path.dirname(current_file_path)
@@ -217,3 +226,14 @@ def run_comfyui(server_address, preview_refresh_time, model_name, positive_promp
     my_gen.ws_client.close()
     ws.close()                
     return my_gen.pick_image(images)
+
+def cancel_comfyui(server_address):
+    global cancel_trigger
+    req = request.Request(f"http://{server_address}/interrupt", method='POST')
+    try:
+        cancel_trigger = True
+        request.urlopen(req)
+        print(f"{CAT}Processing interrupted")
+    except Exception as e:
+        print(f"{CAT}Failed to interrupt: {e}")
+        

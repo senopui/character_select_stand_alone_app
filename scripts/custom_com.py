@@ -169,8 +169,13 @@ def set_custom_gallery_last_api_images(keep_gallery, images, seeds, tags, ret):
     global keep_tags
 
     if not images:
-        print(f"[{CAT}] Got error from backend: {ret}")
-        return {"data": None, "error": f"{ret}"}, '', ''    
+        if 'success' != ret:
+            print(f"[{CAT}] Got error from backend: {ret}")
+            return {"data": None, "error": f"{ret}"}, '', ''
+        if len(keep_images) > 0:
+            return {"data": None, "error": ret}, keep_seed, keep_tags
+
+        return {"data": None, "error": ret}, '', ''
     
     if not keep_gallery:
         keep_images = []

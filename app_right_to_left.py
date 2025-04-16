@@ -4,7 +4,8 @@ import threading
 import gradio as gr
 import sys
 sys.path.append("scripts/")
-from lib import init, create_prompt_ex, create_with_last_prompt, skip_next_generate, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
+from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
+from lib import skip_next_generate_click, cancel_current_generate_click
 from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info
 from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
@@ -23,19 +24,22 @@ def run_gradio():
         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button", visible=False)
         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button", visible=False)
         run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button", visible=False)
-        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", interactive=True, visible=True)        
-        return run_button, run_random_button, run_same_button, run_skip_button
+        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=4, elem_id="run_skip_button", interactive=True, visible=True)
+        run_cancel_button = gr.Button(value=LANG["run_cancel_button"], scale=4, elem_id="run_cancel_button", interactive=True, visible=True)
+        return run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button
     
     def generate_unlock(images_data, images_seed, images_tag):
         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button", visible=True)
         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button", visible=True)
         run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button", visible=True)
-        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", visible=False)        
-        return run_button, run_random_button, run_same_button, run_skip_button
+        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=4, elem_id="run_skip_button", visible=False)
+        run_cancel_button = gr.Button(value=LANG["run_cancel_button"], scale=4, elem_id="run_cancel_button", visible=False)
+        return run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button
     
-    def lock_skip():
-        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", interactive=False)        
-        return run_skip_button
+    def lock_skip_cancel():
+        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=4, elem_id="run_skip_button", interactive=False)
+        run_cancel_button = gr.Button(value=LANG["run_cancel_button"], scale=4, elem_id="run_cancel_button", interactive=False)
+        return run_skip_button, run_cancel_button
         
     with gr.Blocks(js=JAVA_SCRIPT, css=CSS_SCRIPT, title=TITLE) as ui:        
         with gr.Row():
@@ -104,7 +108,8 @@ def run_gradio():
                         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button")
                         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button")
                         run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button")
-                        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=8, elem_id="run_skip_button", visible=False)
+                        run_skip_button = gr.Button(value=LANG["run_skip_button"], scale=4, elem_id="run_skip_button", visible=False)
+                        run_cancel_button = gr.Button(value=LANG["run_cancel_button"], scale=4, elem_id="run_cancel_button", visible=False)
                 with gr.Accordion(label=LANG["thumb_image"], open=True):
                     thumb_image = gr.HTML(custom_thumb_default, label=LANG["api_image"], elem_id="cg-thumb-wrapper", max_height=274, min_height=274, padding=False)                
                 with gr.Row():
@@ -249,7 +254,7 @@ def run_gradio():
                         with gr.Row():
                             ai_system_prompt_text = gr.Textbox(value=LANG["ai_system_prompt"], show_label=False, lines=24)
         
-        run_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button]).then(fn=create_characters,
+        run_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=False, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
                               outputs=[images_data]
                               ).then(
@@ -268,11 +273,11 @@ def run_gradio():
                                 ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox1, dummy_textbox2],
-                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button],
+                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button],
                                     js=JS_HANDLERESPONSE
                                 )
 
-        run_random_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button]).then(fn=create_characters,
+        run_random_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button]).then(fn=create_characters,
                               inputs=[gr.Checkbox(value=True, visible=False), character1, character2, character3, tag_assist, original_character, random_seed, api_image_data, api_image_landscape],
                               outputs=[images_data]
                               ).then(
@@ -291,11 +296,11 @@ def run_gradio():
                                 ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox1, dummy_textbox2],
-                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button],
+                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button],
                                     js=JS_HANDLERESPONSE
                                 )
         
-        run_same_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button]).then(
+        run_same_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button]).then(
                                 fn=get_1,
                                 inputs=[images_data],
                                 js=JS_SHOWLOADING
@@ -311,10 +316,11 @@ def run_gradio():
                             ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[images_data, dummy_textbox1, dummy_textbox2],
-                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button],
+                                    outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button],
                                     js=JS_HANDLERESPONSE
                                 )
-        run_skip_button.click(fn=skip_next_generate).then(fn=lock_skip, outputs=[run_skip_button])
+        run_skip_button.click(fn=skip_next_generate_click).then(fn=lock_skip_cancel, outputs=[run_skip_button, run_cancel_button])
+        run_cancel_button.click(fn=cancel_current_generate_click, inputs=[api_addr, api_interface]).then(fn=lock_skip_cancel, outputs=[run_skip_button, run_cancel_button])
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, tag_assist,

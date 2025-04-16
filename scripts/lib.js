@@ -596,11 +596,19 @@ function my_custom_js() {
             if (seeds.length !== tags.length) {
                 console.warn('Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
             }
-        
-            if (!response || !response.data) {
-                const errorMessage = response?.error || 'Unknown error';
-                console.error('Failed to fetch image data:', errorMessage);
+            
+            if (!response) {
+                const errorMessage = 'Unknown error from Backend';
+                console.error('Failed to fetch response:', errorMessage);
                 customCommonOverlay().createErrorOverlay(errorMessage);
+                return;
+            }
+            else if(!response.data) {
+                if ('success' !== response.error) {
+                    const errorMessage = response.error;
+                    console.error('Failed to fetch image data:', errorMessage);
+                    customCommonOverlay().createErrorOverlay(errorMessage);
+                }
                 return;
             }
         
