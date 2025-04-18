@@ -408,7 +408,7 @@ def run_gradio():
     ui.launch(inbrowser=True)
 
 if __name__ == '__main__':    
-    os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+    #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
     WSPORT = (int(os.environ.get("GRADIO_SERVER_PORT")) - 100)
     thread, stop_server = run_websocket_server_in_thread(host='127.0.0.1', port=WSPORT)
         
