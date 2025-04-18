@@ -245,7 +245,7 @@
       "optimize_png": false,
       "counter": 0,
       "denoise": 1,
-      "clip_skip": 0,
+      "clip_skip": -2,
       "time_format": "%Y-%m-%d-%H%M%S",
       "save_workflow_as_json": false,
       "embed_workflow": true,
