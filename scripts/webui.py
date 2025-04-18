@@ -71,9 +71,10 @@ def poll_progress(webui_server_address, ws_port, preview_refresh_time, stop_even
         gen.ws_client.close()
 
 def run_webui(
-    server_address = 'http://127.0.0.1:7860', ws_port=47850, preview_refresh_time = 0, model_name = 'waiNSFWIllustrious_v120.safetensors',
+    server_address = 'http://127.0.0.1:7860', ws_port=47850, preview_refresh_time = 0, 
+    sampler = 'Euler a', scheduler = 'Automatic', model_name = 'waiNSFWIllustrious_v120.safetensors',
     positive_prompt = 'miqo\'te',negative_prompt = 'nsfw', random_seed = -1, steps= 20, cfg = 7, 
-    my_sampler_name='Euler a', height = 512, width = 512, 
+    height = 512, width = 512, 
     hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='R-ESRGAN 4x+', savepath_override = False,
     refiner_enable = False, refiner_model_name='none', refiner_ratio=0.4, 
     ):
@@ -96,8 +97,8 @@ def run_webui(
         "steps": steps,
         "width": width,
         "height": height,
-        "sampler_index": my_sampler_name,
-        "scheduler": 'Automatic',
+        "sampler_index": sampler,
+        "scheduler": scheduler,
         "seed": random_seed,
         "cfg_scale": cfg,
         "save_images": not savepath_override,
@@ -112,8 +113,8 @@ def run_webui(
             "hr_scale": hf_scale,
             "hr_upscaler": hf_upscaler,
             "hr_second_pass_steps": 20,
-            "hr_sampler_name": my_sampler_name,
-            "hr_scheduler": "Automatic",
+            "hr_sampler_name": sampler,
+            "hr_scheduler": scheduler,
             "hr_prompt": positive_prompt,
             "hr_negative_prompt": negative_prompt,
         })

@@ -131,7 +131,7 @@ class ComfyUIAPIGenerator:
         images = self.get_images(ws, prompt_id)        
         return images
 
-def run_comfyui(server_address, preview_refresh_time, model_name, positive_prompt, negative_prompt, 
+def run_comfyui(server_address, preview_refresh_time, sampler, scheduler, model_name, positive_prompt, negative_prompt, 
                 random_seed, steps, cfg, width, height,
                 hf_enable = False, hf_scale=1.5, hf_denoising_strength=0.4, hf_upscaler='4x-UltraSharp', hf_colortransfer='none', hf_seed = 42,
                 refiner_enable = False, refiner_add_noise= False, refiner_model_name='none', refiner_ratio=0.4, 
@@ -184,7 +184,18 @@ def run_comfyui(server_address, preview_refresh_time, model_name, positive_promp
         my_gen.set_ex(node_id="18", inputs="inputs", item="vae", data=["45", 2])
         # Model Loader to Hires fix Vae Encode Tiled
         my_gen.set_ex(node_id="19", inputs="inputs", item="vae", data=["45", 2])
-            
+    
+    # Set Sampler and Scheduler
+    my_gen.set_ex(node_id="20", inputs="inputs", item="sampler_name", data=sampler)
+    my_gen.set_ex(node_id="29", inputs="inputs", item="sampler_name", data=sampler)
+    my_gen.set_ex(node_id="36", inputs="inputs", item="sampler_name", data=sampler)
+    my_gen.set_ex(node_id="37", inputs="inputs", item="sampler_name", data=sampler)
+    
+    my_gen.set_ex(node_id="20", inputs="inputs", item="scheduler", data=scheduler)
+    my_gen.set_ex(node_id="29", inputs="inputs", item="scheduler", data=scheduler)
+    my_gen.set_ex(node_id="36", inputs="inputs", item="scheduler", data=scheduler)
+    my_gen.set_ex(node_id="37", inputs="inputs", item="scheduler", data=scheduler)
+                
     # Set steps and cfg
     my_gen.set_ex(node_id="13", inputs="inputs", item="steps", data=steps)
     my_gen.set_ex(node_id="13", inputs="inputs", item="cfg", data=cfg)

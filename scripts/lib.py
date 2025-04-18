@@ -32,6 +32,21 @@ ENGLISH_CHARACTER_NAME = False
 PROMPT_MANAGER = None
 WSPORT = 47850
 
+SAMPLER_COMFYUI = ["euler_ancestral", "euler", "euler_cfg_pp", "euler_ancestral_cfg_pp", "heun", "heunpp2","dpm_2", "dpm_2_ancestral",
+                  "lms", "dpm_fast", "dpm_adaptive", "dpmpp_2s_ancestral", "dpmpp_2s_ancestral_cfg_pp", "dpmpp_sde", "dpmpp_sde_gpu",
+                  "dpmpp_2m", "dpmpp_2m_cfg_pp", "dpmpp_2m_sde", "dpmpp_2m_sde_gpu", "dpmpp_3m_sde", "dpmpp_3m_sde_gpu", "ddpm", "lcm",
+                  "ipndm", "ipndm_v", "deis", "res_multistep", "res_multistep_cfg_pp", "res_multistep_ancestral", "res_multistep_ancestral_cfg_pp",
+                  "gradient_estimation", "er_sde", "seeds_2", "seeds_3"]
+SCHEDULER_COMFYUI = ["normal", "karras", "exponential", "sgm_uniform", "simple", "ddim_uniform", "beta", "linear_quadratic", "kl_optimal"] 
+
+SAMPLER_WEBUI = ["Euler a", "Euler", "DPM++ 2M", "DPM++ SDE", "DPM++ 2M SDE", "DPM++ 2M SDE Heun", "DPM++ 2S a", "DPM++ 3M SDE",
+                 "LMS", "Heun", "DPM2", "DPM2 a", "DPM fast", "DPM adaptive", "Restart"]
+SCHEDULER_WEBUI = ["Automatic", "Uniform", "Karras", "Exponential", "Polyexponential", "SGM Uniform", "KL Optimal", "Align Your Steps", "Simple", "Normal", "DDIM", "Beta"]
+
+
+SAMPLER = SAMPLER_COMFYUI
+SCHEDULER = SCHEDULER_COMFYUI
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 json_folder = os.path.join(parent_dir, 'json')
@@ -69,6 +84,8 @@ settings_json = {
     "view_background": "none",
     "view_style": "none",
     
+    "api_model_sampler" : "euler_ancestral", 
+    "api_model_scheduler" : "normal",
     "api_model_file_select" : "default",    
     "random_seed": -1,
     
@@ -128,7 +145,10 @@ wai_illustrious_character_select_files = [
 
 def first_setup():
     if not no_local_settings:
-        return
+        return False
+    
+    global SAMPLER
+    global SCHEDULER
     
     wiz = setup_wizard_window()
     wiz.run(LANG["setup_greet_title"], LANG["setup_greet_message"])
@@ -160,11 +180,31 @@ def first_setup():
         settings_json["remote_ai_api_key"] = remote_ai_api_key
     else:
         print("remote_ai_api_key: skipped")
+          
+    api_interface = wiz.get_choice(LANG["setup_webui_comfyui_select_title"], LANG["setup_webui_comfyui_select"], "ComfyUI,WebUI,none", "none")
+    if api_interface:
+        print(f"api_interface: {api_interface}")
+        settings_json["api_interface"] = api_interface
+        if "WebUI" == api_interface:
+            settings_json["api_model_sampler"] = SAMPLER_WEBUI[0]
+            settings_json["api_model_scheduler"] = SCHEDULER_WEBUI[0]
+        elif "ComfyUI" == api_interface:
+            settings_json["api_model_sampler"] = SAMPLER_COMFYUI[0]
+            settings_json["api_model_scheduler"] = SCHEDULER_COMFYUI[0]
+    else:
+        print("api_interface: none")            
+        
+    api_addr = wiz.get_string(LANG["setup_webui_comfyui_api_addr_title"], LANG["setup_webui_comfyui_api_addr"], settings_json["api_addr"])
+    if api_addr:
+        print(f"api_addr: {api_addr}")
+        settings_json["api_addr"] = api_addr
+    else:
+        print("api_addr: skipped")        
 
     wiz.run(LANG["setup_webui_comfyui_title"], LANG["setup_webui_comfyui"])
 
-    save_json(settings_json, 'settings.json')
-    
+    save_json(settings_json, 'settings.json')    
+    return True
  
 def get_url_by_name(name):
     for item in wai_illustrious_character_select_files:
@@ -556,7 +596,7 @@ def create_prompt_info(rnd_character1, opt_chara1, tas1,
 
     return prompt, info
 
-def create_image(interface, refresh_time, addr, model_file_select, prompt, neg_prompt, 
+def create_image(interface, refresh_time, addr, model_sampler, model_scheduler, model_file_select, prompt, neg_prompt, 
                  seed, cfg, steps, width, height, 
                  api_hf_enable, ai_hf_scale, ai_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
                  refiner_enable, refiner_add_noise, refiner_model, refiner_ratio):
@@ -634,7 +674,7 @@ def create_image(interface, refresh_time, addr, model_file_select, prompt, neg_p
                     api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(C)', '')
             
             try:
-                image_data_list = run_comfyui(server_address=addr, preview_refresh_time=refresh_time, model_name=model_file_select, 
+                image_data_list = run_comfyui(server_address=addr, preview_refresh_time=refresh_time, sampler=model_sampler, scheduler=model_scheduler, model_name=model_file_select, 
                                             positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                             hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, hf_colortransfer=api_hf_colortransfer, hf_seed=hf_random_seed,
                                             refiner_enable = refiner_enable, refiner_add_noise=refiner_add_noise, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio, ws_port=WSPORT
@@ -664,19 +704,19 @@ def create_image(interface, refresh_time, addr, model_file_select, prompt, neg_p
                     api_hf_upscaler_selected = str(api_hf_upscaler_selected).replace('(W)', '')                        
 
                 if 'none' == api_hf_colortransfer:
-                    api_image, _, src_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, model_name=model_file_select, 
+                    api_image, _, src_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, sampler=model_sampler, scheduler=model_scheduler, model_name=model_file_select, 
                                             positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                             hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
                                             refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)    
                 else:                   
-                    api_image, _, src_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, model_name=model_file_select, 
+                    api_image, _, src_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, sampler=model_sampler, scheduler=model_scheduler, model_name=model_file_select, 
                                         positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                         hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
                                         refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio) 
 
                     if not cancel_current_generate:
                         gr.Warning(LANG["gr_info_color_transfer_webui"])                                    
-                        ref_image, _, ref_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, model_name=model_file_select, 
+                        ref_image, _, ref_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, sampler=model_sampler, scheduler=model_scheduler, model_name=model_file_select, 
                                                 positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                                 hf_enable=False, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
                                                 refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)
@@ -699,7 +739,7 @@ def create_image(interface, refresh_time, addr, model_file_select, prompt, neg_p
                             ref_image.save(image_filepath, pnginfo=metadata)
                             print(f"[{CAT}]Color Transfer: Reference Image saved to {image_filepath}")        
             else:
-                api_image, _, src_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, model_name=model_file_select, 
+                api_image, _, src_info = run_webui(server_address=addr, ws_port=WSPORT, preview_refresh_time=refresh_time, sampler=model_sampler, scheduler=model_scheduler, model_name=model_file_select, 
                                         positive_prompt=prompt, negative_prompt=neg_prompt, random_seed=seed, cfg=cfg, steps=steps, width=width, height=height,
                                         hf_enable=api_hf_enable, hf_scale=ai_hf_scale, hf_denoising_strength=ai_hf_denoise, hf_upscaler=api_hf_upscaler_selected, savepath_override=api_webui_savepath_override,
                                         refiner_enable = refiner_enable, refiner_model_name=refiner_model, refiner_ratio=refiner_ratio)                 
@@ -815,7 +855,8 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
 def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                 api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                 api_model_sampler, api_model_scheduler, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                  api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
             ) -> tuple[str, str, Image.Image, Image.Image]:            
@@ -896,7 +937,7 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         if api_hf_random_seed:
             hf_random_seed = random.randint(0, 4294967295)
             
-        api_image, js_ret = create_image(api_interface, api_preview_refresh_time, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
+        api_image, js_ret = create_image(api_interface, api_preview_refresh_time, api_addr, api_model_sampler, api_model_scheduler, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                 seed1, cfg, steps, width, height, 
                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
@@ -923,7 +964,8 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                            api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                            api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                            api_model_sampler, api_model_scheduler, api_model_file_select,
                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                             api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
             ) -> tuple[str, str, Image.Image, Image.Image]:        
@@ -973,7 +1015,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
             to_image_create_prompt = to_image_create_prompt.replace(ban_word.strip(), '')
         
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{last_info}\nAI Prompt:[{ai_text}]'
-        api_image, js_ret = create_image(api_interface, api_preview_refresh_time, api_addr, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
+        api_image, js_ret = create_image(api_interface, api_preview_refresh_time, api_addr, api_model_sampler, api_model_scheduler, api_model_file_select, to_image_create_prompt, api_neg_prompt, 
                                  seed, cfg, steps, width, height, 
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                  api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
@@ -1022,7 +1064,7 @@ def cancel_current_generate_click(api_addr, interface):
         gr.Warning(LANG["gr_info_skip_next_generate"])
 
 def save_current_setting(character1, character2, character3, tag_assist,
-                        view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
+                        view_angle, view_camera, view_background, view_style, api_model_sampler, api_model_scheduler, api_model_file_select, random_seed,
                         custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                         ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                         remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -1051,6 +1093,8 @@ def save_current_setting(character1, character2, character3, tag_assist,
         "view_background": view_background,
         "view_style": view_style, 
         
+        "api_model_sampler" : api_model_sampler, 
+        "api_model_scheduler" : api_model_scheduler,
         "api_model_file_select" : api_model_file_select,
         "random_seed": random_seed,
         
@@ -1093,21 +1137,36 @@ def save_current_setting(character1, character2, character3, tag_assist,
     gr.Info(LANG["gr_info_settings_saved"].format(tmp_file))
     
 def load_saved_setting(file_path):
-    
     temp_settings_json = {}                
     with open(file_path, 'r', encoding='utf-8') as file:
         temp_settings_json.update(json.load(file))    
     load_settings(temp_settings_json)        
     gr.Info(LANG["gr_info_settings_loaded"].format(file_path))
-        
+    
+    update_lora_list(settings_json["api_interface"], no_dropdown=True)
+            
     return settings_json["character1"],settings_json["character2"],settings_json["character3"],settings_json["tag_assist"],\
-            settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"], settings_json["view_style"], settings_json["api_model_file_select"],settings_json["random_seed"],\
+            settings_json["view_angle"],settings_json["view_camera"],settings_json["view_background"], settings_json["view_style"],\
+            settings_json["api_model_file_select"],settings_json["random_seed"],\
             settings_json["custom_prompt"],settings_json["api_prompt"],settings_json["api_neg_prompt"],settings_json["api_image_data"],settings_json["api_image_landscape"],settings_json["keep_gallery"],\
             settings_json["ai_prompt"],settings_json["batch_generate_rule"],settings_json["prompt_ban"],settings_json["ai_interface"],\
             settings_json["remote_ai_base_url"],settings_json["remote_ai_model"],settings_json["remote_ai_timeout"],\
             settings_json["ai_local_addr"],settings_json["ai_local_temp"],settings_json["ai_local_n_predict"],settings_json["api_interface"],settings_json["api_preview_refresh_time"], settings_json["api_addr"],\
             settings_json["api_hf_enable"],settings_json["api_hf_scale"],settings_json["api_hf_denoise"],settings_json["api_hf_upscaler_selected"],settings_json["api_hf_colortransfer"],settings_json["api_webui_savepath_override"],settings_json["api_hf_random_seed"],\
             settings_json["api_refiner_enable"],settings_json["api_refiner_add_noise"],settings_json["api_refiner_model"],settings_json["api_refiner_ratio"]
+
+def update_sampler_and_scheduler_no_return():
+    if not SAMPLER.__contains__(settings_json["api_model_sampler"]):
+        settings_json["api_model_sampler"] = SAMPLER[0]
+    
+    if not SCHEDULER.__contains__(settings_json["api_model_scheduler"]):
+        settings_json["api_model_scheduler"] = SCHEDULER[0]
+
+def update_sampler_and_scheduler():
+    update_sampler_and_scheduler_no_return()
+        
+    return gr.Dropdown(choices=SAMPLER, label=LANG["api_model_sampler"], value=settings_json["api_model_sampler"], allow_custom_value=False, scale=2),\
+            gr.Dropdown(choices=SCHEDULER, label=LANG["api_model_scheduler"], value=settings_json["api_model_scheduler"], allow_custom_value=False, scale=1)
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
@@ -1138,12 +1197,15 @@ def refresh_character_thumb_image(character1, character2, character3):
     return character_info, js_generated_thumb_image_list
 
 def update_lora_list(api_interface, no_dropdown=False):
+    global SAMPLER
+    global SCHEDULER
+    
     settings_json['api_interface'] = api_interface
     
     lora_file_dir = get_lora_path(os.path.dirname(settings_json['model_path']))
     lora_file_list = []
     
-    if 'none' != settings_json['api_interface']:
+    if 'none' != settings_json['api_interface']:        
         if os.path.exists(lora_file_dir):
             lora_file_list = get_safetensors_files(lora_file_dir, settings_json['search_modelinsubfolder'])
         else:
@@ -1155,6 +1217,15 @@ def update_lora_list(api_interface, no_dropdown=False):
                 lora_file_list = get_safetensors_files(lora_file_dir, settings_json['search_modelinsubfolder'])
             else:
                 print(f'[{CAT}]2nd LoRA path not exist {lora_file_dir}.')
+        
+        if 'WebUI' == api_interface:
+            SAMPLER = SAMPLER_WEBUI
+            SCHEDULER = SCHEDULER_WEBUI
+        elif 'ComfyUI' == api_interface:
+            SAMPLER = SAMPLER_COMFYUI
+            SCHEDULER = SCHEDULER_COMFYUI
+            
+        update_sampler_and_scheduler_no_return()
     
     lora_file_list.insert(0, 'none')        
     interface_text = settings_json['api_interface']
@@ -1238,7 +1309,6 @@ def get_prompt_manager():
 def init(ws_port):
     global ENGLISH_CHARACTER_NAME
     global LANG
-    global JAVA_SCRIPT
     global WSPORT
     
     WSPORT = ws_port
@@ -1258,13 +1328,14 @@ def init(ws_port):
         print('Load css_script...')
         css_script = load_text_file(lib_css_path)
         print('Load init_custom_com...')
-        status_wait, status_error = init_custom_com()        
-        lora_file_list = update_lora_list(settings_json['api_interface'], no_dropdown=True)
+        status_wait, status_error = init_custom_com()                
 
         first_setup()
+        lora_file_list = update_lora_list(settings_json['api_interface'], no_dropdown=True)        
     except Exception as e:
         print(f"[{CAT}]:Initialization failed: {e}")
         sys.exit(1)
         
     print(f'[{CAT}]:Starting...')
-    return character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list, LANG, js_script, css_script, status_wait, status_error
+    return character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list,\
+            LANG, js_script, css_script, status_wait, status_error, SAMPLER, SCHEDULER

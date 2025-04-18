@@ -12,6 +12,9 @@ LANG_EN = {
     "view_camera": "Camera",
     "view_background": "Background",
     "view_style": "Style",
+    "api_model_settings": "Model Settings",
+    "api_model_sampler": "Sampler",
+    "api_model_scheduler": "Scheduler",
     "api_model_file_select": "Model list (ComfyUI Default:waiNSFWIllustrious_v120)",
     "random_seed": "Random Seed",
     "thumb_image": "Character Thumb Preview",
@@ -130,7 +133,11 @@ LANG_EN = {
     "setup_search_modelinsubfolder_title": "Subfolder",
     "setup_search_modelinsubfolder": "Do you want to search for model files in subfolders?",    
     "setup_remote_ai_api_key_title": "API Key",
-    "setup_remote_ai_api_key": "Enter Remote Large Language Model API key (also changeable in settings.json)",    
+    "setup_remote_ai_api_key": "Enter Remote Large Language Model API key (also changeable in settings.json)",        
+    "setup_webui_comfyui_select_title": "WebUI or ComfyUI",
+    "setup_webui_comfyui_select": "Setup your Backend type WebUI or ComfyUI, you can change in UI->Settings->Local Image Generator IP Address:Port",    
+    "setup_webui_comfyui_api_addr_title": "WebUI or ComfyUI Backend API Address",
+    "setup_webui_comfyui_api_addr": "Enter the address of your Backend API, you can copy and paste the IP Address and Port from your Browser.",    
     "setup_webui_comfyui_title": "Important!",
     "setup_webui_comfyui": "If you are using ComfyUI, enable dev mode in the settings. \nIf you are using WebUI, modify webui-user.bat and COMMANDLINE_ARGS= --api\nThere is a \"model_path_2nd\" in settings.json, if you using WebUI and ComfyUI in same time, set it to another checkpoints folder."
 }
@@ -145,6 +152,9 @@ LANG_CN = {
     "view_camera": "镜头",
     "view_background": "背景",
     "view_style": "风格",
+    "api_model_settings": "模型设置",
+    "api_model_sampler": "采样器",
+    "api_model_scheduler": "调度器",
     "api_model_file_select": "模型选择 (ComfyUI默认:waiNSFWIllustrious_v120)",
     "random_seed": "种子",
     "thumb_image": "角色预览",
@@ -264,6 +274,10 @@ LANG_CN = {
     "setup_search_modelinsubfolder": "是否搜索模型文件夹子目录下的模型文件",    
     "setup_remote_ai_api_key_title": "API密钥",
     "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥（以后可以修改settings.json来设置）",    
+    "setup_webui_comfyui_select_title": "后端类型",
+    "setup_webui_comfyui_select": "请选择你将要使用的后端类型，如果目前还没决定好，可以稍后在UI内进行设置",
+    "setup_webui_comfyui_api_addr_title": "后端地址",
+    "setup_webui_comfyui_api_addr": "请输入后端的访问地址，你可以从浏览器里复制WebUI或ComfyUI的IP地址与端口粘贴到这里。",
     "setup_webui_comfyui_title": "重要信息",
     "setup_webui_comfyui": "如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api\n在settings.json中有一个名叫model_path_2nd的设置项，如果你同时使用WebUI和ComfyUI，可以把它设置为另一个程序的模型所在目录。"
 }

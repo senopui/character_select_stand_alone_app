@@ -1,12 +1,11 @@
 import os
 import signal
-import threading
 import gradio as gr
 import sys
 sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
-from lib import skip_next_generate_click, cancel_current_generate_click
-from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info
+from lib import skip_next_generate_click, cancel_current_generate_click, update_sampler_and_scheduler
+from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info 
 from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
@@ -15,7 +14,7 @@ from websocket_server import run_websocket_server_in_thread
 
 def run_gradio():
     character_list, character_list_values, view_tags, original_character_list, model_files_list, refiner_model_files_list, lora_file_list,\
-        LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64 = init(WSPORT)                                        
+        LANG, JAVA_SCRIPT, CSS_SCRIPT, LOADING_WAIT_BASE64, LOADING_FAILED_BASE64, SAMPLER, SCHEDULER = init(WSPORT)                                        
     
     def sync_trigger(trigger):
         return trigger
@@ -156,21 +155,23 @@ def run_gradio():
                             with gr.Row():
                                 lora_info = gr.Button(value='?', variant='secondary', min_width=24, scale=1)
                                 lora_list = gr.Dropdown(choices=lora_file_list, label='', value='none', allow_custom_value=False, scale=18)
-                                lora_insert = gr.Button(value='+', variant='primary', min_width=24, scale=1)                         
-                        with gr.Row():
-                            # AI prompts
-                            batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
-                                                        value=settings_json["batch_generate_rule"],
-                                                        label=LANG["batch_generate_rule"],
-                                                        scale=1)
-                            
-                            api_model_file_select = gr.Dropdown(
-                                choices=model_files_list,
-                                label=LANG["api_model_file_select"],
-                                value=settings_json["api_model_file_select"],
-                                allow_custom_value=False,
-                                scale=1
-                            )                                      
+                                lora_insert = gr.Button(value='+', variant='primary', min_width=24, scale=1)                                                
+                        with gr.Accordion(label=LANG["api_model_settings"], open=False):
+                            with gr.Row():
+                                api_model_sampler = gr.Dropdown(choices=SAMPLER, label=LANG["api_model_sampler"], value=settings_json["api_model_sampler"], allow_custom_value=False, scale=2)
+                                api_model_scheduler = gr.Dropdown(choices=SCHEDULER, label=LANG["api_model_scheduler"], value=settings_json["api_model_scheduler"], allow_custom_value=False, scale=1)
+                                api_model_file_select = gr.Dropdown(
+                                    choices=model_files_list,
+                                    label=LANG["api_model_file_select"],
+                                    value=settings_json["api_model_file_select"],
+                                    allow_custom_value=False,
+                                    scale=4
+                                )
+                        # AI prompts
+                        batch_generate_rule = gr.Radio(choices=["Last", "Once", "Every", "none"], 
+                                                    value=settings_json["batch_generate_rule"],
+                                                    label=LANG["batch_generate_rule"],
+                                                    scale=1)
                         ai_prompt = gr.Textbox(value=settings_json["ai_prompt"], label=LANG["ai_prompt"], elem_id="ai_prompt_text")
                         prompt_ban = gr.Textbox(value=settings_json["prompt_ban"], label=LANG["prompt_ban"], elem_id="prompt_ban_text")                
                 with gr.Row():
@@ -265,7 +266,8 @@ def run_gradio():
                                     inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                                api_model_sampler, api_model_scheduler, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
@@ -288,7 +290,8 @@ def run_gradio():
                                     inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                                api_model_sampler, api_model_scheduler, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
@@ -308,7 +311,8 @@ def run_gradio():
                                 inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                         ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                        api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, api_model_file_select,
+                                        api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                        api_model_sampler, api_model_scheduler, api_model_file_select,
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                         api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                         ], 
@@ -324,7 +328,7 @@ def run_gradio():
         
         save_settings_button.click(fn=save_current_setting,
                                    inputs=[character1, character2, character3, tag_assist,
-                                           view_angle, view_camera, view_background, view_style, api_model_file_select, random_seed,
+                                           view_angle, view_camera, view_background, view_style, api_model_sampler, api_model_scheduler, api_model_file_select, random_seed,
                                            custom_prompt, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery,
                                            ai_prompt, batch_generate_rule, prompt_ban, ai_interface, 
                                            remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -345,15 +349,18 @@ def run_gradio():
                                            api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                            api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ]).then(
-                                                fn=refresh_character_thumb_image,
-                                                inputs=[character1,character2,character3],
-                                                outputs=[output_info, images_data]
-                                                ).then(fn=get_1,
-                                                    inputs=[images_data],
-                                                    js=JS_SHOWTHUMB
-                                                    ).then(fn=get_7,
-                                                        inputs=[character1,character2,character3,view_angle, view_camera, view_background, view_style],
-                                                        js=JS_CUSTOM_DROPDOWN_UPDATE)
+                                                fn=update_sampler_and_scheduler,
+                                                outputs=[api_model_sampler, api_model_scheduler]
+                                                ).then(
+                                                    fn=refresh_character_thumb_image,
+                                                    inputs=[character1,character2,character3],
+                                                    outputs=[output_info, images_data]
+                                                    ).then(fn=get_1,
+                                                        inputs=[images_data],
+                                                        js=JS_SHOWTHUMB
+                                                        ).then(fn=get_7,
+                                                            inputs=[character1,character2,character3,view_angle, view_camera, view_background, view_style],
+                                                            js=JS_CUSTOM_DROPDOWN_UPDATE)
         
         manual_update_database_button.click(fn=manual_update_database, inputs=None).then(fn=manual_update_database, inputs=[manual_update_database_button], outputs=[manual_update_database_button])
                 
@@ -363,7 +370,12 @@ def run_gradio():
         lora_info.click(fn=get_lora_info, inputs=[lora_list], outputs=[dummy_text, dummy_textbox2]).then(fn=None,inputs=[dummy_text, dummy_textbox2], js=JS_SHOWCUSTOM_MESSAGE)
         
         # update lora list
-        api_interface.change(fn=update_lora_list, inputs=[api_interface], outputs=[lora_list])
+        api_interface.change(
+            fn=update_lora_list, inputs=[api_interface], outputs=[lora_list]
+            ).then(
+                fn=update_sampler_and_scheduler,
+                outputs=[api_model_sampler, api_model_scheduler]
+                )
 
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
@@ -396,7 +408,7 @@ def run_gradio():
     ui.launch(inbrowser=True)
 
 if __name__ == '__main__':    
-    #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+    os.environ["GRADIO_SERVER_PORT"]='47860'   #test
     WSPORT = (int(os.environ.get("GRADIO_SERVER_PORT")) - 100)
     thread, stop_server = run_websocket_server_in_thread(host='127.0.0.1', port=WSPORT)
         
