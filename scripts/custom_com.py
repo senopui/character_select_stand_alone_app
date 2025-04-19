@@ -28,9 +28,15 @@ JS_HANDLERESPONSE = "function(image_data, image_seeds, image_tags) { window.cgCu
 
 JS_SHOWTHUMB = """
 function(images_data) {
-    // Update the thumbnail gallery
     const newThumbImages = images_data.data;
     window.updateThumbGallery(newThumbImages);
+}
+"""
+
+JS_SHOWTHUMB_OVERLAY = """
+function(character, images_data) {
+    const newThumbImages = images_data.data;
+    window.updateThumbOverlay(character, newThumbImages);
 }
 """
 
@@ -158,6 +164,9 @@ def get_13(wait, failed, show_loading_text, keys, values, oc, chara_text, charac
     return
 
 def get_7(character1, character2, character3, view1, view2, view3, view4):
+    return
+
+def get_2(character, images):
     return
 
 def get_1(images = None):

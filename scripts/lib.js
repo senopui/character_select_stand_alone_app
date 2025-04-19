@@ -6,7 +6,7 @@ function my_custom_js() {
     window.LOADING_MESSAGE = 'Processing...';
     window.ELAPSED_TIME_PREFIX = 'Time elapsed: ';
     window.ELAPSED_TIME_SUFFIX = 'sec';
-    window.WS_PORT = 47790
+    window.WS_PORT = 47790;
 
     // Initialize global dropdowns namespace
     window.dropdowns = window.dropdowns || {};
@@ -14,14 +14,19 @@ function my_custom_js() {
     // Synchronously initialize dropdowns to ensure availability
     myCharacterList();
     myViewsList();
+    setupThumbOverlay();
 
     requestIdleCallback(() => {
         setupSuggestionSystem();
         setupGallery();
         setupThumb();
         setupButtonOverlay();
-        myCharacterList();  
-        myViewsList();      
+        if (!window.dropdowns['mydropdown-container']) {
+            myCharacterList(); 
+        }
+        if (!window.dropdowns['myviews-container']) {
+            myViewsList(); 
+        }
     });    
     window.customOverlay = customCommonOverlay();
 
@@ -348,25 +353,19 @@ function my_custom_js() {
 
             function extractWordToSend(value, cursorPosition) {
                 const beforeCursor = value.slice(0, cursorPosition);
-                const afterCursor = value.slice(cursorPosition);
-                
-                // Find the last separator (comma or newline) before the cursor
+                const afterCursor = value.slice(cursorPosition);                
                 const lastCommaBefore = beforeCursor.lastIndexOf(',');
                 const lastNewlineBefore = beforeCursor.lastIndexOf('\n');
                 const start = Math.max(lastCommaBefore, lastNewlineBefore) >= 0 
                     ? Math.max(lastCommaBefore, lastNewlineBefore) + 1 
-                    : 0;
-            
-                // Find the first separator (comma or newline) after the cursor
+                    : 0;        
                 const firstCommaAfter = afterCursor.indexOf(',');
                 const firstNewlineAfter = afterCursor.indexOf('\n');
                 
                 let end;
                 if (firstNewlineAfter === 0) {
-                    // If cursor is immediately followed by a newline, end at cursor
                     end = cursorPosition;
                 } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
-                    // Use the nearest separator after cursor
                     end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
                         ? cursorPosition + firstCommaAfter
                         : firstNewlineAfter >= 0
@@ -376,9 +375,7 @@ function my_custom_js() {
                     end = value.length;
                 }
             
-                // Extract the word, trim only leading/trailing spaces, not newlines
                 const extracted = value.slice(start, end).trim();
-                // If the extracted content ends with a comma or is empty, return empty string
                 return extracted.endsWith(',') || extracted === '' ? '' : extracted;
             }
 
@@ -410,18 +407,14 @@ function my_custom_js() {
                 const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
                 const firstCommaAfter = afterCursor.indexOf(',');
                 const firstNewlineAfter = afterCursor.indexOf('\n');
-                
-                // Determine the start and end of the word being replaced
-                const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
+                                const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
                 let end = cursorPosition; 
                 let suffix = ', ';
             
-                // Handle cases based on what follows the cursor
                 if (firstNewlineAfter === 0) {
                     end = cursorPosition; 
                     suffix = ','; 
                 } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
-                    // Use the nearest separator after cursor, but don't overwrite full words unnecessarily
                     end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
                         ? cursorPosition + firstCommaAfter
                         : firstNewlineAfter >= 0
@@ -431,22 +424,17 @@ function my_custom_js() {
                 }
             
                 const isFirstWordInLine = start === 0 || value[start - 1] === '\n';
-                const prefix = isFirstWordInLine ? '' : ' ';
-            
-                // Construct the new value
+                const prefix = isFirstWordInLine ? '' : ' ';        
                 const newValue = value.slice(0, start) + prefix + formattedText + suffix + value.slice(end);
                 textbox.value = newValue.trim();
             
-                // Set cursor position after the inserted text and comma (if present)
                 const newCursorPosition = start + prefix.length + formattedText.length + (suffix.startsWith(',') ? 1 : 0);
                 textbox.setSelectionRange(newCursorPosition, newCursorPosition);
             
-                // Clear suggestions and hide suggestion box
                 currentSuggestions = [];
                 suggestionBox.innerHTML = '';
                 suggestionBox.style.display = 'none';
             
-                // Dispatch input event to notify changes, but mark it to skip suggestion generation
                 const inputEvent = new Event('input', { bubbles: true });
                 skipSuggestion = true; 
                 textbox.dispatchEvent(inputEvent);
@@ -644,14 +632,12 @@ function my_custom_js() {
             ball.style.width = '100px';
             ball.style.height = '100px'; 
         
-            // Set initial position (dynamic, remains in JS)
             const galleryRect = container.getBoundingClientRect();
             const left = galleryRect.left + galleryRect.width / 2 - 50; 
             const top = galleryRect.top + galleryRect.height / 2 - 50; 
             ball.style.left = `${left}px`;
             ball.style.top = `${top}px`;
         
-            // Dragging functionality
             let isDragging = false, startX, startY;
             ball.addEventListener('mousedown', (e) => {
                 if (e.button === 0) { 
@@ -700,12 +686,10 @@ function my_custom_js() {
                 }
             });
         
-            // Disable context menu
             ball.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
             });
         
-            // Double-click to remove
             ball.addEventListener('dblclick', () => {
                 ball.remove();
                 privacyBalls = privacyBalls.filter(b => b !== ball);
@@ -1133,6 +1117,108 @@ function my_custom_js() {
         thumb_renderGridMode();
     }
 
+    function setupThumbOverlay() {
+        if (window.isThumbOverlaySetup) return;
+        window.isThumbOverlaySetup = true;
+    
+        let images = [];
+        let mouseX = 0, mouseY = 0;
+        let lastCharacter = null;
+    
+        const container = document.createElement('div');
+        container.id = 'cg-thumb-overlay';
+        container.className = 'cg-overlay cg-thumb-overlay';
+        container.style.position = 'fixed';
+        container.style.display = 'none';
+        container.style.background = 'rgba(0, 0, 0, 0.5)';
+        container.style.borderRadius = '8px';
+        container.style.padding = '10px';
+        container.style.zIndex = '10003';
+        container.style.boxSizing = 'border-box';
+        container.style.willChange = 'transform';
+        document.body.appendChild(container);
+    
+        function renderOverlay(newImages) {
+            if (JSON.stringify(newImages) === JSON.stringify(images)) return;
+            images = newImages;
+    
+            const scrollContainer = container.querySelector('.cg-thumb-overlay-container') || document.createElement('div');
+            scrollContainer.className = 'cg-thumb-overlay-container scroll-container';
+            scrollContainer.style.display = 'flex';
+            scrollContainer.style.flexWrap = 'wrap';
+            scrollContainer.style.gap = '10px';
+            scrollContainer.style.maxHeight = '460px';
+            scrollContainer.style.overflowY = 'auto';
+            setupScrollableContainer(scrollContainer);
+    
+            const existingImages = Array.from(scrollContainer.children);
+            const fragment = document.createDocumentFragment();
+    
+            newImages.forEach((url, idx) => {
+                let img = existingImages[idx] || document.createElement('img');
+                img.src = url;
+                img.loading = 'lazy'; 
+                img.className = 'cg-thumb-overlay-image';
+                img.style.width = '307px';
+                img.style.height = '460px';
+                img.style.margin = '10px';
+                img.style.cursor = 'pointer';
+                img.style.objectFit = 'contain';
+                img.onerror = () => {
+                    console.error('[renderOverlay] Failed to load image:', url);
+                    img.remove();
+                };
+                fragment.appendChild(img);
+            });
+    
+            existingImages.slice(newImages.length).forEach(img => img.remove());
+            scrollContainer.innerHTML = '';
+            scrollContainer.appendChild(fragment);
+            if (!container.contains(scrollContainer)) container.appendChild(scrollContainer);
+    
+            const imgWidth = 314;
+            const containerWidth = Math.max(314, images.length * imgWidth);
+            container.style.width = `${Math.min(containerWidth, window.innerWidth * 0.8)}px`;
+        }
+    
+        window.updateThumbOverlay = function (character, imageData) {
+            if (typeof character !== 'string' || character === lastCharacter) return;
+            lastCharacter = character;
+    
+            const overlayContainer = document.getElementById('cg-thumb-overlay');
+            if (!overlayContainer) {
+                console.warn('[updateThumbOverlay] Overlay container not found');
+                return;
+            }
+    
+            overlayContainer.innerHTML = '';
+    
+            if (imageData) {
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.loading = 'lazy';
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '100%';
+                img.style.objectFit = 'contain';
+                overlayContainer.appendChild(img);
+            }
+        };
+    
+        const mouseMoveHandler = (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        };
+    
+        document.addEventListener('mousemove', mouseMoveHandler);
+        renderOverlay([]);
+    
+        return () => {
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            container.remove();
+            window.isThumbOverlaySetup = false;
+        };
+    }
+
     function customCommonOverlay() {
         function createInfoOverlay({ id, content, className = '', onClick = null }) {
             let overlay = document.getElementById(id);
@@ -1220,7 +1306,9 @@ function my_custom_js() {
     
         function createLoadingOverlay() {
             let currentImage = window.LOADING_WAIT_BASE64;
-            let lastBase64 = currentImage;     
+            let lastBase64 = currentImage;
+            let pendingImage = null;
+        
             const overlay = createInfoOverlay({
                 id: 'cg-loading-overlay',
                 className: '',
@@ -1232,11 +1320,11 @@ function my_custom_js() {
             });
             overlay.style.zIndex = '10001';
             overlay.style.pointerEvents = 'auto';
-
+        
             const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
             const buttonOverlay = document.getElementById('cg-button-overlay');
             let translateX, translateY;
-    
+        
             if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
                 translateX = savedPosition.left;
                 translateY = savedPosition.top;
@@ -1248,75 +1336,45 @@ function my_custom_js() {
                 translateX = (window.innerWidth - overlay.offsetWidth) / 2;
                 translateY = window.innerHeight * 0.2 - overlay.offsetHeight * 0.2;
             }
-    
+        
             overlay.style.top = '0';
             overlay.style.left = '0';
             overlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
-    
+        
             if (overlay.updateDragPosition) {
                 overlay.updateDragPosition(translateX, translateY);
             }
-    
+        
             restrictOverlayPosition(overlay, {
                 translateX: (window.innerWidth - overlay.offsetWidth) / 2,
                 translateY: window.innerHeight * 0.2 - overlay.offsetHeight * 0.2
             });
-    
+        
             let ws = null;
             try {
                 const ws_server = `ws://127.0.0.1:${window.WS_PORT}/ws`;
                 ws = new WebSocket(ws_server);
-                ws.onopen = () => {
-                    //console.log('[WebSocket] Connected to Python server', ws_server);
-                };
+                ws.onopen = () => {};
                 ws.onmessage = (event) => {
-                    //console.log('[WebSocket] Raw message received:', event.data);
                     try {
                         const data = JSON.parse(event.data);
-                        //console.log('[WebSocket] Parsed data:', data);
                         if (data.base64 && data.base64.startsWith('data:image/')) {
-                            const newBase64 = data.base64.trim();
-                            if (newBase64 !== lastBase64) {
-                                lastBase64 = newBase64;
-                                currentImage = newBase64;
-                                const imgElement = overlay.querySelector('img');
-                                if (imgElement) {
-                                    imgElement.src = currentImage;
-                                    imgElement.style.maxWidth = '256px';
-                                    imgElement.style.maxHeight = '384px';
-                                    imgElement.style.objectFit = 'contain';
-                                    //console.log('[WebSocket] Updated image src:', currentImage);
-                                    imgElement.onerror = () => {
-                                        //console.warn('[WebSocket] Failed to load image, reverting to default');
-                                        currentImage = window.LOADING_WAIT_BASE64;
-                                        lastBase64 = currentImage;
-                                        imgElement.src = currentImage;
-                                        imgElement.style.maxWidth = '128px';
-                                        imgElement.style.maxHeight = '128px';
-                                        imgElement.onerror = null;
-                                    };
-                                }
-                            } else {
-                                //console.log('[WebSocket] Skipping duplicate base64');
-                            }
-                        } else {
-                            console.warn('[WebSocket] Invalid data format:', data);
+                            pendingImage = data.base64.trim();
                         }
                     } catch (e) {
-                        console.warn('[WebSocket] Failed to process message:', e.message, 'Raw data:', event.data);
+                        console.warn('[WebSocket] Failed to process message:', e.message);
                     }
                 };
                 ws.onerror = (error) => {
                     console.warn('[WebSocket] Error:', error);
                 };
                 ws.onclose = () => {
-                    //console.log('[WebSocket] Connection closed');
                     ws = null;
                 };
             } catch (e) {
                 console.warn('[WebSocket] Failed to initialize:', e.message);
             }
-    
+        
             const startTime = Date.now();
             if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
             const timerInterval = setInterval(() => {
@@ -1325,9 +1383,27 @@ function my_custom_js() {
                 if (timerElement) {
                     timerElement.textContent = `${window.ELAPSED_TIME_PREFIX || 'Elapsed time:'} ${elapsed} ${window.ELAPSED_TIME_SUFFIX || 'seconds'}`;
                 }
-            }, 1000);
-            overlay.dataset.timerInterval = timerInterval;
-    
+                if (pendingImage && pendingImage !== lastBase64) {
+                    lastBase64 = pendingImage;
+                    currentImage = pendingImage;
+                    const imgElement = overlay.querySelector('img');
+                    if (imgElement) {
+                        imgElement.src = currentImage;
+                        imgElement.style.maxWidth = '256px';
+                        imgElement.style.maxHeight = '384px';
+                        imgElement.style.objectFit = 'contain';
+                        imgElement.onerror = () => {
+                            currentImage = window.LOADING_WAIT_BASE64;
+                            lastBase64 = currentImage;
+                            imgElement.src = currentImage;
+                            imgElement.style.maxWidth = '128px';
+                            imgElement.style.maxHeight = '128px';
+                            imgElement.onerror = null;
+                        };
+                    }
+                }
+            }, 100);
+        
             overlay._cleanup = () => {
                 if (overlay.dataset.timerInterval) {
                     clearInterval(overlay.dataset.timerInterval);
@@ -1338,7 +1414,7 @@ function my_custom_js() {
                     ws = null;
                 }
             };
-    
+        
             return overlay;
         }
     
@@ -1739,6 +1815,7 @@ function my_custom_js() {
         const clonedRandomButton = runRandomButton.cloneNode(true);
     
         [clonedRunButton, clonedRandomButton].forEach(button => {
+            button.classList.add('cg-overlay-button');
             button.style.width = '200px';
             button.style.boxSizing = 'border-box';
             button.style.padding = '10px 15px';
@@ -1917,19 +1994,27 @@ function my_custom_js() {
         toggleButtonOverlayVisibility();
     
         const observer = new MutationObserver(toggleButtonOverlayVisibility);
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, { childList: true, subtree: false });
     
         return function cleanup() {
             observer.disconnect();
             if (buttonOverlay && buttonOverlay.parentNode) {
                 buttonOverlay.parentNode.removeChild(buttonOverlay);
             }
+            if (dragHandler) dragHandler();
         };
     }
 
-    function setupMyDropdown({ containerId, dropdownCount, labelPrefixList, textboxIds, optionHandler, enableSearch = true }) {
+    function setupMyDropdown({ containerId, dropdownCount, labelPrefixList, textboxIds, optionHandler, enableSearch = true, enableOverlay = false }) {
         const container = document.getElementById(containerId);
         if (!container || container.dataset.dropdownSetup) return;
+    
+        let textboxes = textboxIds.map(id => {
+            const element = document.getElementById(id);
+            return element ? element.querySelector('textarea') : null;
+        });
+        const overlayElement = document.getElementById('cd-character-overlay');
+        const overlayTextbox = overlayElement ? overlayElement.querySelector('textarea') : null;
     
         let html = '<div class="mydropdown-container-flex">';
         for (let i = 0; i < dropdownCount; i++) {
@@ -1937,8 +2022,8 @@ function my_custom_js() {
                 <div class="mydropdown-wrapper" data-index="${i}">
                     <span class="mydropdown-label">${labelPrefixList[i]}</span>
                     <div class="mydropdown-input-container">
-                        <input type="text" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
-                        <svg class="mydropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18">
+                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
+                        <svg class="mydropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
                             <path d="M5 8l4 4 4-4z"></path>
                         </svg>
                     </div>
@@ -1955,20 +2040,15 @@ function my_custom_js() {
         optionsList.style.display = 'none';
         document.body.appendChild(optionsList);
     
-        let textboxes = [];
-        function initializeTextboxes() {
-            textboxes = textboxIds.map(id => {
-                const element = document.getElementById(id);
-                return element ? element.querySelector('textarea') : null;
-            });
-        }
-        initializeTextboxes();
-    
         let options = Array(dropdownCount).fill([]);
         let filteredOptions = Array(dropdownCount).fill([]);
         let activeInput = null;
         let isEditing = Array(dropdownCount).fill(false);
         let selectedValues = Array(dropdownCount).fill('');
+        let lastOptionKey = null;
+    
+        let lastUpdateTime = 0;
+        const throttleDelay = 32; // 30 fps
     
         window.dropdowns[containerId] = {
             setOptions: function(data, oc, labelPrefixList, ...rest) {
@@ -2015,8 +2095,179 @@ function my_custom_js() {
             },
             getValue: function() {
                 return selectedValues.slice();
+            },
+            cleanup: function() {
+                document.removeEventListener('click', clickHandler);
+                document.removeEventListener('scroll', scrollHandler, true);
+                optionsList.remove();
+                container.dataset.dropdownSetup = null;
+                delete window.dropdowns[containerId];
             }
         };
+    
+        function updateOptionsList(activeIndex = 0) {
+            const existingItems = Array.from(optionsList.children);
+            const fragment = document.createDocumentFragment();
+            const validOverlayIds = ['cd-character1-overlay', 'cd-character2-overlay', 'cd-character3-overlay'];
+            const shouldAddOverlayEvents = enableOverlay && activeInput && validOverlayIds.includes(activeInput.id);
+        
+            filteredOptions[activeIndex].forEach((option, idx) => {
+                let item = existingItems[idx] || document.createElement('div');
+                item.className = 'mydropdown-item';
+                item.textContent = activeIndex === 3 ? option.key : (option.key === option.value ? option.key : `${option.key}\n(${option.value})`);
+                item.dataset.key = option.key;
+                fragment.appendChild(item);
+            });
+        
+            existingItems.slice(filteredOptions[activeIndex].length).forEach(item => item.remove());
+            optionsList.innerHTML = '';
+            optionsList.appendChild(fragment);
+        
+            optionsList.onclick = (e) => {
+                const item = e.target.closest('.mydropdown-item');
+                if (!item) return;
+                const optionKey = item.dataset.key;
+                const index = activeInput ? parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index) : activeIndex;
+                selectedValues[index] = optionKey;
+                activeInput.value = optionKey;
+                if (textboxes[index] && textboxes[index].value !== undefined) {
+                    textboxes[index].value = optionKey;
+                    textboxes[index].dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                optionsList.style.display = 'none';
+                isEditing[index] = false;
+                const event = new CustomEvent(`${containerId}-change`, { detail: { value: selectedValues } });
+                document.dispatchEvent(event);
+            };
+        
+            optionsList.removeEventListener('mouseenter', optionsList._onMouseEnter);
+            optionsList.removeEventListener('mouseleave', optionsList._onMouseLeave);
+        
+            if (shouldAddOverlayEvents && containerId === 'mydropdown-container') {
+                optionsList._onMouseEnter = (e) => {
+                    const item = e.target.closest('.mydropdown-item');
+                    if (!item) {
+                        return;
+                    }
+        
+                    const now = performance.now();
+                    if (now - lastUpdateTime < throttleDelay) {
+                        return;
+                    }
+                    lastUpdateTime = now;
+        
+                    if (lastOptionKey === item.dataset.key) {
+                        return;
+                    }
+                    lastOptionKey = item.dataset.key;
+        
+                    if (overlayTextbox && overlayTextbox.value !== undefined) {
+                        overlayTextbox.value = item.dataset.key;
+                        overlayTextbox.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+        
+                    const overlayContainer = document.getElementById('cg-thumb-overlay');
+                    if (overlayContainer) {
+                        const hasImage = overlayContainer.querySelector('img') !== null;
+                        overlayContainer.style.display = hasImage ? 'block' : 'none';
+                        if (hasImage) {
+                            overlayContainer.style.background = 'rgba(0, 0, 0, 0.5)';
+                            overlayContainer.style.border = 'none';
+        
+                            requestAnimationFrame(() => {
+                                const inputRect = activeInput.getBoundingClientRect();
+                                const optionsRect = optionsList.getBoundingClientRect();
+                                const itemRect = item.getBoundingClientRect();
+        
+                                const optionsWidth = Math.min(inputRect.width, 600);
+                                let left;
+                                let top = itemRect.top + window.scrollY;
+                                const overlayWidth = overlayContainer.offsetWidth || 327;
+                                const overlayHeight = overlayContainer.offsetHeight || 480;
+        
+                                const inputId = activeInput.id;
+                                if (inputId === 'cd-character1-overlay' || inputId === 'cd-character2-overlay') {
+                                    left = optionsRect.left + optionsWidth + window.scrollX + 30;
+                                } else if (inputId === 'cd-character3-overlay') {
+                                    left = optionsRect.left + window.scrollX - overlayWidth - 10;
+                                } else {
+                                    //console.warn(`[MouseEnter] Invalid inputId, hiding overlay`);
+                                    overlayContainer.style.display = 'none';
+                                    return;
+                                }
+        
+                                if (top + overlayHeight > window.innerHeight + window.scrollY - 10) {
+                                    top = window.innerHeight + window.scrollY - overlayHeight - 10;
+                                }
+                                if (top < window.scrollY + 10) {
+                                    top = window.scrollY + 10;
+                                }
+
+                                overlayContainer.style.transform = `translate(${left}px, ${top}px)`;
+                                overlayContainer.style.left = '0';
+                                overlayContainer.style.top = '0';
+                                overlayContainer.style.zIndex = '10003';
+                            });
+                        }
+                    } else {
+                        console.warn(`[MouseEnter] cg-thumb-overlay not found`);
+                    }
+                };
+        
+                optionsList._onMouseLeave = (e) => {
+                    const item = e.target.closest('.mydropdown-item');
+                    if (!item) {
+                        return;
+                    }
+                    const overlayContainer = document.getElementById('cg-thumb-overlay');
+                    if (overlayContainer) {
+                        overlayContainer.style.display = 'none';
+                        lastOptionKey = null;
+                    }
+                };        
+                optionsList.addEventListener('mouseenter', optionsList._onMouseEnter, true);
+                optionsList.addEventListener('mouseleave', optionsList._onMouseLeave, true);
+            }
+        }
+    
+        function updateOptionsPosition(index) {
+            if (!activeInput) activeInput = inputs[index];
+            const inputRect = activeInput.getBoundingClientRect();
+            const inputBottom = inputRect.bottom + window.scrollY;
+            const inputLeft = inputRect.left + window.scrollX;
+            const inputWidth = inputRect.width;
+    
+            optionsList.style.width = `${Math.min(inputWidth, 600)}px`;
+            optionsList.style.left = `${inputLeft}px`;
+            optionsList.style.top = `${inputBottom}px`;
+            optionsList.style.zIndex = '10002';
+    
+            const itemHeight = 40;
+            const maxItems = 30;
+            const maxHeight = Math.min(maxItems * itemHeight, window.innerHeight * 0.8);
+            optionsList.style.maxHeight = `${maxHeight}px`;
+        }
+    
+        const clickHandler = (e) => {
+            if (!container.contains(e.target) && !optionsList.contains(e.target)) {
+                optionsList.style.display = 'none';
+                inputs.forEach((input, index) => {
+                    input.value = selectedValues[index];
+                    isEditing[index] = false;
+                });
+                activeInput = null;
+            }
+        };
+    
+        const scrollHandler = debounce(() => {
+            if (optionsList.style.display !== 'none' && activeInput) {
+                const index = parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index);
+                updateOptionsPosition(index);
+            }
+        }, 100);
+    
+        document.addEventListener('click', clickHandler);
+        document.addEventListener('scroll', scrollHandler, true);
     
         if (enableSearch) {
             wrappers.forEach((wrapper, index) => {
@@ -2081,75 +2332,9 @@ function my_custom_js() {
                 });
             });
         }
-    
-        document.addEventListener('click', (e) => {
-            if (!container.contains(e.target) && !optionsList.contains(e.target)) {
-                optionsList.style.display = 'none';
-                inputs.forEach((input, index) => {
-                    input.value = selectedValues[index];
-                    isEditing[index] = false;
-                });
-                activeInput = null;
-            }
-        });
-    
-        function updateOptionsPosition(index) {
-            if (!activeInput) activeInput = inputs[index];
-            const rect = activeInput.getBoundingClientRect();
-            const inputBottom = rect.bottom + window.scrollY;
-            const inputLeft = rect.left + window.scrollX;
-            const inputWidth = rect.width;
-    
-            optionsList.style.width = `${Math.min(inputWidth, 600)}px`;
-            optionsList.style.left = `${inputLeft}px`;
-            optionsList.style.top = `${inputBottom}px`;
-            optionsList.style.zIndex = '10002';
-    
-            const itemHeight = 40;
-            const maxItems = 30;
-            const maxHeight = Math.min(maxItems * itemHeight, window.innerHeight * 0.8);
-            optionsList.style.maxHeight = `${maxHeight}px`;
-        }
-    
-        function updateOptionsList(activeIndex = 0) {
-            optionsList.innerHTML = '';
-            const fragment = document.createDocumentFragment();
-            if (!filteredOptions[activeIndex]) return;
-            filteredOptions[activeIndex].forEach(option => {
-                const item = document.createElement('div');
-                item.className = 'mydropdown-item';
-                item.textContent = activeIndex === 3 ? option.key : (option.key === option.value ? option.key : `${option.key}\n(${option.value})`);
-                item.addEventListener('click', () => {
-                    const index = activeInput ? parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index) : activeIndex;
-                    selectedValues[index] = option.key;
-                    activeInput.value = option.key;
-                    if (textboxes[index] && textboxes[index].value !== undefined) {
-                        textboxes[index].value = option.key;
-                        textboxes[index].dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                    optionsList.style.display = 'none';
-                    isEditing[index] = false;
-                    const event = new CustomEvent(`${containerId}-change`, { detail: { value: selectedValues } });
-                    document.dispatchEvent(event);
-                });
-                fragment.appendChild(item);
-            });
-            optionsList.appendChild(fragment);
-        }
-    
-        document.addEventListener('scroll', debounce(() => {
-            if (optionsList.style.display !== 'none' && activeInput) {
-                const index = parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index);
-                updateOptionsPosition(index);
-            }
-        }, 100), true);
-    
-        container.dataset.dropdownSetup = 'true';
-    }   
-    
+    }
+
     function myCharacterList() {
-        console.log('[myCharacterList] Initializing...');
-    
         function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
             const [[keys, values], oc] = args;
             if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
@@ -2160,35 +2345,36 @@ function my_custom_js() {
                 console.error('[handleCharacterOptions] Invalid oc:', oc);
                 return;
             }
-    
+
             const charOptions = keys.map((key, idx) => ({ key, value: values[idx] }));
             for (let i = 0; i < dropdownCount - 1; i++) {
                 options[i] = charOptions;
                 filteredOptions[i] = [...charOptions];
             }
-    
+
             const originalOptions = oc.map(key => ({ key, value: key }));
             options[dropdownCount - 1] = originalOptions;
             filteredOptions[dropdownCount - 1] = [...originalOptions];
         }
-    
+
         setupMyDropdown({
             containerId: 'mydropdown-container',
             dropdownCount: 4,
             labelPrefixList: ['character1', 'character2', 'character3', 'original_character'],
             textboxIds: ['cd-character1', 'cd-character2', 'cd-character3', 'cd-original-character'],
             optionHandler: handleCharacterOptions,
-            enableSearch: true
+            enableSearch: true,
+            enableOverlay: true
         });
-    
+
         window.setMyCharacterOptions = function(data, oc, chara_text, character1, character2, character3, oc_default, enableSearch) {
             window.dropdowns['mydropdown-container'].setOptions(data, oc, chara_text, character1, character2, character3, oc_default, enableSearch);
         };
-    
+
         window.updateMyCharacterDefaults = window.dropdowns['mydropdown-container'].updateDefaults;
         window.getMyCharacterValue = window.dropdowns['mydropdown-container'].getValue;
     }
-    
+
     function myViewsList() {
         function handleViewOptions(options, filteredOptions, args, dropdownCount) {
             const [data] = args;
@@ -2200,20 +2386,21 @@ function my_custom_js() {
                 filteredOptions[index] = [...options[index]];
             });
         }
-    
+
         setupMyDropdown({
             containerId: 'myviews-container',
             dropdownCount: 4,
             labelPrefixList: ['angle', 'camera', 'background', 'view'],
             textboxIds: ['cd-view-angle', 'cd-view-camera', 'cd-view-background', 'cd-view-style'],
             optionHandler: handleViewOptions,
-            enableSearch: true
+            enableSearch: true,
+            enableOverlay: false 
         });
-    
+
         window.setMyViewsOptions = function(view_data, view_text, ...rest) {
             window.dropdowns['myviews-container'].setOptions(view_data, null, view_text, ...rest);
         };
-    
+
         window.updateMyViewsDefaults = window.dropdowns['myviews-container'].updateDefaults;
         window.getMyViewsValue = window.dropdowns['myviews-container'].getValue;
     }
@@ -2259,7 +2446,7 @@ function my_custom_js() {
         dragStates.set(element, state);
     
         let lastUpdate = 0;
-        const THROTTLE_MS = 8; //120fps
+        const THROTTLE_MS = 8; // 120fps
     
         element.style.position = 'fixed';
         element.style.willChange = 'transform';

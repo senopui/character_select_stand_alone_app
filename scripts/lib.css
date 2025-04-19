@@ -53,12 +53,12 @@
 }
 
 .scroll-container::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, #555, #888);
+    background: #555;
     border-radius: 5px;
 }
 
 .scroll-container::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(45deg, #777, #aaa);
+    background: #777;
 }
 
 /* Custom Gallery */
@@ -330,7 +330,7 @@
 }
 
 /* Button Overlay Buttons */
-.cg-button-overlay button:not(.cg-minimize-button) {
+.cg-overlay-button {
     padding: 10px 15px;
     border-radius: 5px;
     border: none;
@@ -411,15 +411,15 @@
     padding: 8px 12px;
     color: #ccc;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-    white-space: pre-wrap; 
-    word-wrap: break-word; 
-    line-height: 1.2; 
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.2;
 }
 
 .mydropdown-item:hover {
     background-color: #555;
     color: white;
+    transition: background-color 0.2s ease;
 }
 
 /* MyViews Container Styles */
@@ -587,4 +587,20 @@
     color: inherit;
     width: 100%;
     user-select: text; 
+}
+.cg-thumb-overlay {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    padding: 10px;
+    z-index: 10003;
+    box-sizing: border-box;
+    will-change: transform; 
+}
+
+.cg-thumb-overlay-container {
+    max-width: 327px !important;
+    max-height: 480px !important;
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
 }

@@ -503,10 +503,16 @@ def illustrious_character_select_ex(character = 'random', optimise_tags = True, 
             rnd_character = character_list[index+1]
     else:
         rnd_character = character
-    if ENGLISH_CHARACTER_NAME:
-        chara = rnd_character
-    else:
-        chara = character_dict[rnd_character]
+        
+    try:
+        if ENGLISH_CHARACTER_NAME:        
+            chara = rnd_character
+        else:
+            chara = character_dict[rnd_character]
+    except KeyError:
+        #print(f'[{CAT}]:KeyError: {rnd_character} not found in character_dict')
+        # Solve JS issue
+        return '', '', None, ''
         
     tas=''
     if tag_assist and tag_assist_dict.__contains__(chara):        
@@ -1170,6 +1176,13 @@ def update_sampler_and_scheduler():
 
 def batch_generate_rule_change(options_selected):
     print(f'[{CAT}]AI rule for Batch generate:{options_selected}')
+
+def refresh_character_thumb_image_overlay(character):
+    if 'none' == character or 'random' == character:
+        return {"data": None, "error": "success"}
+    
+    _, _, thumb_image, _ = illustrious_character_select_ex(character = character)
+    return set_custom_gallery_thumb_images([thumb_image])
 
 def refresh_character_thumb_image(character1, character2, character3):
     thumb_image = []

@@ -3,11 +3,11 @@ import signal
 import gradio as gr
 import sys
 sys.path.append("scripts/")
-from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image, manual_update_database, create_characters
+from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image_overlay, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import skip_next_generate_click, cancel_current_generate_click, update_sampler_and_scheduler
 from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info 
-from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_1
-from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
+from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_2, get_1
+from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_SHOWTHUMB_OVERLAY, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
 from image_info import read_image_metadata, send_image_metadata
 from websocket_server import run_websocket_server_in_thread
@@ -45,6 +45,7 @@ def run_gradio():
             custom_character_dropdown = gr.HTML(JS_CUSTOM_CHARACTERS_DROPDOWN, padding=False)
 
             # hide selected
+            character = gr.Textbox(value='', visible=False, elem_id="cd-character-overlay")
             character1 = gr.Textbox(value=settings_json["character1"], visible=False, elem_id="cd-character1")
             character2 = gr.Textbox(value=settings_json["character2"], visible=False, elem_id="cd-character2")
             character3 = gr.Textbox(value=settings_json["character3"], visible=False, elem_id="cd-character3")
@@ -377,6 +378,7 @@ def run_gradio():
                 outputs=[api_model_sampler, api_model_scheduler]
                 )
 
+        character.change(fn=refresh_character_thumb_image_overlay, inputs=[character], outputs=[images_data]).then(fn=get_2,inputs=[character, images_data],js=JS_SHOWTHUMB_OVERLAY)
         character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
         character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
         character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
