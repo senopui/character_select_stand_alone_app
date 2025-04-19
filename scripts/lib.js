@@ -2181,7 +2181,7 @@ function my_custom_js() {
         
                                 const optionsWidth = Math.min(inputRect.width, 600);
                                 let left;
-                                let top = itemRect.top + window.scrollY;
+                                let top = itemRect.top;
                                 const overlayWidth = overlayContainer.offsetWidth || 327;
                                 const overlayHeight = overlayContainer.offsetHeight || 480;
         
@@ -2195,12 +2195,15 @@ function my_custom_js() {
                                     overlayContainer.style.display = 'none';
                                     return;
                                 }
-        
-                                if (top + overlayHeight > window.innerHeight + window.scrollY - 10) {
-                                    top = window.innerHeight + window.scrollY - overlayHeight - 10;
+                                        
+                                if (top + overlayHeight > window.innerHeight - 10) {
+                                    top = window.innerHeight - overlayHeight - 10;
                                 }
-                                if (top < window.scrollY + 10) {
-                                    top = window.scrollY + 10;
+                                if (top < 10) {
+                                    top = 10;
+                                }
+                                if (top + overlayHeight - window.scrollY > window.innerHeight - 10) {
+                                    top = window.innerHeight - overlayHeight - 10;
                                 }
 
                                 overlayContainer.style.transform = `translate(${left}px, ${top}px)`;

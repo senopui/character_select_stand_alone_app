@@ -596,6 +596,8 @@
     z-index: 10003;
     box-sizing: border-box;
     will-change: transform; 
+    pointer-events: none;
+    transition: transform 0.1s ease;
 }
 
 .cg-thumb-overlay-container {
