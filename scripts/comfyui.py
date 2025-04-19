@@ -96,7 +96,10 @@ class ComfyUIAPIGenerator:
 
                     if self.ws_client:
                         try:
-                            self.ws_client.send(json.dumps({"base64": base64_image}))
+                            self.ws_client.send(json.dumps({
+                                "command": "preview_image",
+                                "base64": base64_image
+                                }))
                         except Exception as e:
                             if retire == 3:
                                 print(f"{CAT}Failed to send WebSocket message: {str(e)}")
@@ -233,9 +236,9 @@ def run_comfyui(server_address, preview_refresh_time, sampler, scheduler, model_
             # Default to Image Color Transfer
             my_gen.set_ex(node_id="28", inputs="inputs", item="method", data=hf_colortransfer)
                     
-    images = my_gen.queue_prompt()
+    images = my_gen.queue_prompt()        
     my_gen.ws_client.close()
-    ws.close()                
+    ws.close()
     return my_gen.pick_image(images)
 
 def cancel_comfyui(server_address):

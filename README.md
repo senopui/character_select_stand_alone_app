@@ -65,9 +65,8 @@ You can use `ctrl + up` and `ctrl + down` arrow to adjust the weight of the curr
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_complete.png" width=55% height=55%>   
 
-# New Custom Gallery
-Completely redesigned gallery replaces Gradio gallery.     
-
+# Custom Gallery
+Supports process preview in `Generating. When generating images in batch mode, finished images are displayed immediately.     
 Supports `Grid Mode`, `Split Mode` and `Full Screen` in browser, press `F11` for `Full Screen`.       
 
 Hightlights:      
@@ -91,7 +90,7 @@ Double click on `Privacy Ball` to close it.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_privacyball.png" width=35% height=35%>   
 
-# Overlay Generate Button, Generating, LoRA Info and Message Overlay
+# Generate Button, Generating, LoRA Info and Message Overlay
 You can drag the `Button`, `Generating` and `LoRA Info` overlay anywhere you like.    
 `Button` overlay load by default, you can simply minimize it by click the `Blue` dot, it will hide in the `Top Left` of your browser.    
 `Generating` overlay supports `Image Preview`, check `Generate preview interval (0=OFF)` in settings.     

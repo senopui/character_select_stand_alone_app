@@ -1,20 +1,185 @@
 //more functions
 function my_custom_js() {
-    console.log("[My JS] Script loaded, attempting initial setup");
-    dark_theme();
+    class WebSocketManager {
+        #ws = null;
+        #reconnectInterval = null;
+        #isWebSocketInitialized = false;
+        #pendingImage = null;
+        #RECONNECT_DELAY = 5000;
+        #INITIAL_RETRY_INTERVAL = 500; 
+        #MAX_INITIAL_RETRIES = 10; 
+    
+        constructor() {}
+    
+        async init(retryCount = 0) {
+            if (this.#isWebSocketInitialized && this.#ws && this.#ws.readyState === WebSocket.OPEN) {
+                console.log('[WebSocket] Already initialized and connected');
+                return this.#ws;
+            }
+    
+            if (this.#ws) {
+                this.#ws.close();
+                this.#ws = null;
+            }
+    
+            const wsServer = `ws://127.0.0.1:${window.WS_PORT}/ws`;
 
+            try {
+                this.#ws = new WebSocket(wsServer);
+                this.#isWebSocketInitialized = true;
+
+                this.#ws.onopen = () => {
+                    console.log('[WebSocket] Connected to', wsServer);
+                    if (this.#reconnectInterval) {
+                        clearInterval(this.#reconnectInterval);
+                        this.#reconnectInterval = null;
+                    }
+                };
+    
+                this.#ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (!data.command || typeof data.command !== 'string') {
+                            console.warn('[WebSocket] Invalid or missing command:', data);
+                            return;
+                        }
+                        if (data.command === 'preview_image') {
+                            if (data.base64 && data.base64.startsWith('data:image/')) {
+                                this.handlePreviewImageResponse(data.base64.trim());
+                            } else {
+                                this.#pendingImage = null; 
+                            }
+                        } else if (data.command === 'final_image') {
+                            if (data.base64 && data.base64.startsWith('data:image/') && data.seed && data.tags && data.keep_gallery) {                                
+                                this.handleFinalImageResponse(data.base64.trim(), data.seed.trim(), data.tags.trim(), data.keep_gallery);
+                                this.#ws.send(JSON.stringify({ command: 'final_image_ack', seed: data.seed }));
+                            } 
+                        } else {
+                            console.warn('[WebSocket] Invalid data.command:', data.command);
+                        }
+                    } catch (e) {
+                        console.warn('[WebSocket] Failed to process message:', e.message);
+                    }
+                };
+    
+                this.#ws.onerror = (error) => {
+                    console.warn('[WebSocket] Error:', error);
+                };
+    
+                this.#ws.onclose = async () => {
+                    console.warn('[WebSocket] Connection closed');
+                    this.#ws = null;
+                    if (!this.#reconnectInterval) {
+                        if (retryCount < this.#MAX_INITIAL_RETRIES) {
+                            console.log(`[WebSocket] Initial connection attempt ${retryCount + 1} failed, retrying in ${this.#INITIAL_RETRY_INTERVAL}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, this.#INITIAL_RETRY_INTERVAL));
+                            return this.init(retryCount + 1);
+                        }
+
+                        this.#reconnectInterval = setInterval(() => {
+                            console.log('[WebSocket] Attempting to reconnect...');
+                            this.init(0);
+                        }, this.#RECONNECT_DELAY);
+                    }
+                };
+    
+                return this.#ws;
+            } catch (e) {
+                console.warn('[WebSocket] Failed to initialize:', e.message);
+                if (retryCount < this.#MAX_INITIAL_RETRIES) {
+                    console.log(`[WebSocket] Initial connection attempt ${retryCount + 1} failed, retrying in ${this.#INITIAL_RETRY_INTERVAL}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, this.#INITIAL_RETRY_INTERVAL));
+                    return this.init(retryCount + 1);
+                }
+                if (!this.#reconnectInterval) {
+                    this.#reconnectInterval = setInterval(() => {
+                        console.log('[WebSocket] Attempting to reconnect...');
+                        this.init(0);
+                    }, this.#RECONNECT_DELAY);
+                }
+                return null;
+            }
+        }
+    
+        handlePreviewImageResponse(base64) {
+            this.#pendingImage = base64; 
+            const overlay = document.getElementById('cg-loading-overlay');
+            if (!overlay) {
+                customCommonOverlay().createLoadingOverlay();
+                setTimeout(() => this.updatePreviewImage(base64), 0);
+                return;
+            }
+    
+            const imgElement = overlay.querySelector('img');
+            if (imgElement) {
+                imgElement.src = base64;
+                imgElement.style.maxWidth = '256px';
+                imgElement.style.maxHeight = '384px';
+                imgElement.style.objectFit = 'contain';
+                imgElement.onerror = () => {
+                    console.warn('[handlePreviewImageResponse] Failed to load preview image, reverting to default');
+                    imgElement.src = window.LOADING_WAIT_BASE64;
+                    imgElement.style.maxWidth = '128px';
+                    imgElement.style.maxHeight = '128px';
+                    imgElement.onerror = null;
+                    this.#pendingImage = null; 
+                };
+            } 
+        }
+    
+        handleFinalImageResponse(base64, seed, tags, keep_gallery) {
+            const galleryContainer = document.getElementById('cg-custom-gallery');
+            if (!galleryContainer) {
+                console.error('[handleFinalImageResponse] Gallery container not found');
+                return;
+            }
+    
+            if (!base64.startsWith('data:image/')) {
+                console.error('[handleFinalImageResponse] Invalid base64 image data');
+                return;
+            }
+    
+            window.cgCustomGallery.appendImageData(base64, seed, tags, keep_gallery);
+            this.#pendingImage = null;             
+        }
+    
+        updatePreviewImage(base64) {
+            this.handlePreviewImageResponse(base64);
+        }
+    
+        getPendingImage() {
+            return this.#pendingImage;
+        }
+    
+        cleanup() {
+            if (this.#ws) {
+                this.#ws.close();
+                this.#ws = null;
+            }
+            if (this.#reconnectInterval) {
+                clearInterval(this.#reconnectInterval);
+                this.#reconnectInterval = null;
+            }
+            this.#pendingImage = null;
+            this.#isWebSocketInitialized = false;
+            console.log('[WebSocketManager] Cleaned up');
+        }
+    }
+
+    console.log("[My JS] Script loaded, attempting initial setup");    
     window.LOADING_MESSAGE = 'Processing...';
     window.ELAPSED_TIME_PREFIX = 'Time elapsed: ';
     window.ELAPSED_TIME_SUFFIX = 'sec';
-    window.WS_PORT = 47790;
+    window.WS_PORT = 47761;
 
     // Initialize global dropdowns namespace
     window.dropdowns = window.dropdowns || {};
-
+    
     // Synchronously initialize dropdowns to ensure availability
+    dark_theme();
     myCharacterList();
     myViewsList();
-    setupThumbOverlay();
+    setupThumbOverlay();    
 
     requestIdleCallback(() => {
         setupSuggestionSystem();
@@ -29,6 +194,10 @@ function my_custom_js() {
         }
     });    
     window.customOverlay = customCommonOverlay();
+
+    // Initialize the WebSocket manager
+    const wsManager = new WebSocketManager();
+    wsManager.init();
 
     window.addEventListener('resize', () => {
         const overlays = ['cg-button-overlay', 'cg-loading-overlay'];
@@ -138,7 +307,7 @@ function my_custom_js() {
             textbox.addEventListener('input', debounce(async () => {
                 if (skipSuggestion) {
                     skipSuggestion = false;
-                    return; // Skip suggestion generation if marked
+                    return; 
                 }
 
                 updateSuggestionBoxPosition();
@@ -520,10 +689,11 @@ function my_custom_js() {
 
         let isGridMode = false;
         let currentIndex = 0;
+        let privacyBalls = [];
+
         let images = [];
         let seeds = [];
         let tags = [];
-        let privacyBalls = [];
 
         const container = document.getElementById('cg-custom-gallery');
         if (!container) {
@@ -534,6 +704,33 @@ function my_custom_js() {
         if (!window.cgCustomGallery) {
             window.cgCustomGallery = {};
         }
+
+        window.addEventListener('unload', () => {
+            customCommonOverlay().cleanup();
+        });
+
+        window.cgCustomGallery.appendImageData = function(base64, seed, tagsString, keep_gallery) {
+            if ('False' === keep_gallery) {
+                images = [];
+                seeds = [];
+                tags = [];
+            }
+
+            images.unshift(base64);
+            seeds.unshift(seed);
+            tags.unshift(tagsString || '');
+
+            if (seeds.length !== tags.length) {
+                console.warn('window.cgCustomGallery.appendImageData Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
+            }
+
+            window.updateGallery(images);
+            if (isGridMode) {
+                gallery_renderGridMode();
+            } else {
+                gallery_renderSplitMode();
+            }
+        };
 
         window.cgCustomGallery.showLoading = function () {
             const loadingOverlay = customCommonOverlay().createLoadingOverlay();
@@ -557,8 +754,8 @@ function my_custom_js() {
         
             addDragFunctionality(loadingOverlay, buttonOverlay);
         };
-
-        window.cgCustomGallery.handleResponse = function (response, image_seeds, image_tags) {
+        
+        window.cgCustomGallery.handleResponse = function (js_ret) {
             const loadingOverlay = document.getElementById('cg-loading-overlay');
             const buttonOverlay = document.getElementById('cg-button-overlay');
         
@@ -578,29 +775,11 @@ function my_custom_js() {
                 }
                 loadingOverlay.remove();
             }
-        
-            seeds = image_seeds.split(',').map(seed => seed.trim());
-            tags = image_tags.split('|');
-            if (seeds.length !== tags.length) {
-                console.warn('Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
+
+            if ('success' !== js_ret) {
+                console.error('Got Error from backend:', js_ret);
+                customCommonOverlay().createErrorOverlay(js_ret);
             }
-            
-            if (!response) {
-                const errorMessage = 'Unknown error from Backend';
-                console.error('Failed to fetch response:', errorMessage);
-                customCommonOverlay().createErrorOverlay(errorMessage);
-                return;
-            }
-            else if(!response.data) {
-                if ('success' !== response.error) {
-                    const errorMessage = response.error;
-                    console.error('Failed to fetch image data:', errorMessage);
-                    customCommonOverlay().createErrorOverlay(errorMessage);
-                }
-                return;
-            }
-        
-            window.updateGallery(response.data);
         };
 
         function ensurePrivacyButton() {
@@ -1217,7 +1396,7 @@ function my_custom_js() {
             container.remove();
             window.isThumbOverlaySetup = false;
         };
-    }
+    }    
 
     function customCommonOverlay() {
         function createInfoOverlay({ id, content, className = '', onClick = null }) {
@@ -1232,14 +1411,14 @@ function my_custom_js() {
             if (onClick) overlay.onclick = onClick;
             return overlay;
         }
-    
+
         function createErrorOverlay(errorMessage) {
             let displayMessage = errorMessage;
             let copyContent = errorMessage;
-        
+
             const hasUrl = /\[COPY_URL\]/.test(errorMessage);
             const hasCustom = /\[COPY_CUSTOM/.test(errorMessage);
-        
+
             if (hasUrl) {
                 displayMessage = displayMessage.replace(
                     /\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g,
@@ -1247,10 +1426,10 @@ function my_custom_js() {
                 );
                 const urlMatches = [...errorMessage.matchAll(/\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g)];
                 if (urlMatches.length > 0) {
-                    copyContent = urlMatches[urlMatches.length - 1][1]; 
+                    copyContent = urlMatches[urlMatches.length - 1][1];
                 }
             }
-        
+
             if (hasCustom) {
                 displayMessage = displayMessage.replace(
                     /\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g,
@@ -1259,7 +1438,6 @@ function my_custom_js() {
                         return `<span style="color: ${colorStyle}">${text}</span>`;
                     }
                 );
-    
                 if (!hasUrl) {
                     const customMatches = [...errorMessage.matchAll(/\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g)];
                     if (customMatches.length > 0) {
@@ -1267,7 +1445,7 @@ function my_custom_js() {
                     }
                 }
             }
-        
+
             const overlay = createInfoOverlay({
                 id: 'cg-error-overlay',
                 className: 'cg-overlay-error',
@@ -1288,22 +1466,22 @@ function my_custom_js() {
                     document.getElementById('cg-error-overlay').remove();
                 }
             });
-        
+
             overlay.style.width = 'fit-content';
             overlay.style.minWidth = '200px';
             overlay.style.maxWidth = 'min(1000px, 90vw)';
             overlay.style.boxSizing = 'border-box';
             overlay.style.padding = '20px';
-        
+
             const contentPre = overlay.querySelector('.cg-error-content pre');
             if (contentPre) {
                 contentPre.style.boxSizing = 'border-box';
                 contentPre.style.wordWrap = 'break-word';
             }
-        
+
             return overlay;
         }
-    
+
         function createLoadingOverlay() {
             let currentImage = window.LOADING_WAIT_BASE64;
             let lastBase64 = currentImage;
@@ -1349,32 +1527,7 @@ function my_custom_js() {
                 translateX: (window.innerWidth - overlay.offsetWidth) / 2,
                 translateY: window.innerHeight * 0.2 - overlay.offsetHeight * 0.2
             });
-        
-            let ws = null;
-            try {
-                const ws_server = `ws://127.0.0.1:${window.WS_PORT}/ws`;
-                ws = new WebSocket(ws_server);
-                ws.onopen = () => {};
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.base64 && data.base64.startsWith('data:image/')) {
-                            pendingImage = data.base64.trim();
-                        }
-                    } catch (e) {
-                        console.warn('[WebSocket] Failed to process message:', e.message);
-                    }
-                };
-                ws.onerror = (error) => {
-                    console.warn('[WebSocket] Error:', error);
-                };
-                ws.onclose = () => {
-                    ws = null;
-                };
-            } catch (e) {
-                console.warn('[WebSocket] Failed to initialize:', e.message);
-            }
-        
+                
             const startTime = Date.now();
             if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
             const timerInterval = setInterval(() => {
@@ -1409,15 +1562,12 @@ function my_custom_js() {
                     clearInterval(overlay.dataset.timerInterval);
                     delete overlay.dataset.timerInterval;
                 }
-                if (ws) {
-                    ws.close();
-                    ws = null;
-                }
             };
         
             return overlay;
         }
     
+
         function createCustomOverlay(image, message) {
             const displayMessage = (typeof message === 'string' && message.trim()) ? message : ' ';
             const hasImage = image && image !== 'none' && typeof image === 'string' && image.startsWith('data:');
@@ -1766,10 +1916,10 @@ function my_custom_js() {
                 if (element._onResizeUp) document.removeEventListener('mouseup', element._onResizeUp);
             };
         }
-    
-        return { createErrorOverlay, createLoadingOverlay, createCustomOverlay };
-    }
 
+        return { createErrorOverlay, createLoadingOverlay, createCustomOverlay };
+    }   
+    
     function setupButtonOverlay() {
         console.log("Setting up button overlay");
     
@@ -2191,7 +2341,6 @@ function my_custom_js() {
                                 } else if (inputId === 'cd-character3-overlay') {
                                     left = optionsRect.left + window.scrollX - overlayWidth - 10;
                                 } else {
-                                    //console.warn(`[MouseEnter] Invalid inputId, hiding overlay`);
                                     overlayContainer.style.display = 'none';
                                     return;
                                 }
@@ -2415,41 +2564,34 @@ function my_custom_js() {
         const isOutOfBounds = rect.top < 0 || rect.left < 0 ||
                              rect.bottom > window.innerHeight || rect.right > window.innerWidth;
     
-        if (isOutOfBounds) {           
+        if (isOutOfBounds) {
             console.log(`Overlay ${element.id} out of bounds, resetting to default position`);
-            let translateX, translateY;
+            let translateX = defaultPosition.translateX;
+            let translateY = defaultPosition.translateY;
     
-            if (element.id === 'cg-loading-overlay') {
-                translateX = (window.innerWidth - element.offsetWidth) / 2; 
-                translateY = window.innerHeight * 0.2 - element.offsetHeight * 0.2; 
-            } else {
-                translateX = window.innerWidth * 0.5 - 120;
-                translateY = window.innerHeight * 0.8;
-            }
-            
-            element.style.transition = 'transform 0.3s ease';
-            element.style.transform = `translate(${translateX}px, ${translateY}px)`;            
-            setTimeout(() => element.style.transition = '', 300);
+            element.style.transform = `translate(${translateX}px, ${translateY}px)`;
             element.style.top = '0';
             element.style.left = '0';
     
             if (element.updateDragPosition) {
-                element.updateDragPosition(translateX, translateY);
-            } else {
-                localStorage.setItem('overlayPosition', JSON.stringify({ top: translateY, left: translateX }));
+                element.updateDrag.PositiveNegativePromptSystem(); 
             }
         }
     }
 
     const dragStates = new WeakMap();
     function addDragFunctionality(element, getSyncElement) {
+        if (dragStates.has(element)) {
+            const cleanup = dragStates.get(element).cleanup;
+            if (cleanup) cleanup();
+        }
+            
         let isDragging = false;
         let startX, startY;
-        let state = dragStates.get(element) || { translateX: 0, translateY: 0 };
+        let state = { translateX: 0, translateY: 0, cleanup: null };
         dragStates.set(element, state);
     
-        let lastUpdate = 0;
-        const THROTTLE_MS = 8; // 120fps
+        let rafId = null;
     
         element.style.position = 'fixed';
         element.style.willChange = 'transform';
@@ -2461,21 +2603,34 @@ function my_custom_js() {
             element.style.transform = `translate(${state.translateX}px, ${state.translateY}px)`;
             element.style.top = '0';
             element.style.left = '0';
-
-            if (syncElement && syncElement.style.display !== 'none' && !syncElement.classList.contains('minimized')) {
+        
+            syncElement = typeof getSyncElement === 'function' ? getSyncElement() : null;
+            if (syncElement && syncElement.isConnected && !syncElement.classList.contains('minimized')) {
                 syncElement.style.transform = `translate(${state.translateX}px, ${state.translateY}px)`;
                 syncElement.style.top = '0';
                 syncElement.style.left = '0';
             }
+    
+            localStorage.setItem('overlayPosition', JSON.stringify({
+                top: state.translateY,
+                left: state.translateX
+            }));
         };
     
         const throttledUpdate = (callback) => {
-            if (performance.now() - lastUpdate >= THROTTLE_MS) {
+            if (rafId) return;
+            rafId = requestAnimationFrame(() => {
                 callback();
-                lastUpdate = performance.now();
-            } else {
-                requestAnimationFrame(() => throttledUpdate(callback));
-            }
+                rafId = null;
+            });
+        };
+    
+        state.cleanup = () => {
+            if (rafId) cancelAnimationFrame(rafId);
+            element.removeEventListener('mousedown', onMouseDown);
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            dragStates.delete(element);
         };
     
         const onMouseDown = (e) => {
@@ -2510,8 +2665,8 @@ function my_custom_js() {
             document.body.style.userSelect = '';
     
             const rect = element.getBoundingClientRect();
-            const isOutOfBounds = rect.top < 0 || rect.left < 0 || 
-                                 rect.bottom > window.innerHeight || rect.right > window.innerWidth;
+            const isOutOfBounds = rect.top < 0 || rect.left < 0 ||
+                                  rect.bottom > window.innerHeight || rect.right > window.innerWidth;
     
             if (isOutOfBounds) {
                 if (element.id === 'cg-loading-overlay') {
@@ -2521,10 +2676,8 @@ function my_custom_js() {
                     state.translateX = window.innerWidth * 0.5 - 120;
                     state.translateY = window.innerHeight * 0.8;
                 }
-                localStorage.setItem('overlayPosition', JSON.stringify({ top: state.translateY, left: state.translateX }));
-            } else {
-                localStorage.setItem('overlayPosition', JSON.stringify({ top: state.translateY, left: state.translateX }));
             }
+    
             updateTransform();
         };
     
@@ -2549,14 +2702,8 @@ function my_custom_js() {
             state.translateX = x;
             state.translateY = y;
             updateTransform();
-            localStorage.setItem('overlayPosition', JSON.stringify({ top: y, left: x }));
         };
     
-        return () => {
-            element.removeEventListener('mousedown', onMouseDown);
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-            dragStates.delete(element);
-        };
+        return state.cleanup;
     }
 }
