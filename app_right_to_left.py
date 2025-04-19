@@ -7,7 +7,7 @@ from lib import init, create_prompt_ex, create_with_last_prompt, save_current_se
 from lib import skip_next_generate_click, cancel_current_generate_click, update_sampler_and_scheduler
 from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info 
 from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_2, get_1
-from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_SHOWLOADING, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_SHOWTHUMB_OVERLAY, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
+from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_SHOWTHUMB_OVERLAY, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
 from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
 from image_info import read_image_metadata, send_image_metadata
 from websocket_server import run_websocket_server_in_thread
@@ -27,7 +27,7 @@ def run_gradio():
         run_cancel_button = gr.Button(value=LANG["run_cancel_button"], scale=4, elem_id="run_cancel_button", interactive=True, visible=True)
         return run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button
     
-    def generate_unlock(images_data, images_seed, images_tag):
+    def generate_unlock(js_ret):
         run_button = gr.Button(value=LANG["run_button"], variant='primary', scale=4, elem_id="run_button", visible=True)
         run_random_button = gr.Button(value=LANG["run_random_button"], variant='stop', scale=1, elem_id="run_random_button", visible=True)
         run_same_button = gr.Button(value=LANG["run_same_button"], variant='huggingface', scale=3, elem_id="run_same_button", visible=True)
@@ -264,18 +264,18 @@ def run_gradio():
                                     inputs=[images_data],
                                     js=JS_SHOWLOADING_WITHTHUMB
                                 ).then(fn=create_prompt_ex, 
-                                    inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
+                                    inputs=[gr.Checkbox(value=False, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, keep_gallery,
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,  
                                                 api_model_sampler, api_model_scheduler, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
-                                    outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
+                                    outputs=[output_prompt, output_info, dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
-                                    inputs=[images_data, dummy_textbox1, dummy_textbox2],
+                                    inputs=[dummy_textbox2],
                                     outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button],
                                     js=JS_HANDLERESPONSE
                                 )
@@ -288,18 +288,18 @@ def run_gradio():
                                     inputs=[images_data],
                                     js=JS_SHOWLOADING_WITHTHUMB
                                 ).then(fn=create_prompt_ex, 
-                                    inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, 
+                                    inputs=[gr.Checkbox(value=True, visible=False), view_angle, view_camera, view_background, view_style, custom_prompt, keep_gallery,
                                                 ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                                 ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                                api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,  
                                                 api_model_sampler, api_model_scheduler, api_model_file_select,
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
-                                    outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
+                                    outputs=[output_prompt, output_info, dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
-                                    inputs=[images_data, dummy_textbox1, dummy_textbox2],
+                                    inputs=[dummy_textbox2],
                                     outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button],
                                     js=JS_HANDLERESPONSE
                                 )
@@ -307,23 +307,24 @@ def run_gradio():
         run_same_button.click(fn=generate_lock, outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button]).then(
                                 fn=get_1,
                                 inputs=[images_data],
-                                js=JS_SHOWLOADING
+                                js=JS_SHOWLOADING_WITHTHUMB
                                 ).then(fn=create_with_last_prompt, 
-                                inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
+                                inputs=[view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt, keep_gallery,
                                         ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                         ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                        api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
+                                        api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,  
                                         api_model_sampler, api_model_scheduler, api_model_file_select,
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                         api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                         ], 
-                                outputs=[output_prompt, output_info, images_data, dummy_textbox1, dummy_textbox2]
+                                outputs=[output_prompt, output_info, dummy_textbox2]
                             ).then(
                                     fn=generate_unlock,                                    
-                                    inputs=[images_data, dummy_textbox1, dummy_textbox2],
+                                    inputs=[dummy_textbox2],
                                     outputs=[run_button, run_random_button, run_same_button, run_skip_button, run_cancel_button],
                                     js=JS_HANDLERESPONSE
                                 )
+                            
         run_skip_button.click(fn=skip_next_generate_click).then(fn=lock_skip_cancel, outputs=[run_skip_button, run_cancel_button])
         run_cancel_button.click(fn=cancel_current_generate_click, inputs=[api_addr, api_interface]).then(fn=lock_skip_cancel, outputs=[run_skip_button, run_cancel_button])
         
@@ -410,7 +411,7 @@ def run_gradio():
     ui.launch(inbrowser=True)
 
 if __name__ == '__main__':    
-    #os.environ["GRADIO_SERVER_PORT"]='47860'   #test
+    #os.environ["GRADIO_SERVER_PORT"]='47861'   #test
     WSPORT = (int(os.environ.get("GRADIO_SERVER_PORT")) - 100)
     thread, stop_server = run_websocket_server_in_thread(host='127.0.0.1', port=WSPORT)
         
