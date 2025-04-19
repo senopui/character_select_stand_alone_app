@@ -21,10 +21,9 @@ from webui import run_webui, cancel_Webui
 from color_transfer import ColorTransfer
 from tag_autocomplete import PromptManager
 from setup_wizard import setup_wizard_window
-from custom_com import init_custom_com, set_custom_gallery_thumb_images, set_custom_gallery_image
+from custom_com import init_custom_com, set_custom_gallery_last_api_images, set_custom_gallery_thumb_images
 from language import *
 from metadata import SafetensorsMetadataReader
-from websocket_client import send_websocket_message
 
 LANG = LANG_CN
 TITLE = "WAI Character Select SAA"
@@ -859,10 +858,10 @@ def create_characters(batch_random, character1, character2, character3, tag_assi
     js_generated_thumb_image_list = set_custom_gallery_thumb_images(generated_thumb_image_list)
     return js_generated_thumb_image_list        
     
-def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, keep_gallery,
+def create_prompt_ex(batch_random, view_angle, view_camera, view_background, view_style, custom_prompt, 
                                  ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                                  ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                                 api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,
+                                 api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
                                  api_model_sampler, api_model_scheduler, api_model_file_select,
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                  api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
@@ -874,18 +873,20 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
     global skip_next_generate
     
     cfg, steps, width, height, loops = parse_api_image_data(api_image_data, api_image_landscape)
-    if '' != custom_prompt and not (custom_prompt.endswith(', ') or custom_prompt.endswith(',')):
+    if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
-    
-    final_infos = []
-    final_tags = []
         
     if not batch_random:
         loops = 1
         
     if 'none' == ai_interface == api_interface:
         gr.Warning(LANG["gr_warning_interface_both_none"])
-        
+    
+    now_images = []
+    now_tags = []
+    now_seed = []
+    final_infos = []
+    
     ai_text=''
     LANG["ai_system_prompt"] = textwrap.dedent(ai_system_prompt_text)
     if 'none' != batch_generate_rule:  
@@ -947,40 +948,29 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                 )
-        final_tags.append(f'{index}:\n{to_image_create_prompt}\n')
+        
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
         if api_hf_enable and api_hf_random_seed:
             final_info += f'Hires Fix Seed:[{hf_random_seed}]\n'            
+        final_prompt = f'{index}:\n{to_image_create_prompt}\n'
+        if api_image:
+            now_images.append(api_image)
+            now_tags.append(final_prompt)        
+            now_seed.append(str(seed1))
         final_infos.append(final_info)
         
         # Collect prompts
         last_prompt = prompt
         last_info = info
-        last_ai_text = ai_text          
-
-        if api_image:            
-            base64_image = set_custom_gallery_image(api_image)
-            packed_json = json.dumps({
-                            "command": "final_image",
-                            "base64": base64_image,
-                            "seed": f'{seed1}',
-                            "tags": to_image_create_prompt,
-                            "keep_gallery": f'{keep_gallery}'
-                            })
-            send_websocket_message(message=packed_json,
-                                    websocket_address='127.0.0.1',
-                                    websocket_port=WSPORT
-                                    )
-            keep_gallery = True
-        else:
-            break              
+        last_ai_text = ai_text            
         
-    return ''.join(final_tags), ''.join(final_infos), js_ret
+    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_gallery, now_images, now_seed, now_tags, js_ret)
+    return ''.join(now_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
     
-def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt, keep_gallery,
+def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
                             ai_local_addr, ai_local_temp, ai_local_n_predict, ai_system_prompt_text,
-                            api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape,  
+                            api_interface, api_preview_refresh_time, api_addr, api_prompt, api_neg_prompt, api_image_data, api_image_landscape, keep_gallery, 
                             api_model_sampler, api_model_scheduler, api_model_file_select,
                             api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                             api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
@@ -992,8 +982,10 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
     if '' != custom_prompt and not custom_prompt.endswith(','):
         custom_prompt = f'{custom_prompt},'
             
+    now_images = []
+    now_tags = []
+    now_seed = []
     final_infos = []
-    final_tags = []
     
     ai_text=''
     if 'none' != batch_generate_rule:         
@@ -1034,28 +1026,29 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                  api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                  )
-        final_tags.append(f'{index}:\n{to_image_create_prompt}\n')
+        final_prompt = f'{index}:\n{to_image_create_prompt}\n'
         final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
+        
+        if api_image:
+            now_images.append(api_image)
+            now_tags.append(final_prompt)        
+            now_seed.append(str(seed))
         final_infos.append(final_info)
         
-        if api_image:            
-            base64_image = set_custom_gallery_image(api_image)
-            packed_json = json.dumps({
-                            "command": "final_image",
-                            "base64": base64_image,
-                            "seed": f'{seed}',
-                            "tags": to_image_create_prompt,
-                            "keep_gallery": f'{keep_gallery}'
-                            })
-            send_websocket_message(message=packed_json,
-                                    websocket_address='127.0.0.1',
-                                    websocket_port=WSPORT
-                                    )
-            keep_gallery = True
-        else:
-            break              
-        
-    return ''.join(final_tags), ''.join(final_infos), js_ret
+    js_images_data, js_seed, ts_tags = set_custom_gallery_last_api_images(keep_gallery, now_images, now_seed, now_tags, js_ret)
+    return ''.join(now_tags), ''.join(final_infos), js_images_data, js_seed, ts_tags
+
+def is_keep_gallery(keep_gallery, js_images_data_local, js_seed_local, ts_tags_local):
+    global js_images_data
+    global js_seed
+    global ts_tags    
+    if not keep_gallery:
+        js_images_data, js_seed, ts_tags = js_images_data_local, js_seed_local, ts_tags_local
+    else:
+        js_images_data.append(js_images_data_local)
+        js_seed.append(js_seed_local)
+        ts_tags.append(ts_tags_local)        
+    return js_images_data, js_seed, ts_tags
 
 def skip_next_generate_click():
     global skip_next_generate

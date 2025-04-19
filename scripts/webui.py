@@ -1,6 +1,7 @@
 import base64
 import requests
 import io
+import os
 from PIL import Image
 import websocket
 import threading
@@ -50,10 +51,7 @@ def poll_progress(webui_server_address, ws_port, preview_refresh_time, stop_even
                 counter = 0
                 if abs(progress - last_progress) >= 0.05:
                     try:
-                        gen.ws_client.send(json.dumps({
-                            "command": "preview_image",
-                            "base64": f'data:image/png;base64,{current_image}',                            
-                            }))
+                        gen.ws_client.send(json.dumps({"base64": f'data:image/png;base64,{current_image}'}))
                     except Exception as e:
                         if retire == 3:
                             print(f"{CAT}Failed to send WebSocket message: {str(e)}")
