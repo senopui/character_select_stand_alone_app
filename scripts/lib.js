@@ -974,10 +974,10 @@ function my_custom_js() {
                 if (e.key === 'Escape') {
                     exitFullscreen();
                 } else if (e.key === 'ArrowRight' || e.key === ' ') {
-                    currentIndex = (currentIndex + 1) % images.length;
+                    currentIndex = (currentIndex - 1 + images.length) % images.length;
                     fullScreenImg.src = images[currentIndex];
                 } else if (e.key === 'ArrowLeft') {
-                    currentIndex = (currentIndex - 1 + images.length) % images.length;
+                    currentIndex = (currentIndex + 1) % images.length;
                     fullScreenImg.src = images[currentIndex];
                 }
             }
