@@ -1091,15 +1091,17 @@ function my_custom_js() {
             function exitFullscreen() {
                 document.body.removeChild(overlay);
                 document.removeEventListener('keydown', handleFullscreenKeyDown);
-
-                let mainImage = document.createElement('img');
-                mainImage.src = images[currentIndex];
-                updatePreviewBorders();
-
-                let mainImageContainer = container.querySelector('.cg-main-image-container');
-                mainImage = mainImageContainer.querySelector('img')
-                if (mainImage.src !== images[currentIndex]) {
+                
+                if (!isGridMode) {
+                    let mainImage = document.createElement('img');
                     mainImage.src = images[currentIndex];
+                    updatePreviewBorders();
+
+                    let mainImageContainer = container.querySelector('.cg-main-image-container');
+                    mainImage = mainImageContainer.querySelector('img')
+                    if (mainImage.src !== images[currentIndex]) {
+                        mainImage.src = images[currentIndex];
+                    }
                 }
             }
         }
