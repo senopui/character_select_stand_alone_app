@@ -122,6 +122,14 @@ function(character1, character2, character3, view1, view2, view3, view4) {
 }
 """
 
+JS_CLEAR_GALLERY = """
+function(keep_gallery) {
+    if(!keep_gallery) {
+        window.cgCustomGallery.clearGallery();
+    } 
+}
+"""
+
 def get_image_base64(file_name):
     base_dir = os.path.dirname(__file__)
     img_path = os.path.join(base_dir, "imgs", file_name)

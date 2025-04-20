@@ -1,4 +1,4 @@
-//more functions
+//more and more functions
 function my_custom_js() {
     class WebSocketManager {
         #ws = null;
@@ -70,7 +70,6 @@ function my_custom_js() {
                 this.#ws.onclose = async () => {
                     this.#ws = null;
                     if (this.#isManuallyClosed) {
-                        //console.log('[WebSocket] Manually closed, no reconnect attempted');
                         return;
                     }
                     if (retryCount < this.#MAX_INITIAL_RETRIES) {
@@ -96,7 +95,6 @@ function my_custom_js() {
 
         async open() {
             if (this.#isWebSocketInitialized && this.#ws && this.#ws.readyState === WebSocket.OPEN) {
-                //console.log('[WebSocket] Connection already open');
                 return this.#ws;
             }
             this.#isManuallyClosed = false; 
@@ -106,7 +104,6 @@ function my_custom_js() {
         close() {
             this.#isManuallyClosed = true;
             this.cleanup();
-            //console.log('[WebSocket] Connection closed by user');
         }
     
         handlePreviewImageResponse(base64) {
@@ -178,8 +175,6 @@ function my_custom_js() {
     window.ELAPSED_TIME_PREFIX = 'Time elapsed: ';
     window.ELAPSED_TIME_SUFFIX = 'sec';
     window.WS_PORT = 47761;
-
-    // Initialize global dropdowns namespace
     window.dropdowns = window.dropdowns || {};
     
     // Synchronously initialize dropdowns to ensure availability
@@ -692,56 +687,62 @@ function my_custom_js() {
     function setupGallery() {
         if (window.isGallerySetup) return;
         window.isGallerySetup = true;
-
+    
         let isGridMode = false;
         let currentIndex = 0;
         let privacyBalls = [];
-
         let images = [];
         let seeds = [];
         let tags = [];
-
+        let renderedImageCount = 0;
+    
         const container = document.getElementById('cg-custom-gallery');
         if (!container) {
             console.error('Gallery container not found');
             return;
         }
-
+    
         if (!window.cgCustomGallery) {
             window.cgCustomGallery = {};
         }
-
+    
         window.addEventListener('unload', () => {
             customCommonOverlay().cleanup();
         });
-
-        window.cgCustomGallery.appendImageData = function(base64, seed, tagsString, keep_gallery) {
+    
+        window.cgCustomGallery.clearGallery = function () {
+            images = [];
+            seeds = [];
+            tags = [];
+            renderedImageCount = 0;
+            container.innerHTML = '';
+        };
+    
+        window.cgCustomGallery.appendImageData = function (base64, seed, tagsString, keep_gallery) {
             if ('False' === keep_gallery) {
-                images = [];
-                seeds = [];
-                tags = [];
+                window.cgCustomGallery.clearGallery();
             }
-
-            images.unshift(base64);
-            seeds.unshift(seed);
-            tags.unshift(tagsString || '');
-
-            if (seeds.length !== tags.length) {
-                console.warn('window.cgCustomGallery.appendImageData Mismatch: seeds count:', seeds.length, ' tags count:', tags.length);
+    
+            images.push(base64); 
+            seeds.push(seed);
+            tags.push(tagsString || '');
+    
+            if (seeds.length !== tags.length || images.length !== seeds.length) {
+                console.warn('[appendImageData] Mismatch: images:', images.length, 'seeds:', seeds.length, 'tags:', tags.length);
             }
-
-            window.updateGallery(images);
+    
+            currentIndex = images.length - 1;    
+    
             if (isGridMode) {
-                gallery_renderGridMode();
+                gallery_renderGridMode(true);
             } else {
-                gallery_renderSplitMode();
+                gallery_renderSplitMode(true);
             }
         };
-
+    
         window.cgCustomGallery.showLoading = function () {
             const loadingOverlay = customCommonOverlay().createLoadingOverlay();
             const buttonOverlay = document.getElementById('cg-button-overlay');
-        
             const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
             if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
                 loadingOverlay.style.top = `${savedPosition.top}px`;
@@ -757,19 +758,16 @@ function my_custom_js() {
                 loadingOverlay.style.left = '50%';
                 loadingOverlay.style.transform = 'translate(-50%, -20%)';
             }
-        
             addDragFunctionality(loadingOverlay, buttonOverlay);
         };
-        
+    
         window.cgCustomGallery.handleResponse = function (js_ret) {
             const loadingOverlay = document.getElementById('cg-loading-overlay');
             const buttonOverlay = document.getElementById('cg-button-overlay');
-        
             if (loadingOverlay) {
                 if (loadingOverlay.dataset.timerInterval) {
                     clearInterval(loadingOverlay.dataset.timerInterval);
                 }
-                
                 if (buttonOverlay && !buttonOverlay.classList.contains('minimized')) {
                     const rect = loadingOverlay.getBoundingClientRect();
                     buttonOverlay.style.left = '0';
@@ -781,13 +779,12 @@ function my_custom_js() {
                 }
                 loadingOverlay.remove();
             }
-
             if ('success' !== js_ret) {
                 console.error('Got Error from backend:', js_ret);
                 customCommonOverlay().createErrorOverlay(js_ret);
             }
         };
-
+    
         function ensurePrivacyButton() {
             let privacyButton = document.getElementById('cg-privacy-button');
             if (!privacyButton) {
@@ -795,7 +792,7 @@ function my_custom_js() {
                 privacyButton.id = 'cg-privacy-button';
                 privacyButton.className = 'cg-button';
                 privacyButton.textContent = '(X)';
-                privacyButton.style.top = '50px'; 
+                privacyButton.style.top = '50px';
                 privacyButton.style.left = '10px';
                 privacyButton.style.background = 'linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)';
                 privacyButton.addEventListener('click', () => {
@@ -813,13 +810,11 @@ function my_custom_js() {
             const ball = document.createElement('div');
             ball.className = 'cg-privacy-ball';
             ball.innerHTML = 'SAA';
-
             ball.style.width = '100px';
-            ball.style.height = '100px'; 
-        
+            ball.style.height = '100px';
             const galleryRect = container.getBoundingClientRect();
-            const left = galleryRect.left + galleryRect.width / 2 - 50; 
-            const top = galleryRect.top + galleryRect.height / 2 - 50; 
+            const left = galleryRect.left + galleryRect.width / 2 - 50;
+            const top = galleryRect.top + galleryRect.height / 2 - 50;
             ball.style.left = `${left}px`;
             ball.style.top = `${top}px`;
         
@@ -878,14 +873,12 @@ function my_custom_js() {
             ball.addEventListener('dblclick', () => {
                 ball.remove();
                 privacyBalls = privacyBalls.filter(b => b !== ball);
-                console.log(`Privacy ball removed. Remaining: ${privacyBalls.length}`);
             });
-        
+
             document.body.appendChild(ball);
             privacyBalls.push(ball);
-            console.log(`Privacy ball created. Total: ${privacyBalls.length}`);
         }
-
+    
         function enterFullscreen(index) {
             const imgUrl = images[index];
             if (!imgUrl) {
@@ -974,108 +967,172 @@ function my_custom_js() {
                 });
             }
         }
-
-        function gallery_renderGridMode() {
-            container.innerHTML = '';
-            const gallery = document.createElement('div');
-            gallery.className = 'cg-gallery-grid-container scroll-container';
-
+    
+        function gallery_renderGridMode(incremental = false) {
+            if (!images || images.length === 0) {
+                container.innerHTML = '';
+                renderedImageCount = 0;
+                currentIndex = 0;
+                return;
+            }
+        
+            let gallery = container.querySelector('.cg-gallery-grid-container');
+            let lastAspectRatio = parseFloat(localStorage.getItem('gridAspectRatio') || '0');
+        
             const containerWidth = container.offsetWidth;
             const firstImage = new Image();
-            firstImage.src = images[0];
+            firstImage.src = images[images.length - 1]; 
             firstImage.onload = () => {
                 const aspectRatio = firstImage.width / firstImage.height;
+                const needsRedraw = !incremental || Math.abs(aspectRatio - lastAspectRatio) > 0.001;
+        
+                if (!gallery || needsRedraw) {
+                    container.innerHTML = '';
+                    gallery = document.createElement('div');
+                    gallery.className = 'cg-gallery-grid-container scroll-container';
+                    container.appendChild(gallery);
+                    renderedImageCount = 0;
+                    gallery.addEventListener('click', (e) => {
+                        const imgContainer = e.target.closest('.cg-gallery-item');
+                        if (imgContainer) {
+                            const index = parseInt(imgContainer.dataset.index);
+                            enterFullscreen(index);
+                        }
+                    });
+                }
+        
                 const targetHeight = 200;
                 const targetWidth = targetHeight * aspectRatio;
                 const itemsPerRow = Math.floor(containerWidth / (targetWidth + 10));
                 gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
-
+        
                 const fragment = document.createDocumentFragment();
-                images.forEach((url, index) => {
+                for (let i = images.length - 1; i >= renderedImageCount; i--) {
                     const imgContainer = document.createElement('div');
                     imgContainer.className = 'cg-gallery-item';
                     imgContainer.style.width = `${targetWidth}px`;
                     imgContainer.style.height = `${targetHeight}px`;
-
+                    imgContainer.dataset.index = i;
                     const img = document.createElement('img');
-                    img.src = url;
+                    img.src = images[i];
                     img.className = 'cg-gallery-image';
-                    img.addEventListener('click', () => enterFullscreen(index));
-
+                    img.loading = 'lazy';
                     imgContainer.appendChild(img);
                     fragment.appendChild(imgContainer);
-                });
-
-                gallery.appendChild(fragment);
-                container.appendChild(gallery);
+                }
+                gallery.prepend(fragment);
+                const newItems = gallery.querySelectorAll('.cg-gallery-item:not(.visible)');
+                newItems.forEach(item => item.classList.add('visible'));
+                renderedImageCount = images.length;
+        
+                localStorage.setItem('gridAspectRatio', aspectRatio.toString());
+        
                 ensureSwitchModeButton(container, () => {
                     isGridMode = !isGridMode;
+                    currentIndex = images.length - 1;
                     isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
                 }, 'cg-switch-mode-button');
                 ensurePrivacyButton();
             };
+            firstImage.onerror = () => {
+                console.error('Failed to load latest image for grid mode');
+                container.innerHTML = '';
+                renderedImageCount = 0;
+                currentIndex = 0;
+            };
         }
-
-        function gallery_renderSplitMode() {
+    
+        function gallery_renderSplitMode(incremental = false) {
             if (!images || images.length === 0) {
-                container.innerHTML = '<div class="cg-error-message">No images to display</div>';
+                container.innerHTML = '';
+                renderedImageCount = 0;
+                currentIndex = 0;
                 return;
             }
-
-            container.innerHTML = '';
-            const mainImageContainer = document.createElement('div');
-            mainImageContainer.className = 'cg-main-image-container';
-
-            const mainImage = document.createElement('img');
-            mainImage.src = images[currentIndex];
-            mainImage.className = 'cg-main-image';
-            mainImage.addEventListener('click', () => enterFullscreen(currentIndex));
-
-            mainImageContainer.appendChild(mainImage);
-            container.appendChild(mainImageContainer);
-
-            mainImageContainer.addEventListener('click', (e) => {
-                e.preventDefault();
-                const rect = mainImageContainer.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const isLeft = clickX < rect.width / 2;
-            
-                if (e.target !== mainImage && images.length > 1) {
-                    if (isLeft) {
-                        currentIndex = (currentIndex - 1 + images.length) % images.length;
-                    } else {
-                        currentIndex = (currentIndex + 1) % images.length;
-                    }
-                    mainImage.src = images[currentIndex];
-                    updatePreviewBorders();
-                }
-            });
-
-            const previewContainer = document.createElement('div');
-            previewContainer.className = 'cg-preview-container scroll-container';
-            setupScrollableContainer(previewContainer);
-
-            const fragment = document.createDocumentFragment();
-            images.forEach((url, index) => {
-                const previewImage = document.createElement('img');
-                previewImage.src = url;
-                previewImage.className = 'cg-preview-image';
-                previewImage.style.border = index === currentIndex ? '2px solid #3498db' : 'none';
-                previewImage.addEventListener('click', (e) => {
+        
+            let mainImageContainer = container.querySelector('.cg-main-image-container');
+            let previewContainer = container.querySelector('.cg-preview-container');
+        
+            if (!mainImageContainer || !previewContainer || !incremental) {
+                container.innerHTML = '';
+                mainImageContainer = document.createElement('div');
+                mainImageContainer.className = 'cg-main-image-container';
+                const mainImage = document.createElement('img');
+                mainImage.src = images[currentIndex];
+                mainImage.className = 'cg-main-image';
+                mainImage.addEventListener('click', () => enterFullscreen(currentIndex));
+                mainImageContainer.appendChild(mainImage);
+                container.appendChild(mainImageContainer);
+        
+                mainImageContainer.addEventListener('click', (e) => {
                     e.preventDefault();
-                    currentIndex = index;
-                    mainImage.src = images[currentIndex];
-                    updatePreviewBorders();
-                    previewImage.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    const rect = mainImageContainer.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const isLeft = clickX < rect.width / 2;
+                    if (e.target !== mainImage && images.length > 1) {
+                        if (!isLeft) {
+                            currentIndex = (currentIndex - 1 + images.length) % images.length;
+                        } else {
+                            currentIndex = (currentIndex + 1) % images.length;
+                        }
+                        mainImage.src = images[currentIndex];
+                        updatePreviewBorders();
+                    }
                 });
-                fragment.appendChild(previewImage);
-            });
-
-            previewContainer.appendChild(fragment);
-            container.appendChild(previewContainer);
-
+        
+                previewContainer = document.createElement('div');
+                previewContainer.className = 'cg-preview-container scroll-container';
+                setupScrollableContainer(previewContainer);
+                container.appendChild(previewContainer);
+                renderedImageCount = 0;
+        
+                previewContainer.addEventListener('click', (e) => {
+                    const previewImage = e.target.closest('.cg-preview-image');
+                    if (previewImage) {
+                        e.preventDefault();
+                        const domIndex = parseInt(previewImage.dataset.domIndex);
+                        currentIndex = images.length - 1 - domIndex;
+                        mainImage.src = images[currentIndex];
+                        updatePreviewBorders();
+                        previewImage.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                });
+            }
+        
+            const mainImage = mainImageContainer.querySelector('.cg-main-image');
+            if (mainImage.src !== images[currentIndex]) {
+                mainImage.src = images[currentIndex];
+            }
+        
+            const fragment = document.createDocumentFragment();
+            if (!incremental) {
+                for (let i = images.length - 1; i >= 0; i--) {
+                    const previewImage = document.createElement('img');
+                    previewImage.src = images[i];
+                    previewImage.className = 'cg-preview-image';
+                    previewImage.loading = 'lazy';
+                    previewImage.dataset.domIndex = images.length - 1 - i;
+                    fragment.appendChild(previewImage);
+                }
+            } else {
+                for (let i = renderedImageCount; i < images.length; i++) {
+                    const previewImage = document.createElement('img');
+                    previewImage.src = images[i];
+                    previewImage.className = 'cg-preview-image';
+                    previewImage.loading = 'lazy';
+                    previewImage.dataset.domIndex = i;
+                    fragment.appendChild(previewImage);
+                }
+            }
+            previewContainer.prepend(fragment);
+            const newImages = previewContainer.querySelectorAll('.cg-preview-image:not(.visible)');
+            newImages.forEach(img => img.classList.add('visible'));
+            renderedImageCount = images.length;
+                
+            updatePreviewBorders();
             ensureSwitchModeButton(container, () => {
                 isGridMode = !isGridMode;
+                currentIndex = images.length - 1;
                 isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
             }, 'cg-switch-mode-button');
             ensureSeedButton();
@@ -1083,18 +1140,20 @@ function my_custom_js() {
             ensurePrivacyButton();
             adjustPreviewContainer(previewContainer);
         }
-
+        
         function updatePreviewBorders() {
             const previewImages = container.querySelectorAll('.cg-preview-image');
-            previewImages.forEach((child, i) => {
-                child.style.border = i === currentIndex ? '2px solid #3498db' : 'none';
+            previewImages.forEach((child, domIndex) => {
+                const index = images.length - 1 - domIndex;
+                child.dataset.domIndex = domIndex;
+                child.style.border = index === currentIndex ? '2px solid #3498db' : 'none';
             });
-            const selectedPreview = previewImages[currentIndex];
-            if (selectedPreview) {
-                selectedPreview.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            const domIndex = images.length - 1 - currentIndex;
+            if (domIndex >= 0 && domIndex < previewImages.length) {
+                previewImages[domIndex].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
         }
-
+    
         function adjustPreviewContainer(previewContainer) {
             const previewImages = previewContainer.querySelectorAll('.cg-preview-image');
             if (previewImages.length > 0) {
@@ -1102,7 +1161,6 @@ function my_custom_js() {
                     const containerWidth = previewContainer.offsetWidth;
                     const firstImageWidth = previewImages[0].offsetWidth || 50;
                     const totalImagesWidth = firstImageWidth * previewImages.length;
-
                     if (totalImagesWidth < (containerWidth - firstImageWidth)) {
                         previewContainer.style.justifyContent = 'center';
                     } else {
@@ -1116,7 +1174,7 @@ function my_custom_js() {
                 };
             }
         }
-
+    
         function ensureSeedButton() {
             let seedButton = document.getElementById('cg-seed-button');
             if (!seedButton) {
@@ -1131,7 +1189,6 @@ function my_custom_js() {
                             console.log(`Seed ${seedToCopy} copied to clipboard`);
                             seedButton.textContent = 'Copied!';
                             setTimeout(() => seedButton.textContent = 'Seed', 2000);
-        
                             const sliderContainer = document.getElementById('random_seed');
                             if (sliderContainer) {
                                 const numberInput = sliderContainer.querySelector('input[type="number"]');
@@ -1142,12 +1199,11 @@ function my_custom_js() {
                                     if (!isNaN(seedValue) && seedValue >= -1 && seedValue <= 4294967295) {
                                         let targetValue = seedValue;
                                         if (currentValue === seedValue) {
-                                            targetValue = -1; 
+                                            targetValue = -1;
                                             console.log(`Seed matches current value (${seedValue}), resetting to -1`);
                                         } else {
                                             console.log(`Updating random_seed to ${seedValue}`);
                                         }
-        
                                         numberInput.value = targetValue;
                                         numberInput.dispatchEvent(new Event('input', { bubbles: true }));
                                         rangeInput.value = targetValue;
@@ -1161,7 +1217,7 @@ function my_custom_js() {
                 container.appendChild(seedButton);
             }
         }
-
+    
         function ensureTagButton() {
             let tagButton = document.getElementById('cg-tag-button');
             if (!tagButton) {
@@ -1182,11 +1238,11 @@ function my_custom_js() {
                 container.appendChild(tagButton);
             }
         }
-
+    
         window.updateGallery = function (imageData) {
             if (!Array.isArray(imageData) || imageData.length === 0) return;
             images = imageData;
-            currentIndex = 0;
+            renderedImageCount = 0; 
             isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
         };
     }
@@ -2580,7 +2636,7 @@ function my_custom_js() {
             element.style.left = '0';
     
             if (element.updateDragPosition) {
-                element.updateDrag.PositiveNegativePromptSystem(); 
+                element.updateDragPosition(translateX, translateY);
             }
         }
     }

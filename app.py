@@ -8,7 +8,7 @@ from lib import skip_next_generate_click, cancel_current_generate_click, update_
 from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info 
 from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_2, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_SHOWTHUMB_OVERLAY, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
-from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE
+from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE, JS_CLEAR_GALLERY
 from image_info import read_image_metadata, send_image_metadata
 from websocket_server import run_websocket_server_in_thread
 
@@ -364,9 +364,10 @@ def run_gradio():
                                                             inputs=[character1,character2,character3,view_angle, view_camera, view_background, view_style],
                                                             js=JS_CUSTOM_DROPDOWN_UPDATE)
         
-        manual_update_database_button.click(fn=manual_update_database, inputs=None).then(fn=manual_update_database, inputs=[manual_update_database_button], outputs=[manual_update_database_button])
-                
-        batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)        
+        manual_update_database_button.click(fn=manual_update_database, inputs=None).then(fn=manual_update_database, inputs=[manual_update_database_button], outputs=[manual_update_database_button])                
+        batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
+        keep_gallery.change(fn=get_1, inputs=[keep_gallery], js=JS_CLEAR_GALLERY)
+        
         
         lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface], outputs=[api_prompt])
         lora_info.click(fn=get_lora_info, inputs=[lora_list], outputs=[dummy_text, dummy_textbox2]).then(fn=None,inputs=[dummy_text, dummy_textbox2], js=JS_SHOWCUSTOM_MESSAGE)
