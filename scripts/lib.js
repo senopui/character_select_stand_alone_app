@@ -1088,16 +1088,19 @@ function my_custom_js() {
                 }
             }
 
-            privacyBalls.forEach(ball => {
-                ball.style.zIndex = '10003';
-            });
-
             function exitFullscreen() {
                 document.body.removeChild(overlay);
                 document.removeEventListener('keydown', handleFullscreenKeyDown);
-                privacyBalls.forEach(ball => {
-                    ball.style.zIndex = '10003';
-                });
+
+                let mainImage = document.createElement('img');
+                mainImage.src = images[currentIndex];
+                updatePreviewBorders();
+
+                let mainImageContainer = container.querySelector('.cg-main-image-container');
+                mainImage = mainImageContainer.querySelector('img')
+                if (mainImage.src !== images[currentIndex]) {
+                    mainImage.src = images[currentIndex];
+                }
             }
         }
     
@@ -1243,11 +1246,6 @@ function my_custom_js() {
                         previewImage.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                     }
                 });
-            }
-    
-            const mainImage = mainImageContainer.querySelector('.cg-main-image');
-            if (mainImage.src !== images[currentIndex]) {
-                mainImage.src = images[currentIndex];
             }
     
             const fragment = document.createDocumentFragment();
