@@ -265,7 +265,21 @@ function my_custom_js() {
         });
     }
 
-    // Utility: Ensure switch mode button with toggle function
+    function createModeSwitchOverlay(container) {
+        let overlay = document.getElementById('cg-mode-switch-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'cg-mode-switch-overlay';
+            overlay.className = 'cg-mode-switch-overlay';
+            overlay.innerHTML = `
+                <div class="cg-mode-switch-spinner"></div>
+                <div class="cg-mode-switch-text">Switching Gallery Mode...</div>
+            `;
+            container.appendChild(overlay);
+        }
+        return overlay;
+    }
+    
     function ensureSwitchModeButton(container, toggleFunction, id) {
         let button = document.getElementById(id);
         if (!button) {
@@ -273,7 +287,20 @@ function my_custom_js() {
             button.id = id;
             button.className = 'cg-button';
             button.textContent = '<>';
-            button.addEventListener('click', toggleFunction);
+            button.addEventListener('click', async () => {
+                const overlay = createModeSwitchOverlay(container);
+                overlay.classList.add('visible');
+    
+                await new Promise(resolve => setTimeout(resolve, 100));
+                toggleFunction();
+    
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        overlay.classList.remove('visible');
+                        setTimeout(() => overlay.remove(), 300);
+                    }, 10000); // assume 10 seconds for the animation to finish
+                });
+            });
             container.appendChild(button);
         }
     }
@@ -981,7 +1008,7 @@ function my_custom_js() {
         
             const containerWidth = container.offsetWidth;
             const firstImage = new Image();
-            firstImage.src = images[images.length - 1]; 
+            firstImage.src = images[images.length - 1];
             firstImage.onload = () => {
                 const aspectRatio = firstImage.width / firstImage.height;
                 const needsRedraw = !incremental || Math.abs(aspectRatio - lastAspectRatio) > 0.001;
@@ -1007,6 +1034,18 @@ function my_custom_js() {
                 gallery.style.gridTemplateColumns = `repeat(${itemsPerRow}, ${targetWidth}px)`;
         
                 const fragment = document.createDocumentFragment();
+                const observer = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const imgContainer = entry.target;
+                            const img = imgContainer.querySelector('img');
+                            img.src = img.dataset.src; 
+                            imgContainer.classList.add('visible');
+                            observer.unobserve(imgContainer);
+                        }
+                    });
+                }, { root: gallery, threshold: 0.1 });
+        
                 for (let i = images.length - 1; i >= renderedImageCount; i--) {
                     const imgContainer = document.createElement('div');
                     imgContainer.className = 'cg-gallery-item';
@@ -1014,15 +1053,15 @@ function my_custom_js() {
                     imgContainer.style.height = `${targetHeight}px`;
                     imgContainer.dataset.index = i;
                     const img = document.createElement('img');
-                    img.src = images[i];
                     img.className = 'cg-gallery-image';
+                    img.dataset.src = images[i]; 
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='; 
                     img.loading = 'lazy';
                     imgContainer.appendChild(img);
                     fragment.appendChild(imgContainer);
+                    observer.observe(imgContainer); 
                 }
                 gallery.prepend(fragment);
-                const newItems = gallery.querySelectorAll('.cg-gallery-item:not(.visible)');
-                newItems.forEach(item => item.classList.add('visible'));
                 renderedImageCount = images.length;
         
                 localStorage.setItem('gridAspectRatio', aspectRatio.toString());
@@ -1041,7 +1080,7 @@ function my_custom_js() {
                 currentIndex = 0;
             };
         }
-    
+        
         function gallery_renderSplitMode(incremental = false) {
             if (!images || images.length === 0) {
                 container.innerHTML = '';
@@ -1105,30 +1144,43 @@ function my_custom_js() {
             }
         
             const fragment = document.createDocumentFragment();
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src; 
+                        img.classList.add('visible');
+                        observer.unobserve(img);
+                    }
+                });
+            }, { root: previewContainer, threshold: 0.1 });
+        
             if (!incremental) {
                 for (let i = images.length - 1; i >= 0; i--) {
                     const previewImage = document.createElement('img');
-                    previewImage.src = images[i];
                     previewImage.className = 'cg-preview-image';
+                    previewImage.dataset.src = images[i]; 
+                    previewImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
                     previewImage.loading = 'lazy';
                     previewImage.dataset.domIndex = images.length - 1 - i;
                     fragment.appendChild(previewImage);
+                    observer.observe(previewImage); 
                 }
             } else {
                 for (let i = renderedImageCount; i < images.length; i++) {
                     const previewImage = document.createElement('img');
-                    previewImage.src = images[i];
                     previewImage.className = 'cg-preview-image';
+                    previewImage.dataset.src = images[i]; 
+                    previewImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
                     previewImage.loading = 'lazy';
                     previewImage.dataset.domIndex = i;
                     fragment.appendChild(previewImage);
+                    observer.observe(previewImage); 
                 }
             }
             previewContainer.prepend(fragment);
-            const newImages = previewContainer.querySelectorAll('.cg-preview-image:not(.visible)');
-            newImages.forEach(img => img.classList.add('visible'));
             renderedImageCount = images.length;
-                
+        
             updatePreviewBorders();
             ensureSwitchModeButton(container, () => {
                 isGridMode = !isGridMode;
