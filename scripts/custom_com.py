@@ -11,17 +11,24 @@ LOADING_WAIT_BASE64 = DEFAULT_BASE64
 LOADING_FAILED_BASE64 = DEFAULT_BASE64
 
 JS_SHOWLOADING_WITHTHUMB = """
-function(images_data) {
-    window.cgCustomGallery.showLoading();
+function(images_data) {    
+    window.wsManager.open().then(ws => {
+    if (ws) {
+        window.cgCustomGallery.showLoading();
 
-    const newThumbImages = images_data.data;
-    window.updateThumbGallery(newThumbImages);
+        const newThumbImages = images_data.data;
+        window.updateThumbGallery(newThumbImages);
+    } else {
+        console.error('WebSocket connection failed.')
+    }
+});
 }
 """
 
 JS_HANDLERESPONSE = """
 function(js_ret) {
-    window.cgCustomGallery.handleResponse(js_ret);     
+    window.wsManager.close();
+    window.cgCustomGallery.handleResponse(js_ret);    
 }
 """
 

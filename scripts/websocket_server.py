@@ -3,6 +3,7 @@ import websockets
 import threading
 
 CAT = "[WebSocket Server]"
+MAX_SIZE = 100 * 1024 * 1024  # 100 MB
 
 connected_clients = set()
 
@@ -21,7 +22,7 @@ async def handle_connection(websocket):
     finally:
         connected_clients.discard(websocket)
 
-async def start_websocket_server(host="127.0.0.1", port=47850, max_size=100*1024*1024):
+async def start_websocket_server(host="127.0.0.1", port=47850, max_size=MAX_SIZE):
     server = await websockets.serve(handle_connection, host, port, max_size=max_size)
     print(f"{CAT} running on ws://{host}:{port} with max_size={max_size/1024/1024} MB")
     return server

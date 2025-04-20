@@ -5,12 +5,12 @@ function my_custom_js() {
         #reconnectInterval = null;
         #isWebSocketInitialized = false;
         #pendingImage = null;
-        #RECONNECT_DELAY = 5000;
+        #isManuallyClosed = false; 
         #INITIAL_RETRY_INTERVAL = 500; 
         #MAX_INITIAL_RETRIES = 10; 
     
         constructor() {}
-    
+
         async init(retryCount = 0) {
             if (this.#isWebSocketInitialized && this.#ws && this.#ws.readyState === WebSocket.OPEN) {
                 console.log('[WebSocket] Already initialized and connected');
@@ -29,11 +29,12 @@ function my_custom_js() {
                 this.#isWebSocketInitialized = true;
 
                 this.#ws.onopen = () => {
-                    console.log('[WebSocket] Connected to', wsServer);
+                    //console.log('[WebSocket] Connected to', wsServer);
                     if (this.#reconnectInterval) {
                         clearInterval(this.#reconnectInterval);
                         this.#reconnectInterval = null;
                     }
+                    this.#isManuallyClosed = false; 
                 };
     
                 this.#ws.onmessage = (event) => {
@@ -67,38 +68,45 @@ function my_custom_js() {
                 };
     
                 this.#ws.onclose = async () => {
-                    console.warn('[WebSocket] Connection closed');
                     this.#ws = null;
-                    if (!this.#reconnectInterval) {
-                        if (retryCount < this.#MAX_INITIAL_RETRIES) {
-                            console.log(`[WebSocket] Initial connection attempt ${retryCount + 1} failed, retrying in ${this.#INITIAL_RETRY_INTERVAL}ms...`);
-                            await new Promise(resolve => setTimeout(resolve, this.#INITIAL_RETRY_INTERVAL));
-                            return this.init(retryCount + 1);
-                        }
-
-                        this.#reconnectInterval = setInterval(() => {
-                            console.log('[WebSocket] Attempting to reconnect...');
-                            this.init(0);
-                        }, this.#RECONNECT_DELAY);
+                    if (this.#isManuallyClosed) {
+                        //console.log('[WebSocket] Manually closed, no reconnect attempted');
+                        return;
                     }
+                    if (retryCount < this.#MAX_INITIAL_RETRIES) {
+                        console.warn(`[WebSocket] Initial connection attempt ${retryCount + 1} failed, retrying in ${this.#INITIAL_RETRY_INTERVAL}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, this.#INITIAL_RETRY_INTERVAL));
+                        return this.init(retryCount + 1);
+                    }
+                    console.error('[WebSocket] Max retry attempts reached, giving up');
                 };
     
                 return this.#ws;
             } catch (e) {
                 console.warn('[WebSocket] Failed to initialize:', e.message);
                 if (retryCount < this.#MAX_INITIAL_RETRIES) {
-                    console.log(`[WebSocket] Initial connection attempt ${retryCount + 1} failed, retrying in ${this.#INITIAL_RETRY_INTERVAL}ms...`);
+                    console.warn(`[WebSocket] Initial connection attempt ${retryCount + 1} failed, retrying in ${this.#INITIAL_RETRY_INTERVAL}ms...`);
                     await new Promise(resolve => setTimeout(resolve, this.#INITIAL_RETRY_INTERVAL));
                     return this.init(retryCount + 1);
                 }
-                if (!this.#reconnectInterval) {
-                    this.#reconnectInterval = setInterval(() => {
-                        console.log('[WebSocket] Attempting to reconnect...');
-                        this.init(0);
-                    }, this.#RECONNECT_DELAY);
-                }
+                console.error('[WebSocket] Max retry attempts reached, giving up');
                 return null;
             }
+        }
+
+        async open() {
+            if (this.#isWebSocketInitialized && this.#ws && this.#ws.readyState === WebSocket.OPEN) {
+                //console.log('[WebSocket] Connection already open');
+                return this.#ws;
+            }
+            this.#isManuallyClosed = false; 
+            return await this.init(0);
+        }
+
+        close() {
+            this.#isManuallyClosed = true;
+            this.cleanup();
+            //console.log('[WebSocket] Connection closed by user');
         }
     
         handlePreviewImageResponse(base64) {
@@ -162,7 +170,6 @@ function my_custom_js() {
             }
             this.#pendingImage = null;
             this.#isWebSocketInitialized = false;
-            console.log('[WebSocketManager] Cleaned up');
         }
     }
 
@@ -195,9 +202,8 @@ function my_custom_js() {
     });    
     window.customOverlay = customCommonOverlay();
 
-    // Initialize the WebSocket manager
-    const wsManager = new WebSocketManager();
-    wsManager.init();
+    // Initialize the WebSocket manager but do not connect automatically
+    window.wsManager = new WebSocketManager();
 
     window.addEventListener('resize', () => {
         const overlays = ['cg-button-overlay', 'cg-loading-overlay'];
