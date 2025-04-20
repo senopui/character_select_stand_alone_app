@@ -14,9 +14,9 @@
     border: 2px solid #333;
     position: relative;
     width: 100%;
-    height: 302px; 
+    height: 300px; 
     overflow: hidden;
-    font-size: 14px; 
+    font-size: 12px; 
 }
 
 .ib-info-box-title {
@@ -27,35 +27,33 @@
     color: white;
     padding: 2px 8px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 12px;
     z-index: 10;
 }
 
 .ib-info-box-content {
     width: 100%;
-    height: calc(100% - 30px);
+    height: calc(100% - 30px); 
     margin-top: 30px; 
     overflow-y: auto; 
     overflow-x: hidden;
     box-sizing: border-box;
     padding: 10px;
-    background: #111;
-    scrollbar-width: thin; 
-    scrollbar-color: #555 #333;
+    background: #111; 
 }
 
 .ib-info-box-content::-webkit-scrollbar {
-    width: 10px;
+    width: 8px; 
 }
 
 .ib-info-box-content::-webkit-scrollbar-track {
-    background: #333;
-    border-radius: 5px;
+    background: #222; 
+    border-radius: 4px;
 }
 
 .ib-info-box-content::-webkit-scrollbar-thumb {
     background: linear-gradient(45deg, #555, #888);
-    border-radius: 5px;
+    border-radius: 4px;
 }
 
 .ib-info-box-content::-webkit-scrollbar-thumb:hover {
@@ -672,6 +670,7 @@
     width: 100%;
     user-select: text; 
 }
+
 .cg-thumb-overlay {
     position: fixed;
     background: rgba(0, 0, 0, 0.5);
