@@ -2,7 +2,6 @@ import base64
 import gzip
 from io import BytesIO
 import os
-from PIL import Image
 
 CAT = "Custom Components"
 
@@ -33,9 +32,11 @@ function(js_ret) {
 """
 
 JS_SHOWTHUMB = """
-function(images_data) {
+function(text, images_data) {
+    window.allInfoBox.updateContent(text);
+    
     const newThumbImages = images_data.data;
-    window.updateThumbGallery(newThumbImages);
+    window.updateThumbGallery(newThumbImages);    
 }
 """
 
@@ -47,7 +48,7 @@ function(character, images_data) {
 """
 
 JS_INIT = """
-function(loading_wait, loading_failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, view_text, ws_port) {
+function(loading_wait, loading_failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, view_text, ws_port, info_box) {
     sl_title = show_loading_text.split(',')[0];
     sl_te = show_loading_text.split(',')[1];
     sl_sec = show_loading_text.split(',')[2];
@@ -56,6 +57,7 @@ function(loading_wait, loading_failed, show_loading_text, keys, values, oc, char
     window.ELAPSED_TIME_PREFIX = sl_te;
     window.ELAPSED_TIME_SUFFIX = sl_sec;
     window.WS_PORT = parseInt(ws_port);
+    window.setupInfoBox(info_box, '');
     
     if (window.LOADING_WAIT_BASE64 && window.LOADING_FAILED_BASE64) {
         console.log('Loading images already initialized.');
@@ -130,6 +132,12 @@ function(keep_gallery) {
 }
 """
 
+JS_UPDATE_INFO_BOX = """
+function(text) {
+    window.allInfoBox.updateContent(text);
+}
+"""
+
 def get_image_base64(file_name):
     base_dir = os.path.dirname(__file__)
     img_path = os.path.join(base_dir, "imgs", file_name)
@@ -160,6 +168,14 @@ def custom_thumb_default():
         <div class="cg-thumb-loading"> </div>
     </div>
     """
+        
+def custom_info_box_all():
+    return """
+    <div id="ib-info-all" class="ib-info-box" style="max-height: 302px;">
+        <div class="ib-info-box-title">All Info</div>
+        <div class="ib-info-box-content"> </div>
+    </div>
+    """
     
 def init_custom_com():
     global LOADING_WAIT_BASE64
@@ -170,7 +186,7 @@ def init_custom_com():
     
     return LOADING_WAIT_BASE64, LOADING_FAILED_BASE64
 
-def get_13(wait, failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, dummy_textbox2, ws_port):
+def get_14(wait, failed, show_loading_text, keys, values, oc, chara_text, character1, character2, character3, view_data, dummy_textbox2, ws_port, info_box):
     return
 
 def get_7(character1, character2, character3, view1, view2, view3, view4):

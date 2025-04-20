@@ -878,7 +878,6 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
         custom_prompt = f'{custom_prompt},'
     
     final_infos = []
-    final_tags = []
         
     if not batch_random:
         loops = 1
@@ -947,10 +946,11 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, hf_random_seed,
                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                 )
-        final_tags.append(f'{index}:\n{to_image_create_prompt}\n')
         final_info = f'{index}:\nCustom Promot:[{custom_prompt}]\nTags:[{tag_angle}{tag_camera}{tag_background}{tag_style}]\n{info}\nAI Prompt:[{ai_text}]\nSeed:[{seed1}]\n'        
         if api_hf_enable and api_hf_random_seed:
-            final_info += f'Hires Fix Seed:[{hf_random_seed}]\n'            
+            final_info += f'Hires Fix Seed:[{hf_random_seed}]\n\n'
+        else:
+            final_info += f'\n'
         final_infos.append(final_info)
         
         # Collect prompts
@@ -965,7 +965,8 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
                             "base64": base64_image,
                             "seed": f'{seed1}',
                             "tags": to_image_create_prompt,
-                            "keep_gallery": f'{keep_gallery}'
+                            "keep_gallery": f'{keep_gallery}',
+                            "final_infos": ''.join(final_infos)
                             })
             send_websocket_message(message=packed_json,
                                     websocket_address='127.0.0.1',
@@ -974,8 +975,8 @@ def create_prompt_ex(batch_random, view_angle, view_camera, view_background, vie
             keep_gallery = True
         else:
             break              
-        
-    return ''.join(final_tags), ''.join(final_infos), js_ret
+
+    return js_ret
     
 def create_with_last_prompt(view_angle, view_camera, view_background, view_style, random_seed,  custom_prompt, keep_gallery,
                             ai_interface, ai_prompt, batch_generate_rule, prompt_ban, remote_ai_base_url, remote_ai_model, remote_ai_timeout,
@@ -993,7 +994,6 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
         custom_prompt = f'{custom_prompt},'
             
     final_infos = []
-    final_tags = []
     
     ai_text=''
     if 'none' != batch_generate_rule:         
@@ -1034,8 +1034,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                                  api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                  api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                  )
-        final_tags.append(f'{index}:\n{to_image_create_prompt}\n')
-        final_info = f'{final_info}\nSeed {index}:[{seed}]\n'
+        final_info = f'{final_info}\nSeed {index}:[{seed}]\n\n'
         final_infos.append(final_info)
         
         if api_image:            
@@ -1045,7 +1044,8 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
                             "base64": base64_image,
                             "seed": f'{seed}',
                             "tags": to_image_create_prompt,
-                            "keep_gallery": f'{keep_gallery}'
+                            "keep_gallery": f'{keep_gallery}',
+                            "final_infos": ''.join(final_infos)
                             })
             send_websocket_message(message=packed_json,
                                     websocket_address='127.0.0.1',
@@ -1055,7 +1055,7 @@ def create_with_last_prompt(view_angle, view_camera, view_background, view_style
         else:
             break              
         
-    return ''.join(final_tags), ''.join(final_infos), js_ret
+    return js_ret
 
 def skip_next_generate_click():
     global skip_next_generate
@@ -1207,7 +1207,7 @@ def refresh_character_thumb_image(character1, character2, character3):
     if 'none' != character3 and 'random' != character3:
         rnd_character[2], opt_chara[2], thumb_image3, _ = illustrious_character_select_ex(character = character3, random_action_seed=42)                
         thumb_image.append(thumb_image3)
-        
+
     _, character_info = create_prompt_info(rnd_character[0], opt_chara[0], '',
                                     rnd_character[1], opt_chara[1], '',
                                     rnd_character[2], opt_chara[2], '',

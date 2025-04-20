@@ -4,10 +4,10 @@ Now supports 5177 (includes multiple costumes) Character list.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
 
-**Speed boost options (for Titan RTX it's about 10~15% boost)**
+**Speed boost options (for Titan RTX it's about 10~15%)**
 1. Turn off preview image in settings    
 2. Turn off hardware acceleration in your browser    
-3. Put tabs in the background (not displayed)    
+3. **BEST** Put tabs in the background (not displayed)    
 
 | Item Support | ComfyUI| WebUI | Forge|
 | --- | --- | --- | --- |

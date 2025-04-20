@@ -6,9 +6,9 @@ sys.path.append("scripts/")
 from lib import init, create_prompt_ex, create_with_last_prompt, save_current_setting, load_saved_setting, batch_generate_rule_change, refresh_character_thumb_image_overlay, refresh_character_thumb_image, manual_update_database, create_characters
 from lib import skip_next_generate_click, cancel_current_generate_click, update_sampler_and_scheduler
 from lib import TITLE, settings_json, get_prompt_manager, add_lora, update_lora_list, warning_lora, get_lora_info 
-from custom_com import custom_gallery_default, custom_thumb_default, get_13, get_7, get_2, get_1
+from custom_com import custom_gallery_default, custom_thumb_default, custom_info_box_all, get_14, get_7, get_2, get_1
 from custom_com import JS_SHOWLOADING_WITHTHUMB, JS_HANDLERESPONSE, JS_SHOWTHUMB, JS_SHOWTHUMB_OVERLAY, JS_INIT, JS_SHOWCUSTOM_ERRORMESSAGE, JS_SHOWCUSTOM_MESSAGE
-from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE, JS_CLEAR_GALLERY
+from custom_com import JS_CUSTOM_CHARACTERS_DROPDOWN, JS_CUSTOM_VIEW_DROPDOWN, JS_CUSTOM_DROPDOWN_UPDATE, JS_CLEAR_GALLERY, JS_UPDATE_INFO_BOX
 from image_info import read_image_metadata, send_image_metadata
 from websocket_server import run_websocket_server_in_thread
 
@@ -55,7 +55,7 @@ def run_gradio():
             dummy_dropdown = gr.Dropdown(visible=False, allow_custom_value=True)
             dummy_textbox1 = gr.Textbox(visible=False, value=f'{LANG["character1"]},{LANG["character2"]},{LANG["character3"]},{LANG["original_character"]}')
             dummy_textbox2 = gr.Textbox(visible=False, value=f'{LANG["view_angle"]},{LANG["view_camera"]},{LANG["view_background"]},{LANG["view_style"]}')
-            dummy_text = gr.Text(visible=False, value='')
+            dummy_text = gr.Text(visible=False, value=f'{LANG["output_info"]}')
             
             dummy_wait_base64=gr.Text(value=LOADING_WAIT_BASE64, visible=False)
             dummy_failed_base64=gr.Text(value=LOADING_FAILED_BASE64, visible=False)
@@ -67,21 +67,20 @@ def run_gradio():
             dummy_oc = gr.JSON(visible=False, value=original_character_list)
             dummy_preview_image = gr.Textbox(visible=False, value=f'{WSPORT}')
             
+            images_data = gr.JSON(visible=False, elem_id="images-data-json")
+            
         with gr.Row(elem_classes='main_row'):
             with gr.Column(elem_classes='column_images'):
                 with gr.Row():
-                    custom_view_dropdown = gr.HTML(JS_CUSTOM_VIEW_DROPDOWN, padding=False)                    
+                    custom_view_dropdown = gr.HTML(JS_CUSTOM_VIEW_DROPDOWN, padding=False)
                     view_angle = gr.Textbox(value=settings_json["view_angle"], visible=False, elem_id="cd-view-angle")
                     view_camera = gr.Textbox(value=settings_json["view_camera"], visible=False, elem_id="cd-view-camera")
                     view_background = gr.Textbox(value=settings_json["view_background"], visible=False, elem_id="cd-view-background")
                     view_style = gr.Textbox(value=settings_json["view_style"], visible=False, elem_id="cd-view-style")                       
                 with gr.Row():
-                    api_image = gr.HTML(custom_gallery_default, label=LANG["api_image"], elem_id="cg-gallery-wrapper", max_height=846, min_height=846, padding=False)
-                    images_data = gr.JSON(visible=False, elem_id="images-data-json")                
-                with gr.Row():                    
-                    output_prompt = gr.Textbox(label=LANG["output_prompt"])
+                    api_image = gr.HTML(custom_gallery_default, elem_id="cg-gallery-wrapper", max_height=846, min_height=846, padding=False)                    
                 with gr.Row():
-                    output_info = gr.Textbox(label=LANG["output_info"])
+                    output_info = gr.HTML(custom_info_box_all, padding=False)
                 with gr.Accordion(label=LANG["image_info"], open=False):
                     with gr.Row():
                         image_info_to_generate = gr.Button(value=LANG["image_info_to_generate"], variant='primary')
@@ -272,7 +271,7 @@ def run_gradio():
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
-                                    outputs=[output_prompt, output_info, dummy_textbox2]
+                                    outputs=[dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[dummy_textbox2],
@@ -296,7 +295,7 @@ def run_gradio():
                                                 api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                                 api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                             ], 
-                                    outputs=[output_prompt, output_info, dummy_textbox2]
+                                    outputs=[dummy_textbox2]
                                 ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[dummy_textbox2],
@@ -317,7 +316,7 @@ def run_gradio():
                                         api_hf_enable, api_hf_scale, api_hf_denoise, api_hf_upscaler_selected, api_hf_colortransfer, api_webui_savepath_override, api_hf_random_seed,
                                         api_refiner_enable, api_refiner_add_noise, api_refiner_model_list, api_refiner_ratio
                                         ], 
-                                outputs=[output_prompt, output_info, dummy_textbox2]
+                                outputs=[dummy_textbox2]
                             ).then(
                                     fn=generate_unlock,                                    
                                     inputs=[dummy_textbox2],
@@ -356,9 +355,9 @@ def run_gradio():
                                                 ).then(
                                                     fn=refresh_character_thumb_image,
                                                     inputs=[character1,character2,character3],
-                                                    outputs=[output_info, images_data]
-                                                    ).then(fn=get_1,
-                                                        inputs=[images_data],
+                                                    outputs=[dummy_textbox2, images_data]
+                                                    ).then(fn=get_2,
+                                                        inputs=[dummy_textbox2, images_data],
                                                         js=JS_SHOWTHUMB
                                                         ).then(fn=get_7,
                                                             inputs=[character1,character2,character3,view_angle, view_camera, view_background, view_style],
@@ -367,7 +366,6 @@ def run_gradio():
         manual_update_database_button.click(fn=manual_update_database, inputs=None).then(fn=manual_update_database, inputs=[manual_update_database_button], outputs=[manual_update_database_button])                
         batch_generate_rule.change(fn=batch_generate_rule_change,inputs=batch_generate_rule)
         keep_gallery.change(fn=get_1, inputs=[keep_gallery], js=JS_CLEAR_GALLERY)
-        
         
         lora_insert.click(fn=add_lora, inputs=[lora_list, api_prompt, api_interface], outputs=[api_prompt])
         lora_info.click(fn=get_lora_info, inputs=[lora_list], outputs=[dummy_text, dummy_textbox2]).then(fn=None,inputs=[dummy_text, dummy_textbox2], js=JS_SHOWCUSTOM_MESSAGE)
@@ -381,9 +379,9 @@ def run_gradio():
                 )
 
         character.change(fn=refresh_character_thumb_image_overlay, inputs=[character], outputs=[images_data]).then(fn=get_2,inputs=[character, images_data],js=JS_SHOWTHUMB_OVERLAY)
-        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
-        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
-        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[output_info, images_data]).then(fn=get_1,inputs=[images_data],js=JS_SHOWTHUMB)
+        character1.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[dummy_textbox2, images_data]).then(fn=get_2,inputs=[dummy_textbox2, images_data],js=JS_SHOWTHUMB)
+        character2.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[dummy_textbox2, images_data]).then(fn=get_2,inputs=[dummy_textbox2, images_data],js=JS_SHOWTHUMB)
+        character3.change(fn=refresh_character_thumb_image,inputs=[character1,character2,character3],outputs=[dummy_textbox2, images_data]).then(fn=get_2,inputs=[dummy_textbox2, images_data],js=JS_SHOWTHUMB)
                        
         dummy_textbox1.change(fn=get_prompt_manager().update_suggestions_js, inputs=[dummy_textbox1], outputs=[dummy_dropdown])
         
@@ -393,20 +391,21 @@ def run_gradio():
         api_refiner_enable_shadow.change(fn=sync_trigger, inputs=[api_refiner_enable_shadow], outputs=[api_refiner_enable])
         api_refiner_enable.change(fn=sync_trigger, inputs=[api_refiner_enable], outputs=[api_refiner_enable_shadow])
                 
-        image_info.change(fn=read_image_metadata, inputs=[image_info], outputs=[output_info])
-        image_info_to_generate.click(fn=read_image_metadata, inputs=[image_info], outputs=[output_info]
-                                     ).then(fn=send_image_metadata, inputs=[output_info, api_image_data], outputs=[custom_prompt, api_neg_prompt, api_prompt, random_seed, api_image_data])
+        image_info.change(fn=read_image_metadata, inputs=[image_info], outputs=[dummy_textbox2]).then(fn=get_1,inputs=[dummy_textbox2], js=JS_UPDATE_INFO_BOX)
+        image_info_to_generate.click(fn=read_image_metadata, inputs=[image_info], outputs=[dummy_textbox2]
+                                     ).then(fn=get_1,inputs=[dummy_textbox2], js=JS_UPDATE_INFO_BOX).then(
+                                            fn=send_image_metadata, inputs=[dummy_textbox2, api_image_data], outputs=[custom_prompt, api_neg_prompt, api_prompt, random_seed, api_image_data])
         
         ui.load(
-            fn=get_13,
-            inputs=[dummy_wait_base64, dummy_failed_base64, dummy_show_loading_text, dummy_keys, dummy_values, dummy_oc, dummy_textbox1, character1, character2, character3, dummy_view_data, dummy_textbox2, dummy_preview_image],
+            fn=get_14,
+            inputs=[dummy_wait_base64, dummy_failed_base64, dummy_show_loading_text, dummy_keys, dummy_values, dummy_oc, dummy_textbox1, character1, character2, character3, dummy_view_data, dummy_textbox2, dummy_preview_image, dummy_text],
             js=JS_INIT
             ).then(
                 fn=refresh_character_thumb_image,
                 inputs=[character1,character2,character3],
-                outputs=[output_info, images_data]
-                ).then(fn=get_1,
-                    inputs=[images_data],
+                outputs=[dummy_textbox2, images_data]
+                ).then(fn=get_2,
+                    inputs=[dummy_textbox2, images_data],
                     js=JS_SHOWTHUMB).then(fn=warning_lora, inputs=[api_interface], outputs=[dummy_textbox1]).then(fn=None,inputs=[dummy_textbox1], js=JS_SHOWCUSTOM_ERRORMESSAGE)
             
     ui.launch(inbrowser=True)

@@ -54,6 +54,11 @@ function my_custom_js() {
                             if (data.base64 && data.base64.startsWith('data:image/') && data.seed && data.tags && data.keep_gallery) {                                
                                 this.handleFinalImageResponse(data.base64.trim(), data.seed.trim(), data.tags.trim(), data.keep_gallery);
                                 this.#ws.send(JSON.stringify({ command: 'final_image_ack', seed: data.seed }));
+
+                                if(data.final_infos) {
+                                    const finalInfos = data.final_infos.trim();
+                                    window.allInfoBox.updateContent(finalInfos);
+                                }
                             } 
                         } else {
                             console.warn('[WebSocket] Invalid data.command:', data.command);
@@ -181,7 +186,7 @@ function my_custom_js() {
     dark_theme();
     myCharacterList();
     myViewsList();
-    setupThumbOverlay();    
+    setupThumbOverlay();
 
     requestIdleCallback(() => {
         setupSuggestionSystem();
@@ -196,6 +201,14 @@ function my_custom_js() {
         }
     });    
     window.customOverlay = customCommonOverlay();
+    
+    window.setupInfoBox = function(title_all, text_all) {    
+        window.allInfoBox = initInfoBox(
+            'ib-info-all',
+            title_all,
+            text_all
+        );
+    }
 
     // Initialize the WebSocket manager but do not connect automatically
     window.wsManager = new WebSocketManager();
@@ -714,6 +727,98 @@ function my_custom_js() {
         });
     }
 
+    function initInfoBox(id, initialTitle='', initialContent = '') {
+        function initializeInfoBox() {
+            const infoBox = document.querySelector(`#${id}`);
+            if (!infoBox) {
+                console.error(`InfoBox with id ${id} not found`);
+                return false;
+            }
+    
+            let contentDiv = infoBox.querySelector('.ib-info-box-content');
+            if (!contentDiv) {
+                console.warn(`Content div not found in InfoBox ${id}, creating one`);
+                contentDiv = document.createElement('div');
+                contentDiv.className = 'ib-info-box-content';
+                infoBox.appendChild(contentDiv);
+            }
+    
+            let pre = contentDiv.querySelector('pre');
+            if (!pre) {
+                pre = document.createElement('pre');
+                contentDiv.appendChild(pre);
+            }
+    
+            return true;
+        }
+    
+        function updateInfoBoxContent(newContent) {
+            const infoBox = document.querySelector(`#${id}`);
+            if (!infoBox) {
+                console.error(`InfoBox with id ${id} not found`);
+                return;
+            }
+    
+            const pre = infoBox.querySelector('.ib-info-box-content pre');
+            if (!pre) {
+                console.error(`Content pre element not found in InfoBox ${id}`);
+                return;
+            }
+    
+            pre.innerHTML = parseTaggedContent(newContent);
+        }
+
+        function updateInfoBoxTitle(newTitle) {
+            const infoBox = document.querySelector(`#${id}`);
+            if (!infoBox) {
+                console.error(`InfoBox with id ${id} not found`);
+                return;
+            }
+    
+            const titleDiv = infoBox.querySelector('.ib-info-box-title');
+            if (!titleDiv) {
+                console.error(`Title div not found in InfoBox ${id}`);
+                return;
+            }
+    
+            titleDiv.textContent = newTitle;
+        }
+    
+        function parseTaggedContent(content) {
+            const colorRegex = /\[color=([^\]]*?)\](.*?)\[\/color\]/g;
+            content = content.replace(colorRegex, (match, color, text) => {
+                const isValidColor = /^#[0-9A-Fa-f]{6}$|^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$|^[a-zA-Z]+$/.test(color);
+                if (isValidColor) {
+                    return `<span style="color:${color}">${text}</span>`;
+                }
+                return text;
+            });
+    
+            const urlRegex = /\[url=([^\]]*?)\](.*?)\[\/url\]/g;
+            content = content.replace(urlRegex, (match, url, text) => {
+                const isValidUrl = /^(https?:\/\/[^\s<>"']+)$/.test(url);
+                if (isValidUrl) {
+                    return `<a href="${url}" target="_blank" style="color:#3498db;text-decoration:underline">${text}</a>`;
+                }
+                return text;
+            });
+    
+            return content;
+        }
+    
+        if (!initializeInfoBox()) {
+            return { updateContent: () => console.error(`Cannot update content for missing InfoBox ${id}`) };
+        }
+    
+        updateInfoBoxContent(initialContent);
+        updateInfoBoxTitle(initialTitle);
+    
+        return {
+            updateContent: updateInfoBoxContent,
+            updateTitle: updateInfoBoxTitle
+        };
+    }
+
     function setupGallery() {
         if (window.isGallerySetup) return;
         window.isGallerySetup = true;
@@ -760,7 +865,7 @@ function my_custom_js() {
             if (seeds.length !== tags.length || images.length !== seeds.length) {
                 console.warn('[appendImageData] Mismatch: images:', images.length, 'seeds:', seeds.length, 'tags:', tags.length);
             }
-                    
+
             if (isGridMode) {
                 gallery_renderGridMode(true);
             } else {

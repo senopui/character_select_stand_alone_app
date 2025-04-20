@@ -5,7 +5,74 @@
 #ai_prompt_text textarea { color: hotpink; }
 #prompt_ban_text textarea { color: khaki; }
 
-/* Suggestion Box */
+/* Info Box */
+.ib-info-box {
+    box-sizing: border-box;
+    padding: 10px;
+    background: #111;
+    border-radius: 8px;
+    border: 2px solid #333;
+    position: relative;
+    width: 100%;
+    height: 302px; 
+    overflow: hidden;
+    font-size: 14px; 
+}
+
+.ib-info-box-title {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(17, 17, 17, 0.8);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 10;
+}
+
+.ib-info-box-content {
+    width: 100%;
+    height: calc(100% - 30px);
+    margin-top: 30px; 
+    overflow-y: auto; 
+    overflow-x: hidden;
+    box-sizing: border-box;
+    padding: 10px;
+    background: #111;
+    scrollbar-width: thin; 
+    scrollbar-color: #555 #333;
+}
+
+.ib-info-box-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.ib-info-box-content::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 5px;
+}
+
+.ib-info-box-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(45deg, #555, #888);
+    border-radius: 5px;
+}
+
+.ib-info-box-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(45deg, #777, #aaa);
+}
+
+.ib-info-box-content pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    color: white;
+    user-select: text;
+    min-height: 100%; 
+}
+
 /* Suggestion Box */
 .suggestion-box {
     position: absolute;
