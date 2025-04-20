@@ -4,6 +4,11 @@ Now supports 5177 (includes multiple costumes) Character list.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
 
+**Speed boost options (for Titan RTX it's about 10~15% boost)**
+1. Turn off preview image in settings    
+2. Turn off hardware acceleration in your browser    
+3. Put tabs in the background (not displayed)    
+
 | Item Support | ComfyUI| WebUI | Forge|
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
@@ -15,8 +20,9 @@ Now supports 5177 (includes multiple costumes) Character list.
 | Image Info to Prompt | Yes(*2) | Yes | Yes |
 | Regional Condition | No | No | No |
 
-*1 Dev branch    
-*2 Image Saved by Image Saver node   
+*1  ComfyUI: auto detected by vPred in model name.     
+    WebUI: Switch to Dev branch    
+*2  Image Saved by Image Saver node   
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
