@@ -280,13 +280,13 @@ function my_custom_js() {
         return overlay;
     }
     
-    function ensureSwitchModeButton(container, toggleFunction, id) {
+    function ensureSwitchModeButton(container, toggleFunction, id, images_length) {
         let button = document.getElementById(id);
         if (!button) {
             button = document.createElement('button');
             button.id = id;
             button.className = 'cg-button';
-            button.textContent = '<>';
+            button.textContent = images_length > 0 ? `<${images_length}>` : '<>';
             button.addEventListener('click', async () => {
                 const overlay = createModeSwitchOverlay(container);
                 overlay.classList.add('visible');
@@ -302,6 +302,9 @@ function my_custom_js() {
                 });
             });
             container.appendChild(button);
+        }
+        else {
+            button.textContent = images_length > 0 ? `<${images_length}>` : '<>';
         }
     }
 
@@ -757,9 +760,7 @@ function my_custom_js() {
             if (seeds.length !== tags.length || images.length !== seeds.length) {
                 console.warn('[appendImageData] Mismatch: images:', images.length, 'seeds:', seeds.length, 'tags:', tags.length);
             }
-    
-            currentIndex = images.length - 1;    
-    
+                    
             if (isGridMode) {
                 gallery_renderGridMode(true);
             } else {
@@ -1070,7 +1071,7 @@ function my_custom_js() {
                     isGridMode = !isGridMode;
                     currentIndex = images.length - 1;
                     isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
-                }, 'cg-switch-mode-button');
+                }, 'cg-switch-mode-button', images.length);
                 ensurePrivacyButton();
             };
             firstImage.onerror = () => {
@@ -1088,21 +1089,22 @@ function my_custom_js() {
                 currentIndex = 0;
                 return;
             }
-        
+    
             let mainImageContainer = container.querySelector('.cg-main-image-container');
             let previewContainer = container.querySelector('.cg-preview-container');
-        
+    
             if (!mainImageContainer || !previewContainer || !incremental) {
                 container.innerHTML = '';
                 mainImageContainer = document.createElement('div');
                 mainImageContainer.className = 'cg-main-image-container';
                 const mainImage = document.createElement('img');
+                currentIndex = images.length - 1;
                 mainImage.src = images[currentIndex];
                 mainImage.className = 'cg-main-image';
                 mainImage.addEventListener('click', () => enterFullscreen(currentIndex));
                 mainImageContainer.appendChild(mainImage);
                 container.appendChild(mainImageContainer);
-        
+    
                 mainImageContainer.addEventListener('click', (e) => {
                     e.preventDefault();
                     const rect = mainImageContainer.getBoundingClientRect();
@@ -1118,13 +1120,13 @@ function my_custom_js() {
                         updatePreviewBorders();
                     }
                 });
-        
+    
                 previewContainer = document.createElement('div');
                 previewContainer.className = 'cg-preview-container scroll-container';
                 setupScrollableContainer(previewContainer);
                 container.appendChild(previewContainer);
                 renderedImageCount = 0;
-        
+    
                 previewContainer.addEventListener('click', (e) => {
                     const previewImage = e.target.closest('.cg-preview-image');
                     if (previewImage) {
@@ -1137,56 +1139,62 @@ function my_custom_js() {
                     }
                 });
             }
-        
+    
             const mainImage = mainImageContainer.querySelector('.cg-main-image');
             if (mainImage.src !== images[currentIndex]) {
                 mainImage.src = images[currentIndex];
             }
-        
+    
             const fragment = document.createDocumentFragment();
             const observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         const img = entry.target;
-                        img.src = img.dataset.src; 
+                        img.src = img.dataset.src;
                         img.classList.add('visible');
                         observer.unobserve(img);
                     }
                 });
             }, { root: previewContainer, threshold: 0.1 });
-        
-            if (!incremental) {
-                for (let i = images.length - 1; i >= 0; i--) {
+    
+            if (incremental && renderedImageCount < images.length) {
+                for (let i = renderedImageCount; i < images.length; i++) {
                     const previewImage = document.createElement('img');
                     previewImage.className = 'cg-preview-image';
-                    previewImage.dataset.src = images[i]; 
+                    previewImage.dataset.src = images[i];
                     previewImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
                     previewImage.loading = 'lazy';
                     previewImage.dataset.domIndex = images.length - 1 - i;
                     fragment.appendChild(previewImage);
-                    observer.observe(previewImage); 
+                    observer.observe(previewImage);
                 }
             } else {
-                for (let i = renderedImageCount; i < images.length; i++) {
+                for (let i = images.length - 1; i >= 0; i--) {
                     const previewImage = document.createElement('img');
                     previewImage.className = 'cg-preview-image';
-                    previewImage.dataset.src = images[i]; 
+                    previewImage.dataset.src = images[i];
                     previewImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
                     previewImage.loading = 'lazy';
-                    previewImage.dataset.domIndex = i;
+                    previewImage.dataset.domIndex = images.length - 1 - i;
                     fragment.appendChild(previewImage);
-                    observer.observe(previewImage); 
+                    observer.observe(previewImage);
                 }
             }
+    
             previewContainer.prepend(fragment);
             renderedImageCount = images.length;
-        
+    
             updatePreviewBorders();
+            const currentPreview = previewContainer.querySelector(`.cg-preview-image[data-domIndex="${images.length - 1 - currentIndex}"]`);
+            if (currentPreview) {
+                currentPreview.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+    
             ensureSwitchModeButton(container, () => {
                 isGridMode = !isGridMode;
                 currentIndex = images.length - 1;
                 isGridMode ? gallery_renderGridMode() : gallery_renderSplitMode();
-            }, 'cg-switch-mode-button');
+            }, 'cg-switch-mode-button', images.length);
             ensureSeedButton();
             ensureTagButton();
             ensurePrivacyButton();
@@ -1356,7 +1364,7 @@ function my_custom_js() {
                 ensureSwitchModeButton(container, () => {
                     isGridMode = !isGridMode;
                     isGridMode ? thumb_renderGridMode() : thumb_renderSplitMode();
-                }, 'cg-thumb-switch-mode-button');
+                }, 'cg-thumb-switch-mode-button', images.length);
             };
             firstImage.onerror = () => {
                 console.error('Failed to load first image for grid mode');
@@ -1391,7 +1399,7 @@ function my_custom_js() {
             ensureSwitchModeButton(container, () => {
                 isGridMode = !isGridMode;
                 isGridMode ? thumb_renderGridMode() : thumb_renderSplitMode();
-            }, 'cg-thumb-switch-mode-button');
+            }, 'cg-thumb-switch-mode-button', images.length);
         }
     
         window.updateThumbGallery = function (imageData) {
