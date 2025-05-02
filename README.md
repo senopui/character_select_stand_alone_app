@@ -49,6 +49,23 @@ Use `mouse` to select the prompt word, but you can also use the `keyboard up and
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tagAutoComplete.png" width=45% height=45%>   
 
+## Image info
+Just drag your image into SAA window, only support PNG for now.     
+Works both for WebUI and ComfyUI(with image save node).      
+Double click the image to close.     
+The `Send` button will override `Common Prompt`, `Negative Prompt`, `Width & Height`, `CFG`, `Setp` and `Seed`.    
+LoRA in `Common Prompt` also works if you have the same one. If you don't like LoRA in prompts, try `Lora Slot`.      
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageInfo.png" width=45% height=45%>   
+
+## Realtime Character preview and Search
+The Character List supports keywords search in both Chinese and English.      
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/characterPreview.png" width=45% height=45%>
+
+**The Top buttons**
+From Left to right: Save Settings, Reload Model List, Refresh page, Right to Left, Theme Switch.     
+
 ------
 # AI prompt
 Remote   
