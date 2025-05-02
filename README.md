@@ -19,7 +19,16 @@ Now supports 5177 (includes multiple costumes) Character list.
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
-## One-Click package
+## Install
+Clone this repo into your local folder     
+```
+git clone https://github.com/mirabarukaso/character_select_stand_alone_app.git
+cd character_select_stand_alone_app
+npm install
+npm start
+```
+
+*One-Click package*    
 In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)
 
 # Chinese Translate and Character Verification       
