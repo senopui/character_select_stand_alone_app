@@ -125,7 +125,7 @@ export function updateLanguage() {
     window.ai.remote_timeout.setTitle(LANG.remote_ai_timeout);
     window.ai.remote_address.setTitle(LANG.remote_ai_base_url);
     window.ai.remote_model_select.setTitle(LANG.remote_ai_model);
-    window.ai.remote_apikey.setTitle(LANG.remote_ai_api_key);
+    window.ai.remote_apikey.setTitle('API Key');
     window.ai.ai_select.setTitle(LANG.batch_generate_rule, LANG.ai_select, LANG.ai_select_title);
     window.ai.local_address.setTitle(LANG.ai_local_addr);
     window.ai.local_temp.setTitle(LANG.ai_local_temp);

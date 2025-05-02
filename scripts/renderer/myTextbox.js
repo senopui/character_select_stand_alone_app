@@ -215,6 +215,9 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
                 }
             }
             realValue = textbox.value;
+            if(passwordMode){
+                textbox.value = '******';
+            }
             setTimeout(adjustHeight, 0);
         },
         setColors: (backgroundColor, textColor) => {

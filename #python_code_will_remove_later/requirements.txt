@@ -1,7 +1,0 @@
-numpy
-requests
-pillow
-gradio
-opencv-python
-websockets
-websocket-client

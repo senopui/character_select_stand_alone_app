@@ -67,10 +67,10 @@ async function setupDownloadFiles() {
     }
 
     const wai_illustrious_character_select_files = [
-        { 'name': 'original_character', 'file_path': path.join(saveDir, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/original_character.json' },
-        { 'name': 'view_tags', 'file_path': path.join(saveDir, 'view_tags.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/view_tags.json' },
-        { 'name': 'wai_characters', 'file_path': path.join(saveDir, 'wai_characters.csv'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_characters.csv' },
-        { 'name': 'wai_tag_assist', 'file_path': path.join(saveDir, 'wai_tag_assist.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/json/wai_tag_assist.json' },
+        { 'name': 'original_character', 'file_path': path.join(saveDir, 'original_character.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/data/original_character.json' },
+        { 'name': 'view_tags', 'file_path': path.join(saveDir, 'view_tags.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/data/view_tags.json' },
+        { 'name': 'wai_characters', 'file_path': path.join(saveDir, 'wai_characters.csv'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/data/wai_characters.csv' },
+        { 'name': 'wai_tag_assist', 'file_path': path.join(saveDir, 'wai_tag_assist.json'), 'url': 'https://raw.githubusercontent.com/mirabarukaso/character_select_stand_alone_app/refs/heads/main/data/wai_tag_assist.json' },
         // outside
         { 'name': 'wai_character_thumbs', 'file_path': path.join(saveDir, 'wai_character_thumbs.json'), 'url': 'https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/wai_character_thumbs.json' },
         { 'name': 'danbooru_tag', 'file_path': path.join(saveDir, 'danbooru.csv'), 'url': 'https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/refs/heads/main/tags/danbooru.csv' }
