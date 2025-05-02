@@ -1,3 +1,6 @@
-/scripts/__pycache__
-json/wai_character_thumbs.json
-json/settings.json
+.vscode
+node_modules
+release
+data/wai_character_thumbs.json
+data/danbooru.csv
+settings/*.json

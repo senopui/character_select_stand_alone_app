@@ -1,0 +1,19 @@
+{
+  "name": "character_select",
+  "productName": "Wai Character Select Stand Alone App",
+  "description": "API",
+  "keywords": [],
+  "main": "./main.js",
+  "version": "1.0.0",
+  "author": "oOkami",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-packager ./ saa --platform=win32 --out=release --overwrite"
+  },
+  "devDependencies": {
+    "electron": "^36.0.0-beta.8"
+  },
+  "dependencies": {
+    "ws": "^8.18.1"
+  }
+}

@@ -1,0 +1,504 @@
+import { updateLanguage, updateSettings } from './renderer/language.js';
+import { setupGallery } from './renderer/customGallery.js';
+import { setupThumbOverlay, setupThumb } from './renderer/customThumbGallery.js';
+import { setupSuggestionSystem } from './renderer/tagAutoComplete.js';
+import { setupButtonOverlay, customCommonOverlay } from './renderer/customOverlay.js';
+import { myCharacterList, myViewsList, myLanguageList, mySimpleList } from './renderer/myDropdown.js';
+import { callback_mySettingList, callback_api_interface, callback_sync_click_hf, callback_sync_click_refiner,
+    callback_generate_start, callback_generate_skip, callback_generate_cancel,callback_keep_gallery
+ } from './renderer/callbacks.js';
+import { setupSlider } from './renderer/mySlider.js';
+import { setupCheckbox, setupRadiobox } from './renderer/myCheckbox.js';
+import { setupButtons, toggleButtons } from './renderer/myButtons.js';
+import { setupCollapsed, setupSaveSettingsToggle, setupModelReloadToggle, 
+    setupRefreshToggle, setupSwapToggle, doSwap, reloadFiles } from './renderer/myCollapsed.js';
+import { setupTextbox, setupInfoBox } from './renderer/myTextbox.js';
+import { from_main_updateGallery, from_main_updatePreview } from './renderer/generate_backend.js';
+import { setupLoRA } from './renderer/myLoRASlot.js';
+import { setBlur, setNormal, showDialog } from './renderer/myDialog.js';
+import { setupImageUploadOverlay } from './renderer/imageInfo.js';
+import { setupThemeToggle } from './renderer/mytheme.js';
+
+function afterDOMinit() {
+    console.log("Script loaded, attempting initial setup");
+    (async () => {
+        setBlur();
+        await init();
+        window.okm.setup_mainGallery_appendImageData(from_main_updateGallery);
+        window.okm.setup_customOverlay_updatePreview(from_main_updatePreview);
+        setNormal();
+    })();    
+}
+
+export async function init(){
+    window.initialized = false;
+        
+    try {
+        // Init Global Settings
+        window.globalSettings = await window.api.getGlobalSettings();
+
+        // Setup main func
+        window.mainGallery = {};
+        window.thumbGallery = {};        
+
+        // Loading files
+        const cachedFiles = await window.api.getCachedFiles();
+        window.cachedFiles = {
+            language: cachedFiles.languages,
+            characterThumb: cachedFiles.characterThumb,
+            characterList: cachedFiles.characters,
+            ocList: cachedFiles.ocCharacters,
+            viewTags: cachedFiles.viewTags,
+            tagAssist: cachedFiles.tagAssist,            
+            settingList: await window.api.getSettingFiles(),
+            loadingWait:`data:image/webp;base64,${cachedFiles.loadingWait.data}`,
+            loadingFailed:`data:image/webp;base64,${cachedFiles.loadingFailed.data}`,
+        };       
+        
+        const SETTINGS = window.globalSettings;
+        const FILES = window.cachedFiles;
+        const LANG = FILES.language[SETTINGS.language];
+
+        window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
+        window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
+        window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
+        window.cachedFiles.characterListArray = Object.entries(FILES.characterList);
+        window.cachedFiles.ocListArray = Object.entries(FILES.ocList);
+
+        // Setup Header List
+        window.dropdownList = {
+            languageList: myLanguageList(FILES.language),            
+            model: mySimpleList('model-select', LANG.api_model_file_select, FILES.modelList, 
+                (index, value) => { window.globalSettings.api_model_file_select = value; }, 50),
+            vpred:  mySimpleList('model-vpred', LANG.vpred, [LANG.vpred_auto, LANG.vpred_on, LANG.vpred_off], 
+                (index, value) => { window.globalSettings.api_model_file_vpred = value; }, 5, false, false),            
+            settings: mySimpleList('settings-select', LANG.title_settings_load, FILES.settingList, callback_mySettingList)
+        }
+        window.dropdownList.languageList.updateDefaults(LANG.language);
+        window.dropdownList.vpred.updateDefaults(SETTINGS.api_model_file_vpred);
+
+        // Setup Header button
+        window.headerIcon = {
+            save: setupSaveSettingsToggle(),
+            reload: await setupModelReloadToggle(),
+            refresh: setupRefreshToggle(),
+            swap: setupSwapToggle(),
+            theme: setupThemeToggle()
+        }        
+
+        // Init Left
+        window.characterList = myCharacterList('dropdown-character', FILES.characterList, FILES.ocList);
+        window.viewList = myViewsList('dropdown-view', FILES.viewTags);        
+        setupGallery('gallery-main-main');        
+        window.infoBox = {
+            image: setupInfoBox('image-infobox-main', LANG.output_info, '', true, 256),            
+        }
+
+        // Init Right
+        setupThumb('gallery-thumb-main');
+        setupThumbOverlay();
+        window.imageInfo = setupImageUploadOverlay();
+
+        setupCollapsed('image-infobox', false)
+        setupCollapsed('gallery-main', false);
+        setupCollapsed('gallery-thumb', false);
+        setupCollapsed('highres-fix', true);
+        setupCollapsed('refiner', true);
+        setupCollapsed('add-lora', true);
+        setupCollapsed('system-settings', true)            
+
+        console.log('Creating window.generate');
+        window.generate = {
+            skipClicked: false,
+            cancelClicked: false,
+            nowAPI: 'none',
+            lastPos: 'solo, masterpiece, best quality, amazing quality',
+            lastPosColored: 'solo, masterpiece, best quality, amazing quality',
+            lastNeg: 'bad quality,worst quality,worst detail,sketch',
+            loadingMessage: null,
+
+            keepGallery: setupCheckbox('gallery-main-keep', LANG.keep_gallery, SETTINGS.keep_gallery, true, callback_keep_gallery),
+
+            seed: setupSlider('generate-random-seed', LANG.random_seed, -1, 4294967295, 1, SETTINGS.random_seed, (value) =>{window.globalSettings.random_seed = value;}),
+            cfg: setupSlider('generate-cfg', LANG.cfg, 1, 20, 0.01, SETTINGS.cfg, (value) =>{window.globalSettings.cfg = value;}),
+            step: setupSlider('generate-step', LANG.step, 1, 100, 1, SETTINGS.step, (value) =>{window.globalSettings.step = value;}),
+            width: setupSlider('generate-width', LANG.width, 512, 2048, 8, SETTINGS.width, (value) =>{window.globalSettings.width = value;}),
+            height: setupSlider('generate-height', LANG.height, 512, 2048, 8, SETTINGS.height, (value) =>{window.globalSettings.height = value;}),
+            batch: setupSlider('generate-batch', LANG.batch, 1, 128, 1, SETTINGS.batch, (value) =>{window.globalSettings.batch = value;}),
+            hifix: setupCheckbox('generate-hires-fix', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { window.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix'); }),
+            hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { window.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix-dummy'); }),
+            refiner: setupCheckbox('generate-refiner', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner'); }),
+            refiner_dummy: setupCheckbox('generate-refiner-dummy', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner-dummy'); }),
+            landscape: setupCheckbox('generate-landscape', LANG.api_image_landscape, SETTINGS.api_image_landscape, true, (value) =>{window.globalSettings.api_image_landscape = value;}),
+            tag_assist: setupCheckbox('generate-tag-assist', LANG.tag_assist, SETTINGS.tag_assist, true, (value) =>{ window.globalSettings.tag_assist = value; }),
+            sampler: mySimpleList('generate-sampler', LANG.api_model_sampler, ['Auto'], (index, value) =>{ window.globalSettings.api_model_sampler = value; }, 20, false, false),
+            scheduler: mySimpleList('generate-scheduler', LANG.api_model_scheduler, ['Auto'], (index, value) =>{ window.globalSettings.api_model_scheduler = value; }, 20, false, false),
+
+            generate_single: setupButtons('generate-button-single', LANG.run_button, {
+                    defaultColor: 'rgb(234,88,12)',
+                    hoverColor: 'rgb(194,65,12)',
+                    disabledColor: 'rgb(136, 121, 115)',
+                    width: '100%',
+                    height: '32px',
+                    hidden: false,
+                    clickable: true              
+                }, async () =>{
+                    await callback_generate_start(1, false);
+                }),
+            generate_batch: setupButtons('generate-button-batch', LANG.run_random_button, {
+                    defaultColor: 'rgb(185,28,28)',
+                    hoverColor: 'rgb(153,27,27)',
+                    disabledColor: 'rgb(134, 103, 103)',
+                    width: '100%',
+                    height: '32px',
+                    hidden: false,
+                    clickable: true              
+                }, () =>{
+                    callback_generate_start(window.generate.batch.getValue(), false);
+                }),
+            generate_same: setupButtons('generate-button-same', LANG.run_same_button, {
+                    defaultColor: 'rgb(20,28,46)',
+                    hoverColor: 'rgb(40,48,66)',
+                    disabledColor: 'rgb(112, 123, 148)',
+                    width: '100%',
+                    height: '32px',
+                    hidden: false,
+                    clickable: true              
+                }, () =>{
+                    callback_generate_start(window.generate.batch.getValue(), true);
+                }),            
+            generate_skip: setupButtons('generate-button-skip', LANG.run_skip_button, {
+                    defaultColor: 'rgb(82,82,91)',
+                    hoverColor: 'rgb(63,63,70)',
+                    disabledColor: 'rgb(175, 175, 182)',
+                    width: '100%',
+                    height: '32px',
+                    hidden: false,
+                    clickable: true              
+                }, () =>{
+                    callback_generate_skip();
+                }),
+            generate_cancel: setupButtons('generate-button-cancel', LANG.run_cancel_button, {
+                    defaultColor: 'rgb(82,82,91)',
+                    hoverColor: 'rgb(63,63,70)',
+                    disabledColor: 'rgb(175, 175, 182)',
+                    width: '100%',
+                    height: '32px',
+                    hidden: false,
+                    clickable: true              
+                }, () =>{
+                    callback_generate_cancel();
+                }),
+            api_interface: mySimpleList('system-settings-api-interface', LANG.api_interface, ['None', 'ComfyUI', 'WebUI'], callback_api_interface, 5, false, true),
+            api_address: setupTextbox('system-settings-api-address', LANG.api_addr, {
+                value: SETTINGS.api_addr,
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.api_addr = value; }),
+            api_preview_refresh_time: setupSlider('system-settings-api-refresh-rate', 
+                LANG.api_preview_refresh_time, 0, 5, 1, SETTINGS.api_preview_refresh_time, 
+                (value) => { window.globalSettings.api_preview_refresh_time = value; }),
+            
+            model_path_comfyui:setupTextbox('system-settings-api-comfyui', LANG.model_path_comfyui, {
+                value: SETTINGS.model_path_comfyui,
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.model_path_comfyui = value; }),
+            model_path_webui:setupTextbox('system-settings-api-webui', LANG.model_path_webui, {
+                value: SETTINGS.model_path_webui,
+                maxLines: 1
+                }, true, (value) => {
+                    window.globalSettings.model_path_webui = value;
+            }),
+            model_filter:setupCheckbox('system-settings-api-fliter', LANG.model_filter, SETTINGS.model_filter,
+                false, (value) => {
+                window.globalSettings.model_filter = value;
+            }),
+            model_filter_keyword:setupTextbox('system-settings-api-fliter-list', LANG.model_filter_keyword, {
+                value: SETTINGS.model_filter_keyword,
+                maxLines: 1
+                }, true, (value) => {
+                window.globalSettings.model_filter_keyword = value;
+            }),
+            search_modelinsubfolder:setupCheckbox('system-settings-api-subfolder', LANG.search_modelinsubfolder, SETTINGS.search_modelinsubfolder,
+                false, (value) => {
+                window.globalSettings.search_modelinsubfolder = value;
+            }),
+        };
+
+        console.log('Creating window.prompt');
+        window.prompt = {
+            common: setupTextbox('prompt-common', LANG.custom_prompt, {
+                value: SETTINGS.custom_prompt,
+                defaultTextColor: 'darkorange',
+                maxLines: 5                
+                }, false, (value) => { window.globalSettings.custom_prompt = value; }),
+            positive: setupTextbox('prompt-positive', LANG.api_prompt, {
+                value: SETTINGS.api_prompt,
+                defaultTextColor: 'LawnGreen',
+                maxLines: 5
+                }, false, (value) => { window.globalSettings.api_prompt = value; }),
+            negative: setupTextbox('prompt-negative', LANG.api_neg_prompt, {
+                value: SETTINGS.api_neg_prompt,
+                defaultTextColor: 'Crimson',
+                maxLines: 5
+                }, false, (value) => { window.globalSettings.api_neg_prompt = value; }),
+            ai: setupTextbox('prompt-ai', LANG.ai_prompt, {
+                value: SETTINGS.ai_prompt,
+                defaultTextColor: 'hotpink',
+                maxLines: 5
+                }, false, (value) => { window.globalSettings.ai_prompt = value; }),
+            exclude: setupTextbox('prompt-exclude', LANG.prompt_ban, {
+                value: SETTINGS.prompt_ban,
+                defaultTextColor: 'khaki',
+                maxLines: 5
+                }, false, (value) => { window.globalSettings.prompt_ban = value; })
+        }
+        console.log('Creating setupSuggestionSystem');
+        setupSuggestionSystem();
+
+        console.log('Creating window.hifix');
+        window.hifix = {
+            model: mySimpleList('hires-fix-model', LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_list,
+                (vindex, value) => { window.globalSettings.api_hf_upscaler_list = value; }, 10, true, true),
+            colorTransfer: mySimpleList('hires-fix-color-transfer', LANG.api_hf_colortransfer, ['None', 'Mean', 'Lab']
+                , (index, value) => { window.globalSettings.api_hf_colortransfer = value; }, 3, false, true),
+            randomSeed: setupCheckbox('hires-fix-random-seed',LANG.api_hf_random_seed, SETTINGS.api_hf_random_seed, true, 
+                (value) => { window.globalSettings.api_hf_random_seed = value; }),
+            scale: setupSlider('hires-fix-scale', LANG.api_hf_scale, 1, 2, 0.1, SETTINGS.api_hf_scale, 
+                (value) => { window.globalSettings.api_hf_scale = value; }),
+            denoise: setupSlider('hires-fix-denoise', LANG.api_hf_denoise, 0.1, 1, 0.01, SETTINGS.api_hf_denoise, 
+                (value) => { window.globalSettings.api_hf_denoise = value; })
+        }
+
+        console.log('Creating window.refiner');
+        window.refiner = {
+            model: mySimpleList('refiner-model', LANG.api_refiner_model, FILES.modelListAll, 
+                (index, value) => { window.globalSettings.api_refiner_model = value; }, 15, true, true),
+            vpred: mySimpleList('refiner-vpred', LANG.vpred, [LANG.vpred_auto, LANG.vpred_on, LANG.vpred_off], 
+                (index, value) => { window.globalSettings.api_refiner_model_vpred = value; }, 5, false, false),
+            addnoise: setupCheckbox('refiner-addnoise', LANG.api_refiner_add_noise, SETTINGS.api_refiner_add_noise, true,
+                (value) => { window.globalSettings.api_refiner_add_noise = value; }),
+            ratio: setupSlider('refiner-ratio', LANG.api_refiner_ratio, 0.1, 1, 0.1, SETTINGS.api_refiner_ratio,
+                (value) => { window.globalSettings.api_refiner_ratio = value; })
+        }
+
+        window.ai ={
+            ai_select: setupRadiobox("system-settings-ai-select", LANG.batch_generate_rule, LANG.ai_select, LANG.ai_select_title, SETTINGS.ai_prompt_role, 
+                (value) => { window.globalSettings.ai_prompt_role = value; }),
+            interface: mySimpleList('system-settings-ai-interface', LANG.ai_interface, ['None', 'Remote', 'Local'], 
+                (index, value) => {window.globalSettings.ai_interface = value;}, 5, false, true),
+            remote_timeout: setupSlider('system-settings-ai-timeout', LANG.remote_ai_timeout, 2, 60, 1, SETTINGS.remote_ai_timeout, 
+                (value) => { window.globalSettings.remote_ai_timeout = value; }),
+            remote_address: setupTextbox('system-settings-ai-address', LANG.remote_ai_base_url, {
+                value: SETTINGS.remote_ai_base_url,
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.remote_ai_base_url = value; }),
+            remote_model_select: setupTextbox('system-settings-ai-modelselect', LANG.remote_ai_model, {
+                value: SETTINGS.remote_ai_model,
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.remote_ai_model = value; }),
+            remote_apikey: setupTextbox('system-settings-ai-apikey', 'API Key', {
+                value: SETTINGS.remote_ai_api_key,
+                defaultTextColor: 'CornflowerBlue',
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.remote_ai_api_key = value;}, true),  
+
+            local_address: setupTextbox('system-settings-ai-local-address', LANG.ai_local_addr, {
+                value: SETTINGS.ai_local_addr,
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.ai_local_addr = value;}),
+            local_temp: setupSlider('system-settings-ai-local-temperature', 
+                LANG.ai_local_temp, 0.1, 2, 0.1, SETTINGS.ai_local_temp,
+                (value) => { window.globalSettings.ai_local_temp = value;} ),
+            local_n_predict: setupSlider('system-settings-ai-local-npredict', 
+                LANG.ai_local_n_predict, 256, 4096, 256, SETTINGS.ai_local_n_predict,
+                (value) => { window.globalSettings.ai_local_n_predict = value;} ),
+
+            ai_system_prompt: setupTextbox('system-settings-ai-sysprompt', LANG.ai_system_prompt_text, {
+                value: LANG.ai_system_prompt,
+                maxLines: 30
+                }, true),  
+        }
+
+        // LoRA
+        window.lora = setupLoRA('add-lora-main');
+        
+        // Setup Overlay
+        window.overlay = {
+            buttons: setupButtonOverlay(),
+            custom: customCommonOverlay()
+        }
+
+        window.generate.toggleButtons = toggleButtons;
+
+        // Done
+        window.initialized = true;        
+        if(SETTINGS.setup_wizard) {
+            window.globalSettings.setup_wizard = false;
+            await setupWizard();
+            await setupModelReloadToggle();
+        }
+        doSwap(window.globalSettings.rightToleft);   //default is right to left        
+        updateLanguage();
+        updateSettings();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+function extractHostPort(input) {
+    input = input.trim();
+
+    try {
+        const urlInput = input.match(/^[a-zA-Z]+:\/\//) ? input : `http://${input}`;
+        const url = new URL(urlInput);
+        return url.host;
+    } catch (e) {
+        const hostPortRegex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5})$/;
+        if (hostPortRegex.test(input)) {
+            return input;
+        }
+        console.error("Invalid input: Expected a URL or host:port format (e.g., 'http://127.0.0.1:58189/' or '127.0.0.1:58188')",e);        
+    }
+
+    return '127.0.0.1:58188';   // fail safe
+}
+
+async function setupWizard(){
+    const languageSelect = await showDialog('radio', { 
+        message: 'Select your language\n请选择界面语言',
+        items: 'en-US,zh-CN',
+        itemsTitle:'English (US),中文（简体）',
+        buttonText: 'OK'
+    });
+    console.log(languageSelect);
+    window.globalSettings.language = ['en-US','zh-CN'][languageSelect];
+
+    const SETTINGS = window.globalSettings;
+    const FILES = window.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
+
+    await showDialog('info', { message: LANG.setup_greet_message, buttonText:SETTINGS.setup_ok});
+    const interfaceSelectIndex = await showDialog('radio', { 
+        message: LANG.setup_webui_comfyui_select,
+        items: 'ComfyUI,WebUI,None',
+        itemsTitle:'ComfyUI,WebUI,None',
+        buttonText: SETTINGS.setup_ok
+    });
+    const interfaceSelect= ['ComfyUI', 'WebUI', 'None'];
+    window.globalSettings.api_interface = interfaceSelect[interfaceSelectIndex];
+
+    console.log('window.globalSettings.api_interface', window.globalSettings.api_interface);
+
+    if(window.globalSettings.api_interface !== 'None'){       
+        if(window.globalSettings.api_interface === 'ComfyUI'){
+            window.globalSettings.model_path_comfyui = await showDialog('input', { 
+                message: LANG.setup_model_folder,
+                placeholder: SETTINGS.model_path_comfyui, 
+                defaultValue: SETTINGS.model_path_comfyui,
+                showCancel: false,
+                buttonText: LANG.setup_ok
+            });                
+        } else {
+            window.globalSettings.model_path_comfyui = await showDialog('input', { 
+                message: LANG.setup_model_folder,
+                placeholder: SETTINGS.model_path_webui, 
+                defaultValue: SETTINGS.model_path_webui,
+                showCancel: false,
+                buttonText: LANG.setup_ok
+            });    
+        }
+
+        const api_addr = await showDialog('input', { 
+            message: LANG.setup_webui_comfyui_api_addr.replace('{0}', window.globalSettings.api_interface),
+            placeholder: SETTINGS.api_addr, 
+            defaultValue: SETTINGS.api_addr,
+            showCancel: false,
+            buttonText: LANG.setup_ok
+        });
+        window.globalSettings.api_addr = extractHostPort(api_addr);
+
+        window.globalSettings.model_filter = await showDialog('confirm', { 
+            message: LANG.setup_model_filter,
+            yesText: LANG.setup_yes,
+            noText: LANG.setup_no
+        });
+
+        window.globalSettings.model_filter_keyword = await showDialog('input', { 
+            message: LANG.setup_model_filter_keyword,
+            placeholder: SETTINGS.model_filter_keyword, 
+            defaultValue: SETTINGS.model_filter_keyword,
+            showCancel: false,
+            buttonText: LANG.setup_ok
+        });
+
+        window.globalSettings.search_modelinsubfolder = await showDialog('confirm', { 
+            message: LANG.setup_search_modelinsubfolder,
+            yesText: LANG.setup_yes,
+            noText: LANG.setup_no
+        });
+    } else {
+        const skipWizard = await await showDialog('confirm', { 
+            message: LANG.setup_skip_wizard,
+            yesText: LANG.setup_yes,
+            noText: LANG.setup_no
+        });
+
+        if(skipWizard)
+            return;
+    }
+
+    const aiInterfaceSelectIndex = await showDialog('radio', { 
+        message: LANG.setup_remote_ai_interface,
+        items: 'None,Remote,Local',
+        itemsTitle:'None,Remote,Local',
+        buttonText: LANG.setup_ok
+    });
+    const aiInterfaceSelect= ['None', 'Remote', 'Local'];
+    window.globalSettings.ai_interface = aiInterfaceSelect[aiInterfaceSelectIndex];
+
+    if(window.globalSettings.ai_interface === 'Remote') {
+        window.globalSettings.remote_ai_base_url = await showDialog('input', { 
+            message: LANG.setup_remote_ai_addr,
+            placeholder: SETTINGS.remote_ai_base_url, 
+            defaultValue: SETTINGS.remote_ai_base_url,
+            showCancel: false,
+            buttonText: SETTINGS.setup_ok
+        });
+
+        window.globalSettings.remote_ai_model = await showDialog('input', { 
+            message: LANG.setup_remote_ai_model,
+            placeholder: SETTINGS.remote_ai_model, 
+            defaultValue: SETTINGS.remote_ai_model,
+            showCancel: false,
+            buttonText: LANG.setup_ok
+        });
+
+        window.globalSettings.remote_ai_api_key = await showDialog('input', { 
+            message: LANG.setup_remote_ai_api_key,
+            placeholder: SETTINGS.remote_ai_api_key, 
+            defaultValue: '',
+            showCancel: false,
+            buttonText: LANG.setup_ok
+        });
+    } else if(window.globalSettings.ai_interface === 'Local') {
+        window.globalSettings.ai_local_addr = await showDialog('input', { 
+            message: LANG.setup_local_ai_addr,
+            placeholder: SETTINGS.ai_local_addr, 
+            defaultValue: SETTINGS.ai_local_addr,
+            showCancel: false,
+            buttonText: LANG.setup_ok
+        });
+    }
+
+    await window.api.saveSettingFile('settings.json', window.globalSettings);
+    window.cachedFiles.settingList = await window.api.updateSettingFiles();
+    window.dropdownList.settings.setOptions(window.cachedFiles.settingList);
+    window.dropdownList.settings.updateDefaults(`settings.json`);
+    await reloadFiles();
+    await showDialog('info', { message: LANG.setup_done, buttonText:SETTINGS.setup_ok});
+}
+
+// Run the init function when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    afterDOMinit();        
+});

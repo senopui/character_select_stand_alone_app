@@ -1,37 +1,27 @@
 # Character Select SAA
+## SAA now switch to Electron, Readme & Guides are working in progress....
+
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
 Now supports 5177 (includes multiple costumes) Character list.   
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/screenshot01.png" width=45% height=45%>   
-
-**Speed boost options (for Titan RTX it's about 10~15%)**
-1. Turn off preview image in settings    
-2. Turn off hardware acceleration in your browser    
-3. **BEST** Put tabs in the background (not displayed)    
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45% height=45%>   
 
 | Item Support | ComfyUI| WebUI | Forge|
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |
-| vPred | Yes | Yes(*1) | Yes |
+| vPred | Yes | Yes | Yes |
 | Refiner | Yes | Yes | Yes |
 | Preview | Yes | Yes | Yes |
-| Image Color Transfer | Yes | Yes | Yes |
+| Image Color Transfer | Yes | No | No |
 | Image Info to Prompt | Yes(*2) | Yes | Yes |
 | Regional Condition | No | No | No |
 
-*1  ComfyUI: auto detected by vPred in model name.     
-    WebUI: Switch to Dev branch    
-*2  Image Saved by Image Saver node   
-
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
-# One-Click embedded package
-In case you don't know how to build your own Python enverment, try the [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)    
-
-1. Download and unzip to your computer    
-2. Db-click `#run_XX.bat`   
-3. Follow setup wizard setup your `model folder` and `API Key`    
+## One-Click embedded package
+~In case you don't know how to build your own Python enverment, try the [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)~
+*WIP*    
 
 # Chinese Translate and Character Verification       
 Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.   
@@ -43,11 +33,9 @@ Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com
 
 ------
 # Install and Run 
-*IMPORTANT* `Save settings` will NOT overwrite your `settings.json`, it saved as `tmp_settings.json`    
-1. Clone the repository to wherever you like   
-2. Dbclick `#run_XX.bat`   
-3. Follow setup wizard setup your `model folder` and `API Key`    
-4. Have fun
+*WIP*    
+Clone,then `npm start` ?   
+Just wait for my Release         
 
 ------
 # LoRA Support 
@@ -68,82 +56,6 @@ Use the `mouse` to select the prompt word, but you can also use the `keyboard up
 
 Weight adjust    
 You can use `ctrl + up` and `ctrl + down` arrow to adjust the weight of the current tag, or you can adjust the weight of multiple tags by selecting a fragment, the usage is similar to comfyui and webui, but some details of the logic may be different.    
-
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tag_complete.png" width=55% height=55%>   
-
-# Custom Gallery
-Supports process preview in `Generating. When generating images in batch mode, finished images are displayed immediately.     
-Supports `Grid Mode`, `Split Mode` and `Full Screen` in browser, press `F11` for `Full Screen`.       
-
-Hightlights:      
-`Split Mode`
-1. Click on the `BLANK` area of the gallery, will switch images.     
-2. Click `Seed` will copy seed to clipboard and override your current seed setting.    
-3. Click `Tags` will copy full positive prompts to clipboard.    
-4. `Privacy Ball` see bwlow.    
-
-`Full Screen`, `Left` and `Right` arrow to switch images, also supports `Mouse Drag` and `Mouse Scroll Zoom`.     
-
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_grid.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_split.png" width=25% height=25%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_fullscreen.png" width=35% height=35%>   
-
-# Privacy Ball
-In case you need share something NSFW, try `Privacy Ball`. You can create 5 `Privacy Balls` for multiple parts, drag them to anywhere you need.    
-**WARNING: Privacy Ball is a overlay item, it's not encoded to image. You need screen shot apps to capture the covered image, NOT right click Copy Image.**   
-
-Works on full screen mode.    
-Right button drag to adjust `Privacy Ball` size.    
-Double click on `Privacy Ball` to close it.   
-
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/gallery_privacyball.png" width=35% height=35%>   
-
-# Generate Button, Generating, LoRA Info and Message Overlay
-You can drag the `Button`, `Generating` and `LoRA Info` overlay anywhere you like.    
-`Button` overlay load by default, you can simply minimize it by click the `Blue` dot, it will hide in the `Top Left` of your browser.    
-`Generating` overlay supports `Image Preview`, check `Generate preview interval (0=OFF)` in settings.     
-`LoRA Info` overlay, by click the `Red` dot will close it.    
-`Message` overlay only appear in the centre of your browser, you can dismiss it by clicking on it, and the error message will be automatically copied to your clipboard.    
-
-------
-# Manual Setup by edit settings.json
-
-Model List for model switch    
-1. Modify `json/settings.json` 
-2. Set `model_path` to your local ComfyUI/WebUI checkpoints folder, make sure use `\\` for Windows      
-    2.5. There is a `model_path_2nd` in `settings.json`, if you using WebUI and ComfyUI in same time, set it to another checkpoints folder.     
-3. Default is `waiNSFW,waiSHUFFLENOOB`, means it will only accept model name that contains one of those keywords. To use more `wai` models, modify `model_filter_keyword` to `wai`   
-4. To use all your local models, modify `model_filter` to `false`    
-5. To search subfolder models, modify `search_modelinsubfolder` to `true`    
-6. `json.decoder.JSONDecoderError: Invalid ...` means you may use `\` instead `\\`     
-
-Default and custom settings    
-1. Your current settings (OC list not included) can be exported as `json/tmp_settings.json` by clicking `Save Settings`    
-2. Rename to `settings.json` as default settings    
-3. `Load Settings` will override current settings with your `renamed_settings.json`    
-4. In case you messed up, just `delete` all json files and restart app      
-
-Original Characters    
-1. You can add/remove character in `original_character.json`    
-2. I already put some of my OC in it, feel free to use or modify    
-3. Original Characters is NOT support thumb image for now   
-4. BACKUP `original_character.json` before you feach new version from GitHub    
-
-------
-# Right to Left UI
-Modify `#run_EN.bat`   
-```
-@echo off
-@set GRADIO_SERVER_PORT=47861
-python app_right_to_left.py --english True
-pause
-```
-
-Modify `#run_CN.bat`   
-```
-@echo off
-@set GRADIO_SERVER_PORT=47861
-python app_right_to_left.py
-pause
-```
 
 ------
 # AI prompt
@@ -185,6 +97,8 @@ WebUI
 # Hires Fix and Image Color Transfer
 Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_Mira#image-color-transfer) for more details about Image Color Transfer.   
 
+*Due to lack of generate rule and missing openCV, Color transfer no longer support in WebUI*
+
 1. WeuUI will(I think...) download upscale models itself, select any model end with `(W)` will work for WebUI.   
 2. Comfyui needs to download upscale models by yourself. Select `Manager`->`Model Manager` and filter with `upscale`, then download them.   
 3. Upscale model list can be modity in your `settings.json` -> `api_hf_upscaler_list`    
@@ -193,21 +107,4 @@ Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_M
 
 ------
 # FAQ
-### Not working???
-Install [Python](https://www.python.org/downloads/) 3.11~3.13 recommend.     
-
-Then copy and paste the following command into your command line with Python environment.    
-```
-py -m pip install -r requirements.txt
-```  
-
-Or, try [One-Click embedded package](https://github.com/mirabarukaso/character_select_stand_alone_app#one-click-embedded-package)     
-
-### WebUI API works, but WebUI not working anymore!!!
-It seems some plugin caused that issue, try update to the latest version.    
-Still not working? Unfortunately, you can't use both the API and WebUI in this case unless you uninstall the buggy plugin.   
-
-### WebUI Http 500 / ComfyUI model not found
-Make sure you have `waiNSFWIllustrious_v120` model in your `models/Stable-diffusion` folder.    
-Check `Setup Model List` section, setup your proper models folder and set `model_filter` to `false`    
-
+*WIP*   

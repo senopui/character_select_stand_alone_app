@@ -1,0 +1,685 @@
+import { mySimpleList } from './myDropdown.js';
+import { setupTextbox } from './myTextbox.js';
+
+let instanceSlotManager = null;
+
+function generateGUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+async function processLoraMetadata(data) {
+    try {
+        const jsonString = JSON.stringify(data, null, 2);
+
+        const keyMap = {
+            "modelspec.title": "Model Title",
+            "modelspec.architecture": "Architecture",
+            "modelspec.date": "Date",
+            "ss_sd_model_name": "Base Model Name",
+            "ss_base_model_version": "Base Model Version",
+            "modelspec.resolution": "Resolution",
+            "ss_seed": "Seed",
+            "ss_clip_skip": "Clip Skip",
+            "ss_network_dim": "Network Dim",
+            "ss_network_alpha": "Network Alpha"
+        };
+
+        const basicInfoObj = {};
+        for (const [oldKey, newKey] of Object.entries(keyMap)) {
+            if (data[oldKey]) {
+                basicInfoObj[newKey] = data[oldKey];
+            }
+        }
+        const basicInfo = Object.entries(basicInfoObj)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('\n');
+
+        const topN = 10; 
+        let topTags = '';
+        if (data['ss_tag_frequency']) {
+            try {
+                const tagFrequency = JSON.parse(data['ss_tag_frequency']);
+                const firstKey = Object.keys(tagFrequency)[0];
+                const tags = firstKey ? tagFrequency[firstKey] || {} : {};
+                const sortedTags = Object.entries(tags)
+                    .map(([tag, count]) => ({ tag, count: Number(count) }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, topN)
+                    .map(item => `${item.tag} (${item.count})`);
+                topTags = sortedTags.join(', ');
+            } catch (parseError) {
+                console.error('Failed to parse ss_tag_frequency:', parseError);
+                topTags = '';
+            }
+        }
+
+        return { jsonString, basicInfo, topTags };
+    } catch (error) {
+        throw new Error(`Reading metadata failed: ${error.message}`);
+    }
+}
+
+async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lora_metadata, lora_no_metadata){
+    const greenColor = (window.globalSettings.css_style==='dark')?'Chartreuse':'SeaGreen';
+    try {
+        const loraInfo = await window.api.readSafetensors(modelPath, prefix, loraPath);
+        if(typeof loraInfo === 'string')
+        {
+            if(loraInfo.startsWith('None'))
+            {
+                window.overlay.custom.createCustomOverlay('none', lora_no_metadata);
+            } else if(loraInfo.startsWith('Error')){
+                window.overlay.custom.createCustomOverlay('none', loraInfo);
+            }
+        } else {
+            const { jsonString, basicInfo, topTags } = await processLoraMetadata(loraInfo);
+            const loraImage = await window.api.readFile(modelPath, prefix, loraPath.replace('.safetensors', '.png'));
+            const message = `\n\n${basicInfo}\n${lora_trigger_words}[color=${greenColor}]${topTags}[/color]\n\n${lora_metadata}\n${jsonString}`;
+            window.overlay.custom.createCustomOverlay(loraImage, message);
+        }
+    } catch (error) {
+        console.log('error', error);
+    }   
+}
+
+class SlotManager {
+    constructor(containerSelector) {
+        this.container = document.querySelector(`.${containerSelector}`);
+        this.slotIndex = new Map();
+        this.candidateClassName = null;
+        this.componentInstances = new Map();
+        this.initialize();
+        this.bindEvents();
+    }
+
+    bindEvents() {
+        this.container.addEventListener('click', async (e) => {
+            const target = e.target.closest('.slot-action');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            if (action === 'add') {
+                this.handleAdd();
+            } else if (action === 'delete') {
+                const slotClass = target.dataset.slot;
+                this.delSlot(slotClass);
+            } else if (action === 'info') {
+                const slotClass = target.dataset.slot;
+                
+                const SETTINGS = window.globalSettings;
+                const FILES = window.cachedFiles;
+                const LANG = FILES.language[SETTINGS.language];
+
+                const apiInterface = window.generate.api_interface.getValue();
+                let modelPath = '';
+                let prefix = '';
+                if(apiInterface == 'ComfyUI'){
+                    modelPath = SETTINGS.model_path_comfyui;
+                    prefix = 'loras';
+                } else if(apiInterface == 'WebUI'){
+                    modelPath = SETTINGS.model_path_webui;
+                    prefix = 'Lora';
+                }
+
+                const loraPath = this.getSlotValue(slotClass, 0);
+                await showLoRAInfo(modelPath, prefix, loraPath, LANG.lora_trigger_words, LANG.lora_metadata, LANG.lora_no_metadata);                             
+            }
+        });
+
+        this.container.addEventListener('input', (e) => {
+            const input = e.target;
+            if (!input.matches('.numeric-input')) return;
+
+            const value = input.value;
+            const validPattern = /^-?\d*\.?\d*$/;
+            if (!validPattern.test(value)) {
+                input.value = input.dataset.lastValid || '';
+            } else {
+                input.dataset.lastValid = value;
+            }
+        });
+
+        this.container.addEventListener('keydown', (e) => {
+            const input = e.target;
+            if (!input.matches('.numeric-input')) return;
+
+            const key = e.key;
+            const value = input.value;
+            const cursorPos = input.selectionStart;
+
+            if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(key)) {
+                return;
+            }
+
+            if (key === '.' && value.includes('.')) {
+                e.preventDefault();
+                return;
+            }
+
+            if (key === '-' && (cursorPos !== 0 || value.includes('-'))) {
+                e.preventDefault();
+                return;
+            }
+
+            if (!/[\d.-]/.test(key)) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    getSlotValue(slotClass, index){
+        let ret = 'none';
+
+        const slot = this.slotIndex.get(slotClass);
+        if (!slot) {
+            console.log('Slot not found:', slotClass);
+            return ret;
+        }
+
+        let i = 0;
+        for (const item of slot.items) {
+            const itemClass = item[0];
+            const componentKey = `${slotClass}-${itemClass}`;
+            const component = this.componentInstances.get(componentKey);
+            
+            if (component && index === i) {
+                const value = component.getValue ? component.getValue() : 'No getValue method';
+                ret = value;
+            } 
+            i += 1;
+        }
+
+        return ret;
+    }
+
+    debugShowSlotValues(slotClass) {
+        const slot = this.slotIndex.get(slotClass);
+        if (!slot) {
+            console.log('Slot not found:', slotClass);
+            return;
+        }
+
+        console.log('Slot data structure:', slot);
+        console.log('Component instances for this slot:');
+        
+        let index = 0;
+        for (const item of slot.items) {
+            const itemClass = item[0];
+            const componentKey = `${slotClass}-${itemClass}`;
+            const component = this.componentInstances.get(componentKey);
+            
+            if (component) {
+                const value = component.getValue ? component.getValue() : 'No getValue method';
+                console.log(index, `${itemClass} value:`, value);
+            } else {
+                console.log(`${itemClass}: No component instance found`);
+            }
+            index += 1;
+        }
+    }
+
+    generateClassName(prefix) {
+        return `${prefix}-${generateGUID()}`;
+    }
+
+    initialize() {
+        const candidateClassName = this.createCandidateRow();
+        
+        const candidateSlot = this.slotIndex.get(candidateClassName);
+        if (candidateSlot) {
+            const row = this.renderAddRow(candidateClassName, candidateSlot.itemClasses);
+            this.container.appendChild(row);
+        }
+    }
+
+    createCandidateRow() {
+        const className = this.generateClassName('slot');
+        const itemClasses = {
+            add: this.generateClassName('slot-row-add'),
+            select1: this.generateClassName('slot-row-select1'),
+            text1: this.generateClassName('slot-row-text1'),
+            text2: this.generateClassName('slot-row-text2'),
+            select2: this.generateClassName('slot-row-select2')
+        };
+
+        this.slotIndex.set(className, {
+            itemClasses,
+            items: new Map(),
+            isCandidate: true
+        });
+        this.candidateClassName = className;
+        return className;
+    }
+
+    renderAddRow(className, itemClasses) {
+        const row = document.createElement('div');
+        row.className = `slot-row add-row ${className}`;
+        row.innerHTML = `
+            <div class="slot-action slot-action-add ${itemClasses.add}" data-action="add" data-slot="${className}">
+                <img class="slot-action-add-toggle" src="scripts/svg/add.svg" alt="+">
+            </div>
+            <div class="${itemClasses.select1}"></div>
+            <div class="${itemClasses.text1}"></div>
+            <div class="${itemClasses.text2}"></div>
+            <div class="${itemClasses.select2}"></div>
+        `;
+        return row;
+    }
+
+    renderContentRow(className, itemClasses) {
+        const row = document.createElement('div');
+        row.className = `slot-row content-row ${className}`;
+        row.innerHTML = `
+            <div class="slot-action slot-action-del ${itemClasses.delete}" data-action="delete" data-slot="${className}">
+                <img class="slot-action-del-toggle" src="scripts/svg/del.svg" alt="-">
+            </div>
+            <div class="${itemClasses.select1}"></div>
+            <div class="${itemClasses.text1}"></div>
+            <div class="${itemClasses.text2}"></div>
+            <div class="${itemClasses.select2}"></div>
+            <div class="slot-action slot-action-info ${itemClasses.info}" data-action="info" data-slot="${className}">
+                <img class="slot-action-info-toggle" src="scripts/svg/info.svg" alt="?">
+            </div>
+        `;
+        return row;
+    }
+
+    addSlot() {
+        if (!this.candidateClassName) {
+            console.error('No candidate row available');
+            return null;
+        }
+
+        const slot = this.slotIndex.get(this.candidateClassName);
+        if (!slot) {
+            console.error('Candidate slot not found');
+            return null;
+        }
+
+        slot.isCandidate = false;
+        slot.itemClasses.delete = this.generateClassName('delete');
+        slot.itemClasses.info = this.generateClassName('info');
+        delete slot.itemClasses.add;
+        const className = this.candidateClassName;
+
+        const candidateRow = this.container.querySelector(`.${className}`);
+        if (candidateRow) {
+            candidateRow.classList.remove('add-row');
+            candidateRow.classList.add('content-row');
+            
+            const itemClasses = slot.itemClasses;
+            candidateRow.innerHTML = `
+                <div class="slot-action slot-action-del ${itemClasses.delete}" data-action="delete" data-slot="${className}">
+                    <img class="slot-action-del-toggle" src="scripts/svg/del.svg" alt="-">
+                </div>
+                <div class="${itemClasses.select1}"></div>
+                <div class="${itemClasses.text1}"></div>
+                <div class="${itemClasses.text2}"></div>
+                <div class="${itemClasses.select2}"></div>
+                <div class="slot-action slot-action-info ${itemClasses.info}" data-action="info" data-slot="${className}">
+                    <img class="slot-action-info-toggle" src="scripts/svg/info.svg" alt="?">
+                </div>
+            `;
+        }
+
+        const newCandidateClassName = this.createCandidateRow();        
+        const newCandidateSlot = this.slotIndex.get(newCandidateClassName);
+        if (newCandidateSlot) {
+            const newRow = this.renderAddRow(newCandidateClassName, newCandidateSlot.itemClasses);
+            this.container.appendChild(newRow);
+        }
+        
+        return className;
+    }
+
+    delSlot(className) {
+        if (this.slotIndex.has(className) && !this.slotIndex.get(className).isCandidate) {
+            const slot = this.slotIndex.get(className);
+            
+            if (slot) {
+                for (const itemClass of Object.values(slot.itemClasses)) {
+                    const componentKey = `${className}-${itemClass}`;
+                    if (this.componentInstances.has(componentKey)) {
+                        this.componentInstances.delete(componentKey);
+                    }
+                }
+            }
+            
+            const rowElement = this.container.querySelector(`.${className}`);
+            if (rowElement) {
+                rowElement.remove();
+            }
+            
+            this.slotIndex.delete(className);
+        }
+    }
+
+    getSlots() {
+        return Array.from(this.slotIndex.keys()).filter(className => !this.slotIndex.get(className).isCandidate);
+    }
+
+    getSlot(className) {
+        const slot = this.slotIndex.get(className);
+        if (!slot) return [];
+        return Object.values(slot.itemClasses);
+    }
+
+    setSlotItem(itemClass, generator) {
+        for (const [className, slot] of this.slotIndex.entries()) {
+            if (Object.values(slot.itemClasses).includes(itemClass)) {
+                const generatorFn = typeof generator === 'function' ? generator : () => generator;
+                slot.items.set(itemClass, generatorFn);
+                
+                const component = generatorFn();
+                if (component) {
+                    const componentKey = `${className}-${itemClass}`;
+                    this.componentInstances.set(componentKey, component);
+                    console.log('Set component for', componentKey, 'value:', component.getValue ? component.getValue() : 'N/A');
+                }
+            }
+        }
+    }
+
+    getSlotItem(itemClass) {
+        for (const [className, slot] of this.slotIndex.values()) {
+            if (slot.items.has(itemClass)) {
+                const componentKey = `${className}-${itemClass}`;
+                if (this.componentInstances.has(componentKey)) {
+                    return () => this.componentInstances.get(componentKey);
+                }
+                return slot.items.get(itemClass);
+            }
+        }
+        return null;
+    }
+
+    getValues() {
+        const result = [];        
+        const contentSlots = this.getSlots();
+        
+        for (const className of contentSlots) {
+            const slot = this.slotIndex.get(className);
+            if (!slot) continue;
+            
+            const rowValues = [];
+            const { select1, text1, text2, select2 } = slot.itemClasses;
+            
+            try {
+                const loraNameComponent = this.componentInstances.get(`${className}-${select1}`);
+                const loraName = loraNameComponent?.getValue ? loraNameComponent.getValue() : '';
+                rowValues.push(loraName);
+                
+                const modelStrengthComponent = this.componentInstances.get(`${className}-${text1}`);
+                const modelStrength = modelStrengthComponent?.getValue ? modelStrengthComponent.getValue() : '';
+                rowValues.push(modelStrength);
+                
+                const clipStrengthComponent = this.componentInstances.get(`${className}-${text2}`);
+                const clipStrength = clipStrengthComponent?.getValue ? clipStrengthComponent.getValue() : '';
+                rowValues.push(clipStrength);
+                
+                const enableComponent = this.componentInstances.get(`${className}-${select2}`);
+                const enableValue = enableComponent?.getValue ? enableComponent.getValue() : '';
+                rowValues.push(enableValue);
+                
+                result.push(rowValues);            
+            } catch (error) {
+                console.error(`Error getting values for slot ${className}:`, error);
+            }
+        }
+        
+        return result;
+    }
+
+    reload() {
+        const SETTINGS = window.globalSettings || {};
+        const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+        const LANG = FILES.language[SETTINGS.language] || {
+            lora_model_strength: 'Model Strength',
+            lora_clip_strength: 'Clip Strength',
+            lora_enable_title: 'Enable'
+        };
+
+        // Backup current slot values
+        const slotValues = this.getValues();
+        const slots = this.getSlots();
+
+        // Clear all slots except candidate
+        for (const slotClass of slots) {
+            this.delSlot(slotClass);
+        }
+
+        // Recreate slots and restore values
+        slotValues.forEach(([loraName, modelStrength, clipStrength, enableValue]) => {
+            if (!FILES.loraList.includes(loraName)) {
+                console.warn(`LoRA "${loraName}" not found in current loraList, skipping`);
+                return;
+            }
+
+            const className = this.addSlot();
+            if (!className) return;
+
+            const slot = this.slotIndex.get(className);
+            if (!slot) return;
+
+            requestAnimationFrame(() => {
+                const select1 = mySimpleList(
+                    slot.itemClasses.select1, 
+                    'LoRA', 
+                    FILES.loraList, 
+                    null, 
+                    15, 
+                    true, 
+                    false
+                );
+                select1.updateDefaults(loraName);
+                // Restore select1 (LoRA dropdown)                
+                const select1Generator = () => select1;                
+                slot.items.set(slot.itemClasses.select1, select1Generator);
+                const select1Component = select1Generator();
+                if (select1Component) {
+                    this.componentInstances.set(`${className}-${slot.itemClasses.select1}`, select1Component);
+                }
+
+                // Restore text1 (Model Strength)
+                const text1Generator = () => 
+                    setupTextbox(
+                        slot.itemClasses.text1, 
+                        LANG.lora_model_strength, 
+                        { value: modelStrength, defaultTextColor: 'rgb(179,157,219)', maxLines: 1 }, 
+                        false, 
+                        null,
+                        false,
+                        true
+                    );
+                slot.items.set(slot.itemClasses.text1, text1Generator);
+                const text1Component = text1Generator();
+                if (text1Component) {
+                    this.componentInstances.set(`${className}-${slot.itemClasses.text1}`, text1Component);
+                }
+
+                // Restore text2 (Clip Strength)                
+                const text2Generator = () => 
+                    setupTextbox(
+                        slot.itemClasses.text2, 
+                        LANG.lora_clip_strength, 
+                        { value: clipStrength, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 }, 
+                        false, 
+                        null,
+                        window.generate.api_interface.getValue() !== 'ComfyUI',
+                        true
+                    );
+                slot.items.set(slot.itemClasses.text2, text2Generator);
+                const text2Component = text2Generator();
+                if (text2Component) {
+                    this.componentInstances.set(`${className}-${slot.itemClasses.text2}`, text2Component);
+                }
+
+                // Restore select2 (Enable dropdown)
+                const select2 = mySimpleList(
+                    slot.itemClasses.select2, 
+                    LANG.lora_enable_title, 
+                    ["ALL", "Base", "HiFix", "OFF"], 
+                    null, 
+                    5, 
+                    false, 
+                    false
+                );
+                select2.updateDefaults(enableValue);
+                const select2Generator = () => select2;                    
+                slot.items.set(slot.itemClasses.select2, select2Generator);
+                const select2Component = select2Generator();
+                if (select2Component) {
+                    this.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
+                }
+
+                console.log('Restored slot:', className, 'with values:', { loraName, modelStrength, clipStrength, enableValue });
+            });
+        });
+    }
+
+    render() {
+        const currentValues = new Map();
+        
+        for (const [componentKey, component] of this.componentInstances.entries()) {
+            if (component?.getValue) {
+                currentValues.set(componentKey, component.getValue());
+            }
+        }
+        
+        this.container.innerHTML = '';
+        this.componentInstances.clear();
+
+        const sortedSlots = Array.from(this.slotIndex.entries()).sort((a, b) => {
+            if (a[1].isCandidate && !b[1].isCandidate) return 1;
+            if (!a[1].isCandidate && b[1].isCandidate) return -1;
+            return 0;
+        });
+
+        for (const [className, slot] of sortedSlots) {
+            const row = slot.isCandidate
+                ? this.renderAddRow(className, slot.itemClasses)
+                : this.renderContentRow(className, slot.itemClasses);
+            this.container.appendChild(row);
+            
+            if (!slot.isCandidate && slot.items.size > 0) {
+                this.initializeSlotComponents(className, slot, currentValues);
+            }
+        }
+    }
+    
+
+    initializeSlotComponents(className, slot, currentValues = null) {
+        requestAnimationFrame(() => {
+            for (const [itemClass, generator] of slot.items.entries()) {
+                if (generator) {
+                    const component = generator();
+                    if (component) {
+                        const componentKey = `${className}-${itemClass}`;
+                        this.componentInstances.set(componentKey, component);
+                        
+                        if (currentValues?.has(componentKey) && component.setValue) {
+                            const previousValue = currentValues.get(componentKey);
+                            component.setValue(previousValue);
+                            console.log(`Restored value for ${componentKey}:`, previousValue);
+                        }
+                        
+                        console.log(`Initialized component for ${componentKey}`);
+                    }
+                }
+            }
+        });
+    }
+
+    handleAdd() {
+        const SETTINGS = window.globalSettings || {};
+        const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+        const LANG = FILES.language[SETTINGS.language] || {
+            lora_model_strength: 'Model Strength',
+            lora_clip_strength: 'Clip Strength',
+            lora_enable_title: 'Enable'
+        };
+
+        const className = this.addSlot();
+        if (!className) return;
+
+        const slot = this.slotIndex.get(className);
+        if (!slot) return;
+        
+        requestAnimationFrame(() => {
+            const select1Generator = () => 
+                mySimpleList(
+                    slot.itemClasses.select1, 
+                    'LoRA', 
+                    FILES.loraList, 
+                    null, 
+                    15, 
+                    true, 
+                    false
+                );
+            slot.items.set(slot.itemClasses.select1, select1Generator);
+            const select1Component = select1Generator();
+            if (select1Component) {
+                this.componentInstances.set(`${className}-${slot.itemClasses.select1}`, select1Component);
+            }
+            
+            const text1Generator = () => 
+                setupTextbox(
+                    slot.itemClasses.text1, 
+                    LANG.lora_model_strength, 
+                    { value: '1.0', defaultTextColor: 'rgb(179,157,219)', maxLines: 1 }, 
+                    false, 
+                    null,
+                    false,  // passwordMode
+                    true    // numberOnly
+                );
+            slot.items.set(slot.itemClasses.text1, text1Generator);
+            const text1Component = text1Generator();
+            if (text1Component) {
+                this.componentInstances.set(`${className}-${slot.itemClasses.text1}`, text1Component);
+            }
+            
+            const text2Generator = () => 
+                setupTextbox(
+                    slot.itemClasses.text2, 
+                    LANG.lora_clip_strength, 
+                    { value: '1.0', defaultTextColor: 'rgb(255,213,0)', maxLines: 1 }, 
+                    false, 
+                    null,
+                    window.generate.api_interface.getValue() !== 'ComfyUI',  
+                    true    
+                );
+            slot.items.set(slot.itemClasses.text2, text2Generator);
+            const text2Component = text2Generator();
+            if (text2Component) {
+                this.componentInstances.set(`${className}-${slot.itemClasses.text2}`, text2Component);
+            }
+            
+            const select2Generator = () => 
+                mySimpleList(
+                    slot.itemClasses.select2, 
+                    LANG.lora_enable_title, 
+                    ["ALL", "Base", "HiFix", "OFF"], 
+                    null, 
+                    5, 
+                    false, 
+                    false
+                );
+            slot.items.set(slot.itemClasses.select2, select2Generator);
+            const select2Component = select2Generator();
+            if (select2Component) {
+                this.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
+            }            
+        });
+    }
+}
+
+export function setupLoRA(containerID) {
+    if(!instanceSlotManager) {
+        instanceSlotManager = new SlotManager(containerID);
+    }
+    return instanceSlotManager;
+}

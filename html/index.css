@@ -1,0 +1,77 @@
+* {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;    
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; 
+}
+#top-header{
+    display: grid; 
+    grid-template-columns: 1fr 2fr 1fr; 
+}
+#global-settings-left {
+    display: flex;
+    justify-content: flex-start; 
+    align-items: center;
+}
+#global-settings-middle {
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+}
+#global-settings-right {
+    display: flex;
+    justify-content: flex-end; 
+    align-items: center;
+}
+.settings-save, .model-select,
+.global-refresh, .global-settings-right-to-left, .global-settings-language, .global-settings-themes {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    margin-left: 12px;
+    margin-right: 12px;
+    align-items: self-end;
+}
+#split {
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    height: 100%;     
+}
+#left, #right {
+    overflow-y: auto; 
+    margin-top: 10px;
+}
+#left{
+    margin-left: 10px;
+    margin-right: 5px;
+}
+#right{
+    margin-left: 5px;
+    margin-right: 10px;
+}
+#left::-webkit-scrollbar, #right::-webkit-scrollbar {
+    display: none; 
+}
+
+.gallery-main-container,.image-infobox-container,
+.gallery-thumb-container, #prompt-text-container, 
+.highres-fix-container, .refiner-container, .add-lora-container,
+.system-settings-container
+{
+    margin-top: 10px;
+}
+
+#generate-settings-static-left, #generate-settings-static-right {
+    height: 96px;
+}
+
+.model-select{
+    width: 100%;
+}
+
+.myInfoBox-link {
+    color: #3498db;
+    text-decoration: underline;
+}

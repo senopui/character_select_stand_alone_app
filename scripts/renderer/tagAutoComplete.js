@@ -1,0 +1,410 @@
+const CAT = '[TagAutoComplete]'
+
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+export function setupSuggestionSystem() {
+    const textboxes = document.querySelectorAll(
+        '.myTextbox-prompt-common-textarea, .myTextbox-prompt-positive-textarea, .myTextbox-prompt-negative-textarea, .myTextbox-prompt-exclude-textarea'
+        //'.myTextbox-prompt-ai-textarea',
+    );
+
+    let lastWordSent = '';
+    let skipSuggestion = false;
+
+    textboxes.forEach(textbox => {
+        if (textbox.dataset.suggestionSetup) return;
+
+        console.log(CAT, 'Setting up the Suggestion System for ', textbox);
+
+        const suggestionBox = document.createElement('div');
+        suggestionBox.className = 'suggestion-box scroll-container';
+        suggestionBox.style.display = 'none';
+        document.body.appendChild(suggestionBox);
+
+        let selectedIndex = -1;
+        let currentSuggestions = [];
+        const textboxWidth = textbox.offsetWidth;
+
+        suggestionBox.addEventListener('click', (e) => {
+            const item = e.target.closest('.suggestion-item');
+            if (item) applySuggestion(item.dataset.value);
+        });
+
+        textbox.addEventListener('input', debounce(async () => {
+            if (skipSuggestion) {
+                skipSuggestion = false;
+                return; 
+            }
+
+            updateSuggestionBoxPosition();
+
+            const value = textbox.value;
+            const cursorPosition = textbox.selectionStart;
+            let wordToSend = extractWordToSend(value, cursorPosition);
+
+            if (!wordToSend || wordToSend === lastWordSent) {
+                suggestionBox.style.display = 'none';
+                return;
+            }
+            lastWordSent = wordToSend;
+
+            try {            
+                const suggestions = await window.api.tagGet(wordToSend);
+
+                if (!suggestions || suggestions.length === 0 || suggestions.every(s => s.length === 0)) {
+                    suggestionBox.style.display = 'none';
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                let maxWidth = 0;
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.visibility = 'hidden';
+                tempDiv.style.whiteSpace = 'nowrap';
+                document.body.appendChild(tempDiv);
+
+                currentSuggestions = [];
+                suggestions.forEach((suggestion, index) => {
+                    if (!Array.isArray(suggestion) || suggestion.length === 0) {
+                        console.warn(CAT, 'Invalid suggestion format at index', index, suggestion);
+                        return;
+                    }
+                    const element = suggestion[0];
+                    if (typeof element !== 'string') {
+                        console.error(CAT, 'Unexpected element type at index', index, ':', typeof element, element);
+                        return;
+                    }
+                    const item = document.createElement('div');
+                    item.className = 'suggestion-item';
+                    item.innerHTML = element;
+                    const boldRegex = /<b>(.*?)<\/b>/;
+                    const promptMatch = boldRegex.exec(element);
+                    item.dataset.value = promptMatch ? promptMatch[1] : element.split(':')[0].trim();
+                    tempDiv.textContent = element.replace(/<[^>]+>/g, '');
+                    maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
+                    currentSuggestions.push({ prompt: element });
+                    fragment.appendChild(item);
+                });
+
+                document.body.removeChild(tempDiv);
+                suggestionBox.innerHTML = '';
+                suggestionBox.appendChild(fragment);
+                suggestionBox.style.width = `${Math.min(maxWidth + 20, 300)}px`;
+                suggestionBox.style.display = 'block';
+                selectedIndex = -1;
+
+            } catch (error) {
+                console.error(CAT, 'Suggestion system error:', error);
+                suggestionBox.style.display = 'none';
+            }
+        }, 50));
+
+        textbox.addEventListener('keydown', (e) => {
+            if (suggestionBox.style.display !== 'none') {
+
+                const items = suggestionBox.querySelectorAll('.suggestion-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'Tab' || e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && selectedIndex < currentSuggestions.length) {
+                        applySuggestion(currentSuggestions[selectedIndex].prompt);
+                    } else if (items.length > 0) {
+                        applySuggestion(currentSuggestions[0].prompt);
+                    }
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateSelection(items);
+                } else if (e.key === 'Escape') {
+                    suggestionBox.style.display = 'none';
+                }
+            }
+
+            if (e.ctrlKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+                e.preventDefault();
+                adjustWeight(e.key === 'ArrowUp', textbox);
+            }
+        });
+
+        function adjustWeight(isIncrease, textbox) {
+            const { value, selectionStart: startPos, selectionEnd: endPos } = textbox;
+
+            const { targetText, start, end } = extractTargetText(value, startPos, endPos);
+            if (!targetText) return;
+
+            const currentWeight = extractCurrentWeight(targetText);
+            const newWeight = calculateNewWeight(currentWeight, isIncrease);
+            if (newWeight === null) return;
+
+            const newTag = formatNewTag(targetText, newWeight);
+            updateTextboxValue(textbox, value, start, end, newTag);
+        }
+
+        function extractTargetText(value, startPos, endPos) {
+            if (startPos !== endPos) {
+                return { targetText: value.slice(startPos, endPos), start: startPos, end: endPos };
+            }
+
+            const beforeCursor = value.slice(0, startPos);
+            const afterCursor = value.slice(startPos);
+            const bracketMatch = findBracketedTag(beforeCursor, afterCursor);
+
+            if (bracketMatch) {
+                return { targetText: bracketMatch.text, start: bracketMatch.start, end: bracketMatch.end };
+            }
+
+            const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
+            const firstSeparatorAfter = afterCursor.indexOf(',') >= 0 ? afterCursor.indexOf(',') : afterCursor.indexOf('\n');
+            const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
+            const end = firstSeparatorAfter >= 0 ? startPos + firstSeparatorAfter : value.length;
+
+            return { targetText: value.slice(start, end).trim(), start, end };
+        }
+
+        function extractCurrentWeight(targetText) {
+            const weightMatch = targetText.match(/^\((.+):(\d*\.?\d+)\)$/);
+            return weightMatch ? parseFloat(weightMatch[2]) : 1.0;
+        }
+
+        function calculateNewWeight(currentWeight, isIncrease) {
+            const step = 0.05;
+            const newWeight = isIncrease ? currentWeight + step : currentWeight - step;
+            if (newWeight < 0.0 || newWeight > 3.0) return null;
+            return parseFloat(newWeight.toFixed(2));
+        }
+
+        function formatNewTag(targetText, newWeight) {
+            const baseText = targetText.match(/^\((.+):\d*\.?\d+\)$/)?.[1] || targetText;
+            return newWeight === 1.0 ? baseText : `(${baseText}:${newWeight})`;
+        }
+
+        function updateTextboxValue(textbox, value, start, end, newTag) {
+            textbox.value = value.slice(0, start) + newTag + value.slice(end);
+            const newCursorPos = start + newTag.length;
+            textbox.setSelectionRange(newCursorPos, newCursorPos);
+            textbox.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function findBracketedTag(beforeCursor, afterCursor) {
+            const fullText = beforeCursor + afterCursor;
+            const cursorPos = beforeCursor.length;
+
+            const bracketRegex = /\(([^()]+:\d*\.?\d+)\)/g;
+            let match;
+            while ((match = bracketRegex.exec(fullText)) !== null) {
+                const start = match.index;
+                const end = start + match[0].length;
+                if (start <= cursorPos && cursorPos <= end) {
+                    return {
+                        text: match[0],
+                        start: start,
+                        end: end
+                    };
+                }
+            }
+            return null;
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!suggestionBox.contains(e.target) && e.target !== textbox) {
+                suggestionBox.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('scroll', debounce(() => {
+            if (suggestionBox.style.display !== 'none') {
+                updateSuggestionBoxPosition();
+            }
+        }, 100), true);
+
+        function updateSelection(items) {
+            items.forEach((item, idx) => item.classList.toggle('selected', idx === selectedIndex));
+            if (selectedIndex >= 0) items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            textbox.focus();
+        }
+
+        function extractWordToSend(value, cursorPosition) {
+            const beforeCursor = value.slice(0, cursorPosition);
+            const afterCursor = value.slice(cursorPosition);                
+            const lastCommaBefore = beforeCursor.lastIndexOf(',');
+            const lastNewlineBefore = beforeCursor.lastIndexOf('\n');
+            const start = Math.max(lastCommaBefore, lastNewlineBefore) >= 0 
+                ? Math.max(lastCommaBefore, lastNewlineBefore) + 1 
+                : 0;        
+            const firstCommaAfter = afterCursor.indexOf(',');
+            const firstNewlineAfter = afterCursor.indexOf('\n');
+            
+            let end;
+            if (firstNewlineAfter === 0) {
+                end = cursorPosition;
+            } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
+                end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
+                    ? cursorPosition + firstCommaAfter
+                    : (() => {
+                        if (firstNewlineAfter >= 0) {
+                            return cursorPosition + firstNewlineAfter;
+                        }
+                        return value.length;
+                    })();
+            } else {
+                end = value.length;
+            }
+        
+            const extracted = value.slice(start, end).trim();
+            return extracted.endsWith(',') || extracted === '' ? '' : extracted;
+        }
+
+        function formatSuggestion(suggestion) {
+            const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
+            let formatted = withoutHeat.replace(/_/g, ' ');
+            formatted = formatted.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+            return formatted.startsWith(':') ? formatted : formatted.replace(/:/g, ' ');
+        }
+
+        function applySuggestion(promptText) {
+            console.log('promptText', promptText);
+
+            const promptMatch = promptText.match(/<b>(.*?)<\/b>/);
+            let formattedText = '';
+        
+            if (promptMatch) {
+                formattedText = formatSuggestion(promptMatch[1]);
+            } else if (promptText.startsWith(':')) {
+                formattedText = promptText.trim();
+            } else {
+                formattedText = formatSuggestion(promptText.replace(':', ' '));
+            }
+        
+            const value = textbox.value;
+            const cursorPosition = textbox.selectionStart;
+        
+            const beforeCursor = value.slice(0, cursorPosition);
+            const afterCursor = value.slice(cursorPosition);
+            const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
+            const firstCommaAfter = afterCursor.indexOf(',');
+            const firstNewlineAfter = afterCursor.indexOf('\n');
+            const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
+            let end = cursorPosition;
+            let suffix = ', ';
+        
+            if (firstNewlineAfter === 0) {
+                end = cursorPosition;
+                suffix = ',';
+            } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
+                end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
+                    ? cursorPosition + firstCommaAfter
+                    : (() => {
+                        if (firstNewlineAfter >= 0) {
+                            return cursorPosition + firstNewlineAfter;
+                        }
+                        return value.length;
+                    })();
+                if (firstCommaAfter >= 0) {
+                    suffix = '';
+                } else if (firstNewlineAfter >= 0) {
+                    suffix = ',';
+                }
+            }
+        
+            const isFirstWordInLine = start === 0 || value[start - 1] === '\n';
+            const prefix = isFirstWordInLine ? '' : ' ';
+            const newValue = value.slice(0, start) + prefix + formattedText + suffix + value.slice(end);
+            textbox.value = newValue.trim();
+        
+            const newCursorPosition = start + prefix.length + formattedText.length + (suffix.startsWith(',') ? 1 : 0);
+            textbox.setSelectionRange(newCursorPosition, newCursorPosition);
+        
+            currentSuggestions = [];
+            suggestionBox.innerHTML = '';
+            suggestionBox.style.display = 'none';
+        
+            const inputEvent = new Event('input', { bubbles: true });
+            skipSuggestion = true;
+            textbox.dispatchEvent(inputEvent);
+            textbox.focus();
+        }
+
+        function updateSuggestionBoxPosition() {
+            const rect = textbox.getBoundingClientRect();
+            const textboxTop = rect.top + window.scrollY;
+            const textboxBottom = rect.bottom + window.scrollY;
+            const textboxLeft = rect.left + window.scrollX;
+
+            const cursorPosition = Math.min(textbox.selectionStart, textbox.value.length);
+            const textBeforeCursor = textbox.value.substring(0, cursorPosition);
+
+            const lineSpan = document.createElement('span');
+            lineSpan.style.position = 'absolute';
+            lineSpan.style.visibility = 'hidden';
+            lineSpan.style.font = window.getComputedStyle(textbox).font;
+            lineSpan.style.whiteSpace = 'pre-wrap';
+            lineSpan.style.width = `${textboxWidth}px`;
+            document.body.appendChild(lineSpan);
+
+            const lines = [];
+            let currentLine = '';
+            for (const char of textBeforeCursor) {
+                lineSpan.textContent = currentLine + char;
+                if (lineSpan.scrollWidth > textboxWidth || char === '\n') {
+                    lines.push(currentLine);
+                    currentLine = char === '\n' ? '' : char;
+                } else {
+                    currentLine += char;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            document.body.removeChild(lineSpan);
+
+            const widthSpan = document.createElement('span');
+            widthSpan.style.position = 'absolute';
+            widthSpan.style.visibility = 'hidden';
+            widthSpan.style.font = window.getComputedStyle(textbox).font;
+            widthSpan.style.whiteSpace = 'nowrap';
+            widthSpan.textContent = lines[lines.length - 1] || '';
+            document.body.appendChild(widthSpan);
+            const cursorOffset = widthSpan.offsetWidth;
+            document.body.removeChild(widthSpan);
+
+            suggestionBox.style.display = 'block';
+            const suggestionWidth = suggestionBox.offsetWidth || 200;
+            const suggestionHeight = suggestionBox.offsetHeight || 100;
+            if (!suggestionBox.innerHTML) suggestionBox.style.display = 'none';
+
+            let newLeft = textboxLeft + cursorOffset;
+            let newTop = textboxBottom;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const paddingX = 24;
+            const paddingY = 12;
+
+            if (newLeft + suggestionWidth > windowWidth - paddingX) {
+                newLeft = Math.max(0, windowWidth - suggestionWidth - paddingX);
+            }
+            if (newLeft < textboxLeft) newLeft = textboxLeft;
+
+            if (newTop + suggestionHeight > windowHeight + window.scrollY - paddingY) {
+                newTop = textboxTop - suggestionHeight - paddingY;
+                if (newTop < window.scrollY) newTop = textboxBottom;
+            }
+
+            suggestionBox.style.left = `${newLeft}px`;
+            suggestionBox.style.top = `${newTop}px`;
+            suggestionBox.style.zIndex = '10002';
+            suggestionBox.style.transform = 'translateZ(0)';
+        }
+
+        textbox.dataset.suggestionSetup = 'true';
+    });
+}
