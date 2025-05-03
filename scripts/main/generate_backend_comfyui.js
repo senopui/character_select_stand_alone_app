@@ -57,6 +57,7 @@ class ComfyUI {
         this.urlPrefix = '';
         this.cancel = false;
         this.step = 0;
+        this.firstValidPreview = false;
     }
 
     cancelGenerate() {
@@ -92,6 +93,7 @@ class ComfyUI {
             this.preview = 0;
             this.cancel = false;
             this.step = 0;
+            this.firstValidPreview = false;
 
             const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
             this.webSocket = new WebSocket(wsUrl);            
@@ -138,16 +140,22 @@ class ComfyUI {
                         if (this.preview !== 0 && this.preview % this.refresh === 0) {
                             try {
                                 const previewData = data.slice(8);  //skip websocket header
-                                const base64Data = processImage(previewData);
-                                if (base64Data) {
-                                    sendToRenderer(`updatePreview`, `data:image/webp;base64,${base64Data}`);
+                                if(previewData.byteLength > 256){ // json parse failed 'executing' 110 ~ 120
+                                  if(!this.firstValidPreview) { // skip 1st preview, might last image
+                                    this.firstValidPreview = true;
+                                  } else {
+                                    const base64Data = processImage(previewData);
+                                    if (base64Data) {
+                                        sendToRenderer(`updatePreview`, `data:image/webp;base64,${base64Data}`);                                      
+                                    }
+                                  }
                                 }
                             } catch (err) {
                                 console.error(CAT, 'Error processing preview image:', err);
                             }
                         }
-                    }
-                    this.preview += 1;
+                        this.preview += 1;  
+                    }                                        
                 }
             });
 

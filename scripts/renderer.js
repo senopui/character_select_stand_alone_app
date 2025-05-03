@@ -119,6 +119,7 @@ export async function init(){
             lastNeg: 'bad quality,worst quality,worst detail,sketch',
             loadingMessage: null,
 
+            scrollToLatest: setupCheckbox('gallery-main-latest', LANG.scroll_to_last, SETTINGS.scroll_to_last, true, (value) => { window.globalSettings.scroll_to_last = value; }),
             keepGallery: setupCheckbox('gallery-main-keep', LANG.keep_gallery, SETTINGS.keep_gallery, true, callback_keep_gallery),
 
             seed: setupSlider('generate-random-seed', LANG.random_seed, -1, 4294967295, 1, SETTINGS.random_seed, (value) =>{window.globalSettings.random_seed = value;}),

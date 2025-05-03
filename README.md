@@ -75,18 +75,18 @@ The Character List supports keywords search in both Chinese and English.
 ## Right Click Menu
 I just noticed that the electron app doesn't have a right-click menu, so I made one.     
 
-**AI prompt generate test**
+**AI prompt generate test**     
 Right click on `AI prompt` to get AI promot without generate or set API interface to none.     
 Once got result from Remote/Local AI, an information overlay will show in screen, switch AI rule to `Last` to keep  the result in later generate.    
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aiPromptTest.png" width=45% height=45%>
 
-**Copy Image/Metadata**
+**Copy Image/Metadata**     
 Right click on `Gallery` to copy current image or copy the metadata to clipboard.     
 ComfyUI with Image Saver node will output an a1111 like metadata.      
 Copy image based on convert base64 data back to png, so I didn't put metadata back, because most social software will trim it again. If you do need the original image, try dragging and dropping or getting it from the relevant (ComfyUI/WebUI) output folder.      
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/copyImage.png" width=35% height=35%>
 
-***The Top buttons***
+***The Top buttons***     
 From Left to right: Save Settings, Reload Model List, Refresh page, Right to Left, Theme Switch.     
 
 ------

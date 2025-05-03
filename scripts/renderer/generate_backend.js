@@ -4,7 +4,7 @@ export function from_main_updateGallery(base64, seed, tagsString){
     const keepGallery = window.generate.keepGallery.getValue();
     if(!keepGallery)
         window.mainGallery.clearGallery();
-    window.mainGallery.appendImageData(base64, seed, tagsString, keepGallery);
+    window.mainGallery.appendImageData(base64, seed, tagsString, keepGallery, window.globalSettings.scroll_to_last);
 }
 
 export function from_main_updatePreview(base64){

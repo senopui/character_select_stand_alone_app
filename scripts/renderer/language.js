@@ -100,6 +100,7 @@ export function updateLanguage() {
     window.generate.model_filter_keyword.setTitle(LANG.model_filter_keyword);
     window.generate.search_modelinsubfolder.setTitle(LANG.search_modelinsubfolder);
 
+    window.generate.scrollToLatest.setTitle(LANG.scroll_to_last);
     window.generate.keepGallery.setTitle(LANG.keep_gallery);
     window.infoBox.image.setTitle(LANG.output_info);
 
@@ -176,6 +177,7 @@ export function updateSettings() {
     window.generate.height.setValue(SETTINGS.height);
     window.generate.batch.setValue(SETTINGS.batch);    
     window.generate.landscape.setValue(SETTINGS.api_image_landscape);
+    window.generate.scrollToLatest.setValue(SETTINGS.scroll_to_last);
     window.generate.keepGallery.setValue(SETTINGS.keep_gallery);
 
     window.prompt.common.setValue(SETTINGS.custom_prompt);

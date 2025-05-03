@@ -107,7 +107,7 @@ export function setupGallery(containerId) {
         container.innerHTML = '';
     };
 
-    window.mainGallery.appendImageData = function (base64, seed, tagsString, keep_gallery) {
+    window.mainGallery.appendImageData = function (base64, seed, tagsString, keep_gallery, switchToLatest = false) {
         if ('False' === keep_gallery) {
             window.mainGallery.clearGallery();
         }
@@ -120,10 +120,16 @@ export function setupGallery(containerId) {
             console.warn('[appendImageData] Mismatch: images:', images.length, 'seeds:', seeds.length, 'tags:', tags.length);
         }
 
+        let incremental = true;
+        if (switchToLatest && !isGridMode) {
+            currentIndex = images.length - 1;
+            incremental = false;
+        }
+
         if (isGridMode) {
             gallery_renderGridMode(true);
         } else {
-            gallery_renderSplitMode(true);
+            gallery_renderSplitMode(incremental);
         }
     };
 
@@ -400,6 +406,7 @@ export function setupGallery(containerId) {
                     const imgContainer = e.target.closest('.cg-gallery-item');
                     if (imgContainer) {
                         const index = parseInt(imgContainer.dataset.index);
+                        currentIndex = index; 
                         enterFullscreen(index);
                     }
                 });
@@ -466,7 +473,6 @@ export function setupGallery(containerId) {
             mainImageContainer = document.createElement('div');
             mainImageContainer.className = 'cg-main-image-container';
             const mainImage = document.createElement('img');
-            currentIndex = images.length - 1;
             mainImage.src = images[currentIndex];
             mainImage.className = 'cg-main-image';
             mainImage.addEventListener('click', () => enterFullscreen(currentIndex));

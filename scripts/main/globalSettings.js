@@ -40,6 +40,7 @@ const defaultSettings = {
     "height": 1360,
     "batch": 3,
     "api_image_landscape": false,
+    "scroll_to_last": false,
     "keep_gallery": true,
     
     "custom_prompt": "",

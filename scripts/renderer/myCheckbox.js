@@ -30,7 +30,7 @@ export function setupCheckbox(containerId, spanText = 'myCheckbox', defaultCheck
             checkboxInput.checked = !checkboxInput.checked;            
         }   
         if(callback)
-            callback();
+            callback(checkboxInput.checked);
     });
 
     return {

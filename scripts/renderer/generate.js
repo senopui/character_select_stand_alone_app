@@ -495,7 +495,7 @@ async function runComfyUI(apiInterface, generateData){
 
         if(!keepGallery)
             window.mainGallery.clearGallery();
-        window.mainGallery.appendImageData(image, `${generateData.seed}`, generateData.positive, keepGallery);
+        window.mainGallery.appendImageData(image, `${generateData.seed}`, generateData.positive, keepGallery, window.globalSettings.scroll_to_last);
     }
 
     const SETTINGS = window.globalSettings;
@@ -569,7 +569,7 @@ async function runWebUI(apiInterface, generateData) {
 
                 if(!keepGallery)
                     window.mainGallery.clearGallery();
-                window.mainGallery.appendImageData(result, `${generateData.seed}`, generateData.positive, keepGallery);
+                window.mainGallery.appendImageData(result, `${generateData.seed}`, generateData.positive, keepGallery, window.globalSettings.scroll_to_last);
             }
         }
     } catch (error) {
