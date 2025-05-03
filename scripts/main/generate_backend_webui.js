@@ -232,6 +232,7 @@ class WebUI {
     }
 
     startPolling() {
+        this.lastProgress = 0;
         if(this.refresh === 0)
             return;
 
@@ -268,11 +269,12 @@ class WebUI {
                         const jsonData = JSON.parse(buffer.toString());
                         const progress = jsonData.progress;
 
-                        if (Math.abs(progress - this.lastProgress) >= 0.05) {
+                        if (Math.abs(progress - this.lastProgress) >= 0.05 && progress !== 0) {
                             this.lastProgress = progress;
                             const image = jsonData.current_image;
                             const previewData = `data:image/webp;base64,${image}`;
                             sendToRenderer(`updatePreview`, previewData);
+                            sendToRenderer(`updateProgress`, `${Math.floor(progress*100)}`, '100%');
                         }
                     } catch (error) {
                         console.error(`${CAT} Ignore Error: ${error}`);
@@ -308,11 +310,12 @@ class WebUI {
 async function setupGenerateBackendWebUI() {
     backendWebUI = new WebUI();
 
-    ipcMain.handle('generate-backend-webui-run', async (event, generateData) => {        
-        const result = await backendWebUI.setModel(generateData.addr, generateData.model);
+    ipcMain.handle('generate-backend-webui-run', async (event, generateData) => {
+        const result = await backendWebUI.setModel(generateData.addr, generateData.model);        
         if(result === '200') {
             try {
                 const jsonData =  JSON.parse(await backendWebUI.run(generateData));
+                sendToRenderer(`updateProgress`, `100`, '100%');
                 const image = jsonData.images[0];
                 // parameters info
                 return `data:image/webp;base64,${image}`;

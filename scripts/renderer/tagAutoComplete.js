@@ -274,8 +274,6 @@ export function setupSuggestionSystem() {
         }
 
         function applySuggestion(promptText) {
-            console.log('promptText', promptText);
-
             const promptMatch = promptText.match(/<b>(.*?)<\/b>/);
             let formattedText = '';
         

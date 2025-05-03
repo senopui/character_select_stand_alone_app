@@ -1,5 +1,6 @@
 * {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;    
+    -webkit-user-drag: none;
 }
 
 html, body {
@@ -74,4 +75,8 @@ html, body {
 .myInfoBox-link {
     color: #3498db;
     text-decoration: underline;
+}
+
+.cg-main-image{
+    -webkit-user-drag: auto;   
 }

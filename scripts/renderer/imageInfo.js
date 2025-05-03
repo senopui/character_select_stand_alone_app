@@ -195,7 +195,6 @@ export function setupImageUploadOverlay() {
                 };
                 showImagePreview(file);
                 displayFormattedMetadata(fallbackMetadata);
-                console.log('Fallback Metadata:', JSON.stringify(fallbackMetadata, null, 2));
             }
         }
     });
@@ -325,9 +324,7 @@ export function setupImageUploadOverlay() {
         window.generate.cfg.setValue(extractedData.cfgScale);
         window.generate.step.setValue(extractedData.steps);
         window.generate.width.setValue(extractedData.width);
-        window.generate.height.setValue(extractedData.height);
-        
-        console.log('Extracted Metadata:', extractedData);
+        window.generate.height.setValue(extractedData.height);    
     }
 
     function displayFormattedMetadata(metadata) {

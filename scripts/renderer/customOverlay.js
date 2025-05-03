@@ -316,7 +316,6 @@ function restrictOverlayPosition(element, defaultPosition) {
                          rect.bottom > window.innerHeight || rect.right > window.innerWidth;
 
     if (isOutOfBounds) {
-        console.log(`Overlay ${element.id} out of bounds, resetting to default position`);
         let translateX = defaultPosition.translateX;
         let translateY = defaultPosition.translateY;
 
@@ -775,10 +774,11 @@ export function customCommonOverlay() {
         return overlay;
     }
 
+    // Update the createCustomOverlay function to add proper styling to the resize handle
     function createCustomOverlay(image, message) {
         const displayMessage = (typeof message === 'string' && message.trim()) ? message : 'No content provided';
         const hasImage = image && image !== 'none' && typeof image === 'string';
-    
+
         let processedMessage = parseTaggedContent(displayMessage)
             .replace(/\n/g, '<br>')
             .replace(
@@ -792,7 +792,7 @@ export function customCommonOverlay() {
                     return `<span style="color: ${colorStyle}">${text}</span>`;
                 }
             );
-    
+
         const overlay = createInfoOverlay({
             id: 'cg-custom-overlay',
             className: 'cg-custom-overlay',
@@ -803,15 +803,15 @@ export function customCommonOverlay() {
                 </div>
             `
         });
-    
+
         const textbox = overlay.querySelector('.cg-custom-textbox');
         textbox.style.display = 'block'; 
         textbox.style.overflowY = 'auto';
         textbox.style.padding = '10px';
         textbox.style.maxHeight = '100%';
-    
+
         const fragment = document.createDocumentFragment();
-    
+
         if (hasImage) {
             const img = document.createElement('img');
             img.src = `data:image/webp;base64,${image}`;
@@ -823,7 +823,7 @@ export function customCommonOverlay() {
             img.style.margin = '0 auto 10px';
             fragment.appendChild(img);
         }
-    
+
         const textDiv = document.createElement('div');
         textDiv.innerHTML = processedMessage;
         textDiv.style.whiteSpace = 'pre-wrap'; 
@@ -831,9 +831,9 @@ export function customCommonOverlay() {
         textDiv.style.width = '100%';
         textDiv.style.textAlign = 'left';
         fragment.appendChild(textDiv);
-    
+
         textbox.appendChild(fragment);
-    
+
         const closeButton = document.createElement('button');
         closeButton.className = 'cg-close-button';
 
@@ -847,19 +847,15 @@ export function customCommonOverlay() {
             if (overlay._cleanup) overlay._cleanup();
         });
         overlay.appendChild(closeButton);
-    
+
         const dragHandle = overlay.querySelector('.cg-drag-handle');    
         const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'cg-resize-handle'; 
+                
         overlay.appendChild(resizeHandle);
-    
-        overlay.style.minWidth = '200px';
-        overlay.style.maxWidth = 'min(1600px, 90vw)';
-        overlay.style.minHeight = '150px';
-        overlay.style.boxSizing = 'border-box';
-        overlay.style.padding = '20px';
         overlay.style.pointerEvents = 'auto';
-        overlay.style.zIndex = '9999';
-    
+        overlay.style.position = 'relative'; 
+
         const defaultWidth = 600;
         const defaultHeight = 800;
         let savedSize;
@@ -871,15 +867,15 @@ export function customCommonOverlay() {
         }
         let initialWidth = defaultWidth;
         let initialHeight = defaultHeight;
-    
+
         if (savedSize && savedSize.width >= 200 && savedSize.width <= 1600 && savedSize.height >= 150 && savedSize.height <= 1600) {
             initialWidth = savedSize.width;
             initialHeight = savedSize.height;
         }
-    
+
         overlay.style.width = `${initialWidth}px`;
         overlay.style.height = `${initialHeight}px`;
-    
+
         let savedPosition;
         try {
             savedPosition = localStorage.getItem('customOverlayPosition') ? JSON.parse(localStorage.getItem('customOverlayPosition')) : null;
@@ -898,7 +894,7 @@ export function customCommonOverlay() {
             overlay.style.left = '50%';
             overlay.style.transform = 'translate(-50%, -10%)';
         }
-    
+
         const adjustOverlaySize = () => {
             const rect = overlay.getBoundingClientRect();
             const resizeHandleOffset = 4;
@@ -907,10 +903,10 @@ export function customCommonOverlay() {
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             const padding = 10;
-    
+
             let newWidth = rect.width;
             let newHeight = rect.height;
-    
+
             if (rightEdge > viewportWidth - padding) {
                 newWidth = viewportWidth - rect.left - padding;
                 newWidth = Math.max(newWidth, 200);
@@ -919,7 +915,7 @@ export function customCommonOverlay() {
                 newHeight = viewportHeight - rect.top - padding;
                 newHeight = Math.max(newHeight, 150);
             }
-    
+
             if (newWidth !== rect.width || newHeight !== rect.height) {
                 overlay.style.width = `${newWidth}px`;
                 overlay.style.height = `${newHeight}px`;
@@ -929,12 +925,12 @@ export function customCommonOverlay() {
                 }));
             }
         };
-    
+
         requestAnimationFrame(adjustOverlaySize);
-    
+
         const resizeCleanup = addResizeFunctionality(overlay, resizeHandle);
         const dragCleanup = addCustomOverlayDragFunctionality(overlay, dragHandle, () => null, 'customOverlayPosition');
-    
+
         overlay._cleanup = () => {
             dragCleanup();
             resizeCleanup();
@@ -943,7 +939,7 @@ export function customCommonOverlay() {
                 delete overlay.dataset.timerInterval;
             }
         };
-    
+
         if (hasImage) {
             const imgElement = textbox.querySelector('img');
             imgElement.onerror = () => {
@@ -951,7 +947,7 @@ export function customCommonOverlay() {
                 imgElement.remove();
             };
         }
-    
+
         return overlay;
     }
 

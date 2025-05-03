@@ -145,7 +145,6 @@ function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
     let info = characterInfo;
     if (useTAS && tag in FILES.tagAssist) {
         tas = FILES.tagAssist[tag];
-        console.log(CAT, 'Found tag assist: ', tas);
         info += `Tag Assist ${index + 1}: [[color=${tomatoColor}]${tas}[/color]]\n`;
     }
     return { tas, info };
@@ -436,7 +435,6 @@ export async function generateImage(loops, runSame){
             hifix: hifix,
             refiner: refiner,            
         }
-        console.log(generateData);
 
         let finalInfo = `${createPromptResult.finalInfo}\n`;
         finalInfo += `Positive: ${createPromptResult.positivePromptColored}\n`;
@@ -492,6 +490,9 @@ async function seartGenerate(apiInterface, generateData){
 
 async function runComfyUI(apiInterface, generateData){
     function sendToGallery(image, generateData){
+        if(!image)  // same prompts from backend will return null
+            return;
+
         if(!keepGallery)
             window.mainGallery.clearGallery();
         window.mainGallery.appendImageData(image, `${generateData.seed}`, generateData.positive, keepGallery);
@@ -518,7 +519,6 @@ async function runComfyUI(apiInterface, generateData){
             if (parsedResult.prompt_id) {
                 try {
                     const image = await window.api.openWsComfyUI(parsedResult.prompt_id);
-
                     if(window.generate.cancelClicked){
                         breakNow = true;
                     } else {                    

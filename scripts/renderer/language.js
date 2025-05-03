@@ -135,6 +135,8 @@ export function updateLanguage() {
 
     window.overlay.buttons.reload();
     window.lora.reload();
+
+    window.rightClick.updateLanguage();
 }
 
 export function updateSettings() {

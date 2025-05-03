@@ -13,11 +13,12 @@ import { setupButtons, toggleButtons } from './renderer/myButtons.js';
 import { setupCollapsed, setupSaveSettingsToggle, setupModelReloadToggle, 
     setupRefreshToggle, setupSwapToggle, doSwap, reloadFiles } from './renderer/myCollapsed.js';
 import { setupTextbox, setupInfoBox } from './renderer/myTextbox.js';
-import { from_main_updateGallery, from_main_updatePreview } from './renderer/generate_backend.js';
+import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from './renderer/generate_backend.js';
 import { setupLoRA } from './renderer/myLoRASlot.js';
 import { setBlur, setNormal, showDialog } from './renderer/myDialog.js';
 import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/mytheme.js';
+import { setupRightClickMenu } from './renderer/myRightClickMenu.js';
 
 function afterDOMinit() {
     console.log("Script loaded, attempting initial setup");
@@ -26,6 +27,7 @@ function afterDOMinit() {
         await init();
         window.okm.setup_mainGallery_appendImageData(from_main_updateGallery);
         window.okm.setup_customOverlay_updatePreview(from_main_updatePreview);
+        window.okm.setup_customOverlay_progressBar(from_main_customOverlayProgress);
         setNormal();
     })();    
 }
@@ -329,6 +331,10 @@ export async function init(){
         }
 
         window.generate.toggleButtons = toggleButtons;
+
+        // Right Click Menu
+        // window.rightClick
+        setupRightClickMenu();        
 
         // Done
         window.initialized = true;        

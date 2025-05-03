@@ -69,7 +69,7 @@ body {
 }
 
 /* Suggestion Box */
-.suggestion-box {
+.suggestion-box, .right-click-menu {
     position: absolute;
     border: 2px solid #D2CBB8; /* Warm beige */
     background-color: rgba(245, 242, 230, 0.8); /* Semi-transparent creamy background */
@@ -101,6 +101,12 @@ body {
 .suggestion-item.selected {
     background-color: #F0D4B8; /* Soft warm peach */
     color: #4A403A; /* Dark gray-brown */
+}
+
+.menu-separator{
+    height: 1px;
+    background: #0e0e0e;
+    margin: 4px 0;
 }
 
 /* dropdown */

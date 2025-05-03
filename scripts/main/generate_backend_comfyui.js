@@ -56,6 +56,7 @@ class ComfyUI {
         this.timeout = 5000;
         this.urlPrefix = '';
         this.cancel = false;
+        this.step = 0;
     }
 
     cancelGenerate() {
@@ -90,6 +91,7 @@ class ComfyUI {
             this.prompt_id = prompt_id;
             this.preview = 0;
             this.cancel = false;
+            this.step = 0;
 
             const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
             this.webSocket = new WebSocket(wsUrl);            
@@ -99,27 +101,36 @@ class ComfyUI {
                         resolve();
                     }
                     const message = JSON.parse(data.toString('utf8'));
-                    if (message.type === 'executing') {
-                        const msgData = message.data;
-                        if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
-                            try {
-                                const image = await this.getImage();
-                                if (image && Buffer.isBuffer(image)) {
-                                    const base64Image = processImage(image);
-                                    if (base64Image) {
-                                        resolve(`data:image/webp;base64,${base64Image}`);
-                                    } else {
-                                        resolve('Error: Failed to convert image to base64');
-                                    }
+                    if (message.type === 'executing' || message.type === 'status') {
+                      const msgData = message.data;
+                      if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
+                        try {
+                            const image = await this.getImage();
+                            if (image && Buffer.isBuffer(image)) {
+                                const base64Image = processImage(image);
+                                if (base64Image) {
+                                    resolve(`data:image/webp;base64,${base64Image}`);
                                 } else {
-                                    console.error(CAT, 'Image not found or invalid:', image);
-                                    resolve('Error: Image not found or invalid');
+                                    resolve('Error: Failed to convert image to base64');
                                 }
-                            } catch (err) {
-                                console.error(CAT, 'Error getting image:', err);
-                                resolve(`Error: ${err.message}`);
+                            } else {
+                                console.error(CAT, 'Image not found or invalid:', image);
+                                resolve('Error: Image not found or invalid');
                             }
+                        } catch (err) {
+                            console.error(CAT, 'Error getting image:', err);
+                            resolve(`Error: ${err.message}`);
                         }
+                      } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {
+                        console.log(CAT, 'Running same promot? message =', message);
+                        resolve(null);
+                      }
+                    } else if(message.type === 'progress'){
+                      this.step += 1;
+                      const progress = message.data;
+                      if(progress?.value && progress?.max){
+                        sendToRenderer(`updateProgress`, progress.value, progress.max);
+                      }                    
                     }
                 } catch {
                     // preview

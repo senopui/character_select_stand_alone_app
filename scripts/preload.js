@@ -12,35 +12,43 @@ const { createHash } = require('crypto');
 const { gunzipSync } = require('zlib');
 
 // main to render
-let mainGallery_appendImageData = null;
-let customOverlay_updatePreview = null;
+let okm = {
+  mainGallery_appendImageData: null,
+  customOverlay_updatePreview: null,
+  customOverlay_progressBar: null
+}
+
 contextBridge.exposeInMainWorld('okm', {
   setup_mainGallery_appendImageData: (callback) => {
       if (typeof callback === 'function') {
-        mainGallery_appendImageData = callback;
+        okm.mainGallery_appendImageData = callback;
       } 
   },
   setup_customOverlay_updatePreview: (callback) => {
     if (typeof callback === 'function') {
-      customOverlay_updatePreview = callback;
+      okm.customOverlay_updatePreview = callback;
     } 
   },
-  remove_all: () => {
-    mainGallery_appendImageData = null;
-    customOverlay_updatePreview = null;
+  setup_customOverlay_progressBar: (callback) => {
+    if (typeof callback === 'function') {
+      okm.customOverlay_progressBar = callback;
+    } 
   }
 });
 
 const generateFunctions = {
   updatePreview(base64) {
-    if(customOverlay_updatePreview)
-      customOverlay_updatePreview(base64);
+    if(okm.customOverlay_updatePreview)
+      okm.customOverlay_updatePreview(base64);
   },
   appendImage(base64, seed, tags) {
-    if(customOverlay_updatePreview)
-      mainGallery_appendImageData(base64, seed, tags);
+    if(okm.customOverlay_updatePreview)
+      okm.mainGallery_appendImageData(base64, seed, tags);
   },
-  
+  updateProgress(progress, totalProgress) {
+    if(okm.customOverlay_progressBar)
+      okm.customOverlay_progressBar(progress, totalProgress);
+  },  
 };
 
 ipcRenderer.on('generate-backend', (event, { functionName, args }) => {
@@ -57,7 +65,8 @@ contextBridge.exposeInMainWorld('api', {
   readFile: async (relativePath, prefix, filePath) => ipcRenderer.invoke('read-file', relativePath, prefix, filePath),
   readSafetensors: async (modelPath, prefix, filePath) => ipcRenderer.invoke('read-safetensors', modelPath, prefix, filePath),
   readImage: async (buffer, fileName, fileType) => ipcRenderer.invoke('read-image-metadata', buffer, fileName, fileType ),
-  
+  readBase64Image: async (dataUrl) => ipcRenderer.invoke('read-base64-image-metadata', dataUrl),
+
   // globalSettings
   getGlobalSettings: async () => ipcRenderer.invoke('get-global-settings'),
   getSettingFiles: async () => ipcRenderer.invoke('get-all-settings-files'),
