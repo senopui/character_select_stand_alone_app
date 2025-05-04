@@ -117,6 +117,7 @@
         "right_menu_copy_image_metadata": "Copy Metadata",
         "right_menu_clear_gallery": "Clear Gallery",
         "right_menu_test_ai_generate": "Test AI Generate",
+        "right_menu_send_lora_to_slot": "Send LoRA to Slot",
 
         "save_settings_title": "Save Settings file\nPlease enter the name of the file to be saved.",
         "save_settings_success": "{0} Saved!",
@@ -255,12 +256,13 @@
         "lora_no_metadata": "文件读取错误或元数据被清除",
         "lora_model_strength": "Model强度",
         "lora_clip_strength": "CLIP强度",
-        "lora_enable_title": "使用方法：开启ON,基础Base,高修HiFix,关闭OFF",
+        "lora_enable_title": "使用方法：开启ALL,基础Base,高修HiFix,关闭OFF",
 
         "right_menu_copy_image": "复制图像",
         "right_menu_copy_image_metadata": "复制图像元数据",
         "right_menu_clear_gallery": "清空画廊",
         "right_menu_test_ai_generate": "测试AI题词",
+        "right_menu_send_lora_to_slot": "将LoRA读入插槽",
 
         "save_settings_title": "保存配置文件\n请输入要保存的文件名称：",
         "save_settings_success": "配置文件 {0} 保存成功",

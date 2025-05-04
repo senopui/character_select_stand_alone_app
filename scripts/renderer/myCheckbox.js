@@ -66,10 +66,10 @@ export function setupRadiobox(containerId, spanText = 'myRadiobox', items = 'ON,
         defaultSelectedIndex = 0;
     }
 
-    const renderRadioboxItems = () => {
+    const renderRadioboxItems = (selectedIndex) => {
         return itemArray
             .map((item, index) => {
-                const isChecked = index === defaultSelectedIndex ? 'checked' : '';
+                const isChecked = index === selectedIndex ? 'checked' : '';
                 const title = titleArray[index] || ''; 
                 return `
                     <label class="myRadiobox-${containerId}-item" title="${title}">
@@ -81,16 +81,16 @@ export function setupRadiobox(containerId, spanText = 'myRadiobox', items = 'ON,
             .join('');
     };
 
-    const renderRadiobox = () => {
+    const renderRadiobox = (selectedIndex) => {
         container.innerHTML = `        
             <div class="myRadiobox-${containerId}-group">
                 <span class="myRadiobox-${containerId}-span">${spanText}</span>
-                ${renderRadioboxItems()}
+                ${renderRadioboxItems(selectedIndex)}
             </div>
         `;
     };
 
-    renderRadiobox();
+    renderRadiobox(defaultSelectedIndex);
 
     const radioboxInputs = () => container.querySelectorAll(`.myRadiobox-${containerId}-input`);
     const radioboxSpan = () => container.querySelector(`.myRadiobox-${containerId}-span`);
@@ -100,9 +100,18 @@ export function setupRadiobox(containerId, spanText = 'myRadiobox', items = 'ON,
         return;
     }
 
+    // Track previous value to avoid redundant callback triggers
+    let previousValue = defaultSelectedIndex;
+
     container.addEventListener('click', (event) => {
-        if(callback)
-            callback();
+        const input = event.target.closest(`.myRadiobox-${containerId}-input`);
+        if (input) {
+            const currentValue = parseInt(input.value, 10);
+            if (currentValue !== previousValue && callback) {
+                callback(currentValue);
+                previousValue = currentValue;
+            }
+        }
     });
 
     return {
@@ -111,20 +120,21 @@ export function setupRadiobox(containerId, spanText = 'myRadiobox', items = 'ON,
                 console.warn(CAT_RB, `Invalid index "${index}".`);
                 return;
             }
-            radioboxInputs().forEach((input, i) => {
-                input.checked = i === index;
-            });
+            radioboxInputs()[index].checked = true;
+            if (index !== previousValue && callback) {
+                callback(index);
+                previousValue = index;
+            }
         },
         getValue: () => {
-            let selectedIndex = -1;
-            radioboxInputs().forEach((input, index) => {
-                if (input.checked) {
-                    selectedIndex = index;
-                }
-            });
+            const inputs = radioboxInputs();
+            const selectedIndex = Array.from(inputs).findIndex(input => input.checked);
             return selectedIndex;
         },
         setTitle: (newSpanText, newItems, newItemsTitle) => {
+            const oldLength = itemArray.length;
+            let selectedIndex = previousValue;
+
             if (newSpanText) {
                 spanText = newSpanText;
                 radioboxSpan().textContent = spanText;
@@ -142,7 +152,13 @@ export function setupRadiobox(containerId, spanText = 'myRadiobox', items = 'ON,
                 return;
             }
 
-            renderRadiobox();
+            // If item length changes or selectedIndex is invalid, reset to default
+            if (itemArray.length !== oldLength || selectedIndex >= itemArray.length) {
+                selectedIndex = defaultSelectedIndex < itemArray.length ? defaultSelectedIndex : 0;
+            }
+
+            renderRadiobox(selectedIndex);
+            previousValue = selectedIndex;
         }
     };
 }

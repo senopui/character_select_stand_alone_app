@@ -200,14 +200,13 @@ export function updateSettings() {
     window.generate.hifix_dummy.setValue(SETTINGS.api_hf_enable);
     window.hifix.scale.setValue(SETTINGS.api_hf_scale);
     window.hifix.denoise.setValue(SETTINGS.api_hf_denoise);
-    //window.hifix.model.setOptions(SETTINGS.api_hf_upscaler_list);
     window.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
     window.hifix.colorTransfer.updateDefaults(SETTINGS.api_hf_colortransfer);
     window.hifix.randomSeed.setValue(SETTINGS.api_hf_random_seed);
 
     window.generate.refiner.setValue(SETTINGS.api_refiner_enable);
     window.generate.refiner_dummy.setValue(SETTINGS.api_refiner_enable);
-    window.refiner.addnoise.setValue(SETTINGS.api_refiner_add_noise);
+    window.refiner.addnoise.setValue(SETTINGS.api_refiner_add_noise);    
     window.refiner.model.updateDefaults(SETTINGS.api_refiner_model);
     window.refiner.vpred.updateDefaults(SETTINGS.api_refiner_model_vpred);
     window.refiner.ratio.setValue(SETTINGS.api_refiner_ratio);

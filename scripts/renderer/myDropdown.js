@@ -314,7 +314,12 @@ function createDropdown({
         },
         
         updateDefaults: function(...defaults) {
-            const defaultValues = defaults.slice(0, dropdownCount);
+            let defaultValues;
+            if (defaults.length === 1 && Array.isArray(defaults[0])) {
+                defaultValues = defaults[0].slice(0, dropdownCount);
+            } else {
+                defaultValues = defaults.slice(0, dropdownCount);
+            }
             inputs.forEach((input, index) => {
                 if (!isEditing[index]) {
                     const value = defaultValues[index] || '';
@@ -333,7 +338,7 @@ function createDropdown({
         getValue: function() {
             const value = selectedValues.slice();
             if(value.length===1){
-                if(typeof value[0] === 'object')    // Fix model list issue
+                if(typeof value[0] === 'object') 
                     return value[0][0];
                 else
                     return value[0];

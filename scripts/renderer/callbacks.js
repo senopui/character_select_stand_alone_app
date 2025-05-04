@@ -14,10 +14,10 @@ export async function callback_mySettingList(index, selectedValue) {
     setBlur();
     window.initialized = false;
     window.globalSettings = await window.api.loadSettingFile(value);
-    doSwap(window.globalSettings.rightToleft);
-    updateSettings();
+    doSwap(window.globalSettings.rightToleft);    
     await reloadFiles()
     updateLanguage(); 
+    updateSettings();
     window.dropdownList.settings.updateDefaults(value);
     if(old_css !== window.globalSettings.css_style)
         applyTheme(window.globalSettings.css_style);

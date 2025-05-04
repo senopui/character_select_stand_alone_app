@@ -1,3 +1,9 @@
+2025.05.05 v1.2.2      
+Bugfix:     
+Load Seting didn't work with few dropdowns      
+Radiobox callback didn't return any value     
+
+
 2025.05.04 v1.2.1     
 Bugfix:     
 Hires-Fix model select overwrite model list      
