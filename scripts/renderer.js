@@ -263,7 +263,7 @@ export async function init(){
         console.log('Creating window.hifix');
         window.hifix = {
             model: mySimpleList('hires-fix-model', LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_list,
-                (vindex, value) => { window.globalSettings.api_hf_upscaler_list = value; }, 10, true, true),
+                (vindex, value) => { window.globalSettings.api_hf_upscaler_selected = value; }, 10, true, true),
             colorTransfer: mySimpleList('hires-fix-color-transfer', LANG.api_hf_colortransfer, ['None', 'Mean', 'Lab']
                 , (index, value) => { window.globalSettings.api_hf_colortransfer = value; }, 3, false, true),
             randomSeed: setupCheckbox('hires-fix-random-seed',LANG.api_hf_random_seed, SETTINGS.api_hf_random_seed, true, 

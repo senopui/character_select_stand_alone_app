@@ -200,7 +200,7 @@ export function updateSettings() {
     window.generate.hifix_dummy.setValue(SETTINGS.api_hf_enable);
     window.hifix.scale.setValue(SETTINGS.api_hf_scale);
     window.hifix.denoise.setValue(SETTINGS.api_hf_denoise);
-    window.hifix.model.setOptions(SETTINGS.api_hf_upscaler_list);
+    //window.hifix.model.setOptions(SETTINGS.api_hf_upscaler_list);
     window.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
     window.hifix.colorTransfer.updateDefaults(SETTINGS.api_hf_colortransfer);
     window.hifix.randomSeed.setValue(SETTINGS.api_hf_random_seed);
