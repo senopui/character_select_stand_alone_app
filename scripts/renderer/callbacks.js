@@ -21,6 +21,9 @@ export async function callback_mySettingList(index, selectedValue) {
     window.dropdownList.settings.updateDefaults(value);
     if(old_css !== window.globalSettings.css_style)
         applyTheme(window.globalSettings.css_style);
+    
+    window.lora.flush();
+
     window.initialized = true;
     setNormal();
 }

@@ -111,7 +111,7 @@ class ComfyUI {
                             if (image && Buffer.isBuffer(image)) {
                                 const base64Image = processImage(image);
                                 if (base64Image) {
-                                    resolve(`data:image/webp;base64,${base64Image}`);
+                                    resolve(`data:image/png;base64,${base64Image}`);
                                 } else {
                                     resolve('Error: Failed to convert image to base64');
                                 }
@@ -146,7 +146,7 @@ class ComfyUI {
                                   } else {
                                     const base64Data = processImage(previewData);
                                     if (base64Data) {
-                                        sendToRenderer(`updatePreview`, `data:image/webp;base64,${base64Data}`);                                      
+                                        sendToRenderer(`updatePreview`, `data:image/png;base64,${base64Data}`);
                                     }
                                   }
                                 }

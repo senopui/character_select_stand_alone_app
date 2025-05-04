@@ -251,6 +251,8 @@ export function setupImageUploadOverlay() {
             const parsedMetadata = window.currentImageMetadata;
             
             sendPrompt(parsedMetadata);
+            window.generate.landscape.setValue(false);
+            window.ai.ai_select.setValue(0);
             
             sendButton.textContent = 'Sent!';
             setTimeout(() => {
@@ -297,7 +299,6 @@ export function setupImageUploadOverlay() {
             extractedData.steps = findInt('Steps:', otherParamsLines);
             extractedData.seed = findInt('Seed:', otherParamsLines);
         
-            
             const cfgLine = otherParamsLines.find(line => line.trim().startsWith('CFG scale:'));
             if (cfgLine) {
                 const cfgMatch = cfgLine.match(/CFG scale:\s*(\d+\.?\d*)/);
@@ -315,10 +316,15 @@ export function setupImageUploadOverlay() {
                 }
             }
         }
-        
-        
-        window.prompt.common.setValue(extractedData.positivePrompt);
-        window.prompt.positive.setValue('');
+
+        // Extract <lora:...> strings from positivePrompt
+        const loraRegex = /<lora:[^>]+>/g;
+        const loraMatches = extractedData.positivePrompt.match(loraRegex) || [];
+        const allLora = loraMatches.join('\n');
+        const allPrompt = extractedData.positivePrompt.replace(loraRegex, '').replace(/,\s*,/g, ',').replace(/(^,\s*)|(\s*,$)/g, '').trim();
+
+        window.prompt.common.setValue(allPrompt || defaultPositivePrompt);
+        window.prompt.positive.setValue(allLora);
         window.prompt.negative.setValue(extractedData.negativePrompt);    
         window.generate.seed.setValue(extractedData.seed);
         window.generate.cfg.setValue(extractedData.cfgScale);

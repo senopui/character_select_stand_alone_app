@@ -108,7 +108,6 @@ function processMetadata(buffer, offset, length) {
   if (nullPos !== -1) {
     const keyword = chunkData.toString('ascii', 0, nullPos);
     const textData = chunkData.toString('ascii', nullPos + 1);
-    console.log(CAT, `Keyword: ${keyword}, Length: ${textData.length}`);
     
     if (keyword === 'parameters' || keyword === 'prompt' || 
         keyword === 'Comment' || keyword === 'Description' || 
@@ -150,7 +149,6 @@ function extractPngMetadata(buffer) {
       offset += 4;
       
       if (type === 'tEXt') {
-        console.log(CAT, `Found tEXt chunk of length ${length}`);
         metadataFound = processMetadata(buffer, offset, offset + length);
         if(metadataFound){
           break;
@@ -299,9 +297,7 @@ function setupFileHandlers() {
           format: 'png',
           note: 'No AI generation metadata found'
         };
-      }
-      
-      console.log(CAT, `Successfully processed image: (${metadata.metadata})`);
+      }      
       return metadata;
       
     } catch (processingError) {
@@ -312,7 +308,6 @@ function setupFileHandlers() {
       };
     }
   });
-
 }
 
 module.exports = {

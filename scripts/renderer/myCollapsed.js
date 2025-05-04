@@ -2,43 +2,47 @@ import { setBlur, setNormal, showDialog } from './myDialog.js';
 
 const CAT = '[myCollapsed]'
 
-export function setupCollapsed(containerId, collapsed = false){
+export function setupCollapsed(containerId, collapsed = false) {
     const mainItem = document.querySelector(`.${containerId}-main`);
     if (!mainItem) {
         console.error(CAT, 'mainItem not found', `.${containerId}-main`);
-        return;
+        return null;
     }
 
     const container = document.querySelector(`.${containerId}-container`);
     if (!container) {
         console.error(CAT, 'Container not found', `.${containerId}-container`);
-        return;
+        return null;
     }
 
     const arrowId = `${containerId}-toggle`;
     const toggleArrow = document.getElementById(arrowId);
     if (!toggleArrow) {
         console.error(CAT, 'Element not found', arrowId);
-        return;
+        return null;
     }
     
     toggleArrow.addEventListener('click', () => {
-        if (container.classList.contains('collapsed')) {
-            mainItem.classList.remove('collapsed');
-            container.classList.remove('collapsed');
-            toggleArrow.classList.remove('collapsed');
-        } else {
+        setCollapsed(!container.classList.contains('collapsed'));
+    });
+
+    setCollapsed(collapsed);
+
+    function setCollapsed(isCollapsed) {
+        if (isCollapsed) {
             mainItem.classList.add('collapsed');
             container.classList.add('collapsed');
             toggleArrow.classList.add('collapsed');
+        } else {
+            mainItem.classList.remove('collapsed');
+            container.classList.remove('collapsed');
+            toggleArrow.classList.remove('collapsed');
         }
-    });
-
-    if(collapsed){
-        mainItem.classList.add('collapsed');
-        container.classList.add('collapsed');
-        toggleArrow.classList.add('collapsed');
     }
+
+    return {
+        setCollapsed
+    };
 }
 
 export async function setupSaveSettingsToggle(){
@@ -52,6 +56,7 @@ export async function setupSaveSettingsToggle(){
         setBlur();
         const inputResult = await showDialog('input', { message: window.cachedFiles.language[window.globalSettings.language].save_settings_title, placeholder: 'tmp_settings', defaultValue: 'tmp_settings' });
         if(inputResult){
+            window.globalSettings.lora_slot = window.lora.getValues();
             const result = await window.api.saveSettingFile(`${inputResult}.json`, window.globalSettings);
 
             if(result === true) {

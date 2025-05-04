@@ -101,13 +101,15 @@ export async function init(){
         setupThumbOverlay();
         window.imageInfo = setupImageUploadOverlay();
 
-        setupCollapsed('image-infobox', false)
-        setupCollapsed('gallery-main', false);
-        setupCollapsed('gallery-thumb', false);
-        setupCollapsed('highres-fix', true);
-        setupCollapsed('refiner', true);
-        setupCollapsed('add-lora', true);
-        setupCollapsed('system-settings', true)            
+        window.collapsedTabs = {
+            infoBox: setupCollapsed('image-infobox', false),
+            gallery: setupCollapsed('gallery-main', false),
+            thumb: setupCollapsed('gallery-thumb', false),
+            hires: setupCollapsed('highres-fix', true),
+            refiner: setupCollapsed('refiner', true),
+            lora: setupCollapsed('add-lora', true),
+            settings: setupCollapsed('system-settings', true),
+        }
 
         console.log('Creating window.generate');
         window.generate = {

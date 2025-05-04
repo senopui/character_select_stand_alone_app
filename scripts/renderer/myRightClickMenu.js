@@ -21,6 +21,7 @@ export function setupRightClickMenu() {
     const menuBox = document.createElement('div');
     menuBox.className = 'right-click-menu';
     menuBox.style.zIndex = '10002';
+    menuBox.style.display = 'none';
     document.body.appendChild(menuBox);
 
     let menuConfig = [];
@@ -249,7 +250,13 @@ function updateRightClickMenu(){
 
     window.rightClick.setTitle('copy_image', LANG.right_menu_copy_image);
     window.rightClick.setTitle('copy_image_metadata', LANG.right_menu_copy_image_metadata);
+    window.rightClick.setTitle('copy_image_full_screen', LANG.right_menu_copy_image);
+    window.rightClick.setTitle('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata);
+    
     window.rightClick.setTitle('clear_gallery', LANG.right_menu_clear_gallery);
+
+    window.rightClick.setTitle('lora_common_to_slot', LANG.right_menu_send_lora_to_slot);
+    window.rightClick.setTitle('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot);
     window.rightClick.setTitle('test_ai_generate', LANG.right_menu_test_ai_generate);
 }
 
@@ -258,23 +265,59 @@ function registerDefaultMenuItems() {
     const FILES = window.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
+    //Dynamic menu
+    // split mode
     window.rightClick.append('copy_image', LANG.right_menu_copy_image, {
         selector: '.cg-main-image-container',
         func: (element) => menu_copyImage(element)
     });
-
     window.rightClick.append('copy_image_metadata', LANG.right_menu_copy_image_metadata, {
         selector: '.cg-main-image-container',
         func: async (element) => await menu_copyImageMetadata(element)
     });
+    // full screen mode
+    window.rightClick.append('copy_image_full_screen', LANG.right_menu_copy_image, {
+        selector: '.cg-fullscreen-overlay',
+        func: (element) => menu_copyImage(element)
+    });
+    window.rightClick.append('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata, {
+        selector: '.cg-fullscreen-overlay',
+        func: async (element) => await menu_copyImageMetadata(element)
+    });
 
+    // Common
+    window.rightClick.append('lora_common_to_slot', LANG.right_menu_send_lora_to_slot, {
+        selector: '.prompt-common',
+        func: (element) => {
+            const textPrompt = prompt_sendLoRAtoSlot(element, '.myTextbox-prompt-common-textarea ')
+            if(textPrompt) {
+                window.prompt.common.setValue(textPrompt.trim());
+                window.collapsedTabs.lora.setCollapsed(false);
+            }
+        }
+    });
+    // Positive
+    window.rightClick.append('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot, {
+        selector: '.prompt-positive',
+        func: (element) => {
+            const textPrompt = prompt_sendLoRAtoSlot(element, '.myTextbox-prompt-positive-textarea ')
+            if(textPrompt){
+                window.prompt.positive.setValue(textPrompt.trim());
+                window.collapsedTabs.lora.setCollapsed(false);
+            }
+        }
+    });
+
+    // AI prompt
     window.rightClick.append('test_ai_generate', LANG.right_menu_test_ai_generate, {
         selector: '.prompt-ai',
-        func: async (element) => await test_ai_generate(element)
-    });    
+        func: async (element) => await prompt_testAIgenerate(element)
+    });
 
+    // line-------------------
     window.rightClick.append('separator_1', null, null);
 
+    // Static menu
     window.rightClick.append('clear_gallery', LANG.right_menu_clear_gallery, () => {
         window.mainGallery.clearGallery();
     });
@@ -328,7 +371,39 @@ async function menu_copyImageMetadata(element) {
     }
 }
 
-async function test_ai_generate(element){
+function prompt_sendLoRAtoSlot(element, textArea){
+    try {
+        const textarea = element.querySelector(textArea);
+        if (!textarea) {
+            console.warn(CAT, `No textarea found with class ${textArea}`,);
+            return null;
+        }
+
+        const text = textarea.value.trim();
+        if (!text) {
+            console.warn(CAT, `${textArea} is empty`);
+            return null;
+        }
+
+        const loraRegex = /<lora:[^>]+>/g;
+        const loraMatches = text.match(loraRegex) || [];
+        const allLora = loraMatches.join(' ');
+        const allPrompt = text.replace(loraRegex, '').replace(/,\s*,/g, ',').replace(/(^,\s*)|(\s*,$)/g, '').trim();
+
+        if(allLora.trim() !== '') {
+            window.lora.flushSlot(allLora);
+        } else {
+            console.warn(CAT, `No LoRA in ${textArea}`);
+        }
+
+        return `${allPrompt} `;
+    } catch (err) {
+        console.error(CAT, `Error on get ${textArea} prompt:`, err);
+        return null;
+    }
+}
+
+async function prompt_testAIgenerate(element){
     try {
         const textarea = element.querySelector('.myTextbox-prompt-ai-textarea');
         if (!textarea) {

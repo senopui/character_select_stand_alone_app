@@ -77,6 +77,8 @@ const defaultSettings = {
     "api_refiner_model": "Default",
     "api_refiner_model_vpred": "Auto",
     "api_refiner_ratio": 0.4,
+
+    "lora_slot": [],
 }
 
 function setupGlobalSettings() { 

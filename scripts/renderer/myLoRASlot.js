@@ -86,6 +86,121 @@ async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lor
     }   
 }
 
+function createSlotsFromValues(slotManager, slotValues, options = {}) {
+    const { validateLoRA = true, clearSlots = true } = options;
+
+    const SETTINGS = window.globalSettings || {};
+    const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+    const LANG = FILES.language[SETTINGS.language] || {
+        lora_model_strength: 'Model Strength',
+        lora_clip_strength: 'Clip Strength',
+        lora_enable_title: 'Enable'
+    };
+
+    // Optionally clear existing slots
+    if (clearSlots) {
+        const slots = slotManager.getSlots();
+        for (const slotClass of slots) {
+            slotManager.delSlot(slotClass);
+        }
+    }
+
+    // Process each set of slot values
+    slotValues.forEach(([loraName, modelStrength, clipStrength, enableValue]) => {
+        // Validate LoRA existence if required
+        if (validateLoRA && !FILES.loraList.includes(loraName)) {
+            if (options.skipInvalid) {
+                console.warn(`LoRA "${loraName}" not found in loraList, skipping`);
+                return;
+            }
+            // Use default values for invalid LoRAs
+            loraName = FILES.loraList[0] || 'Default LoRA';
+            modelStrength = '0';
+            clipStrength = '0';
+            enableValue = 'OFF';
+        }
+
+        const className = slotManager.addSlot();
+        if (!className) return;
+
+        const slot = slotManager.slotIndex.get(className);
+        if (!slot) return;
+
+        requestAnimationFrame(() => {
+            // Initialize select1 (LoRA dropdown)
+            const select1 = mySimpleList(
+                slot.itemClasses.select1,
+                'LoRA',
+                FILES.loraList,
+                null,
+                15,
+                true,
+                false
+            );
+            select1.updateDefaults(loraName);
+            const select1Generator = () => select1;
+            slot.items.set(slot.itemClasses.select1, select1Generator);
+            const select1Component = select1Generator();
+            if (select1Component) {
+                slotManager.componentInstances.set(`${className}-${slot.itemClasses.select1}`, select1Component);
+            }
+
+            // Initialize text1 (Model Strength)
+            const text1Generator = () =>
+                setupTextbox(
+                    slot.itemClasses.text1,
+                    LANG.lora_model_strength,
+                    { value: modelStrength, defaultTextColor: 'rgb(179,157,219)', maxLines: 1 },
+                    false,
+                    null,
+                    false,
+                    true
+                );
+            slot.items.set(slot.itemClasses.text1, text1Generator);
+            const text1Component = text1Generator();
+            if (text1Component) {
+                slotManager.componentInstances.set(`${className}-${slot.itemClasses.text1}`, text1Component);
+            }
+
+            // Initialize text2 (Clip Strength)
+            const text2Generator = () =>
+                setupTextbox(
+                    slot.itemClasses.text2,
+                    LANG.lora_clip_strength,
+                    { value: clipStrength, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
+                    false,
+                    null,
+                    window.generate.api_interface.getValue() !== 'ComfyUI',
+                    true
+                );
+            slot.items.set(slot.itemClasses.text2, text2Generator);
+            const text2Component = text2Generator();
+            if (text2Component) {
+                slotManager.componentInstances.set(`${className}-${slot.itemClasses.text2}`, text2Component);
+            }
+
+            // Initialize select2 (Enable dropdown)
+            const select2 = mySimpleList(
+                slot.itemClasses.select2,
+                LANG.lora_enable_title,
+                ["ALL", "Base", "HiFix", "OFF"],
+                null,
+                5,
+                false,
+                false
+            );
+            select2.updateDefaults(enableValue);
+            const select2Generator = () => select2;
+            slot.items.set(slot.itemClasses.select2, select2Generator);
+            const select2Component = select2Generator();
+            if (select2Component) {
+                slotManager.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
+            }
+        });
+    });
+}
+
+
 class SlotManager {
     constructor(containerSelector) {
         this.container = document.querySelector(`.${containerSelector}`);
@@ -358,6 +473,13 @@ class SlotManager {
         }
     }
 
+    clear() {
+        const slots = this.getSlots();
+        for (const slotClass of slots) {
+            this.delSlot(slotClass);
+        }
+    }
+
     getSlots() {
         return Array.from(this.slotIndex.keys()).filter(className => !this.slotIndex.get(className).isCandidate);
     }
@@ -434,110 +556,115 @@ class SlotManager {
         return result;
     }
 
-    reload() {
-        const SETTINGS = window.globalSettings || {};
-        const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
-        const LANG = FILES.language[SETTINGS.language] || {
-            lora_model_strength: 'Model Strength',
-            lora_clip_strength: 'Clip Strength',
-            lora_enable_title: 'Enable'
-        };
+    flush(){
+        this.clear();
 
-        // Backup current slot values
-        const slotValues = this.getValues();
-        const slots = this.getSlots();
-
-        // Clear all slots except candidate
-        for (const slotClass of slots) {
-            this.delSlot(slotClass);
-        }
-
-        // Recreate slots and restore values
-        slotValues.forEach(([loraName, modelStrength, clipStrength, enableValue]) => {
-            if (!FILES.loraList.includes(loraName)) {
-                console.warn(`LoRA "${loraName}" not found in current loraList, skipping`);
-                return;
+        const slots = window.globalSettings.lora_slot;
+        const loraStrings = slots.map(([loraName, modelStrength, clipStrength, enableValue]) => {
+    
+            const modelStr = parseFloat(modelStrength) || 0;
+            const clipStr = parseFloat(clipStrength) || 0;
+    
+            let loraFormat = '';
+            switch (enableValue) {
+                case 'ALL':
+                    loraFormat = `<lora:${loraName}:${modelStr}:${clipStr}>`;
+                    break;
+                case 'Base':
+                    loraFormat = `<lora:${loraName}:${modelStr}:${clipStr}:0:0>`;
+                    break;
+                case 'HiFix':
+                    loraFormat = `<lora:${loraName}:0:0:${modelStr}:${clipStr}>`;
+                    break;
+                case 'OFF':
+                    loraFormat = `<lora:${loraName}:0:0>`;
+                    break;
+                default:
+                    loraFormat = `<lora:${cleanLoraName}:0>`;
             }
+    
+            return loraFormat;
+        });
+    
+        const loraString = loraStrings.join('');
+        this.flushSlot(loraString);
+    }
 
-            const className = this.addSlot();
-            if (!className) return;
-
-            const slot = this.slotIndex.get(className);
-            if (!slot) return;
-
-            requestAnimationFrame(() => {
-                const select1 = mySimpleList(
-                    slot.itemClasses.select1, 
-                    'LoRA', 
-                    FILES.loraList, 
-                    null, 
-                    15, 
-                    true, 
-                    false
-                );
-                select1.updateDefaults(loraName);
-                // Restore select1 (LoRA dropdown)                
-                const select1Generator = () => select1;                
-                slot.items.set(slot.itemClasses.select1, select1Generator);
-                const select1Component = select1Generator();
-                if (select1Component) {
-                    this.componentInstances.set(`${className}-${slot.itemClasses.select1}`, select1Component);
+    flushSlot(loraString) {
+        this.clear();
+        
+        const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+    
+        // Parse loraString into slotValues
+        const slotValues = [];
+        const loraRegex = /<lora:([^>]+)>/g;
+        const loraMatches = [...loraString.matchAll(loraRegex)];
+    
+        for (const match of loraMatches) {
+            const loraContent = match[1];
+            const parts = loraContent.split(':');
+            const loraName = parts[0];
+            const values = parts.slice(1).map(v => parseFloat(v) || 0);
+    
+            let select1 = loraName;
+            let text1 = '0';
+            let text2 = '0';
+            let select2 = 'OFF';
+    
+            const loraExists = FILES.loraList.includes(loraName);
+            if (!loraExists) {
+                slotValues.push([select1, text1, text2, select2]);
+                continue;
+            }
+    
+            if (values.length <= 2) {
+                text1 = values[0]?.toString() || '0';
+                text2 = values[1]?.toString() || '0';
+                select2 = (parseFloat(text1) !== 0 || parseFloat(text2) !== 0) ? 'ALL' : 'OFF';
+                slotValues.push([select1, text1, text2, select2]);
+            } else if (values.length === 4) {
+                const pair1 = [values[0], values[1]];
+                const pair2 = [values[2], values[3]];
+                const pair1HasNonZero = pair1.some(v => v !== 0);
+                const pair2HasNonZero = pair2.some(v => v !== 0);
+                const pairsEqual = pair1[0] === pair2[0] && pair1[1] === pair2[1];
+    
+                if (pairsEqual && pair1HasNonZero) {
+                    text1 = pair1[0].toString();
+                    text2 = pair1[1].toString();
+                    select2 = 'ALL';
+                    slotValues.push([select1, text1, text2, select2]);
+                } else {
+                    if (pair1HasNonZero) {
+                        text1 = pair1[0].toString();
+                        text2 = pair1[1].toString();
+                        select2 = 'Base';
+                        slotValues.push([select1, text1, text2, select2]);
+                    }
+                    if (pair2HasNonZero) {
+                        text1 = pair2[0].toString();
+                        text2 = pair2[1].toString();
+                        select2 = 'HiFix';
+                        slotValues.push([select1, text1, text2, select2]);
+                    }
+                    if (!pair1HasNonZero && !pair2HasNonZero) {
+                        select2 = 'OFF';
+                        slotValues.push([select1, text1, text2, select2]);
+                    }
                 }
+            }
+        }
+    
+        createSlotsFromValues(this, slotValues, { context: 'Created', validateLoRA: true });
+    }
 
-                // Restore text1 (Model Strength)
-                const text1Generator = () => 
-                    setupTextbox(
-                        slot.itemClasses.text1, 
-                        LANG.lora_model_strength, 
-                        { value: modelStrength, defaultTextColor: 'rgb(179,157,219)', maxLines: 1 }, 
-                        false, 
-                        null,
-                        false,
-                        true
-                    );
-                slot.items.set(slot.itemClasses.text1, text1Generator);
-                const text1Component = text1Generator();
-                if (text1Component) {
-                    this.componentInstances.set(`${className}-${slot.itemClasses.text1}`, text1Component);
-                }
-
-                // Restore text2 (Clip Strength)                
-                const text2Generator = () => 
-                    setupTextbox(
-                        slot.itemClasses.text2, 
-                        LANG.lora_clip_strength, 
-                        { value: clipStrength, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 }, 
-                        false, 
-                        null,
-                        window.generate.api_interface.getValue() !== 'ComfyUI',
-                        true
-                    );
-                slot.items.set(slot.itemClasses.text2, text2Generator);
-                const text2Component = text2Generator();
-                if (text2Component) {
-                    this.componentInstances.set(`${className}-${slot.itemClasses.text2}`, text2Component);
-                }
-
-                // Restore select2 (Enable dropdown)
-                const select2 = mySimpleList(
-                    slot.itemClasses.select2, 
-                    LANG.lora_enable_title, 
-                    ["ALL", "Base", "HiFix", "OFF"], 
-                    null, 
-                    5, 
-                    false, 
-                    false
-                );
-                select2.updateDefaults(enableValue);
-                const select2Generator = () => select2;                    
-                slot.items.set(slot.itemClasses.select2, select2Generator);
-                const select2Component = select2Generator();
-                if (select2Component) {
-                    this.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
-                }
-
-                console.log('Restored slot:', className, 'with values:', { loraName, modelStrength, clipStrength, enableValue });
-            });
+    reload() {
+        const slotValues = this.getValues();
+    
+        createSlotsFromValues(this, slotValues, {
+            context: 'Restored',
+            validateLoRA: true,
+            skipInvalid: true
         });
     }
 

@@ -53,6 +53,11 @@ body {
     width: 20px;
     height: 20px;
     filter: invert(93%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(103%) contrast(103%);
+    opacity: 0.6;
+}
+#settings-save-icon:hover, #model-refresh-icon:hover, 
+#global-refresh-icon:hover, #global-settings-swap-layout-icon:hover, #global-settings-theme-icon:hover {
+    opacity: 1;
 }
 #settings-save-toggle, #model-refresh-toggle, #global-refresh-toggle, 
 #global-settings-theme-toggle, #global-settings-swap-layout-toggle {

@@ -236,10 +236,13 @@ function getLoRAs(apiInterface) {
         const [loraName, modelStrength, clipStrength, enableMode] = slot;
         
         // Skip if mode is "OFF"
-        if (enableMode === "OFF") continue;
+        if (enableMode === 'OFF') {
+            continue;
+        }  
         
         if(apiInterface === 'ComfyUI') {
             // Format based on enable mode
+            // Feel free to pass 0:0:0:0 to ComfyUI_Mira, I'll take care of it
             switch (enableMode) {
                 case "ALL":
                     formattedStrings.push(`<lora:${loraName}:${modelStrength}:${clipStrength}>`);
@@ -251,9 +254,7 @@ function getLoRAs(apiInterface) {
                     formattedStrings.push(`<lora:${loraName}:0:0:${modelStrength}:${clipStrength}>`);
                     break;
                 default:
-                    // Handle any unexpected cases
-                    console.warn(`Unknown enable mode for LoRA: ${enableMode}`);
-                    break;
+                    continue;
             }
         } else {
             const pattern = /([^/\\]+?)(?=\.safetensors$)/i;

@@ -272,7 +272,7 @@ class WebUI {
                         if (Math.abs(progress - this.lastProgress) >= 0.05 && progress !== 0) {
                             this.lastProgress = progress;
                             const image = jsonData.current_image;
-                            const previewData = `data:image/webp;base64,${image}`;
+                            const previewData = `data:image/png;base64,${image}`;
                             sendToRenderer(`updatePreview`, previewData);
                             sendToRenderer(`updateProgress`, `${Math.floor(progress*100)}`, '100%');
                         }
@@ -318,7 +318,7 @@ async function setupGenerateBackendWebUI() {
                 sendToRenderer(`updateProgress`, `100`, '100%');
                 const image = jsonData.images[0];
                 // parameters info
-                return `data:image/webp;base64,${image}`;
+                return `data:image/png;base64,${image}`;
             } catch (error) {
                 console.error(CAT, 'Image not found or invalid:', error);
                 return `Error: Image not found or invalid: ${error}`;
