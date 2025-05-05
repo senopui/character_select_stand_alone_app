@@ -1,3 +1,13 @@
+2025.05.06 v1.2.5      
+Bugfix:     
+Index error after clear gallery      
+#10 Forge High-res fix doesn't work      
+Comfyui High-res fix error if you don't have `waiNSFWIllustrious_v120.safetensors`       
+
+Improvements:       
+`Image Interface` Now supports whatever starts with `http` or not      
+
+
 2025.05.05 v1.2.2      
 Bugfix:     
 Load Seting didn't work with few dropdowns      

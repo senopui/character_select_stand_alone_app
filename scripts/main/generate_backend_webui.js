@@ -154,6 +154,7 @@ class WebUI {
                     "hr_scheduler": scheduler,
                     "hr_prompt": positive,
                     "hr_negative_prompt": negative,
+                    "hr_additional_modules": [],        //Fix Forge Error
                 }
             }
 

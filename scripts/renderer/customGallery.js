@@ -104,6 +104,7 @@ export function setupGallery(containerId) {
         seeds = [];
         tags = [];
         renderedImageCount = 0;
+        currentIndex = 0;
         container.innerHTML = '';
     };
 

@@ -19,6 +19,7 @@ import { setBlur, setNormal, showDialog } from './renderer/myDialog.js';
 import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/mytheme.js';
 import { setupRightClickMenu } from './renderer/myRightClickMenu.js';
+import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
     console.log("Script loaded, attempting initial setup");
@@ -32,7 +33,7 @@ function afterDOMinit() {
     })();    
 }
 
-export async function init(){
+async function init(){
     window.initialized = false;
         
     try {
@@ -352,24 +353,6 @@ export async function init(){
     } catch (error) {
         console.error('Error:', error);
     }
-}
-
-function extractHostPort(input) {
-    input = input.trim();
-
-    try {
-        const urlInput = input.match(/^[a-zA-Z]+:\/\//) ? input : `http://${input}`;
-        const url = new URL(urlInput);
-        return url.host;
-    } catch (e) {
-        const hostPortRegex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5})$/;
-        if (hostPortRegex.test(input)) {
-            return input;
-        }
-        console.error("Invalid input: Expected a URL or host:port format (e.g., 'http://127.0.0.1:58189/' or '127.0.0.1:58188')",e);        
-    }
-
-    return '127.0.0.1:58188';   // fail safe
 }
 
 async function setupWizard(){

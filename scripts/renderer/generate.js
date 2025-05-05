@@ -3,6 +3,27 @@ import { getAiPrompt } from './remoteAI.js';
 
 const CAT = '[Generate]';
 
+export function extractHostPort(input) {
+    input = input.trim();
+
+    try {
+        const urlInput = input.match(/^[a-zA-Z]+:\/\//) ? input : `http://${input}`;
+        const url = new URL(urlInput);
+        return url.host;
+    } catch (e) {
+        const hostPortRegex = /^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5})$/;
+        if (hostPortRegex.test(input)) {
+            return input;
+        }
+        const ret = `Invalid input: Expected a URL or host:port format (e.g., 'http://127.0.0.1:58189/' or '127.0.0.1:58188')\n${e}`;
+        console.error();        
+        window.generate.cancelClicked = true;
+        window.mainGallery.hideLoading(ret, ret);
+    }
+
+    return '127.0.0.1:58188';   // fail safe
+}
+
 function generateRandomSeed() {
     return Math.floor(Math.random() * 4294967296); // 4294967296 = 2^32
 }
@@ -420,7 +441,7 @@ export async function generateImage(loops, runSame){
         window.generate.lastNeg = createPromptResult.negativePrompt;
 
         const generateData = {
-            addr: window.generate.api_address.getValue(),
+            addr: extractHostPort(window.generate.api_address.getValue()),
             model: window.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive: createPromptResult.positivePrompt,
