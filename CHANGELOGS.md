@@ -1,6 +1,7 @@
-2025.05.07 v1.2.6      
+2025.05.07 v1.2.7      
 Bugfix:     
 Index never choose 0 and 1      
+WebUI Folder setup error in wizard     
 
 2025.05.06 v1.2.5      
 Bugfix:     

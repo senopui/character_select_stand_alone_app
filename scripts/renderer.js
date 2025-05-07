@@ -391,7 +391,7 @@ async function setupWizard(){
                 buttonText: LANG.setup_ok
             });                
         } else {
-            window.globalSettings.model_path_comfyui = await showDialog('input', { 
+            window.globalSettings.model_path_webui = await showDialog('input', { 
                 message: LANG.setup_model_folder,
                 placeholder: SETTINGS.model_path_webui, 
                 defaultValue: SETTINGS.model_path_webui,
