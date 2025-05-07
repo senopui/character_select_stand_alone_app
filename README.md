@@ -1,5 +1,4 @@
 # Character Select SAA
-## SAA now switch to Electron, Readme & Guides are working in progress....
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
 Now supports 5177 (includes multiple costumes) Character list.   
@@ -149,3 +148,5 @@ I messed up with setup wizard...
 2. Delete `settings.json` in `resources/app/settings`     
 3. Try it again     
 
+ERR_CONNECTION_REFUSED       
+1. In most cases, it's the wrong address for the (ComfyUI/WebUI) back-end API.      

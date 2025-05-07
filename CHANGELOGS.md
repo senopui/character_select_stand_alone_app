@@ -1,3 +1,7 @@
+2025.05.07 v1.2.6      
+Bugfix:     
+Index never choose 0 and 1      
+
 2025.05.06 v1.2.5      
 Bugfix:     
 Index error after clear gallery      

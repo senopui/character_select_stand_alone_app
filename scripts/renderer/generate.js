@@ -136,7 +136,7 @@ function handleOriginalCharacter(character, seed, isValueOnly, FILES) {
 
 function getRandomIndex(seed, listLength) {
     const idx = seed % listLength;
-    return (idx === 0 || idx === 1) ? 2 : idx;
+    return idx;
 }
 
 function formatCharacterInfo(index, isValueOnly, { key, value }) {
