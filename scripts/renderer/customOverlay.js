@@ -643,8 +643,8 @@ export function customCommonOverlay() {
     }
 
     function createErrorOverlay(errorMessage, copyMessage) {
-        let displayMessage = parseTaggedContent(errorMessage);
-        let copyContent = copyMessage;
+        const displayMessage = parseTaggedContent(errorMessage);
+        const copyContent = copyMessage;
 
         const overlay = createInfoOverlay({
             id: 'cg-error-overlay',

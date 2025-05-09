@@ -100,7 +100,6 @@ contextBridge.exposeInMainWorld('api', {
   startPollingWebUI: async () => ipcRenderer.invoke('generate-backend-webui-start-polling'),
   stopPollingWebUI: async () => ipcRenderer.invoke('generate-backend-webui-stop-polling'),
 
-
   md5Hash: (input) => {
     if (typeof input !== 'string') {
         console.error('[get_md5_hash]: Input must be a string');

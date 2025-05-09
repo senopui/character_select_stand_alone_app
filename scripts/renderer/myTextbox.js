@@ -49,8 +49,7 @@ export function parseTaggedContent(content) {
 
     const loraRegex = /<lora:[^>]+>/g;
     content = content.replace(loraRegex, match => escapeHtml(match));
-    content = content.replace(/\n/g, '<br>');
-
+    content = content.replace(/\n/g, '<br>');    
     return content;
 }
 

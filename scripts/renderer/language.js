@@ -79,10 +79,12 @@ export function updateLanguage() {
     window.generate.refiner.setTitle(LANG.api_refiner_enable);
     window.generate.refiner_dummy.setTitle(LANG.api_refiner_enable);
     window.generate.landscape.setTitle(LANG.api_image_landscape);
-    window.generate.tag_assist.setTitle(LANG.tag_assist);
+    window.generate.tag_assist.setTitle(LANG.tag_assist);    
 
     window.generate.sampler.setValue(LANG.api_model_sampler, window.globalSettings.api_interface==='ComfyUI'?SAMPLER_COMFYUI:SAMPLER_WEBUI);
     window.generate.scheduler.setValue(LANG.api_model_scheduler, window.globalSettings.api_interface==='ComfyUI'?SCHEDULER_COMFYUI:SCHEDULER_WEBUI);
+    window.generate.sampler.setTitle(LANG.api_model_sampler);
+    window.generate.scheduler.setTitle(LANG.api_model_scheduler);
 
     window.generate.generate_single.setTitle(LANG.run_button);
     window.generate.generate_batch.setTitle(LANG.run_random_button);
@@ -98,7 +100,7 @@ export function updateLanguage() {
     window.generate.model_path_webui.setTitle(LANG.model_path_webui);
     window.generate.model_filter.setTitle(LANG.model_filter);    
     window.generate.model_filter_keyword.setTitle(LANG.model_filter_keyword);
-    window.generate.search_modelinsubfolder.setTitle(LANG.search_modelinsubfolder);
+    window.generate.search_modelinsubfolder.setTitle(LANG.search_modelinsubfolder);    
 
     window.generate.scrollToLatest.setTitle(LANG.scroll_to_last);
     window.generate.keepGallery.setTitle(LANG.keep_gallery);

@@ -269,7 +269,6 @@ function createDropdown({
     container.innerHTML = html;
 
     const inputs = container.querySelectorAll('.mydropdown-input');
-    const wrappers = container.querySelectorAll('.mydropdown-wrapper');
     const optionsList = document.createElement('div');
     optionsList.className = `mydropdown-options mydropdown-options-${uniqueId} scroll-container`;
     optionsList.style.display = 'none';
@@ -604,24 +603,7 @@ function createDropdown({
     document.addEventListener('click', dropdown._clickHandler);
     document.addEventListener('scroll', dropdown._scrollHandler, true);
 
-    if (enableSearch) {
-        wrappers.forEach((wrapper, index) => {
-            wrapper.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                console.log('Wrapper clicked, index:', index, 'isEditing:', isEditing[index]);
-                if (e.target.tagName === 'INPUT' && isEditing[index]) return;
-        
-                activeDropdownsRegistry.setActive(uniqueId);                
-                activeInput = inputs[index];
-                isEditing[index] = true;
-                filteredOptions[index] = [...options[index]];
-                dropdown._updateOptionsList(index);
-                dropdown._updateOptionsPosition(index);
-                optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
-                activeInput.focus();
-            });
-        });
-        
+    if (enableSearch) {        
         inputs.forEach((input, index) => {
             input.addEventListener('click', (e) => {
                 e.preventDefault();

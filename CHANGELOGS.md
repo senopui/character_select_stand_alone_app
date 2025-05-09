@@ -1,3 +1,9 @@
+2025.05.09 v1.2.9
+Modify code to fix security alerts    
+
+Bugfix:
+Thumb preview missing when generate with selected character           
+
 2025.05.07 v1.2.7      
 Bugfix:     
 Index never choose 0 and 1      

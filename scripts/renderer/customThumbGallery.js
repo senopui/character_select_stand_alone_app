@@ -416,7 +416,7 @@ function getCharacterData(character) {
 }
 
 function getMd5Hash(chara) {
-    return window.api.md5Hash(chara.replace(/\(/g, '\\(').replace(/\)/g, '\\)'));
+    return window.api.md5Hash(chara.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'));
 }
 
 function getBase64Image(gzipWebp) {

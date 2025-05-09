@@ -87,7 +87,13 @@ export function setupSuggestionSystem() {
                     const boldRegex = /<b>(.*?)<\/b>/;
                     const promptMatch = boldRegex.exec(element);
                     item.dataset.value = promptMatch ? promptMatch[1] : element.split(':')[0].trim();
-                    tempDiv.textContent = element.replace(/<[^>]+>/g, '');
+                    let sanitizedElement = element;
+                    let previousElement;
+                    do {
+                        previousElement = sanitizedElement;
+                        sanitizedElement = sanitizedElement.replace(/<[^>]+>/g, '');
+                    } while (sanitizedElement !== previousElement);
+                    tempDiv.textContent = sanitizedElement;
                     maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
                     currentSuggestions.push({ prompt: element });
                     fragment.appendChild(item);
@@ -269,7 +275,7 @@ export function setupSuggestionSystem() {
         function formatSuggestion(suggestion) {
             const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
             let formatted = withoutHeat.replace(/_/g, ' ');
-            formatted = formatted.replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+            formatted = formatted.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
             return formatted.startsWith(':') ? formatted : formatted.replace(/:/g, ' ');
         }
 

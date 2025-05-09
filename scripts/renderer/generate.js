@@ -46,7 +46,7 @@ function createViewTag(view_list, in_tag, seed) {
         return '';
     }
 
-    out_tag = out_tag.trim().replace(/\(/g, '\\(').replace(/\)/g, '\\)');    
+    out_tag = out_tag.trim().replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');   
     return out_tag;
 }
 
@@ -90,7 +90,7 @@ function createCharacters(index, seeds) {
     const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
 
     return {
-        tag: isOriginalCharacter ? `${tag}, ` : tag.replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+        tag: isOriginalCharacter ? `${tag}, ` : tag.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
         tag_assist: tagAssist.tas,
         thumb,
         info: tagAssist.info
@@ -109,7 +109,7 @@ function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
         });
     } else {
         tag = FILES.characterList[character];
-        thumb = decodeThumb(isValueOnly ? character: FILES.characterList[character]);
+        thumb = decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
         value: window.characterList.getValue()[index]
