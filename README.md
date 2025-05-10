@@ -110,12 +110,11 @@ Local
 ------
 # API Call for Local Image Generator   
 ComfyUI    
-1. Enable `DEV mode` in ComfyUI Settings, and load `scripts\workflow_api_new.json` into your ComfyUI, make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) **v0.4.9.2** or above from ComfyUI Custom Node Manager.         
+1. Enable `DEV mode` in ComfyUI Settings, and load `examples\2025-05-03-022732_1775747588.png` into your ComfyUI, make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) **v0.4.9.2** or above from ComfyUI Custom Node Manager.         
+    1.1. You might need install `opencv-python` by COmfyUI->Manager->Install PIP packages-> opencv-python     
 2. Select `Local Image Generator API` to `ComfyUI`   
 3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
-4. Load `2025-05-03-022732_1775747588.png` from `examples` folder, makesure you installed [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira)    
-    4.1. You might need install `opencv-python` by COmfyUI->Manager->Install PIP packages-> opencv-python     
-5. Have fun
+4. Have fun
 
 WebUI    
 1. Enable `API mode` by add ` --api` in `COMMANDLINE_ARGS` (webui-user.bat)   
