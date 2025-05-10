@@ -106,10 +106,10 @@
 .cg-privacy-ball {
     position: fixed;
     z-index: 10003;
-    width: 100px; 
+    width: 100px;
     height: 100px;
-    border-radius: 50%;
-    background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
+    border-radius: 50%; /* Always circular */
+    background-color: transparent; /* Ensure transparency for PNG */
     color: white;
     display: flex;
     align-items: center;
@@ -118,8 +118,12 @@
     font-weight: bold;
     cursor: grab;
     user-select: none;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     pointer-events: auto;
+}
+
+/* Apply shadow only for fallback (no image) */
+.cg-privacy-ball:not([style*="background-image"]) {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .cg-privacy-ball:active {

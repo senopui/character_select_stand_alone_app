@@ -81,7 +81,8 @@ export function myCharacterList(containerId, wai_characters, oc_characters) {
         enableSearch: true,
         enableOverlay: true,
         valueOnly: (window.globalSettings.language === 'en-US'),
-        height: 40
+        height: 40,
+        enableNumberInput: true
     });
 
     if (wai_characters) {
@@ -129,7 +130,8 @@ export function myViewsList(containerId, view_tags) {
         enableSearch: true,
         enableOverlay: false,
         valueOnly: true,
-        height: 30
+        height: 30,
+        enableNumberInput: true
     });
 
     if (view_tags && dropdown) {
@@ -225,7 +227,7 @@ export function mySimpleList(containerId, label, options, callback_func = null, 
 function createDropdown({
     containerId, dropdownCount, labelPrefixList, textboxIds, 
     optionHandler, callback_func = null, 
-    enableSearch = true, enableOverlay = false, isValueOnly = true, height = 15, showTitle = false}) {
+    enableSearch = true, enableOverlay = false, isValueOnly = true, height = 15, showTitle = false, enableNumberInput = false}) {
     
     let valueOnly = isValueOnly;
     const container = document.querySelector(`.${containerId}`);
@@ -246,7 +248,7 @@ function createDropdown({
     const uniqueId = `${containerId}-${generateGUID()}`;
     
     // Create DOM structure
-    let html = `<div class="mydropdown-container-${dropdownCount}">`;
+    let html = `<div class="mydropdown-container-${dropdownCount}${enableNumberInput ? ' mydropdown-with-number' : ''}">`;
     if (showTitle) {
         html = `<div class="mydropdown-container-grid">`;
     }
@@ -256,19 +258,34 @@ function createDropdown({
             <div class="mydropdown-${containerId}-header">${labelPrefixList[i]}</div>
             `;
         }
-        html += `
-            <div class="mydropdown-wrapper" data-index="${i}">
-                <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
-                    <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
-                     <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
+        if(enableNumberInput){
+            html += `
+                <div class="mydropdown-wrapper-with-text" data-index="${i}">
+                    <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
+                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
+                        <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
+                    </div>
+                    <div class="mydropdown-number-wrapper">
+                        <input type="text" class="mydropdown-number-input" data-index="${i}" placeholder="1.0" pattern="[0-9]*\\.?[0-9]{0,2}" value="1.0">
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            html += `
+                <div class="mydropdown-wrapper" data-index="${i}">
+                    <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
+                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
+                        <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
+                    </div>
+                </div>
+            `;
+        }
     }
     html += '</div>';
     container.innerHTML = html;
 
     const inputs = container.querySelectorAll('.mydropdown-input');
+    const numberInputs = enableNumberInput ? container.querySelectorAll('.mydropdown-number-input') : [];
     const optionsList = document.createElement('div');
     optionsList.className = `mydropdown-options mydropdown-options-${uniqueId} scroll-container`;
     optionsList.style.display = 'none';
@@ -280,6 +297,7 @@ function createDropdown({
     let isEditing = Array(dropdownCount).fill(false);
     let selectedKeys = Array(dropdownCount).fill('');
     let selectedValues = Array(dropdownCount).fill('');
+    let numberValues = Array(dropdownCount).fill('1.0');
     
     // Create dropdown instance
     const dropdown = {
@@ -343,6 +361,13 @@ function createDropdown({
                     return value[0];
             }
             return value;
+        },
+        
+        getTextValue: function(index) {
+            if (enableNumberInput && numberInputs[index]) {
+                return parseFloat(numberInputs[index].value) || 1.0;
+            }
+            return 1.0;
         },
         
         setValueOnly: function(trigger) {
@@ -442,7 +467,8 @@ function createDropdown({
             optionsList.onclick = (e) => {
                 const item = e.target.closest('.mydropdown-item');
                 if (!item) return;
-                const index = activeInput ? parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index) : activeIndex;
+                const wrapper = activeInput ? activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text') : null;
+                const index = wrapper ? parseInt(wrapper.dataset.index) : activeIndex;
                 selectedValues[index] = item.dataset.value;
                 selectedKeys[index] = item.dataset.key;
                 activeInput.value = valueOnly ? item.dataset.value : item.dataset.key;
@@ -516,7 +542,7 @@ function createDropdown({
                                     overlayContainer.style.display = 'none';
                                     return;
                                 }
-                                        
+                                            
                                 if (top + overlayHeight > window.innerHeight - 10) {
                                     top = window.innerHeight - overlayHeight - 10;
                                 }
@@ -585,6 +611,39 @@ function createDropdown({
         }
     };
     
+    // Setup number input validation
+    if (enableNumberInput && numberInputs.length > 0) {
+        numberInputs.forEach((numberInput, index) => {
+            numberInput.addEventListener('input', (e) => {
+                const value = e.target.value;
+                // Allow empty input or intermediate states (e.g., "1.", ".")
+                if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                    numberValues[index] = value;
+                    return;
+                }
+                // Revert to previous valid value if input is invalid
+                e.target.value = numberValues[index];
+            });
+
+            numberInput.addEventListener('blur', (e) => {
+                let value = e.target.value.trim();
+                if (value === '' || !/^\d*\.?\d*$/.test(value)) {
+                    value = '1.0'; 
+                } else {
+                    let numValue = parseFloat(value);
+                    if (isNaN(numValue) || numValue < 0.1) {
+                        numValue = 0.1; 
+                    } else if (numValue > 2.0) {
+                        numValue = 2.0; 
+                    }
+                    value = numValue.toFixed(1); // Format to 1 decimal places
+                }
+                e.target.value = value;
+                numberValues[index] = value;
+            });
+        });
+    }
+    
     // Setup event handlers
     dropdown._clickHandler = (e) => {
         if (!container.contains(e.target) && !optionsList.contains(e.target)) {
@@ -595,7 +654,7 @@ function createDropdown({
 
     dropdown._scrollHandler = debounce(() => {
         if (optionsList.style.display !== 'none' && activeInput) {
-            const index = parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index);
+            const index = parseInt(activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text').dataset.index);
             dropdown._updateOptionsPosition(index);
         }
     }, 100);
@@ -639,7 +698,7 @@ function createDropdown({
                     activeDropdownsRegistry.setActive(null);
                 } else {
                     if (activeInput !== null) {
-                        const prevIndex = parseInt(activeInput.closest('.mydropdown-wrapper').dataset.index);
+                        const prevIndex = parseInt(activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text').dataset.index);
                         inputs[prevIndex].value = valueOnly ? selectedValues[prevIndex] : selectedKeys[prevIndex];
                         isEditing[prevIndex] = false;
                     }

@@ -56,6 +56,7 @@ async function init(){
             settingList: await window.api.getSettingFiles(),
             loadingWait:`data:image/webp;base64,${cachedFiles.loadingWait.data}`,
             loadingFailed:`data:image/webp;base64,${cachedFiles.loadingFailed.data}`,
+            privacyBall:`data:image/webp;base64,${cachedFiles.privacyBall.data}`
         };       
         
         const SETTINGS = window.globalSettings;

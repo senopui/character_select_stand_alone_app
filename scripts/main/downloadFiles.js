@@ -2,9 +2,11 @@ const { app, ipcMain } = require('electron');
 const path = require('node:path');
 const https = require('https');
 const fs = require('fs');
+const { dialog } = require('electron');
 
 const CAT = '[FileDownloader]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
+
 
 function downloadFile(url, filePath, redirectCount = 0) {
     return new Promise((resolve, reject) => {
@@ -87,6 +89,7 @@ async function setupDownloadFiles() {
         console.log(CAT, 'All files downloaded successfully');        
     } catch (error) {
         console.error(CAT, `Error in setupDownloadFiles: ${error.message}`);
+        dialog.showErrorBox(CAT, `Error in setupDownloadFiles: ${error.message}`);
         return false;
     }
 

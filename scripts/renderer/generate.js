@@ -28,7 +28,7 @@ function generateRandomSeed() {
     return Math.floor(Math.random() * 4294967296); // 4294967296 = 2^32
 }
 
-function createViewTag(view_list, in_tag, seed) {
+function createViewTag(view_list, in_tag, seed, weight) {
     let out_tag = '';
 
     if (in_tag.toLowerCase() === 'random') {
@@ -47,26 +47,29 @@ function createViewTag(view_list, in_tag, seed) {
     }
 
     out_tag = out_tag.trim().replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');   
+    if(out_tag !== '' && weight !== 1.0) {
+        out_tag = `(${out_tag}:${weight})`;
+    }
     return out_tag;
 }
 
-function getViewTags(view_angle, view_camera, view_background, view_style, seed) {
-    const tag_angle = createViewTag('angle', view_angle, seed);
-    const tag_camera = createViewTag('camera', view_camera, seed);
-    const tag_background = createViewTag('background', view_background, seed);
-    const tag_style = createViewTag('style', view_style, seed);
+function getViewTags(seed) {
+    const tag_angle = createViewTag('angle', window.viewList.getValue()[0], seed, window.viewList.getTextValue(0));
+    const tag_camera = createViewTag('camera', window.viewList.getValue()[1], seed, window.viewList.getTextValue(1));
+    const tag_background = createViewTag('background', window.viewList.getValue()[2], seed, window.viewList.getTextValue(2));
+    const tag_style = createViewTag('style', window.viewList.getValue()[3], seed, window.viewList.getTextValue(3));
 
     let combo = '';
-    if(tag_angle !== '')
+    if(tag_angle !== '') 
         combo += `${tag_angle}, `;
 
-    if(tag_camera !== '')
+    if(tag_camera !== '') 
         combo += `${tag_camera}, `;
 
-    if(tag_background !== '')
+    if(tag_background !== '') 
         combo += `${tag_background}, `;
 
-    if(tag_style !== '')
+    if(tag_style !== '') 
         combo += `${tag_style}, `;
 
     return combo;
@@ -83,17 +86,20 @@ function createCharacters(index, seeds) {
     }
 
     const isOriginalCharacter = index === 3;
-    const { tag, thumb, info } = isOriginalCharacter
+    const { tag, thumb, info, weight } = isOriginalCharacter
         ? handleOriginalCharacter(character, seed, isValueOnly, FILES)
         : handleStandardCharacter(character, seed, isValueOnly, index, FILES);
 
     const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
+    if (tagAssist.tas !== '')
+        tagAssist.tas = `${tagAssist.tas}, `;
 
     return {
-        tag: isOriginalCharacter ? `${tag}, ` : tag.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+        tag: isOriginalCharacter ? `${tag}` : tag.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
         tag_assist: tagAssist.tas,
         thumb,
-        info: tagAssist.info
+        info: tagAssist.info,
+        weight: weight
     };
 }
 
@@ -106,16 +112,17 @@ function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
         info = formatCharacterInfo(index, isValueOnly, {
         key: FILES.characterListArray[selectedIndex][0],
         value: FILES.characterListArray[selectedIndex][1]
-        });
+        });        
     } else {
         tag = FILES.characterList[character];
         thumb = decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
         value: window.characterList.getValue()[index]
-        });
+        });        
     }
-    return { tag, thumb, info };
+    const weight = window.characterList.getTextValue(index);
+    return { tag, thumb, info, weight };
 }
 
 function handleOriginalCharacter(character, seed, isValueOnly, FILES) {
@@ -131,7 +138,8 @@ function handleOriginalCharacter(character, seed, isValueOnly, FILES) {
         tag = FILES.ocList[character];
         info = formatOriginalCharacterInfo({ key: character, value: tag }, isValueOnly);
     }
-    return { tag, thumb: null, info };
+    const weight = window.characterList.getTextValue(3);
+    return { tag, thumb: null, info, weight };
 }
 
 function getRandomIndex(seed, listLength) {
@@ -183,9 +191,13 @@ function getCharacters(){
     let information = '';
     let thumbImages = [];
     for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info} = createCharacters(index, seeds);
-        character += (tag !== '')?`${tag}, `:'';
-        character += (tag_assist !== '')?`${tag_assist}, `:'';        
+        let {tag, tag_assist, thumb, info, weight} = createCharacters(index, seeds);
+        if(weight === 1.0){
+            character += (tag !== '')?`${tag}, `:'';
+        } else {
+            character += (tag !== '')?`(${tag}:${weight}), `:'';            
+        }
+        character += tag_assist;
 
         if (thumb) {            
             thumbImages.push(thumb);
@@ -311,7 +323,7 @@ function createPrompt(runSame, aiPromot, apiInterface){
         randomSeed = seed;
         finalInfo = information;
 
-        const views = getViewTags(window.viewList.getValue()[0], window.viewList.getValue()[1], window.viewList.getValue()[2], window.viewList.getValue()[3], seed);
+        const views = getViewTags(seed);
         const {pos, posc, lora} = getPrompts(characters_tag, views, aiPromot, apiInterface);
         if(lora === ''){
             positivePrompt = pos;

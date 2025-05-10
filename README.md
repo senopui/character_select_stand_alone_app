@@ -111,7 +111,7 @@ Local
 # API Call for Local Image Generator   
 ComfyUI    
 1. Enable `DEV mode` in ComfyUI Settings, and load `examples\2025-05-03-022732_1775747588.png` into your ComfyUI, make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) **v0.4.9.2** or above from ComfyUI Custom Node Manager.         
-    1.1. You might need install `opencv-python` by COmfyUI->Manager->Install PIP packages-> opencv-python     
+    1.1. You might need install `opencv-python` by ComfyUI->Manager->Install PIP packages-> opencv-python     
 2. Select `Local Image Generator API` to `ComfyUI`   
 3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
 4. Have fun

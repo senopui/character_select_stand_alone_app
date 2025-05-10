@@ -203,15 +203,27 @@ export function setupGallery(containerId) {
     function createPrivacyBall() {
         const ball = document.createElement('div');
         ball.className = 'cg-privacy-ball';
-        ball.innerHTML = 'SAA';
-        ball.style.width = '100px';
-        ball.style.height = '100px';
         const galleryRect = container.getBoundingClientRect();
         const left = galleryRect.left + galleryRect.width / 2 - 50;
         const top = galleryRect.top + galleryRect.height / 2 - 50;
         ball.style.left = `${left}px`;
         ball.style.top = `${top}px`;
-    
+        ball.style.width = '100px';
+        ball.style.height = '100px';
+
+        // Apply base64 PNG as background image if available
+        if (window.cachedFiles?.privacyBall) {
+            ball.style.backgroundImage = `url(${window.cachedFiles.privacyBall})`;
+            ball.style.backgroundSize = 'cover';
+            ball.style.backgroundPosition = 'center';
+            ball.style.backgroundRepeat = 'no-repeat';
+        } else {
+            // Fallback to original styling with SAA text
+            console.warn('Privacy ball image not found in window.cachedFiles.privacyBall');
+            ball.innerHTML = 'SAA';
+            ball.style.background = 'linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)';
+        }
+
         let isDragging = false, startX, startY;
         ball.addEventListener('mousedown', (e) => {
             if (e.button === 0) { 
@@ -225,33 +237,35 @@ export function setupGallery(containerId) {
                 e.preventDefault();
                 const startY = e.clientY;
                 const startSize = parseFloat(ball.style.width || 100);
-    
+
                 const onMouseMove = (moveEvent) => {
                     const deltaY = moveEvent.clientY - startY;
                     let newSize = startSize + deltaY;
                     newSize = Math.min(Math.max(newSize, 20), 300); 
                     ball.style.width = `${newSize}px`;
                     ball.style.height = `${newSize}px`;
-                    ball.style.fontSize = `${newSize * 0.2}px`; 
+                    if (!window.cachedFiles?.privacyBall) {
+                        ball.style.fontSize = `${newSize * 0.2}px`; 
+                    }
                 };
-    
+
                 const onMouseUp = () => {
                     document.removeEventListener('mousemove', onMouseMove);
                     document.removeEventListener('mouseup', onMouseUp);
                 };
-    
+
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
             }
         });
-    
+
         document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             e.preventDefault();
             ball.style.left = `${e.clientX - startX}px`;
             ball.style.top = `${e.clientY - startY}px`;
         });
-    
+
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
@@ -259,11 +273,11 @@ export function setupGallery(containerId) {
                 document.body.style.userSelect = '';
             }
         });
-    
+
         ball.addEventListener('contextmenu', (e) => {
             e.preventDefault();
         });
-    
+
         ball.addEventListener('dblclick', () => {
             ball.remove();
             privacyBalls = privacyBalls.filter(b => b !== ball);

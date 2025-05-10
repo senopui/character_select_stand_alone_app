@@ -4,7 +4,7 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.2.9",
+  "version": "1.3.0",
   "author": "oOkami",
   "scripts": {
     "start": "electron .",

@@ -2,6 +2,7 @@ const { app, ipcMain } = require('electron');
 const fs = require('fs');
 const path = require('node:path');
 const { loadCSVFile, loadJSONFile } = require('./fileHandlers'); 
+const { dialog } = require('electron');
 
 const CAT = '[FileCache]';
 
@@ -13,6 +14,7 @@ let cachedViewTags = {};
 let cachedTagAssist = {}
 let cachedLoadingWait = {};
 let cachedLoadingFailed = {};
+let cachedPrivacyBall = {};
 
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 
@@ -37,6 +39,7 @@ function setupCachedFiles(){
             console.log(`${CAT}: ${fileName} loaded into memory`);
         } else {
             console.error(`${CAT}: ${fileName} load failed`);
+            dialog.showErrorBox(CAT, `${fileName} load failed`);
             return false;
         }
         return true;
@@ -72,7 +75,8 @@ function setupCachedFiles(){
     let filePath = path.join('data', 'imgs');
     const loadingWait = loadImageEx(filePath, 'loading_wait.png', cachedLoadingWait);
     const loadingFailed = loadImageEx(filePath, 'loading_failed.png', cachedLoadingFailed);
-
+    const privacyBall = loadImageEx(filePath, 'privacy_ball.png', cachedPrivacyBall);
+    
     ipcMain.handle('get-cached-files', async () => {
         return {
             characterThumb: cachedCharacterThumb,
@@ -82,11 +86,12 @@ function setupCachedFiles(){
             viewTags: cachedViewTags,
             tagAssist: cachedTagAssist,
             loadingWait: cachedLoadingWait,
-            loadingFailed: cachedLoadingFailed
+            loadingFailed: cachedLoadingFailed,
+            privacyBall: cachedPrivacyBall
         };
     });
 
-    return thumb && language && characters && oc_characters && view_tags && character_tag_assist && loadingWait && loadingFailed;
+    return thumb && language && characters && oc_characters && view_tags && character_tag_assist && loadingWait && loadingFailed && privacyBall;
 }
 
 module.exports = {

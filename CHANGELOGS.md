@@ -1,3 +1,10 @@
+2025.05.11 v1.3.0
+Add:     
+Error dialog for initialization phase     
+`Privacy Ball` now supports custom image, try replace `data/imgs/privacy_ball.png` to your own image      
+Weight adjust (0.1~2.0 step 0.1) for Character and View lists      
+
+
 2025.05.09 v1.2.9
 Modify code to fix security alerts    
 

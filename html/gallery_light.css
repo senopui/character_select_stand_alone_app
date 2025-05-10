@@ -108,8 +108,8 @@
     z-index: 10003;
     width: 100px;
     height: 100px;
-    border-radius: 50%;
-    background: #E8B090; /* Soft coral */
+    border-radius: 50%; /* Always circular */
+    background-color: transparent; /* Ensure transparency for PNG */
     color: #4A403A; /* Dark gray-brown */
     display: flex;
     align-items: center;
@@ -118,8 +118,13 @@
     font-weight: bold;
     cursor: grab;
     user-select: none;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     pointer-events: auto;
+}
+
+/* Apply background and shadow only for fallback (no image) */
+.cg-privacy-ball:not([style*="background-image"]) {
+    background: #E8B090; /* Soft coral */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .cg-privacy-ball:active {

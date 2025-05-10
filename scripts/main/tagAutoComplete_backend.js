@@ -1,6 +1,7 @@
 const { app, ipcMain } = require('electron')
 const path = require('node:path')
 const fs = require('fs');
+const { dialog } = require('electron');
 
 const CAT = '[TagAutoCompleteBackend]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
@@ -255,6 +256,7 @@ async function setupTagAutoCompleteBackend(){
     }
 
     console.error(CAT, "Tag file not found: ", tags);
+    dialog.showErrorBox(CAT, `Tag file not found: ${tags}`);
     return false;
 }
 

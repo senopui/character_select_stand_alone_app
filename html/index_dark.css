@@ -350,6 +350,14 @@ body {
     position: relative;
     min-width: 64px; 
 }
+.mydropdown-wrapper-with-text {
+    position: relative;
+    min-width: 32px; 
+    display: grid;  
+    grid-template-columns: 9fr 1fr;
+    box-sizing: border-box;
+    align-items: anchor-center;
+}
 .mydropdown-label {
     display: block;
     color: #eee;
@@ -373,7 +381,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    fill: #eee; 
+    filter: brightness(0) invert(93%); /* #eee */
 }
 .mydropdown-options {
     position: absolute;
@@ -401,6 +409,26 @@ body {
     background-color: #555;
     color: #eee;
     transition: background-color 0.2s ease;
+}
+
+.mydropdown-number-input {
+    width: 100%;
+    min-width: 24px;
+    min-height: 20px;
+    height: auto;
+    border: 2px solid #333;
+    border-radius: 4px;
+    margin-left: 2px;
+    background-color: transparent;
+    box-sizing: border-box;
+}
+.mydropdown-number-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+.mydropdown-number-wrapper {
+    display: inline-block;
 }
 
 /* generate settings */

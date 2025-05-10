@@ -71,9 +71,9 @@ async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lor
         {
             if(loraInfo.startsWith('None'))
             {
-                window.overlay.custom.createCustomOverlay('none', lora_no_metadata);
+                window.overlay.custom.createCustomOverlay('none', `\n\n${lora_no_metadata}`);
             } else if(loraInfo.startsWith('Error')){
-                window.overlay.custom.createCustomOverlay('none', loraInfo);
+                window.overlay.custom.createCustomOverlay('none', `\n\n${loraInfo}`);
             }
         } else {
             const { jsonString, basicInfo, topTags } = await processLoraMetadata(loraInfo);
