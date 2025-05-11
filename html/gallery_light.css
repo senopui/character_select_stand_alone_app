@@ -723,6 +723,10 @@
     color: #2E8B57 !important; /* SeaGreen */
 }
 
+.myTextbox-prompt-positive-right-textarea{
+    color: Navy !important;
+}
+
 .myTextbox-prompt-negative-textarea {
     color: #DC143C !important; /* Crimson */
 }

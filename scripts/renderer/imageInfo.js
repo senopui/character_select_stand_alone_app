@@ -348,6 +348,7 @@ export function setupImageUploadOverlay() {
         }
 
         const metadataDisplay = document.createElement('div');
+        metadataDisplay.className = `metadata-custom-textbox-data`;
         metadataDisplay.style.whiteSpace = 'pre-wrap';
         metadataDisplay.style.overflow = 'auto';
         

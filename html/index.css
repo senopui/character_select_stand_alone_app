@@ -1,6 +1,12 @@
 * {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;    
-    -webkit-user-drag: none;
+    -webkit-user-drag: none;    
+}
+*:not(.cg-custom-textbox-data, .metadata-custom-textbox-data, .myInfoBox-image-infobox-main-content, [class^="color-"]) {
+    user-select: none;
+}
+.cg-custom-textbox-data, .metadata-custom-textbox-data, .myInfoBox-image-infobox-main-content, [class^="color-"] {
+    user-select: text;
 }
 
 html, body {
@@ -59,7 +65,7 @@ html, body {
 .gallery-main-container,.image-infobox-container,
 .gallery-thumb-container, #prompt-text-container, 
 .highres-fix-container, .refiner-container, .add-lora-container,
-.system-settings-container
+.system-settings-container, .regional-condition-container
 {
     margin-top: 10px;
 }

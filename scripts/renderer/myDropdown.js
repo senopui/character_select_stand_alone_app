@@ -107,6 +107,67 @@ export function myCharacterList(containerId, wai_characters, oc_characters) {
     return dropdown;
 }
 
+export function myRegionalCharacterList(containerId, wai_characters, oc_characters) {
+    function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
+        const [[keys, values], oc] = args;
+        if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
+            console.error(CAT, '[handleCharacterOptions] Invalid keys or values:', keys, values);
+            return;
+        }
+        if (!Array.isArray(oc)) {
+            console.error(CAT, '[handleCharacterOptions] Invalid oc:', oc);
+            return;
+        }
+
+        const charOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(keys.map((key, idx) => ({ key, value: values[idx] })));
+        for (let i = 0; i < 2; i++) {
+            options[i] = charOptions;
+            filteredOptions[i] = [...charOptions];
+        }
+
+        const originalOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(oc.map(key => ({ key, value: key })));
+        for (let i = 2; i < dropdownCount; i++) {
+            options[i] = originalOptions;
+            filteredOptions[i] = [...originalOptions];
+        }
+    }    
+
+    const dropdown = createDropdown({
+        containerId: containerId,
+        dropdownCount: 4,
+        labelPrefixList: ['character_left', 'character_right', 'original_character_left', 'original_character_right'],
+        textboxIds: ['cd-character1', 'cd-character2', 'cd-original-character-left', 'cd-original-character-right'],
+        optionHandler: handleCharacterOptions,
+        callback_func: callback_myCharacterList_updateThumb,
+        enableSearch: true,
+        enableOverlay: true,
+        valueOnly: (window.globalSettings.language === 'en-US'),
+        height: 40,
+        enableNumberInput: true
+    });
+
+    if (wai_characters) {
+        const keys = Object.keys(wai_characters);
+        const values = Object.values(wai_characters);
+        const oc_keys = Object.keys(oc_characters);
+        
+        if (dropdown) {
+            const labelPrefixList = `
+            character_left,
+            character_right,
+            original_character_left,
+            original_character_right`;
+            dropdown.setOptions([keys, values], oc_keys, labelPrefixList, 'None', 'None', 'None', 'None', true);
+            
+            return dropdown;
+        } else {
+            console.error(CAT, `[myDualCharacterList] Dropdown with containerId "${containerId}" not found.`);
+        }
+    }
+    
+    return dropdown;
+}
+
 export function myViewsList(containerId, view_tags) {
     function handleViewOptions(options, filteredOptions, args, dropdownCount) {
         const [data] = args;
@@ -442,14 +503,17 @@ function createDropdown({
             currentOptions.forEach((option, idx) => {
                 let item = existingItems[idx] || document.createElement('div');
                 item.className = 'mydropdown-item';
-                let textContent;
-                if (containerId === 'dropdown-character' && activeIndex === 3) {
-                    textContent = option.key;
-                } else {
-                    textContent = valueOnly
+                let textContent = valueOnly
                         ? `${option.value}` 
                         : `${option.key}\n(${option.value})`;
+
+                if ((containerId === 'dropdown-character' && activeIndex === 3) ||
+                    (containerId === 'dropdown-character-regional' && (activeIndex === 2 || activeIndex === 3))) {
+                    console.log('containerId', containerId);
+                    console.log('activeIndex', activeIndex);
+                    textContent = option.key;
                 }
+
                 item.textContent = textContent;
                 item.dataset.key = `${option.key}`; 
                 item.dataset.value = `${option.value || ''}`;
@@ -490,7 +554,7 @@ function createDropdown({
             let lastUpdateTime = 0;
             const throttleDelay = 8; // 120 fps
        
-            if (shouldAddOverlayEvents && containerId === 'dropdown-character') {
+            if (shouldAddOverlayEvents && (containerId === 'dropdown-character' || containerId === 'dropdown-character-regional')) {
                 optionsList.removeEventListener('mouseenter', optionsList._onMouseEnter);
                 optionsList.removeEventListener('mouseleave', optionsList._onMouseLeave);
     

@@ -60,12 +60,22 @@ export function updateLanguage() {
     setDropdownLanguage('dropdown-character', [LANG.character1, LANG.character2, LANG.character3, LANG.original_character]);
     window.characterList.setValueOnly(window.globalSettings.language === 'en-US');
 
+    // Regional Condition
+    setDropdownLanguage('dropdown-character-regional', [LANG.regional_character_left, LANG.regional_character_right, LANG.regional_origina_character_left, LANG.regional_origina_character_right]);
+    window.characterListRegional.setValueOnly(window.globalSettings.language === 'en-US');
+
     // View List
     setDropdownLanguage('dropdown-view', [LANG.view_angle, LANG.view_camera, LANG.view_background,LANG.view_style]);
 
     // Gallery Thumb
     let labels = document.querySelector('#gallery-thumb-span');
     labels.textContent = LANG.gallery_thumb_span;
+
+    window.generate.regionalCondition.setTitle(LANG.regional_condition);
+    window.generate.regionalCondition_dummy.setTitle(LANG.regional_condition);
+    window.regional.swap.setTitle(LANG.regional_swap);
+    window.regional.overlap_ratio.setTitle(LANG.regional_overlap_ratio);
+    window.regional.image_ratio.setTitle(LANG.regional_image_ratio);
 
     window.generate.seed.setTitle(LANG.random_seed);
     window.generate.cfg.setTitle(LANG.cfg);
@@ -156,13 +166,20 @@ export function updateSettings() {
     window.ai.remote_apikey.setValue(SETTINGS.remote_ai_api_key);
     window.ai.remote_timeout.setValue(SETTINGS.remote_ai_timeout);
 
+    window.generate.regionalCondition.setValue(SETTINGS.regional_condition);
+    window.generate.regionalCondition_dummy.setValue(SETTINGS.regional_condition);
+    window.regional.swap.setValue(SETTINGS.regional_swap);
+    window.regional.overlap_ratio.setValue(SETTINGS.regional_overlap_ratio);
+    window.regional.image_ratio.setValue(SETTINGS.regional_image_ratio);
+
     window.generate.model_path_comfyui.setValue(SETTINGS.model_path_comfyui);
     window.generate.model_path_webui.setValue(SETTINGS.model_path_webui);
     window.generate.model_filter.setValue(SETTINGS.model_filter);
     window.generate.model_filter_keyword.setValue(SETTINGS.model_filter_keyword);
-    window.generate.search_modelinsubfolder.setValue(SETTINGS.search_modelinsubfolder);
+    window.generate.search_modelinsubfolder.setValue(SETTINGS.search_modelinsubfolder);    
 
     window.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
+    window.characterListRegional.updateDefaults(SETTINGS.character1, SETTINGS.character2, 'None', 'None');
     window.generate.tag_assist.setValue(SETTINGS.tag_assist);
 
     window.viewList.updateDefaults(SETTINGS.view_angle, SETTINGS.view_camera, SETTINGS.view_background, SETTINGS.view_style);
@@ -184,6 +201,7 @@ export function updateSettings() {
 
     window.prompt.common.setValue(SETTINGS.custom_prompt);
     window.prompt.positive.setValue(SETTINGS.api_prompt);
+    window.prompt.positive_right.setTitle(LANG.regional_api_prompt_right);
     window.prompt.negative.setValue(SETTINGS.api_neg_prompt);
     window.prompt.ai.setValue(SETTINGS.ai_prompt);
     window.prompt.exclude.setValue(SETTINGS.prompt_ban);

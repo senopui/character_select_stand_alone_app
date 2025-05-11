@@ -40,6 +40,17 @@ Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com
      
 ------
 # Highlights
+## Regional Condition (ComfyUI only)
+**'Cause WebUI dosn't provide any regional API, sorry...**  
+
+Get tired of [complex workflow](https://github.com/mirabarukaso/ComfyUI_Mira/issues/12#issuecomment-2727190727)?      
+Try SAA Regional Condition with only 3 steps:     
+1. CLick the `Regional Condition` Checkbox     
+2. Choose listed character or your OC      
+3. Start `common prompt` with `duo, masterpiece, best quality, amazing quality`(Don't forget quality words like me), have fun!     
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/regionalCondition.png" width=35% height=35%>   
+
 ## LoRA Slot 
 WebUI supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.    
 ComfyUI supports more detailed configuration of LoRA, for more information please refer to [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    

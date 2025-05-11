@@ -1,3 +1,8 @@
+2025.05.12 v1.4.0
+Add:     
+Regional Condition two      
+
+
 2025.05.11 v1.3.0
 Add:     
 Error dialog for initialization phase     

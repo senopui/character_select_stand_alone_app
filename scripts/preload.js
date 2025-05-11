@@ -90,6 +90,7 @@ contextBridge.exposeInMainWorld('api', {
   localAI: async (options) => ipcRenderer.invoke('request-ai-local', options),
   // generate_backend ComfyUI
   runComfyUI: async (generateData) => ipcRenderer.invoke('generate-backend-comfyui-run', generateData),
+  runComfyUI_Regional: async (generateData) => ipcRenderer.invoke('generate-backend-comfyui-run-regional', generateData),
   getImageComfyUI: async () => ipcRenderer.invoke('generate-backend-comfyui-get-image'),
   openWsComfyUI: async (prompt_id) => ipcRenderer.invoke('generate-backend-comfyui-open-ws', prompt_id),
   closeWsComfyUI: async () => ipcRenderer.invoke('generate-backend-comfyui-close-ws'),

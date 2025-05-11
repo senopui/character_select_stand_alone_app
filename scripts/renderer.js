@@ -3,9 +3,10 @@ import { setupGallery } from './renderer/customGallery.js';
 import { setupThumbOverlay, setupThumb } from './renderer/customThumbGallery.js';
 import { setupSuggestionSystem } from './renderer/tagAutoComplete.js';
 import { setupButtonOverlay, customCommonOverlay } from './renderer/customOverlay.js';
-import { myCharacterList, myViewsList, myLanguageList, mySimpleList } from './renderer/myDropdown.js';
+import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from './renderer/myDropdown.js';
 import { callback_mySettingList, callback_api_interface, callback_sync_click_hf, callback_sync_click_refiner,
-    callback_generate_start, callback_generate_skip, callback_generate_cancel,callback_keep_gallery
+    callback_generate_start, callback_generate_skip, callback_generate_cancel,callback_keep_gallery,
+    callback_regional_condition
  } from './renderer/callbacks.js';
 import { setupSlider } from './renderer/mySlider.js';
 import { setupCheckbox, setupRadiobox } from './renderer/myCheckbox.js';
@@ -92,6 +93,7 @@ async function init(){
 
         // Init Left
         window.characterList = myCharacterList('dropdown-character', FILES.characterList, FILES.ocList);
+        window.characterListRegional = myRegionalCharacterList('dropdown-character-regional', FILES.characterList, FILES.ocList);
         window.viewList = myViewsList('dropdown-view', FILES.viewTags);        
         setupGallery('gallery-main-main');        
         window.infoBox = {
@@ -111,6 +113,7 @@ async function init(){
             refiner: setupCollapsed('refiner', true),
             lora: setupCollapsed('add-lora', true),
             settings: setupCollapsed('system-settings', true),
+            regional: setupCollapsed('regional-condition', true),
         }
 
         console.log('Creating window.generate');
@@ -123,6 +126,8 @@ async function init(){
             lastNeg: 'bad quality,worst quality,worst detail,sketch',
             loadingMessage: null,
 
+            regionalCondition: setupCheckbox('regional-condition-trigger', LANG.regional_condition, SETTINGS.regional_condition, true, (value) => { callback_regional_condition(value, false); }),
+            regionalCondition_dummy: setupCheckbox('regional-condition-trigger-dummy', LANG.regional_condition, SETTINGS.regional_condition, true, (value) => { callback_regional_condition(value, true); }),
             scrollToLatest: setupCheckbox('gallery-main-latest', LANG.scroll_to_last, SETTINGS.scroll_to_last, true, (value) => { window.globalSettings.scroll_to_last = value; }),
             keepGallery: setupCheckbox('gallery-main-keep', LANG.keep_gallery, SETTINGS.keep_gallery, true, callback_keep_gallery),
 
@@ -243,6 +248,11 @@ async function init(){
                 defaultTextColor: 'LawnGreen',
                 maxLines: 5
                 }, false, (value) => { window.globalSettings.api_prompt = value; }),
+            positive_right: setupTextbox('prompt-positive-right', LANG.api_prompt, {    //Regional Condition
+                value: SETTINGS.api_prompt_right,
+                defaultTextColor: 'LawnGreen',
+                maxLines: 5
+                }, false, (value) => { window.globalSettings.api_prompt_right = value; }),
             negative: setupTextbox('prompt-negative', LANG.api_neg_prompt, {
                 value: SETTINGS.api_neg_prompt,
                 defaultTextColor: 'Crimson',
@@ -286,6 +296,16 @@ async function init(){
                 (value) => { window.globalSettings.api_refiner_add_noise = value; }),
             ratio: setupSlider('refiner-ratio', LANG.api_refiner_ratio, 0.1, 1, 0.1, SETTINGS.api_refiner_ratio,
                 (value) => { window.globalSettings.api_refiner_ratio = value; })
+        }
+
+        console.log('Creating window.regional');
+        window.regional = {
+            swap: setupCheckbox('regional-condition-swap', LANG.regional_swap, SETTINGS.regional_swap, true,
+                (value) => { window.globalSettings.regional_swap = value; }),
+            overlap_ratio: setupSlider('regional-condition-overlap-ratio', LANG.regional_overlap_ratio, 0, 200, 10, SETTINGS.regional_overlap_ratio,
+                (value) => { window.globalSettings.regional_overlap_ratio = value; }),
+            image_ratio: setupSlider('regional-condition-image-ratio', LANG.regional_image_ratio, 10, 90, 5, SETTINGS.regional_image_ratio,
+                (value) => { window.globalSettings.regional_image_ratio = value; })
         }
 
         window.ai ={
@@ -336,6 +356,11 @@ async function init(){
         }
 
         window.generate.toggleButtons = toggleButtons;
+        window.generate.lastPos = '';
+        window.generate.lastPosColored = '';
+        window.generate.lastPosR = '';
+        window.generate.lastPosRColored = '';
+        window.generate.lastNeg = '';
 
         // Right Click Menu
         // window.rightClick
@@ -351,6 +376,8 @@ async function init(){
         doSwap(window.globalSettings.rightToleft);   //default is right to left        
         updateLanguage();
         updateSettings();
+
+        callback_regional_condition(window.globalSettings.regional_condition); //Regional Condition
     } catch (error) {
         console.error('Error:', error);
     }

@@ -24,7 +24,7 @@ export function extractHostPort(input) {
     return '127.0.0.1:58188';   // fail safe
 }
 
-function generateRandomSeed() {
+export function generateRandomSeed() {
     return Math.floor(Math.random() * 4294967296); // 4294967296 = 2^32
 }
 
@@ -53,7 +53,7 @@ function createViewTag(view_list, in_tag, seed, weight) {
     return out_tag;
 }
 
-function getViewTags(seed) {
+export function getViewTags(seed) {
     const tag_angle = createViewTag('angle', window.viewList.getValue()[0], seed, window.viewList.getTextValue(0));
     const tag_camera = createViewTag('camera', window.viewList.getValue()[1], seed, window.viewList.getTextValue(1));
     const tag_background = createViewTag('background', window.viewList.getValue()[2], seed, window.viewList.getTextValue(2));
@@ -87,7 +87,7 @@ function createCharacters(index, seeds) {
 
     const isOriginalCharacter = index === 3;
     const { tag, thumb, info, weight } = isOriginalCharacter
-        ? handleOriginalCharacter(character, seed, isValueOnly, FILES)
+        ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
         : handleStandardCharacter(character, seed, isValueOnly, index, FILES);
 
     const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
@@ -125,7 +125,7 @@ function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
     return { tag, thumb, info, weight };
 }
 
-function handleOriginalCharacter(character, seed, isValueOnly, FILES) {
+function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
     let tag, info;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.ocListArray.length);
@@ -138,16 +138,16 @@ function handleOriginalCharacter(character, seed, isValueOnly, FILES) {
         tag = FILES.ocList[character];
         info = formatOriginalCharacterInfo({ key: character, value: tag }, isValueOnly);
     }
-    const weight = window.characterList.getTextValue(3);
+    const weight = window.characterList.getTextValue(index);
     return { tag, thumb: null, info, weight };
 }
 
-function getRandomIndex(seed, listLength) {
+export function getRandomIndex(seed, listLength) {
     const idx = seed % listLength;
     return idx;
 }
 
-function formatCharacterInfo(index, isValueOnly, { key, value }) {
+export function formatCharacterInfo(index, isValueOnly, { key, value }) {
     const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     const blueColor = (window.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
 
@@ -157,7 +157,7 @@ function formatCharacterInfo(index, isValueOnly, { key, value }) {
     return `Character ${index + 1}: ${comboCharacterInfo}\n`;
 }
 
-function formatOriginalCharacterInfo({ key, value }, isValueOnly = false) {
+export function formatOriginalCharacterInfo({ key, value }, isValueOnly = false) {
     const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     const blueColor = (window.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
 
@@ -167,7 +167,7 @@ function formatOriginalCharacterInfo({ key, value }, isValueOnly = false) {
     return `Original Character: ${comboCharacterInfo}\n`;
 }
 
-function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
+export function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
     const tomatoColor = (window.globalSettings.css_style==='dark')?'Tomato':'Maroon';
 
     let tas = '';
@@ -235,7 +235,7 @@ function getPrompts(characters, views, ai='', apiInterface = 'None'){
         aiPrompt += ', ';
 
     let positivePrompt = `${common}${views}${aiPrompt}${characters}${positive}`.replace(/\n+/g, ''); 
-    let positivePromptColored = `[color=${commonColor}]${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${characters}[/color][color=${positiveColor}]${positive}[/color]`.replace(/\n+/g, ', '); 
+    let positivePromptColored = `[color=${commonColor}]${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${characters}[/color][color=${positiveColor}]${positive}[/color]`.replace(/\n+/g, ''); 
 
     const excludeKeywords = exclude.split(',')
         .map(keyword => keyword.trim())
@@ -255,7 +255,7 @@ function getPrompts(characters, views, ai='', apiInterface = 'None'){
     return {pos:positivePrompt, posc:positivePromptColored, lora:loraPromot}
 }
 
-function getLoRAs(apiInterface) {
+export function getLoRAs(apiInterface) {
     const loraData = window.lora.getValues();
     if (!Array.isArray(loraData) || loraData.length === 0 || apiInterface === 'None') {
         return '';
@@ -341,7 +341,7 @@ function createPrompt(runSame, aiPromot, apiInterface){
     return {finalInfo, randomSeed, positivePrompt, positivePromptColored, negativePrompt}
 }
 
-function createHiFix(randomSeed, apiInterface, brownColor){
+export function createHiFix(randomSeed, apiInterface, brownColor){
     const hfSeed = generateRandomSeed();
     let hifix = {
         enable: window.generate.hifix.getValue(),
@@ -379,7 +379,7 @@ function createHiFix(randomSeed, apiInterface, brownColor){
     return hifix;
 }
 
-function createRefiner(){
+export function createRefiner(){
     const refinerVpred = window.refiner.vpred.getValue();        
     let vPred = 0;
     if(refinerVpred == window.cachedFiles.language[window.globalSettings.language].vpred_on)
@@ -403,7 +403,7 @@ function createRefiner(){
      return refiner;
 }
 
-function checkVpred(){
+export function checkVpred(){
     let vPred = 0;
     const modelVpred = window.dropdownList.vpred.getValue();
     if(modelVpred === window.cachedFiles.language[window.globalSettings.language].vpred_on)

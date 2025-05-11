@@ -23,6 +23,13 @@ const defaultSettings = {
     "character2": "None",
     "character3": "None",
     "tag_assist": false,
+
+    "regional_condition": false,    
+    "regional_swap": false,
+    "regional_overlap_ratio": 20,
+    "regional_image_ratio": 50,
+    "character_left": "None",
+    "character_right": "None",
     
     "view_angle": "None",
     "view_camera": "None",
@@ -45,6 +52,7 @@ const defaultSettings = {
     
     "custom_prompt": "",
     "api_prompt": "masterpiece, best quality, amazing quality",
+    "api_prompt_right": ":d, selfie,",
     "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor,3d",
     "ai_prompt": "",
     "prompt_ban" : "",

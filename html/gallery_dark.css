@@ -702,6 +702,9 @@
 .myTextbox-prompt-positive-textarea {
     color: LawnGreen !important;
 }
+.myTextbox-prompt-positive-right-textarea{
+    color: LightSkyBlue !important;
+}
 .myTextbox-prompt-negative-textarea {
     color: red !important;
 }

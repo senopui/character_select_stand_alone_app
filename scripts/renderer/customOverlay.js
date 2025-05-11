@@ -825,6 +825,7 @@ export function customCommonOverlay() {
         }
 
         const textDiv = document.createElement('div');
+        textDiv.className = `cg-custom-textbox-data`;
         textDiv.innerHTML = processedMessage;
         textDiv.style.whiteSpace = 'pre-wrap'; 
         textDiv.style.wordBreak = 'break-word';

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="html/gallery_dark.css" id="gallery-theme">
     <link rel="stylesheet" href="html/index.css" id="base-theme">
     <link rel="stylesheet" href="html/index_dark.css" id="theme-style">
-    <title>Wai Character Select SAA 1.3.0</title>
+    <title>Wai Character Select SAA 1.4.0</title>
   </head>
   <body>
     <div id="full-body">
@@ -55,6 +55,7 @@
       </div>
 
       <div class="dropdown-character"></div>
+      <div class="dropdown-character-regional"></div>
 
       <div id="split">
         <div id="left">
@@ -70,11 +71,13 @@
 
           <div class="gallery-main-container">
             <div class="gallery-main-header">
+              <div class="regional-condition-trigger"></div>
               <div class="gallery-main-latest"></div>
               <div class="gallery-main-keep"></div>
-              
-              <span id="gallery-main-span"></span>
-              <img id="gallery-main-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              <div class="gallery-main-header-span">
+                <span id="gallery-main-span"></span>
+                <img id="gallery-main-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
             </div>
             <div class="gallery-main-main"></div>
           </div>          
@@ -171,9 +174,27 @@
             </div>
           </div>
 
+          <div class="regional-condition-container">
+            <div class="regional-condition-header">
+              <div class="regional-condition-trigger-dummy"></div>
+              <div class="regional-condition-swap"></div>
+              <div class="regional-condition-header-span">
+                <span id="regional-condition-span"></span>
+                <img id="regional-condition-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="regional-condition-main">
+              <div class="regional-condition-settings-1">
+                <div class="regional-condition-image-ratio"></div>
+                <div class="regional-condition-overlap-ratio"></div>            
+              </div>
+            </div>
+          </div>
+
           <div id="prompt-text-container">
             <div class="prompt-common">common</div>
             <div class="prompt-positive">positive</div>
+            <div class="prompt-positive-right">positive-right</div>
             <div class="prompt-negative">negative</div>
             <div class="prompt-ai">negative</div>
             <div class="prompt-exclude">exclude</div>
