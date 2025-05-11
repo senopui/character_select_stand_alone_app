@@ -1,3 +1,11 @@
+2025.05.12 v1.4.1
+Regional Condition Bugfix:     
+Copy Tags missing     
+Copy Metadata missing Right clip      
+`undefined` in Info      
+Character list always `None` when load settings      
+
+
 2025.05.12 v1.4.0
 Add:     
 Regional Condition two      

@@ -97,7 +97,7 @@ async function init(){
         window.viewList = myViewsList('dropdown-view', FILES.viewTags);        
         setupGallery('gallery-main-main');        
         window.infoBox = {
-            image: setupInfoBox('image-infobox-main', LANG.output_info, '', true, 256),            
+            image: setupInfoBox('image-infobox-main', LANG.output_info, '', true, 320),            
         }
 
         // Init Right

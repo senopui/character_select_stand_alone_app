@@ -369,9 +369,10 @@ export function createHiFix(randomSeed, apiInterface, brownColor){
                 hifix.model = hifix.model.replace('(W)', ''); 
             }
         }
+        hifix.info += `Hires Fix: [[color=${brownColor}]${hifix.enable}[/color]]\n`;
 
         if(hifix.randomSeed) {
-            hifix.info = `Hires Fix Seed: [[color=${brownColor}]${hfSeed}[/color]]\n`;
+            hifix.info += `Hires Fix Seed: [[color=${brownColor}]${hfSeed}[/color]]\n`;
             hifix.seed = hfSeed;
         }
     }

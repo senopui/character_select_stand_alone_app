@@ -179,7 +179,7 @@ export function updateSettings() {
     window.generate.search_modelinsubfolder.setValue(SETTINGS.search_modelinsubfolder);    
 
     window.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
-    window.characterListRegional.updateDefaults(SETTINGS.character1, SETTINGS.character2, 'None', 'None');
+    window.characterListRegional.updateDefaults(SETTINGS.character_left, SETTINGS.character_right, 'None', 'None');
     window.generate.tag_assist.setValue(SETTINGS.tag_assist);
 
     window.viewList.updateDefaults(SETTINGS.view_angle, SETTINGS.view_camera, SETTINGS.view_background, SETTINGS.view_style);

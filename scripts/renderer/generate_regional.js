@@ -323,9 +323,9 @@ export async function generateRegionalImage(loops, runSame){
         finalInfo += `Setp: [[color=${brownColor}]${generateData.step}[/color]]\n`;
         finalInfo += `Sampler: [[color=${brownColor}]${generateData.sampler}[/color]]\n`;
         finalInfo += `Scheduler: [[color=${brownColor}]${generateData.scheduler}[/color]]\n`;
-        finalInfo += hifix.info;
-        finalInfo += refiner.info;
-        finalInfo += regional.info;
+        finalInfo += generateData.hifix.info;
+        finalInfo += generateData.refiner.info;
+        finalInfo += generateData.regional.info;
         finalInfo +=`\n`;
 
         window.infoBox.image.appendValue(finalInfo);        
@@ -363,7 +363,7 @@ async function runComfyUI(apiInterface, generateData){
 
         if(!keepGallery)
             window.mainGallery.clearGallery();
-        window.mainGallery.appendImageData(image, `${generateData.seed}`, `${generateData.positivePromptLeft}\n${generateData.positivePromptRight}`, keepGallery, window.globalSettings.scroll_to_last);
+        window.mainGallery.appendImageData(image, `${generateData.seed}`, `${generateData.positive_left}\n${generateData.positive_right}`, keepGallery, window.globalSettings.scroll_to_last);
     }
 
     const SETTINGS = window.globalSettings;

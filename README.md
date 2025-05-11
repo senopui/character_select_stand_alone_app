@@ -45,7 +45,7 @@ Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com
 
 Get tired of [complex workflow](https://github.com/mirabarukaso/ComfyUI_Mira/issues/12#issuecomment-2727190727)?      
 Try SAA Regional Condition with only 3 steps:     
-1. CLick the `Regional Condition` Checkbox     
+1. Click the `Regional Condition` Checkbox     
 2. Choose listed character or your OC      
 3. Start `common prompt` with `duo, masterpiece, best quality, amazing quality`(Don't forget quality words like me), have fun!     
 

@@ -436,6 +436,9 @@ class ComfyUI {
       // Set Positive prompt
       workflow["32"].inputs.text = positive_left;
       workflow["46"].inputs.text = positive_right;
+      // Combine prompt
+      workflow["29"].inputs.positive = `${positive_left}\n${positive_right}`;
+      
       // Set Negative prompt
       workflow["33"].inputs.text = negative;
       

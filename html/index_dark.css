@@ -626,7 +626,16 @@ body {
     margin-right: 5px;
 }
 
-.highres-fix-settings-1, .highres-fix-settings-2, .refiner-settings-1, .regional-condition-settings-1 {
+.highres-fix-settings-1, .highres-fix-settings-2, .refiner-settings-1 {
+    display: grid;     
+    grid-template-columns: 2.5fr 1fr; 
+    margin-top: 4px;
+    margin-bottom: 4px;
+    gap: 16px;
+    width: 100%;    
+}
+
+.regional-condition-settings-1 {
     display: grid;     
     grid-template-columns: 1fr 1fr; 
     margin-top: 4px;
