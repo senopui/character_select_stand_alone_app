@@ -14,7 +14,7 @@ Now supports 5177 (includes multiple costumes) Character list.
 | Preview | Yes | Yes | Yes |
 | Image Color Transfer | Yes | No | No |
 | Image Info to Prompt | Yes | Yes | Yes |
-| Regional Condition | No | No | No |
+| Regional Condition | Yes | No | No |
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
