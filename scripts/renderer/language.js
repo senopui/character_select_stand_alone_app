@@ -1,4 +1,5 @@
-const CAT = '[Language]'
+import { callback_regional_condition } from './callbacks.js';
+ const CAT = '[Language]'
 
 export const SAMPLER_COMFYUI = ["euler_ancestral", "euler", "euler_cfg_pp", "euler_ancestral_cfg_pp", "heun", "heunpp2","dpm_2", "dpm_2_ancestral",
     "lms", "dpm_fast", "dpm_adaptive", "dpmpp_2s_ancestral", "dpmpp_2s_ancestral_cfg_pp", "dpmpp_sde", "dpmpp_sde_gpu",
@@ -116,8 +117,10 @@ export function updateLanguage() {
     window.generate.keepGallery.setTitle(LANG.keep_gallery);
     window.infoBox.image.setTitle(LANG.output_info);
 
-    window.prompt.common.setTitle(LANG.custom_prompt);
-    window.prompt.positive.setTitle(LANG.api_prompt);
+    // Move to regional confition select
+    // window.prompt.common.setTitle(LANG.custom_prompt);
+    // window.prompt.positive.setTitle(LANG.api_prompt);
+    window.prompt.positive_right.setTitle(LANG.regional_api_prompt_right);
     window.prompt.negative.setTitle(LANG.api_neg_prompt);
     window.prompt.ai.setTitle(LANG.ai_prompt);
     window.prompt.exclude.setTitle(LANG.prompt_ban);
@@ -201,7 +204,7 @@ export function updateSettings() {
 
     window.prompt.common.setValue(SETTINGS.custom_prompt);
     window.prompt.positive.setValue(SETTINGS.api_prompt);
-    window.prompt.positive_right.setTitle(LANG.regional_api_prompt_right);
+    window.prompt.positive_right.setValue(SETTINGS.regional_api_prompt_right);
     window.prompt.negative.setValue(SETTINGS.api_neg_prompt);
     window.prompt.ai.setValue(SETTINGS.ai_prompt);
     window.prompt.exclude.setValue(SETTINGS.prompt_ban);
@@ -230,4 +233,6 @@ export function updateSettings() {
     window.refiner.model.updateDefaults(SETTINGS.api_refiner_model);
     window.refiner.vpred.updateDefaults(SETTINGS.api_refiner_model_vpred);
     window.refiner.ratio.setValue(SETTINGS.api_refiner_ratio);
+
+    callback_regional_condition(window.generate.regionalCondition.getValue(), false); //Regional Condition
 }

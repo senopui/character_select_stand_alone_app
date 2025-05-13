@@ -1,3 +1,12 @@
+2025.05.13 v1.4.3
+Bugfix:     
+Interface didn't change to normal/regional by loading settings      
+Prompt textbox mouse hover message error      
+
+Change:
+Regional Condition Character List now has new outline color      
+
+
 2025.05.12 v1.4.1
 Regional Condition Bugfix:     
 Copy Tags missing     

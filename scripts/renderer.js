@@ -375,9 +375,7 @@ async function init(){
         }
         doSwap(window.globalSettings.rightToleft);   //default is right to left        
         updateLanguage();
-        updateSettings();
-
-        callback_regional_condition(window.globalSettings.regional_condition); //Regional Condition
+        updateSettings();        
     } catch (error) {
         console.error('Error:', error);
     }

@@ -52,8 +52,8 @@ const defaultSettings = {
     
     "custom_prompt": "",
     "api_prompt": "masterpiece, best quality, amazing quality",
-    "api_prompt_right": ":d, selfie,",
-    "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor,3d",
+    "api_prompt_right": ":d, selfie",
+    "api_neg_prompt": "bad quality,worst quality,worst detail,sketch,censor",
     "ai_prompt": "",
     "prompt_ban" : "",
     

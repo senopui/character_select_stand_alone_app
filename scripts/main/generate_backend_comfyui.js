@@ -116,7 +116,6 @@ class ComfyUI {
                                     resolve('Error: Failed to convert image to base64');
                                 }
                             } else {
-                                console.error(CAT, 'Image not found or invalid:', image);
                                 resolve('Error: Image not found or invalid');
                             }
                         } catch (err) {
@@ -183,7 +182,6 @@ class ComfyUI {
             
             const jsonData = JSON.parse(historyResponse);
             if (!jsonData[this.prompt_id]?.outputs['29']?.images) {
-                console.error(CAT, 'No image data found in history response');
                 return null;
             }
             

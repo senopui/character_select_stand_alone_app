@@ -163,10 +163,7 @@ export function callback_keep_gallery() {
     window.globalSettings.keep_gallery = keepGallery;
 }
 
-export function callback_regional_condition(trigger, dummy){
-    if(!window.initialized)
-        return;
-
+export function callback_regional_condition(trigger, dummy = false){
     console.log('Use Regional Condition', trigger);
     if (dummy) {
         window.generate.regionalCondition.setValue(window.generate.regionalCondition_dummy.getValue());

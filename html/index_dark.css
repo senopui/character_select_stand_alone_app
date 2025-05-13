@@ -126,7 +126,11 @@ body {
 .dropdown-character, .dropdown-character-regional{
     padding: 6px;
     margin-left: 10px;
-    margin-right: 10px;
+    margin-right: 10px;    
+}
+
+.dropdown-character-regional{
+    border: #933 2px solid !important;
 }
 
 .mydropdown-select{

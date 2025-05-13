@@ -136,7 +136,11 @@ body {
 .dropdown-character,.dropdown-character-regional {
     padding: 6px;
     margin-left: 10px;
-    margin-right: 10px;
+    margin-right: 10px;    
+}
+
+.dropdown-character-regional {
+    border: #D28080 2px solid !important; /* Warm beige */
 }
 
 .mydropdown-select {
