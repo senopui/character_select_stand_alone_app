@@ -79,6 +79,7 @@ const defaultSettings = {
     "api_hf_upscaler_selected": "4x-UltraSharp(C)",
     "api_hf_colortransfer": "Mean",
     "api_hf_random_seed": false,
+    "api_hf_steps": 20,
     
     "api_refiner_enable": false,
     "api_refiner_add_noise": true,

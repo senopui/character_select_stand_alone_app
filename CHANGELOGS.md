@@ -1,3 +1,9 @@
+2025.05.21 v1.5.0     
+Add:     
+Hires fix steps 1~100      
+Spell Check en-US      
+
+
 2025.05.13 v1.4.3
 Bugfix:     
 Interface didn't change to normal/regional by loading settings      

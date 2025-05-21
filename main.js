@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('node:path')
 const { setupFileHandlers } = require('./scripts/main/fileHandlers'); 
 const { setupGlobalSettings } = require('./scripts/main/globalSettings'); 
@@ -7,14 +7,15 @@ const { setupDownloadFiles } = require('./scripts/main/downloadFiles');
 const { setupModelList } = require('./scripts/main/modelList'); 
 const { setupTagAutoCompleteBackend } = require('./scripts/main/tagAutoComplete_backend');
 const { setupModelApi } = require('./scripts/main/remoteAI_backend');
-const { setupGenerateBackendComfyUI } = require('./scripts/main/generate_backend_comfyui');
+const { setupGenerateBackendComfyUI, sendToRenderer } = require('./scripts/main/generate_backend_comfyui');
 const { setupGenerateBackendWebUI } = require('./scripts/main/generate_backend_webui');
 const { setupCachedFiles } = require('./scripts/main/cachedFiles'); 
 
+let mainWindow;
+
 function createWindow () {
   // Create the browser window.
-  let mainWindow = new BrowserWindow({
-    //titleBarStyle: 'hidden',
+  mainWindow = new BrowserWindow({
     autoHideMenuBar: true,  // Hide menu
     width: 1300,
     height: 1200,
@@ -22,15 +23,24 @@ function createWindow () {
       preload: path.join(__dirname, 'scripts/preload.js'),
       contextIsolation: true, // Enable context isolation
       nodeIntegration: false, // Disable Node.js integration
-      nodeIntegrationInWorker: true // Enable mulitthread
+      nodeIntegrationInWorker: true, // Enable multithread
+      spellcheck: true // Enable spellcheck
     }
-  })
+  });
+
+  // Set the spellchecker to check English US
+  mainWindow.webContents.session.setSpellCheckerLanguages(['en-US']);
+
+  // Send the spellcheck suggestions to the renderer process
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    event.preventDefault();
+    const suggestions = params.dictionarySuggestions || [];
+    const word = params.misspelledWord || '';
+    sendToRenderer(`rightClickMenu_spellCheck`, suggestions, word);
+  });
 
   // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
-
-  // Open the DevTools.
-  //mainWindow.webContents.openDevTools()
+  mainWindow.loadFile('index.html');
 }
 
 // This method will be called when Electron has finished
@@ -55,18 +65,24 @@ app.whenReady().then(async () => {
       // dock icon is clicked and there are no other windows open.
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
-  }else {
+  } else {
     console.error('Failed to download required files. Exiting...');
     app.quit();
   }
+
+  // IPC handlers for spellcheck
+  ipcMain.handle('replace-misspelling', async (event, word) => {
+    mainWindow.webContents.replaceMisspelling(word);
+    return true;
+  });
+
+  ipcMain.handle('add-to-dictionary', async (event, word) => {
+    mainWindow.webContents.session.addWordToSpellCheckerDictionary(word);
+    return true;
+  });
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

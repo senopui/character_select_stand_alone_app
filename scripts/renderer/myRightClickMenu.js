@@ -10,6 +10,112 @@ function debounce(func, wait) {
     };
 }
 
+let menuBox = null;
+let currentSelectedText = '';
+let currentMenuX = 0;
+let currentMenuY = 0;
+
+export function addSpellCheckSuggestions(suggestions, word) {
+    if (menuBox?.style.display === 'none') {
+        // Menu is closed, ignoring spellcheck suggestions
+        return;
+    }
+
+    if (currentSelectedText && word !== currentSelectedText) {
+        // Selected text changed, ignoring spellcheck suggestions
+        return;
+    }
+
+    const spellCheckFragment = document.createDocumentFragment();
+    let maxWidth = parseInt(menuBox.style.width, 10) - 24 || 200;
+
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.visibility = 'hidden';
+    tempDiv.style.whiteSpace = 'nowrap';
+    document.body.appendChild(tempDiv);
+
+    if (suggestions.length > 0) {
+        suggestions.forEach((suggestion, index) => {
+            const menuItem = document.createElement('div');
+            menuItem.className = 'menu-item';
+            menuItem.style.padding = '6px 12px';
+            menuItem.style.cursor = 'pointer';
+            menuItem.style.fontSize = '14px';
+            menuItem.style.userSelect = 'none';
+            menuItem.innerHTML = suggestion;
+            menuItem.dataset.index = `spellcheck_${index}`;
+
+            menuItem.addEventListener('mouseenter', () => {
+                menuItem.style.background = '#f0f0f0';
+            });
+            menuItem.addEventListener('mouseleave', () => {
+                menuItem.style.background = 'none';
+            });
+
+            menuItem.addEventListener('click', async () => {
+                try {
+                    await window.api.replaceMisspelling(suggestion);
+                    menuBox.style.display = 'none';
+                } catch (error) {
+                    console.error(CAT, 'Error replacing misspelling:', error);
+                }
+            });
+
+            tempDiv.textContent = suggestion;
+            maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
+            spellCheckFragment.appendChild(menuItem);
+        });
+
+        // Add to dictionary option
+        const addToDictItem = document.createElement('div');
+        addToDictItem.className = 'menu-item';
+        addToDictItem.style.padding = '6px 12px';
+        addToDictItem.style.cursor = 'pointer';
+        addToDictItem.style.fontSize = '14px';
+        addToDictItem.style.userSelect = 'none';
+        addToDictItem.innerHTML = 'Add to dictionary';
+        addToDictItem.dataset.index = 'spellcheck_add_to_dict';
+
+        addToDictItem.addEventListener('mouseenter', () => {
+            addToDictItem.style.background = '#f0f0f0';
+        });
+        addToDictItem.addEventListener('mouseleave', () => {
+            addToDictItem.style.background = 'none';
+        });
+
+        addToDictItem.addEventListener('click', async () => {
+            try {
+                await window.api.addToDictionary(word);
+                menuBox.style.display = 'none';
+            } catch (error) {
+                console.error(CAT, 'Error adding to dictionary:', error);
+            }
+        });
+
+        tempDiv.textContent = 'Add to dictionary';
+        maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
+        spellCheckFragment.appendChild(addToDictItem);
+
+        // Add separator
+        const separator = document.createElement('div');
+        separator.className = 'menu-separator';
+        spellCheckFragment.appendChild(separator);
+    }
+
+    document.body.removeChild(tempDiv);
+
+    // insert the spell check suggestions at the top of the menu
+    const currentChildren = Array.from(menuBox.children);
+    menuBox.innerHTML = '';
+    menuBox.appendChild(spellCheckFragment);
+    currentChildren.forEach(child => menuBox.appendChild(child));
+
+    // update the menu width
+    menuBox.style.width = `${Math.min(maxWidth + 24, 300)}px`;
+    updateMenuPosition(currentMenuX, currentMenuY);
+}
+
 export function setupRightClickMenu() {
     if (window.rightClick?.initialized) {
         console.log(CAT, 'RightClickMenu already initialized');
@@ -18,7 +124,7 @@ export function setupRightClickMenu() {
 
     console.log(CAT, 'Initializing RightClickMenu system');
 
-    const menuBox = document.createElement('div');
+    menuBox = document.createElement('div');
     menuBox.className = 'right-click-menu';
     menuBox.style.zIndex = '10002';
     menuBox.style.display = 'none';
@@ -84,6 +190,11 @@ export function setupRightClickMenu() {
         }
     };
 
+    // global spellcheck API
+    window.api.onSpellCheckSuggestions?.((suggestions, word) => {
+        addSpellCheckSuggestions(suggestions, word);
+    });
+
     document.addEventListener('mousedown', (e) => {
         if (e.button === 2 && !allowMenu && !isMoved) { // Right-click
             rightClickStartX = e.clientX;
@@ -104,8 +215,8 @@ export function setupRightClickMenu() {
         }
     });
 
-    document.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
+    document.addEventListener('contextmenu', async (e) => {
+        //e.preventDefault(); // Keep commented to allow main process context-menu
         if (!menuConfig.length) return;
 
         const duration = Date.now() - rightClickStartTime;
@@ -119,7 +230,7 @@ export function setupRightClickMenu() {
         }
 
         const targetElement = e.target;
-        renderMenu(e.clientX, e.clientY, targetElement);
+        await renderMenu(e.clientX, e.clientY, targetElement);
         rightClickStartX = undefined;
         rightClickStartY = undefined;
         rightClickStartTime = undefined;
@@ -130,6 +241,7 @@ export function setupRightClickMenu() {
     document.addEventListener('click', (e) => {
         if (!menuBox.contains(e.target)) {
             menuBox.style.display = 'none';
+            currentSelectedText = ''; // Clear selected text when menu closes
         }
     });
 
@@ -139,7 +251,7 @@ export function setupRightClickMenu() {
         }
     }, 100), true);
 
-    function renderMenu(x, y, targetElement) {
+    async function renderMenu(x, y, targetElement) {
         const fragment = document.createDocumentFragment();
         let maxWidth = 0;
         const tempDiv = document.createElement('div');
@@ -148,6 +260,43 @@ export function setupRightClickMenu() {
         tempDiv.style.whiteSpace = 'nowrap';
         document.body.appendChild(tempDiv);
 
+        const spellCheckClasses = [
+            'myTextbox-prompt-common-textarea',
+            'myTextbox-prompt-positive-textarea',
+            'myTextbox-prompt-positive-right-textarea',
+            'myTextbox-prompt-negative-textarea',
+            'myTextbox-prompt-ai-textarea',
+            'myTextbox-prompt-exclude-textarea'
+        ];
+
+        const isTextInput = spellCheckClasses.includes(targetElement.className.trim());
+
+        // update currentSelectedText
+        currentSelectedText = '';
+        if (isTextInput) {
+            if (targetElement.selectionStart !== targetElement.selectionEnd) {
+                // selected text
+                currentSelectedText = targetElement.value.slice(targetElement.selectionStart, targetElement.selectionEnd).trim();
+            } else {
+                // cursor word
+                const text = targetElement.value;
+                const cursorPos = targetElement.selectionStart;
+                const wordRegex = /\b[\w,]+\b/g;
+                let word = '';
+                let match;
+                while ((match = wordRegex.exec(text)) !== null) {
+                    if (match.index <= cursorPos && cursorPos <= match.index + match[0].length) {
+                        word = match[0];
+                        break;
+                    }
+                }
+                currentSelectedText = word;
+            }
+        }
+        currentMenuX = x;
+        currentMenuY = y;
+
+        // render menu items
         menuConfig.forEach((item) => {
             if (item.displayName === null && item.handler === null) {
                 const separator = document.createElement('div');
@@ -181,6 +330,7 @@ export function setupRightClickMenu() {
             menuItem.addEventListener('click', () => {
                 executeMenuAction(item.handler, targetElement);
                 menuBox.style.display = 'none';
+                currentSelectedText = ''; // Clear selected text when menu closes
             });
 
             tempDiv.textContent = item.displayName;
@@ -189,7 +339,7 @@ export function setupRightClickMenu() {
         });
 
         document.body.removeChild(tempDiv);
-        if (!fragment.children.length) {
+        if (!fragment.children.length && !currentSelectedText) {
             menuBox.style.display = 'none';
             return;
         }
@@ -201,46 +351,46 @@ export function setupRightClickMenu() {
         menuBox.style.display = 'block';
     }
 
-    function executeMenuAction(handler, targetElement) {
-        try {
-            if (typeof handler === 'function') {
-                handler();
-            } else if (typeof handler === 'object' && handler.func && handler.selector) {
-                const element = targetElement.closest(handler.selector);
-                if (element) {
-                    handler.func(element);
-                }
-            } else {
-                console.warn(CAT, 'Invalid handler:', handler);
-            }
-        } catch (error) {
-            console.error(CAT, 'Error executing menu action:', error);
-        }
-    }
-
-    function updateMenuPosition(x, y) {
-        const menuWidth = menuBox.offsetWidth || 200;
-        const menuHeight = menuBox.offsetHeight || 100;
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        const paddingX = 10;
-        const paddingY = 10;
-
-        let newLeft = x;
-        let newTop = y;
-
-        if (newLeft + menuWidth > windowWidth - paddingX) {
-            newLeft = Math.max(0, windowWidth - menuWidth - paddingX);
-        }
-        if (newTop + menuHeight > windowHeight - paddingY) {
-            newTop = Math.max(0, y - menuHeight - paddingY);
-        }
-
-        menuBox.style.left = `${newLeft}px`;
-        menuBox.style.top = `${newTop}px`;
-    }
-
     registerDefaultMenuItems();
+}
+
+function executeMenuAction(handler, targetElement) {
+    try {
+        if (typeof handler === 'function') {
+            handler();
+        } else if (typeof handler === 'object' && handler.func && handler.selector) {
+            const element = targetElement.closest(handler.selector);
+            if (element) {
+                handler.func(element);
+            }
+        } else {
+            console.warn(CAT, 'Invalid handler:', handler);
+        }
+    } catch (error) {
+        console.error(CAT, 'Error executing menu action:', error);
+    }
+}
+
+function updateMenuPosition(x = currentMenuX, y = currentMenuY) {
+    const menuWidth = menuBox.offsetWidth || 200;
+    const menuHeight = menuBox.offsetHeight || 100;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const paddingX = 10;
+    const paddingY = 10;
+
+    let newLeft = x;
+    let newTop = y;
+
+    if (newLeft + menuWidth > windowWidth - paddingX) {
+        newLeft = Math.max(0, windowWidth - menuWidth - paddingX);
+    }
+    if (newTop + menuHeight > windowHeight - paddingY) {
+        newTop = Math.max(0, y - menuHeight - paddingY);
+    }
+
+    menuBox.style.left = `${newLeft}px`;
+    menuBox.style.top = `${newTop}px`;
 }
 
 function updateRightClickMenu(){

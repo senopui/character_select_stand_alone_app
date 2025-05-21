@@ -15,7 +15,8 @@ const { gunzipSync } = require('zlib');
 let okm = {
   mainGallery_appendImageData: null,
   customOverlay_updatePreview: null,
-  customOverlay_progressBar: null
+  customOverlay_progressBar: null,
+  rightClickMenu_spellCheck: null
 }
 
 contextBridge.exposeInMainWorld('okm', {
@@ -33,6 +34,11 @@ contextBridge.exposeInMainWorld('okm', {
     if (typeof callback === 'function') {
       okm.customOverlay_progressBar = callback;
     } 
+  },
+  setup_rightClickMenu_spellCheck: (callback) => {
+    if (typeof callback === 'function') {
+      okm.rightClickMenu_spellCheck = callback;
+    } 
   }
 });
 
@@ -48,7 +54,11 @@ const generateFunctions = {
   updateProgress(progress, totalProgress) {
     if(okm.customOverlay_progressBar)
       okm.customOverlay_progressBar(progress, totalProgress);
-  },  
+  }, 
+  rightClickMenu_spellCheck(suggestions, word) {
+    if(okm.rightClickMenu_spellCheck)
+      okm.rightClickMenu_spellCheck(suggestions, word);
+  }
 };
 
 ipcRenderer.on('generate-backend', (event, { functionName, args }) => {
@@ -101,6 +111,11 @@ contextBridge.exposeInMainWorld('api', {
   startPollingWebUI: async () => ipcRenderer.invoke('generate-backend-webui-start-polling'),
   stopPollingWebUI: async () => ipcRenderer.invoke('generate-backend-webui-stop-polling'),
 
+  // spellcheck
+  replaceMisspelling: async (word) => ipcRenderer.invoke('replace-misspelling', word),
+  addToDictionary: async (word) => ipcRenderer.invoke('add-to-dictionary', word),
+
+  // md5 hash
   md5Hash: (input) => {
     if (typeof input !== 'string') {
         console.error('[get_md5_hash]: Input must be a string');
@@ -117,6 +132,7 @@ contextBridge.exposeInMainWorld('api', {
     }
   },
 
+  // decompress gzip
   decompressGzip: (base64Data) => {
     try {
         const compressedData = Buffer.from(base64Data, 'base64');

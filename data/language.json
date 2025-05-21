@@ -94,6 +94,7 @@
         "api_hf_colortransfer": "Color Transfer",
         "api_hf_incorrect_upscaler": "Incorrect Upscaler selected, reset to default {}",
         "api_hf_random_seed":"HF Random Seed (ComfyUI)",
+        "api_hf_steps":"HF Steps",
         
         "api_refiner_enable":"Refiner",
         "api_refiner_model":"Refiner Model",
@@ -252,6 +253,7 @@
         "api_hf_colortransfer": "色彩传递",
         "api_hf_incorrect_upscaler": "选择了错误的高清模型，使用默认 {}",
         "api_hf_random_seed":"高修随机种子(ComfyUI)",
+        "api_hf_steps":"高修步数",
         
         "api_refiner_enable":"切换降噪 Refiner",
         "api_refiner_model":"切换降噪模型",

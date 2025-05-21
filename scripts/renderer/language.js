@@ -130,6 +130,7 @@ export function updateLanguage() {
     window.hifix.randomSeed.setTitle(LANG.api_hf_random_seed);
     window.hifix.scale.setTitle(LANG.api_hf_scale);
     window.hifix.denoise.setTitle(LANG.api_hf_denoise);
+    window.hifix.steps.setTitle(LANG.api_hf_steps);
 
     window.refiner.model.setTitle(LANG.api_refiner_model);
     window.refiner.addnoise.setTitle(LANG.api_refiner_add_noise);
@@ -226,6 +227,7 @@ export function updateSettings() {
     window.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
     window.hifix.colorTransfer.updateDefaults(SETTINGS.api_hf_colortransfer);
     window.hifix.randomSeed.setValue(SETTINGS.api_hf_random_seed);
+    window.hifix.steps.setValue(SETTINGS.api_hf_steps);
 
     window.generate.refiner.setValue(SETTINGS.api_refiner_enable);
     window.generate.refiner_dummy.setValue(SETTINGS.api_refiner_enable);

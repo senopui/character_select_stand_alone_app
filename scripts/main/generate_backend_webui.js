@@ -4,22 +4,10 @@ const path = require('node:path')
 const { loadJSONFile } = require('./fileHandlers'); 
 const { net } = require('electron');
 const WebSocket = require('ws');
+const { sendToRenderer } = require('./generate_backend_comfyui'); 
 
 const CAT = '[WebUI]';
 let backendWebUI = null;
-
-function sendToRendererEx(channel, data) {
-    const window = BrowserWindow.getAllWindows();
-    if (window[0]) {
-        window[0].webContents.send(channel, data);
-    } else {
-        console.error(CAT, 'No focused window to send IPC message');
-    }
-}
-
-function sendToRenderer(functionName, ...args) {
-    sendToRendererEx('generate-backend', { functionName, args });
-}
 
 function generateGUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -149,7 +137,7 @@ class WebUI {
                     "firstphase_height": height,
                     "hr_scale": hifix.scale,
                     "hr_upscaler": hifix.model,
-                    "hr_second_pass_steps": 20,
+                    "hr_second_pass_steps": hifix.steps,
                     "hr_sampler_name": sampler,
                     "hr_scheduler": scheduler,
                     "hr_prompt": positive,

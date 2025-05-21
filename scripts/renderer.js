@@ -19,7 +19,7 @@ import { setupLoRA } from './renderer/myLoRASlot.js';
 import { setBlur, setNormal, showDialog } from './renderer/myDialog.js';
 import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/mytheme.js';
-import { setupRightClickMenu } from './renderer/myRightClickMenu.js';
+import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/myRightClickMenu.js';
 import { extractHostPort } from './renderer/generate.js';
 
 function afterDOMinit() {
@@ -30,6 +30,7 @@ function afterDOMinit() {
         window.okm.setup_mainGallery_appendImageData(from_main_updateGallery);
         window.okm.setup_customOverlay_updatePreview(from_main_updatePreview);
         window.okm.setup_customOverlay_progressBar(from_main_customOverlayProgress);
+        window.okm.setup_rightClickMenu_spellCheck(addSpellCheckSuggestions);
         setNormal();
     })();    
 }
@@ -283,7 +284,9 @@ async function init(){
             scale: setupSlider('hires-fix-scale', LANG.api_hf_scale, 1, 2, 0.1, SETTINGS.api_hf_scale, 
                 (value) => { window.globalSettings.api_hf_scale = value; }),
             denoise: setupSlider('hires-fix-denoise', LANG.api_hf_denoise, 0.1, 1, 0.01, SETTINGS.api_hf_denoise, 
-                (value) => { window.globalSettings.api_hf_denoise = value; })
+                (value) => { window.globalSettings.api_hf_denoise = value; }),
+            steps: setupSlider('hires-fix-steps', LANG.api_hf_steps, 1, 100, 1, SETTINGS.api_hf_steps,
+                (value) => { window.globalSettings.api_hf_steps = value; })
         }
 
         console.log('Creating window.refiner');

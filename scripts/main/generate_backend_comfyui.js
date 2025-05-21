@@ -347,6 +347,7 @@ class ComfyUI {
             // Set Hires fix seed and denoise
             workflow["20"].inputs.seed = hifix.seed;
             workflow["20"].inputs.denoise = hifix.denoise;
+            workflow["20"].inputs.steps = hifix.steps;
             // Set Hires fix model name
             workflow["27"].inputs.model_name = `${hifix.model}.pth`;
 
@@ -456,6 +457,7 @@ class ComfyUI {
           // Set Hires fix seed and denoise
           workflow["20"].inputs.seed = hifix.seed;
           workflow["20"].inputs.denoise = hifix.denoise;
+          workflow["20"].inputs.steps = hifix.steps;
           // Set Hires fix model name
           workflow["27"].inputs.model_name = `${hifix.model}.pth`;
 
@@ -558,7 +560,8 @@ async function setupGenerateBackendComfyUI() {
 }
 
 module.exports = {
-    setupGenerateBackendComfyUI
+  sendToRenderer,
+  setupGenerateBackendComfyUI
 };
 
 // Do NOT Modify it here

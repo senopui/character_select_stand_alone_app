@@ -1,4 +1,5 @@
 # Character Select SAA
+*If you find a character that isn't on the list but can be generated correctly, please don't hesitate to let me know.*    
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
 Now supports 5177 (includes multiple costumes) Character list.   
@@ -84,6 +85,10 @@ The Character List supports keywords search in both Chinese and English.
 
 ## Right Click Menu
 I just noticed that the electron app doesn't have a right-click menu, so I made one.     
+
+**Spell Check (English)**    
+Right-click on a word that has a spell check error (a wavy line drawn at the bottom) to see a hint for the corresponding word.     
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/spellCheck.png" width=45% height=45%>
 
 **AI prompt generate test**     
 Right click on `AI prompt` to get AI promot without generate.     

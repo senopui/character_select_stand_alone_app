@@ -351,6 +351,7 @@ export function createHiFix(randomSeed, apiInterface, brownColor){
         seed: window.hifix.randomSeed.getValue()?hfSeed:randomSeed,
         scale: window.hifix.scale.getFloat(),
         denoise: window.hifix.denoise.getFloat(),
+        steps: window.hifix.steps.getValue(),
         info: ''
     }
     if(hifix.enable) {
@@ -370,9 +371,10 @@ export function createHiFix(randomSeed, apiInterface, brownColor){
             }
         }
         hifix.info += `Hires Fix: [[color=${brownColor}]${hifix.enable}[/color]]\n`;
+        hifix.info += `\tSteps: [[color=${brownColor}]${hifix.steps}[/color]]\n`;
 
         if(hifix.randomSeed) {
-            hifix.info += `Hires Fix Seed: [[color=${brownColor}]${hfSeed}[/color]]\n`;
+            hifix.info += `\tHires Fix Seed: [[color=${brownColor}]${hfSeed}[/color]]\n`;            
             hifix.seed = hfSeed;
         }
     }

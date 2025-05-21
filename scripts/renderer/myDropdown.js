@@ -509,8 +509,6 @@ function createDropdown({
 
                 if ((containerId === 'dropdown-character' && activeIndex === 3) ||
                     (containerId === 'dropdown-character-regional' && (activeIndex === 2 || activeIndex === 3))) {
-                    console.log('containerId', containerId);
-                    console.log('activeIndex', activeIndex);
                     textContent = option.key;
                 }
 
