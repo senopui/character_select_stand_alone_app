@@ -10,7 +10,7 @@ let MODELLIST_ALL_WEBUI = MODELLIST_WEBUI;
 let LORALIST_COMFYUI = ['None'];
 let LORALIST_WEBUI = ['None'];
 
-function readDirectory(directory, basePath = '', search_subfolder = false) {
+function readDirectory(directory, basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0) {
     let files = [];
     try {
         files = fs.readdirSync(directory, { withFileTypes: true });
@@ -24,8 +24,8 @@ function readDirectory(directory, basePath = '', search_subfolder = false) {
         const relativePath = path.join(basePath, file.name);
         const fullPath = path.join(directory, file.name);
 
-        if (file.isDirectory() && search_subfolder) {
-            result = result.concat(readDirectory(fullPath, relativePath));
+        if (file.isDirectory() && search_subfolder && currentDepth < maxDepth) {
+            result = result.concat(readDirectory(fullPath, relativePath, search_subfolder, maxDepth, currentDepth + 1));
         } else if (file.isFile() && file.name.endsWith('.safetensors')) {
             result.push(relativePath);
         }

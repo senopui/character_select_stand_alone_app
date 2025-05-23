@@ -1,7 +1,7 @@
-2025.05.23 v1.5.2
+2025.05.23 v1.5.3
 Bugfix:
 WebUI backend generate always report error with `imageData.startsWith.......`                
-
+Search subfolder from only 1 depth to infinity depth #18        
 
 2025.05.23 v1.5.1        
 Improvements:     
