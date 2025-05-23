@@ -1,3 +1,10 @@
+2025.05.21 v1.5.1        
+Improvements:     
+More detailed error report information from A1111(WebUI) backend      
+Right-click menu selections have an easier-to-read background color           
+Batch size 128 to 2048    
+
+
 2025.05.21 v1.5.0     
 Add:     
 Hires fix steps 1~100      

@@ -602,11 +602,11 @@ async function runWebUI(apiInterface, generateData) {
                     ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface)
                     retCopy = result;
                     breakNow = true;
+                } else {
+                    if(!keepGallery)
+                        window.mainGallery.clearGallery();
+                    window.mainGallery.appendImageData(result, `${generateData.seed}`, generateData.positive, keepGallery, window.globalSettings.scroll_to_last);
                 }
-
-                if(!keepGallery)
-                    window.mainGallery.clearGallery();
-                window.mainGallery.appendImageData(result, `${generateData.seed}`, generateData.positive, keepGallery, window.globalSettings.scroll_to_last);
             }
         }
     } catch (error) {

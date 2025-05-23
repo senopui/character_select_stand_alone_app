@@ -47,7 +47,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
             menuItem.dataset.index = `spellcheck_${index}`;
 
             menuItem.addEventListener('mouseenter', () => {
-                menuItem.style.background = '#f0f0f0';
+                menuItem.style.background = 'rgba(192, 192, 192, 0.5)';
             });
             menuItem.addEventListener('mouseleave', () => {
                 menuItem.style.background = 'none';
@@ -78,7 +78,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
         addToDictItem.dataset.index = 'spellcheck_add_to_dict';
 
         addToDictItem.addEventListener('mouseenter', () => {
-            addToDictItem.style.background = '#f0f0f0';
+            addToDictItem.style.background = 'rgba(192, 192, 192, 0.5)';
         });
         addToDictItem.addEventListener('mouseleave', () => {
             addToDictItem.style.background = 'none';
@@ -321,7 +321,7 @@ export function setupRightClickMenu() {
             menuItem.dataset.index = item.index;
 
             menuItem.addEventListener('mouseenter', () => {
-                menuItem.style.background = '#f0f0f0';
+                menuItem.style.background = 'rgba(192, 192, 192, 0.5)';
             });
             menuItem.addEventListener('mouseleave', () => {
                 menuItem.style.background = 'none';

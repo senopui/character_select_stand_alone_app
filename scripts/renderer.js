@@ -137,7 +137,7 @@ async function init(){
             step: setupSlider('generate-step', LANG.step, 1, 100, 1, SETTINGS.step, (value) =>{window.globalSettings.step = value;}),
             width: setupSlider('generate-width', LANG.width, 512, 2048, 8, SETTINGS.width, (value) =>{window.globalSettings.width = value;}),
             height: setupSlider('generate-height', LANG.height, 512, 2048, 8, SETTINGS.height, (value) =>{window.globalSettings.height = value;}),
-            batch: setupSlider('generate-batch', LANG.batch, 1, 128, 1, SETTINGS.batch, (value) =>{window.globalSettings.batch = value;}),
+            batch: setupSlider('generate-batch', LANG.batch, 1, 2038, 1, SETTINGS.batch, (value) =>{window.globalSettings.batch = value;}),
             hifix: setupCheckbox('generate-hires-fix', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { window.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix'); }),
             hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { window.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix-dummy'); }),
             refiner: setupCheckbox('generate-refiner', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner'); }),

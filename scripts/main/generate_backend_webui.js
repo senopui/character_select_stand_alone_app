@@ -71,7 +71,7 @@ class WebUI {
                     })
                     response.on('end', () => {
                         if (response.statusCode !== 200) {
-                            console.error(`${CAT} setModel HTTP error: ${response.statusCode} - ${response.Data}`);
+                            console.error(`${CAT} Error: setModel HTTP code: ${response.statusCode} - ${response.Data}`);
                             resolve(`Error HTTP ${response.statusCode}`);
                         }
                         
@@ -303,7 +303,13 @@ async function setupGenerateBackendWebUI() {
         const result = await backendWebUI.setModel(generateData.addr, generateData.model);        
         if(result === '200') {
             try {
-                const jsonData =  JSON.parse(await backendWebUI.run(generateData));
+                const imageData = await backendWebUI.run(generateData);
+                if (imageData.startsWith('Error:')) {
+                    console.error(CAT, imageData);
+                    return `${imageData}`;
+                }
+
+                const jsonData =  JSON.parse(imageData);
                 sendToRenderer(`updateProgress`, `100`, '100%');
                 const image = jsonData.images[0];
                 // parameters info
