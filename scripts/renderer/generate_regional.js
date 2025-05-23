@@ -283,6 +283,7 @@ export async function generateRegionalImage(loops, runSame){
         console.warn('apiInterface', apiInterface);
         const errorMessage = LANG.regional_error_not_comfyui;
         window.mainGallery.hideLoading(errorMessage, errorMessage);
+        return;
     }
     
     let ret = 'success';
