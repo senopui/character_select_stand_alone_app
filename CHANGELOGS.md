@@ -1,4 +1,9 @@
-2025.05.21 v1.5.1        
+2025.05.23 v1.5.2
+Bugfix:
+WebUI backend generate always report error with `imageData.startsWith.......`                
+
+
+2025.05.23 v1.5.1        
 Improvements:     
 More detailed error report information from A1111(WebUI) backend      
 Right-click menu selections have an easier-to-read background color           

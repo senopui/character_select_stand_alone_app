@@ -1,39 +1,9 @@
-const { app, ipcMain, ipcRenderer } = require('electron')
-const { BrowserWindow } = require('electron');
-const path = require('node:path')
-const { loadJSONFile } = require('./fileHandlers'); 
+const { ipcMain } = require('electron')
 const { net } = require('electron');
-const WebSocket = require('ws');
 const { sendToRenderer } = require('./generate_backend_comfyui'); 
 
 const CAT = '[WebUI]';
 let backendWebUI = null;
-
-function generateGUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
-}
-
-function processImage(imageData) {
-    try {
-        if (Buffer.isBuffer(imageData)) {
-            return imageData.toString('base64');
-        } 
-        else if (ArrayBuffer.isView(imageData) || Array.isArray(imageData)) {
-            const buffer = Buffer.from(imageData);
-            return buffer.toString('base64');
-        } else {
-            console.error(CAT, 'Invalid image data type:', typeof imageData);
-            return null;
-        }
-    } catch (error) {
-        console.error(CAT, 'Error converting image data to Base64:', error);
-        return null;
-    }
-}
 
 class WebUI {
     constructor() {
@@ -123,6 +93,7 @@ class WebUI {
                 "height": height,
                 "sampler_index": sampler,
                 "scheduler": scheduler,
+                "batch_size" : 1,
                 "seed": seed,
                 "cfg_scale": cfg,
                 "save_images": true,
@@ -304,7 +275,8 @@ async function setupGenerateBackendWebUI() {
         if(result === '200') {
             try {
                 const imageData = await backendWebUI.run(generateData);
-                if (imageData.startsWith('Error:')) {
+
+                if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
                     console.error(CAT, imageData);
                     return `${imageData}`;
                 }
