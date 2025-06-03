@@ -45,6 +45,10 @@
         "regional_origina_character_right": "Origina Character Right Side",
         "regional_overlap_ratio": "Regional Overlap Ratio",
         "regional_image_ratio": "Image Left/Right Ratio",
+        "regional_str_left": "Left Conditioning Strength",
+        "regional_str_right": "Right Conditioning Strength",
+        "regional_option_left": "Left Area",
+        "regional_option_right": "Right Area",
         "regional_error_not_comfyui": "Due to lack of API support, Regional Condition is only supported in ComfyUI.",
 
         "title_settings_save": "Save Settings",
@@ -204,6 +208,10 @@
         "regional_origina_character_right": "分区右侧原创角色",
         "regional_overlap_ratio": "分区相互覆盖比例",
         "regional_image_ratio": "左右分区比例",
+        "regional_str_left": "左采样强度",
+        "regional_str_right": "右采样强度",
+        "regional_option_left": "左采样区域",
+        "regional_option_right": "右采样区域",
         "regional_error_not_comfyui": "注意，由于缺少API支持，当前分区采样仅支持ComfyUI。",
 
         "title_settings_save": "保存设置",

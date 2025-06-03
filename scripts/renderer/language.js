@@ -37,7 +37,7 @@ function setDropdownLanguage(containerID, labelPrefixList){
     });
 }
 
-export function updateLanguage() {
+export function updateLanguage(skipLoRA = false) {
     if(!safeCheck)
         return;    
 
@@ -77,6 +77,10 @@ export function updateLanguage() {
     window.regional.swap.setTitle(LANG.regional_swap);
     window.regional.overlap_ratio.setTitle(LANG.regional_overlap_ratio);
     window.regional.image_ratio.setTitle(LANG.regional_image_ratio);
+    window.regional.str_left.setTitle(LANG.regional_str_left);
+    window.regional.str_right.setTitle(LANG.regional_str_right);
+    window.regional.option_left.setTitle(LANG.regional_option_left);
+    window.regional.option_right.setTitle(LANG.regional_option_right);
 
     window.generate.seed.setTitle(LANG.random_seed);
     window.generate.cfg.setTitle(LANG.cfg);
@@ -151,7 +155,10 @@ export function updateLanguage() {
     window.ai.ai_system_prompt.setValue(LANG.ai_system_prompt);
 
     window.overlay.buttons.reload();
-    window.lora.reload();
+
+    if(!skipLoRA) {
+        window.lora.reload();
+    }
 
     window.rightClick.updateLanguage();
 }
@@ -175,6 +182,10 @@ export function updateSettings() {
     window.regional.swap.setValue(SETTINGS.regional_swap);
     window.regional.overlap_ratio.setValue(SETTINGS.regional_overlap_ratio);
     window.regional.image_ratio.setValue(SETTINGS.regional_image_ratio);
+    window.regional.str_left.setValue(SETTINGS.regional_str_left);
+    window.regional.str_right.setValue(SETTINGS.regional_str_right);
+    window.regional.option_left.updateDefaults(SETTINGS.regional_option_left);
+    window.regional.option_right.updateDefaults(SETTINGS.regional_option_right);
 
     window.generate.model_path_comfyui.setValue(SETTINGS.model_path_comfyui);
     window.generate.model_path_webui.setValue(SETTINGS.model_path_webui);

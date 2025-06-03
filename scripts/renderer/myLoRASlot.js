@@ -560,6 +560,10 @@ class SlotManager {
         this.clear();
 
         const slots = window.globalSettings.lora_slot;
+        if (!slots || slots.length === 0) {
+            return;
+        }
+
         const loraStrings = slots.map(([loraName, modelStrength, clipStrength, enableValue]) => {
     
             const modelStr = parseFloat(modelStrength) || 0;

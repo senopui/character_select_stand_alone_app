@@ -226,16 +226,22 @@ function createRegional() {
     const overlap_ratio = window.regional.overlap_ratio.getValue();
     const image_ratio = window.regional.image_ratio.getValue();
 
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-    const info = `Regional Condition Overlap Ratio: [[color=${brownColor}]${overlap_ratio}[/color]]\tImage Ratio: [[color=${brownColor}]${image_ratio}[/color]]\n`;
-
     const a = image_ratio / 50;
     const c = 2 - a;
     const b = overlap_ratio / 100;
 
     const ratio =`${a},${(b===0)?0.01:b},${c}`;
 
-    return {ratio, info}
+    const str_left = window.regional.str_left.getFloat();
+    const str_right = window.regional.str_right.getFloat();
+
+    const option_left = window.regional.option_left.getValue();
+    const option_right = window.regional.option_right.getValue();    
+
+    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const info = `Regional Condition:\n\tOverlap Ratio: [[color=${brownColor}]${overlap_ratio}[/color]]\n\tImage Ratio: [[color=${brownColor}]${image_ratio}[/color]]\n\tLeft Str: [[color=${brownColor}]${str_left}[/color]]\tMask Area: [[color=${brownColor}]${option_left}[/color]]\n\tRight Str: [[color=${brownColor}]${str_right}[/color]]\tMask Area: [[color=${brownColor}]${option_right}[/color]]\n`;
+
+    return {info, ratio, str_left, str_right, option_left, option_right};
 }
 
 function createGenerateData(createPromptResult, apiInterface){    

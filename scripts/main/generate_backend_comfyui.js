@@ -445,8 +445,19 @@ class ComfyUI {
       workflow["17"].inputs.Width = width;
       workflow["17"].inputs.Height = height;
 
+      // Regional Condition Mask
       // Set Mask Ratio
       workflow["47"].inputs.Layout = regional.ratio;
+      // Set Left Mask Strength and Area
+      workflow["50"].inputs.strength = regional.str_left;
+      workflow["50"].inputs.set_cond_area = regional.option_left;
+      workflow["55"].inputs.strength = regional.str_left;
+      workflow["55"].inputs.set_cond_area = regional.option_left;
+      // Set Right Mask Strength and Area
+      workflow["52"].inputs.strength = regional.str_right;
+      workflow["52"].inputs.set_cond_area = regional.option_right;
+      workflow["56"].inputs.strength = regional.str_right;
+      workflow["56"].inputs.set_cond_area = regional.option_right;
 
       if (!hifix.enable) {
           // Image Save set to 1st VAE Decode

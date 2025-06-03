@@ -308,7 +308,15 @@ async function init(){
             overlap_ratio: setupSlider('regional-condition-overlap-ratio', LANG.regional_overlap_ratio, 0, 200, 10, SETTINGS.regional_overlap_ratio,
                 (value) => { window.globalSettings.regional_overlap_ratio = value; }),
             image_ratio: setupSlider('regional-condition-image-ratio', LANG.regional_image_ratio, 10, 90, 5, SETTINGS.regional_image_ratio,
-                (value) => { window.globalSettings.regional_image_ratio = value; })
+                (value) => { window.globalSettings.regional_image_ratio = value; }),
+            str_left: setupSlider('regional-condition-strength-left', LANG.regional_str_left, 0, 10, 0.1, SETTINGS.regional_str_left,
+                (value) => { window.globalSettings.regional_str_left = value; }),
+            str_right: setupSlider('regional-condition-strength-right', LANG.regional_str_right, 0, 10, 0.1, SETTINGS.regional_str_right,
+                (value) => { window.globalSettings.regional_str_right = value; }),
+            option_left: mySimpleList('regional-condition-option-left', LANG.regional_option_left, ['default', 'mask bounds'],
+                (index, value) => { window.globalSettings.regional_option_left = value; }, 5, false, true),
+            option_right: mySimpleList('regional-condition-option-right', LANG.regional_option_right, ['default', 'mask bounds'],
+                (index, value) => { window.globalSettings.regional_option_right = value; }, 5, false, true)
         }
 
         window.ai ={

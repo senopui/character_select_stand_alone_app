@@ -17,14 +17,13 @@ export async function callback_mySettingList(index, selectedValue) {
     window.globalSettings = await window.api.loadSettingFile(value);
     doSwap(window.globalSettings.rightToleft);    
     await reloadFiles()
-    updateLanguage(); 
-    updateSettings();
+    updateLanguage(true); 
+    updateSettings(true);
     window.dropdownList.settings.updateDefaults(value);
     if(old_css !== window.globalSettings.css_style)
         applyTheme(window.globalSettings.css_style);
     
     window.lora.flush();
-
     window.initialized = true;
     setNormal();
 }
@@ -164,7 +163,6 @@ export function callback_keep_gallery() {
 }
 
 export function callback_regional_condition(trigger, dummy = false){
-    console.log('Use Regional Condition', trigger);
     if (dummy) {
         window.generate.regionalCondition.setValue(window.generate.regionalCondition_dummy.getValue());
     } else {

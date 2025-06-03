@@ -28,6 +28,10 @@ const defaultSettings = {
     "regional_swap": false,
     "regional_overlap_ratio": 20,
     "regional_image_ratio": 50,
+    "regional_str_left": 1.0,
+    "regional_str_right": 1.0,
+    "regional_option_left": "default",
+    "regional_option_right": "default",
     "character_left": "None",
     "character_right": "None",
     

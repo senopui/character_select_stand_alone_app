@@ -1,3 +1,11 @@
+2025.06.03 v1.6.0      
+Add:      
+More Settings in Regional Condition two      
+
+Bugfix:      
+Error in console when switching settings from LoRAs to empty      
+
+
 2025.05.23 v1.5.3
 Bugfix:
 WebUI backend generate always report error with `imageData.startsWith.......`                
