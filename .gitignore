@@ -3,4 +3,5 @@ node_modules
 release
 data/wai_character_thumbs.json
 data/danbooru.csv
+data/danbooru_e621_merged.csv
 settings/*.json

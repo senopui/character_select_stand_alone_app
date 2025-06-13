@@ -4,14 +4,14 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.6.0",
+  "version": "1.6.2",
   "author": "oOkami",
   "scripts": {
     "start": "electron .",
     "package": "electron-packager ./ saa --platform=win32 --out=release --overwrite"
   },
   "devDependencies": {
-    "electron": "^36.0.0-beta.8"
+    "electron": "^36.4.0"
   },
   "dependencies": {
     "isomorphic-dompurify": "^2.24.0",

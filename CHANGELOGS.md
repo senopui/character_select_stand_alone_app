@@ -1,3 +1,14 @@
+2025.06.13 v1.6.2    
+Change danbooru.csv to danbooru_e621_merged.csv      
+
+2025.06.05 v1.6.1      
+Update Electron to `36.4.0`     
+
+Bugfix:      
+Add delay for copy image if window is not focused(might.....)      
+Right-click on right click menu      
+
+
 2025.06.03 v1.6.0      
 Add:      
 More Settings in Regional Condition two      

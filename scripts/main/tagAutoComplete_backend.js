@@ -235,7 +235,7 @@ class PromptManager {
 
 const tagBackend = new PromptManager();
 async function setupTagAutoCompleteBackend(){
-    const tags = path.join(appPath, 'data', 'danbooru.csv');
+    const tags = path.join(appPath, 'data', 'danbooru_e621_merged.csv');
     const translate = path.join(appPath, 'data', 'danbooru_zh_cn.csv');
     const isTranslateFile = fs.existsSync(translate);
 

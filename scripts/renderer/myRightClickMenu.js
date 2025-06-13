@@ -216,6 +216,12 @@ export function setupRightClickMenu() {
     });
 
     document.addEventListener('contextmenu', async (e) => {
+        // If menu is already visible, prevent opening a new one
+        if (menuBox.style.display !== 'none') {
+            e.preventDefault(); 
+            return;
+        }
+        
         //e.preventDefault(); // Keep commented to allow main process context-menu
         if (!menuConfig.length) return;
 
@@ -250,6 +256,12 @@ export function setupRightClickMenu() {
             updateMenuPosition();
         }
     }, 100), true);
+
+    // Prevent right-click on the menu itself from triggering a new menu
+    menuBox.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); 
+        e.stopPropagation(); 
+    });
 
     async function renderMenu(x, y, targetElement) {
         const fragment = document.createDocumentFragment();
@@ -477,30 +489,50 @@ function menu_copyImage(element) {
     const img = element.querySelector('img');
     if (img?.src.startsWith('data:image/')) {
         try {
-            const image = new Image();
-            image.src = img.src;
-            image.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = image.width;
-                canvas.height = image.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(image, 0, 0);
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        navigator.clipboard.write([
-                            new ClipboardItem({ 'image/png': blob })
-                        ]).then(() => {}).catch((err) => {
-                            console.error(CAT, 'Failed to copy PNG image to clipboard:', err);
-                        });
-                    } 
-                }, 'image/png');
-            };
-            image.onerror = () => {
-                console.error(CAT, 'Failed to load image for conversion');
-            };
+            // Check if the document is focused
+            if (!document.hasFocus()) {
+                console.log(CAT, 'Document is not focused, attempting to focus the window');
+                window.focus(); // Attempt to bring the window into focus
+                // Add a small delay to ensure focus is applied before clipboard access
+                setTimeout(() => {
+                    proceedWithCopy(img);
+                }, 100); // 100ms delay to allow focus to take effect
+            } else {
+                proceedWithCopy(img);
+            }
         } catch (err) {
             console.error(CAT, 'Error processing image:', err);
         }
+    }
+}
+
+function proceedWithCopy(img) {
+    try {
+        const image = new Image();
+        image.src = img.src;
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0);
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]).then(() => {
+                        console.log(CAT, 'Image successfully copied to clipboard');
+                    }).catch((err) => {
+                        console.error(CAT, 'Failed to copy PNG image to clipboard:', err);
+                    });
+                }
+            }, 'image/png');
+        };
+        image.onerror = () => {
+            console.error(CAT, 'Failed to load image for conversion');
+        };
+    } catch (err) {
+        console.error(CAT, 'Error in proceedWithCopy:', err);
     }
 }
 

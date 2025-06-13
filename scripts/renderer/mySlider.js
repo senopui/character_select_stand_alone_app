@@ -44,7 +44,7 @@ export function setupSlider(containerId, spanText = 'mySlider', min = 0, max = 2
                 callback(getTypedValue(value));
             }
         } else {
-            console.warn(CAT, '[setupSlider] Value out of range.');
+            console.warn(CAT, '[setupSlider] Value out of range:', value);
         }
     });
 
