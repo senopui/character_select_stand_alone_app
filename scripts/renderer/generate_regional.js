@@ -1,6 +1,6 @@
 import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
-import { generateRandomSeed, getTagAssist, getLoRAs, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
+import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
     getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred } from './generate.js';
 
 const CAT = '[Generate Regional]';
@@ -176,9 +176,10 @@ function getCharacters(){
     }
 }
 
-function createPrompt(runSame, aiPromot, apiInterface){
+async function createPrompt(runSame, aiPromot, apiInterface){
     let finalInfo = ''
     let randomSeed = -1;
+    let randomSeedr = -1;
     let positivePromptLeft = '';
     let positivePromptLeftColored = '';
     let positivePromptRight = '';
@@ -199,10 +200,18 @@ function createPrompt(runSame, aiPromot, apiInterface){
     } else {            
         const {thumb, character_left, character_right, information, seed} = getCharacters();
         randomSeed = seed;
+        randomSeedr = Math.floor(seed / 3);
         finalInfo = information;
 
         const views = getViewTags(seed);
-        const {posL, posLc, posR, posRc, lora} = getPrompts(character_left, character_right, views, aiPromot, apiInterface);
+        let {posL, posLc, posR, posRc, lora} = getPrompts(character_left, character_right, views, aiPromot, apiInterface);
+
+        posL = await replaceWildcardsAsync(posL, randomSeed);
+        posLc = await replaceWildcardsAsync(posLc, randomSeed);
+
+        posR = await replaceWildcardsAsync(posR, randomSeedr);
+        posRc = await replaceWildcardsAsync(posRc, randomSeedr);
+
         if(lora === ''){
             positivePromptLeft = posL;
             positivePromptRight = posR;
@@ -312,7 +321,7 @@ export async function generateRegionalImage(loops, runSame){
 
         window.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
-        const createPromptResult = createPrompt(runSame, aiPromot, apiInterface);
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface);
         window.generate.lastPos = createPromptResult.positivePromptLeft;
         window.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
         window.generate.lastPosR = createPromptResult.positivePromptRight;

@@ -274,6 +274,13 @@ export function setupSuggestionSystem() {
 
         function formatSuggestion(suggestion) {
             const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
+
+            // AS IS: wildcards like __my_special_tag__
+            if (/^__.*__$/.test(withoutHeat)) {
+                return withoutHeat;
+            }
+
+            // otherwise, format the suggestion
             let formatted = withoutHeat.replace(/_/g, ' ');
             formatted = formatted.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
             return formatted.startsWith(':') ? formatted : formatted.replace(/:/g, ' ');

@@ -115,6 +115,10 @@ contextBridge.exposeInMainWorld('api', {
   replaceMisspelling: async (word) => ipcRenderer.invoke('replace-misspelling', word),
   addToDictionary: async (word) => ipcRenderer.invoke('add-to-dictionary', word),
 
+  // Wildcards
+  loadWildcard: async (fileName, seed) => ipcRenderer.invoke('load-wildcards', fileName, seed),
+  updateWildcards: async () => ipcRenderer.invoke('update-wildcards'),
+
   // md5 hash
   md5Hash: (input) => {
     if (typeof input !== 'string') {

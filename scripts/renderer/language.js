@@ -94,7 +94,8 @@ export function updateLanguage(skipLoRA = false) {
     window.generate.refiner.setTitle(LANG.api_refiner_enable);
     window.generate.refiner_dummy.setTitle(LANG.api_refiner_enable);
     window.generate.landscape.setTitle(LANG.api_image_landscape);
-    window.generate.tag_assist.setTitle(LANG.tag_assist);    
+    window.generate.tag_assist.setTitle(LANG.tag_assist);
+    window.generate.wildcard_random.setTitle(LANG.wildcard_random);
 
     window.generate.sampler.setValue(LANG.api_model_sampler, window.globalSettings.api_interface==='ComfyUI'?SAMPLER_COMFYUI:SAMPLER_WEBUI);
     window.generate.scheduler.setValue(LANG.api_model_scheduler, window.globalSettings.api_interface==='ComfyUI'?SCHEDULER_COMFYUI:SCHEDULER_WEBUI);
@@ -121,9 +122,8 @@ export function updateLanguage(skipLoRA = false) {
     window.generate.keepGallery.setTitle(LANG.keep_gallery);
     window.infoBox.image.setTitle(LANG.output_info);
 
-    // Move to regional confition select
-    // window.prompt.common.setTitle(LANG.custom_prompt);
-    // window.prompt.positive.setTitle(LANG.api_prompt);
+    window.prompt.common.setTitle(LANG.custom_prompt);
+    window.prompt.positive.setTitle(LANG.api_prompt);
     window.prompt.positive_right.setTitle(LANG.regional_api_prompt_right);
     window.prompt.negative.setTitle(LANG.api_neg_prompt);
     window.prompt.ai.setTitle(LANG.ai_prompt);
@@ -196,6 +196,7 @@ export function updateSettings() {
     window.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
     window.characterListRegional.updateDefaults(SETTINGS.character_left, SETTINGS.character_right, 'None', 'None');
     window.generate.tag_assist.setValue(SETTINGS.tag_assist);
+    window.generate.wildcard_random.setValue(SETTINGS.wildcard_random);
 
     window.viewList.updateDefaults(SETTINGS.view_angle, SETTINGS.view_camera, SETTINGS.view_background, SETTINGS.view_style);
 

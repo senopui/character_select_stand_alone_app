@@ -99,6 +99,9 @@ export async function reloadFiles(){
 
     
     await window.api.updateModelList(args);
+    await window.api.updateWildcards();
+    await window.api.tagReload();
+
     window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
     window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
     window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
@@ -107,7 +110,7 @@ export async function reloadFiles(){
     window.dropdownList.model.setValue(LANG.api_model_file_select, window.cachedFiles.modelList);
     window.dropdownList.settings.setValue('', window.cachedFiles.settingList);
 
-    window.refiner.model.setValue(LANG.api_refiner_model, window.cachedFiles.modelListAll);
+    window.refiner.model.setValue(LANG.api_refiner_model, window.cachedFiles.modelListAll);    
 }
 
 export function setupRefreshToggle() {

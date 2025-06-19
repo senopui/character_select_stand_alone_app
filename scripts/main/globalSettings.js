@@ -23,6 +23,7 @@ const defaultSettings = {
     "character2": "None",
     "character3": "None",
     "tag_assist": false,
+    "wildcard_random": false,
 
     "regional_condition": false,    
     "regional_swap": false,

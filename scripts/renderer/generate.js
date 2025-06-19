@@ -302,7 +302,30 @@ export function getLoRAs(apiInterface) {
     return formattedStrings.join('\n');
 }
 
-function createPrompt(runSame, aiPromot, apiInterface){
+
+export async function replaceWildcardsAsync(pos, seed) {
+    const wildcardRegex = /__([a-zA-Z0-9_-]+)__/g;
+
+    let random_seed = seed;   
+
+    // collect all wildcards in the prompt
+    const matches = [];
+    let match;
+    while ((match = wildcardRegex.exec(pos)) !== null) {
+        matches.push(match[1]);
+    }
+    // replace each wildcard with its corresponding value
+    for (const wildcardName of matches) {
+        if (window.generate.wildcard_random.getValue()) {
+            random_seed = generateRandomSeed();
+        }
+        const replacement = await window.api.loadWildcard(wildcardName, random_seed);
+        pos = pos.replace(new RegExp(`__${wildcardName}__`, 'g'), `${replacement}`);
+    }
+    return pos;
+}
+
+async function createPrompt(runSame, aiPromot, apiInterface){
     let finalInfo = ''
     let randomSeed = -1;
     let positivePrompt = '';
@@ -324,7 +347,11 @@ function createPrompt(runSame, aiPromot, apiInterface){
         finalInfo = information;
 
         const views = getViewTags(seed);
-        const {pos, posc, lora} = getPrompts(characters_tag, views, aiPromot, apiInterface);
+        let {pos, posc, lora} = getPrompts(characters_tag, views, aiPromot, apiInterface);
+                
+        pos = await replaceWildcardsAsync(pos, randomSeed);
+        posc = await replaceWildcardsAsync(posc, randomSeed);
+
         if(lora === ''){
             positivePrompt = pos;
         }
@@ -443,7 +470,7 @@ export async function generateImage(loops, runSame){
 
         window.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
-        const createPromptResult = createPrompt(runSame, aiPromot, apiInterface);                
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface);                
         const landscape = window.generate.landscape.getValue();
         const width = landscape?window.generate.height.getValue():window.generate.width.getValue();
         const height = landscape?window.generate.width.getValue():window.generate.height.getValue();

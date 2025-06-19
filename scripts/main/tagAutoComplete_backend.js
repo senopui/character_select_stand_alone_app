@@ -2,28 +2,39 @@ const { app, ipcMain } = require('electron')
 const path = require('node:path')
 const fs = require('fs');
 const { dialog } = require('electron');
+const { getWildcardsList }  = require('./wildCards');
 
 const CAT = '[TagAutoCompleteBackend]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 
 class PromptManager {
-    constructor(promptFilePath, translateFilePath = null, useTranslate = false) {
+    constructor() {
         this.prompts = [];
-        this.promptFilePath = promptFilePath;
-        this.translateFilePath = translateFilePath;
-        this.useTranslate = useTranslate;
         this.lastCustomPrompt = "";
         this.previousCustomPrompt = "";
         this.dataLoaded = false;
     }
 
     async loadPrompts(promptFilePath, translateFilePath = null, useTranslate = false) {    
-        this.useTranslate = useTranslate;
         try {
             const promptData = fs.readFileSync(promptFilePath, 'utf-8');
             this.parsePromptData(promptData);
 
-            if (this.useTranslate && translateFilePath) {
+            const wildcardsList = getWildcardsList();
+            if (wildcardsList.length > 0) {
+                console.log(CAT, `Found ${wildcardsList.length} wildcards files.`);
+                wildcardsList.forEach(wildcard => {
+                    this.prompts.push({
+                        prompt: `__${wildcard}__`,
+                        group: 0,
+                        heat: 2,    //wildcards
+                        aliases: ""
+                    });
+                    console.log(CAT, `Added wildcard prompt: __${wildcard}__`);
+                });
+            }
+
+            if (useTranslate && translateFilePath) {
                 console.log(CAT, `Using translate file ${translateFilePath}`);
                 const translateData = fs.readFileSync(translateFilePath, 'utf-8');
                 this.parseTranslateData(translateData);
@@ -100,7 +111,7 @@ class PromptManager {
                 this.prompts.push({
                     prompt,
                     group,
-                    heat: 1,
+                    heat: 1,  // translate alias
                     aliases: newAliases
                 });
                 promptDict[prompt] = this.prompts[this.prompts.length - 1];
@@ -110,14 +121,6 @@ class PromptManager {
 
     sortPromptsByHeat() {
         this.prompts.sort((a, b) => b.heat - a.heat);
-    }
-
-    async reloadData() {
-        console.log(CAT, `Reloading prompts from ${this.promptFilePath} and ${this.translateFilePath}...`);
-        this.prompts = [];
-        this.lastCustomPrompt = "";
-        this.previousCustomPrompt = "";
-        await this.loadPrompts(this.promptFilePath, this.translateFilePath);
     }
 
     getSuggestions(text) {
@@ -234,7 +237,7 @@ class PromptManager {
 }
 
 const tagBackend = new PromptManager();
-async function setupTagAutoCompleteBackend(){
+async function reloadData() {
     const tags = path.join(appPath, 'data', 'danbooru_e621_merged.csv');
     const translate = path.join(appPath, 'data', 'danbooru_zh_cn.csv');
     const isTranslateFile = fs.existsSync(translate);
@@ -242,9 +245,19 @@ async function setupTagAutoCompleteBackend(){
     if (fs.existsSync(tags))
     {
         await tagBackend.loadPrompts(tags, isTranslateFile?translate:null, isTranslateFile);
+    }
 
+    return tagBackend.dataLoaded;
+}
+
+async function setupTagAutoCompleteBackend(){    
+    if (await reloadData())
+    {
         ipcMain.handle('tag-reload', async () => {
-            await tagBackend.reloadData();
+            tagBackend.prompts = [];
+            tagBackend.lastCustomPrompt = "";
+            tagBackend.previousCustomPrompt = "";
+            await reloadData();
             return tagBackend.dataLoaded;
         });
 

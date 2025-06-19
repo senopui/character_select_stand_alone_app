@@ -1,3 +1,10 @@
+2025.06.19 v1.7.0     
+Add wildcards(txt) support     
+
+Bugfix:
+Missing translate switch for Common and Positive prompt input      
+
+
 2025.06.13 v1.6.2    
 Change danbooru.csv to danbooru_e621_merged.csv      
 

@@ -10,6 +10,7 @@ const { setupModelApi } = require('./scripts/main/remoteAI_backend');
 const { setupGenerateBackendComfyUI, sendToRenderer } = require('./scripts/main/generate_backend_comfyui');
 const { setupGenerateBackendWebUI } = require('./scripts/main/generate_backend_webui');
 const { setupCachedFiles } = require('./scripts/main/cachedFiles'); 
+const { setupWildcardsHandlers } = require('./scripts/main/wildCards');
 
 let mainWindow;
 
@@ -52,10 +53,14 @@ app.whenReady().then(async () => {
   setupModelList(SETTINGS);
   const downloadSuccess = await setupDownloadFiles();
   const cacheSuccess = setupCachedFiles();
+
+  // Ensure wildcards list are set up before tag auto-complete
+  setupWildcardsHandlers();
+
   const tacSuccess = await setupTagAutoCompleteBackend();
   setupModelApi();
   setupGenerateBackendComfyUI();
-  setupGenerateBackendWebUI();
+  setupGenerateBackendWebUI();  
 
   if (downloadSuccess && cacheSuccess && tacSuccess) {
     createWindow();
