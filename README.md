@@ -2,7 +2,7 @@
 *If you find a character that isn't on the list but can be generated correctly, please don't hesitate to let me know.*    
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
-Now supports 5177 (includes multiple costumes) Character list.   
+Now supports 5178 (includes multiple costumes) Characters in list.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45% height=45%>   
 
@@ -30,6 +30,15 @@ npm start
 
 *One-Click package*    
 In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)
+
+## Update
+The `One-Click package` may not the latest version. If you need to update, please use the GitHub clone version with following command instead.     
+```
+git fetch
+git pull
+```
+**REMINDER:Updating version from github will not update the database files `danbooru_e621_merged.csv` and `wai_character_thumbs.json`.**    
+Update to the latest version, then manually delete the `danbooru_e621_merged.csv` and `wai_character_thumbs.json` file. Restart the app to automatically download the latest thumbnail database from HF.      
 
 # Chinese Translate and Character Verification       
 Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.   
