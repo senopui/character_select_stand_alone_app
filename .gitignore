@@ -5,3 +5,5 @@ data/wai_character_thumbs.json
 data/danbooru.csv
 data/danbooru_e621_merged.csv
 settings/*.json
+data/wildcards/wildcardPoses.txt
+data/wildcards/wildcardMyFurries.txt
