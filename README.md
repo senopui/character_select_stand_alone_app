@@ -29,7 +29,8 @@ npm start
 ```
 
 *One-Click package*    
-In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)
+In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)     
+HF unsafe mark [Win.Packed.Mikey-9859688-0](https://github.com/electron/electron/issues/43180) confirmed as a false positive          
 
 ## Update
 The `One-Click package` may not the latest version. If you need to update, please use the GitHub clone version with following command instead.     
