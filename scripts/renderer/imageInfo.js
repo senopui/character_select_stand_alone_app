@@ -178,23 +178,30 @@ export function setupImageUploadOverlay() {
         uploadOverlay.classList.remove('dragover');
 
         const files = e.dataTransfer.files;
-        if (files.length > 0 && files[0].type.startsWith('image/')) {
-            const file = files[0];
-            try {
-                const metadata = await extractImageMetadata(file);
-                showImagePreview(file);
-                displayFormattedMetadata(metadata);
-            } catch (err) {
-                console.error('Failed to process image metadata:', err);
-                const fallbackMetadata = {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type,
-                    lastModified: file.lastModified,
-                    error: 'Metadata extraction failed'
-                };
-                showImagePreview(file);
-                displayFormattedMetadata(fallbackMetadata);
+        if (files.length > 0) {
+            if(files[0].type.startsWith('image/')) {
+                const file = files[0];
+                try {
+                    const metadata = await extractImageMetadata(file);
+                    showImagePreview(file);
+                    displayFormattedMetadata(metadata);
+                } catch (err) {
+                    console.error('Failed to process image metadata:', err);
+                    const fallbackMetadata = {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type,
+                        lastModified: file.lastModified,
+                        error: 'Metadata extraction failed'
+                    };
+                    showImagePreview(file);
+                    displayFormattedMetadata(fallbackMetadata);
+                }
+            //} else if (files[0].type === `application/json`) {
+            //    console.log('Dropped JSON file:', files[0].name);
+            } else {
+                console.warn('Dropped file ', files[0].name, ' is not support. File type: ', files[0].type);
+                hideOverlay();                
             }
         }
     });

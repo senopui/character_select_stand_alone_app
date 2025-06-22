@@ -1,3 +1,8 @@
+2025.06.21 v1.7.1     
+Bugfix:     
+Dropdown zone exists when a non-image file is dropped for image information    
+
+
 2025.06.19 v1.7.0     
 Add wildcards(txt) support     
 
