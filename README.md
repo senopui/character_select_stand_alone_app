@@ -2,7 +2,7 @@
 *If you find a character that isn't on the list but can be generated correctly, please don't hesitate to let me know.*    
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
-Now supports 5259 (includes multiple costumes) Characters in list.   
+Now supports 5264 (includes multiple costumes) Characters in list.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45% height=45%>   
 
@@ -48,7 +48,7 @@ Many thanks to the following people for their selfless contributions, who gave u
 Special thanks    
 lanner0403 [WAI-NSFW-illustrious-character-select](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) 2000+  Verified Character List, please support his WebUI plugin.   
 Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com/articles/10242/illustrious-xl-v01-recognized-characters-list) more than 100+ Verified Character List.     
-mobedoor [#23](https://github.com/mirabarukaso/character_select_stand_alone_app/issues/23)       
+mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_select_stand_alone_app/issues/23)       
      
 ------
 # Highlights
