@@ -1,3 +1,7 @@
+2025.07.03 v1.7.2
+Update Electron to `37.2.0`      
+
+
 2025.06.21 v1.7.1     
 Bugfix:     
 Dropdown zone exists when a non-image file is dropped for image information    

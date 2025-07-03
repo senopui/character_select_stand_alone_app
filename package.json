@@ -4,7 +4,7 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "author": "oOkami",
   "scripts": {
     "start": "electron .",
@@ -12,7 +12,7 @@
     "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite"
   },
   "devDependencies": {
-    "electron": "^36.4.0"
+    "electron": "^37.2.0"
   },
   "dependencies": {
     "isomorphic-dompurify": "^2.24.0",
