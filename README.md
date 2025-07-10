@@ -4,7 +4,7 @@
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
 Now supports 5326 (includes multiple costumes) Characters in list.   
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45% height=45%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%>   
 
 | Item Support | ComfyUI| WebUI | Forge|
 | --- | --- | --- | --- |
@@ -57,7 +57,7 @@ Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wi
 By default, wildcards are randomly selected using the current seed. If `wildcard random seed` is `Checked`, a new random seed will be generated for every selection every time.      
 **Subfolder is not supported**     
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35% height=35%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
 
 ## Regional Condition (ComfyUI only)
 **'Cause WebUI dosn't provide any regional API, sorry...**  
@@ -68,7 +68,7 @@ Try SAA Regional Condition with only 3 steps:
 2. Choose listed character or your OC      
 3. Start `common prompt` with `duo, masterpiece, best quality, amazing quality`(Don't forget quality words like me), have fun!     
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/regionalCondition.png" width=35% height=35%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/regionalCondition.png" width=35%>   
 
 ## LoRA Slot 
 WebUI supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.    
@@ -76,7 +76,7 @@ ComfyUI supports more detailed configuration of LoRA, for more information pleas
 Also support check LoRA info by click the 'i' button in LoRA Slot. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
 
 **To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**   
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/loraSlot.png" width=45% height=45%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/loraSlot.png" width=45%>   
 
 ## Semi-Auto Tag Complete
 Tags credits from [a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete/blob/main/tags/danbooru_e621_merged.csv)    
@@ -85,7 +85,7 @@ Entering the `first few characters` will automatically search for matching tags,
 Use `mouse` to select the prompt word, but you can also use the `keyboard up and down` with `Enter` or `Tab` to select, press `Esc` to close the prompt box.     
 `ctrl + up` and `ctrl + down` arrow to adjust the weight of the current tag, or adjust multiple tags by selecting a fragment, the usage is similar to comfyui and webui, but some details of the logic may be different.    
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tagAutoComplete.png" width=45% height=45%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tagAutoComplete.png" width=45%>   
 
 ## Image info
 Just drag your image into SAA window, only support PNG for now.     
@@ -94,34 +94,34 @@ Double click the image to close.
 The `Send` button will override `Common Prompt`, `Negative Prompt`, `Width & Height`, `CFG`, `Setp` and `Seed`.    
 LoRA in `Common Prompt` also works if you have the same one. If you don't like LoRA in prompts, try `Send LoRA to Slot`.      
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageInfo.png" width=45% height=45%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageInfo.png" width=45%>   
 
 ## Realtime Character preview and Search
 The Character List supports keywords search in both Chinese and English.      
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/characterPreview.png" width=45% height=45%>
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/characterPreview.png" width=45%>
 
 ## Right Click Menu
 I just noticed that the electron app doesn't have a right-click menu, so I made one.     
 
 **Spell Check (English)**    
 Right-click on a word that has a spell check error (a wavy line drawn at the bottom) to see a hint for the corresponding word.     
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/spellCheck.png" width=45% height=45%>
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/spellCheck.png" width=45%>
 
 **AI prompt generate test**     
 Right click on `AI prompt` to get AI promot without generate.     
 Once got result from Remote/Local AI, an information overlay will show in screen, switch AI rule to `Last` to keep  the result in later generate.    
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aiPromptTest.png" width=45% height=45%>
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aiPromptTest.png" width=45%>
 
 **Copy Image/Metadata**     
 Right click on `Gallery` to copy current image or copy the metadata to clipboard.     
 ComfyUI with Image Saver node will output an a1111 like metadata.      
 Copy image based on convert base64 data back to png, so I didn't put metadata back, ~because most social software will trim it again.~ The truth is metadata trimed by chromium core, it's impossible to put them back with chromium API, a C based lib could solve that problem, but it's not worth to do. If you do need the original image, try dragging and dropping or getting it from the relevant (ComfyUI/WebUI) output folder.      
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/copyImage.png" width=35% height=35%>
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/copyImage.png" width=35%>
 
 **Send LoRA to Slot**     
 Right click on `Common` and `Positive` to send text form LoRA to LoRA Slot.     
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/sendLoRAtoSlot.png" width=35% height=35%>
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/sendLoRAtoSlot.png" width=35%>
 
 ***The Top buttons***     
 From Left to right: Save Settings, Reload Model List, Refresh page, Right to Left, Theme Switch.     
