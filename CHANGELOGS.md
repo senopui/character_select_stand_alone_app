@@ -1,3 +1,7 @@
+2025.07.18 v1.8.0    
+Add WebUI(A1111) API authentication     
+
+
 2025.07.03 v1.7.2
 Update Electron to `37.2.0`      
 

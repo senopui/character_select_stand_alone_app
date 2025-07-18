@@ -24,6 +24,19 @@ export function extractHostPort(input) {
     return '127.0.0.1:58188';   // fail safe
 }
 
+export function extractAPISecure(apiInterface) {
+    if(apiInterface === 'WebUI') {
+        const webui_auth = window.generate.webui_auth.getValue();
+        const webui_auth_enable = window.generate.webui_auth_enable.getValue();
+
+        if (webui_auth_enable === 'ON' && webui_auth.includes(':')) {
+            return webui_auth.trim();
+        }
+    }
+
+    return '';
+}
+
 export function generateRandomSeed() {
     return Math.floor(Math.random() * 4294967296); // 4294967296 = 2^32
 }
@@ -484,6 +497,7 @@ export async function generateImage(loops, runSame){
 
         const generateData = {
             addr: extractHostPort(window.generate.api_address.getValue()),
+            auth: extractAPISecure(apiInterface),
             model: window.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive: createPromptResult.positivePrompt,

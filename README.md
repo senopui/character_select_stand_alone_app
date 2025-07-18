@@ -16,10 +16,13 @@ Now supports 5326 (includes multiple costumes) Characters in list.
 | Image Color Transfer | Yes | No | No |
 | Image Info to Prompt | Yes | Yes | Yes |
 | Regional Condition | Yes | No | No |
+| API authentication| No | Yes | Yes |
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
-## Install
+## Install and run
+Setup your [API Call](https://github.com/mirabarukaso/character_select_stand_alone_app#api-call-for-local-image-generator) before you start SAA.     
+
 Clone this repo into your local folder     
 ```
 git clone https://github.com/mirabarukaso/character_select_stand_alone_app.git
@@ -156,7 +159,30 @@ WebUI
 3. Select `Local Image Generator API` to `WebUI`   
 4. Make sure `Local Image Generator IP Address:Port` same as your WerUI page   
 5. Have fun    
-   
+
+## Folder path issue for Remote usage   
+SAA needs to search your ComfyUI/WebUI checkpoints folder to retrieve models, LoRAs and other items. If you use a remote back-end address instead of 127.0.0.1, the folder search will fail and SAA will run in 'Default' mode. In this mode, you cannot change the models or set the LoRAs by LoRA slot.    
+There are two ways to solve this problem:    
+1. `Mirror folder` - copy your remote `models` folder to local, then setup SAA with the local folder. This is simple, but you need more space to mirror the entire `models` folder to local folder.
+2. `Symbolic link or Shared folder` - Create a `Symbolic link ` or simply setup your remote `models` folder as shared folder (read-only recommended), then setup SAA with that folder.     
+
+## Advanced security settings (API authentication)    
+*DO NOT forward any UNSECURED local port to public internet*    
+*WebUI(A1111) ONLY, DO NOT forward Comfyui API to public internet until they create a proper and secured way*    
+
+Check more WebUI(A1111) command args at [Command-Line-Arguments-and-Settings](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Command-Line-Arguments-and-Settings)     
+
+Copy your `webui-user.bat` to `webui-user-api.bat` then edit it with following args.     
+Replace `user:pass` to your `Username:Password`     
+`--api` `--api-auth` Enable API and API authentication.    
+`--nowebui` means you don't need the WebUI browser interface.    
+`--port 58189` API Call port to `58189`      
+```
+set COMMANDLINE_ARGS= --xformers --no-half-vae --api --api-auth user:pass --nowebui --port 58189
+```
+Start your A1111 with new `webui-user-api.bat`    
+Copy and paste your `Username:Password` to SAA->Settings->`WebUI API Auth`, then set `Enable` to `ON`    
+
 ------
 # Hires Fix and Image Color Transfer
 Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_Mira#image-color-transfer) for more details about Image Color Transfer.   
@@ -183,3 +209,8 @@ I messed up with setup wizard...
 
 ERR_CONNECTION_REFUSED       
 1. In most cases, it's the wrong address for the (ComfyUI/WebUI) back-end API.      
+
+A Browser based SAA?    
+1. No, consider forward your back-end API.       
+2. Check `Advanced security settings (API authentication)` for more information.    
+

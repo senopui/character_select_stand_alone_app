@@ -88,6 +88,9 @@
         
         "model_path_comfyui": "ComfyUI model folder",
         "model_path_webui": "WebUI model folder",
+        "webui_auth": "WebUI API Auth (Username:Password)",
+        "webui_auth_enable": "Enable",
+
         "model_filter": "Enable model name filter",
         "model_filter_keyword": "Model name filter keyword",
         "search_modelinsubfolder": "Search model subfolder",
@@ -252,6 +255,9 @@
         
         "model_path_comfyui": "ComfyUI模型路径",
         "model_path_webui": "WebUI模型路径",
+        "webui_auth": "WebUI API认证 (用户名:密码)",
+        "webui_auth_enable": "启用",
+
         "model_filter": "启用模型名称过滤",
         "model_filter_keyword": "模型名称过滤规则",
         "search_modelinsubfolder": "搜索模型文件夹子目录",

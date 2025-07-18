@@ -1,7 +1,7 @@
 import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
 import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
-    getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred } from './generate.js';
+    getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred, extractAPISecure } from './generate.js';
 
 const CAT = '[Generate Regional]';
 
@@ -267,6 +267,7 @@ function createGenerateData(createPromptResult, apiInterface){
 
     const generateData = {
             addr: extractHostPort(window.generate.api_address.getValue()),
+            auth: extractAPISecure(apiInterface),
             model: window.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive_left: swap?createPromptResult.positivePromptRight:createPromptResult.positivePromptLeft,

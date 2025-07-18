@@ -212,16 +212,6 @@ async function init(){
                 LANG.api_preview_refresh_time, 0, 5, 1, SETTINGS.api_preview_refresh_time, 
                 (value) => { window.globalSettings.api_preview_refresh_time = value; }),
             
-            model_path_comfyui:setupTextbox('system-settings-api-comfyui', LANG.model_path_comfyui, {
-                value: SETTINGS.model_path_comfyui,
-                maxLines: 1
-                }, true, (value) => { window.globalSettings.model_path_comfyui = value; }),
-            model_path_webui:setupTextbox('system-settings-api-webui', LANG.model_path_webui, {
-                value: SETTINGS.model_path_webui,
-                maxLines: 1
-                }, true, (value) => {
-                    window.globalSettings.model_path_webui = value;
-            }),
             model_filter:setupCheckbox('system-settings-api-fliter', LANG.model_filter, SETTINGS.model_filter,
                 false, (value) => {
                 window.globalSettings.model_filter = value;
@@ -236,6 +226,24 @@ async function init(){
                 false, (value) => {
                 window.globalSettings.search_modelinsubfolder = value;
             }),
+
+            model_path_comfyui:setupTextbox('system-settings-api-comfyui', LANG.model_path_comfyui, {
+                value: SETTINGS.model_path_comfyui,
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.model_path_comfyui = value; }),
+            model_path_webui:setupTextbox('system-settings-api-webui', LANG.model_path_webui, {
+                value: SETTINGS.model_path_webui,
+                maxLines: 1
+                }, true, (value) => {
+                    window.globalSettings.model_path_webui = value;
+            }),
+            webui_auth: setupTextbox('system-settings-api-webui-auth', 'API Key', {
+                value: SETTINGS.remote_ai_webui_auth,
+                defaultTextColor: 'MediumAquaMarine',
+                maxLines: 1
+                }, true, (value) => { window.globalSettings.remote_ai_webui_auth = value;}, true),  
+            webui_auth_enable: mySimpleList('system-settings-api-webui-auth-enable', LANG.remote_ai_webui_auth_enable, ['OFF', 'ON'], 
+                (value) => {window.globalSettings.remote_ai_webui_auth_enable = value; }, 5, false, true),
         };
 
         console.log('Creating window.prompt');

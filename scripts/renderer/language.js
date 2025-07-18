@@ -111,12 +111,14 @@ export function updateLanguage(skipLoRA = false) {
     window.generate.api_interface.setTitle(LANG.api_interface);
     window.generate.api_address.setTitle(LANG.api_addr);
     window.generate.api_preview_refresh_time.setTitle(LANG.api_preview_refresh_time);    
-
-    window.generate.model_path_comfyui.setTitle(LANG.model_path_comfyui);
-    window.generate.model_path_webui.setTitle(LANG.model_path_webui);
+    
     window.generate.model_filter.setTitle(LANG.model_filter);    
     window.generate.model_filter_keyword.setTitle(LANG.model_filter_keyword);
     window.generate.search_modelinsubfolder.setTitle(LANG.search_modelinsubfolder);    
+    window.generate.model_path_comfyui.setTitle(LANG.model_path_comfyui);
+    window.generate.model_path_webui.setTitle(LANG.model_path_webui);
+    window.generate.webui_auth.setTitle(LANG.webui_auth);
+    window.generate.webui_auth_enable.setTitle(LANG.webui_auth_enable);
 
     window.generate.scrollToLatest.setTitle(LANG.scroll_to_last);
     window.generate.keepGallery.setTitle(LANG.keep_gallery);
@@ -187,11 +189,13 @@ export function updateSettings() {
     window.regional.option_left.updateDefaults(SETTINGS.regional_option_left);
     window.regional.option_right.updateDefaults(SETTINGS.regional_option_right);
 
-    window.generate.model_path_comfyui.setValue(SETTINGS.model_path_comfyui);
-    window.generate.model_path_webui.setValue(SETTINGS.model_path_webui);
     window.generate.model_filter.setValue(SETTINGS.model_filter);
     window.generate.model_filter_keyword.setValue(SETTINGS.model_filter_keyword);
     window.generate.search_modelinsubfolder.setValue(SETTINGS.search_modelinsubfolder);    
+    window.generate.model_path_comfyui.setValue(SETTINGS.model_path_comfyui);
+    window.generate.model_path_webui.setValue(SETTINGS.model_path_webui);
+    window.generate.webui_auth.setValue(SETTINGS.webui_auth);
+    window.generate.webui_auth_enable.updateDefaults(SETTINGS.webui_auth_enable);
 
     window.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
     window.characterListRegional.updateDefaults(SETTINGS.character_left, SETTINGS.character_right, 'None', 'None');

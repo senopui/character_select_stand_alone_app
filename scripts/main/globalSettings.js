@@ -15,6 +15,9 @@ const defaultSettings = {
     
     "model_path_comfyui": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
     "model_path_webui": "F:\\Stable-diffusion\\stable-diffusion-webui\\models\\Stable-diffusion",
+    "webui_auth" : "user:pass",
+    "webui_auth_enable" : "OFF",
+
     "model_filter": false,
     "model_filter_keyword": "waiNSFW,waiSHUFFLENOOB",
     "search_modelinsubfolder": true,

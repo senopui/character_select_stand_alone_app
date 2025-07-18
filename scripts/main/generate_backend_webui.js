@@ -15,22 +15,29 @@ class WebUI {
         this.lastProgress = -1;
         this.pollingInterval = null;
         this.vpred = false;
+        this.auth = '';
     }
 
-    async setModel(addr, model) {
+    async setModel(addr, model, auth) {
         this.addr = addr;
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {            
             if (model !== 'Default') {
                 const optionPayload = {"sd_model_checkpoint": model }
                 const body = JSON.stringify(optionPayload);
                 const apiUrl = `http://${this.addr}/sdapi/v1/options`;
 
+                let headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (auth?.includes(':')) {
+                    const encoded = Buffer.from(auth).toString('base64');
+                    headers['Authorization'] = `Basic ${encoded}`;
+                }
+
                 let request = net.request({
                     method: 'POST',
                     url: apiUrl,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: headers,
                     timeout: this.timeout,
                 });
 
@@ -77,11 +84,12 @@ class WebUI {
 
     async run (generateData) {
         return new Promise((resolve, reject) => {
-            const {addr, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
+            const {addr, auth, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
             this.vpred = vpred;
+            this.auth = auth;
 
             backendWebUI.startPolling();
 
@@ -127,13 +135,19 @@ class WebUI {
 
             const body = JSON.stringify(payload);
             const apiUrl = `http://${this.addr}/sdapi/v1/txt2img`;
+            
+            let headers = {
+                'Content-Type': 'application/json'
+            };
+            if (auth?.includes(':')) {
+                const encoded = Buffer.from(auth).toString('base64');
+                headers['Authorization'] = `Basic ${encoded}`;
+            }
 
             let request = net.request({
                 method: 'POST',
                 url: apiUrl,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 timeout: this.timeout,
             });
 
@@ -180,11 +194,21 @@ class WebUI {
     }
 
     cancelGenerate() {
+        const auth = this.auth;
         const apiUrl = `http://${this.addr}/sdapi/v1/interrupt`;
+
+        let headers = {
+            'Content-Type': 'application/json'
+        };
+        if (auth?.includes(':')) {
+            const encoded = Buffer.from(auth).toString('base64');
+            headers['Authorization'] = `Basic ${encoded}`;
+        }
 
         let request = net.request({
             method: 'POST',
             url: apiUrl,
+            headers: headers,
             timeout: this.timeout,
         });
 
@@ -203,11 +227,19 @@ class WebUI {
 
         const interval = (this.refresh > 0 ? this.refresh : 1) * 1000;
         this.pollingInterval = setInterval(() => {
+            const auth = this.auth;
             const apiUrl = `http://${this.addr}/sdapi/v1/progress`;
+
+            let headers = {};
+            if (auth?.includes(':')) {
+                const encoded = Buffer.from(auth).toString('base64');
+                headers['Authorization'] = `Basic ${encoded}`;
+            }
 
             let request = net.request({
                 method: 'GET',
                 url: apiUrl,
+                headers: headers,
                 timeout: this.timeout,
             });
 
@@ -271,7 +303,7 @@ async function setupGenerateBackendWebUI() {
     backendWebUI = new WebUI();
 
     ipcMain.handle('generate-backend-webui-run', async (event, generateData) => {
-        const result = await backendWebUI.setModel(generateData.addr, generateData.model);        
+        const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
         if(result === '200') {
             try {
                 const imageData = await backendWebUI.run(generateData);
