@@ -211,6 +211,6 @@ ERR_CONNECTION_REFUSED
 1. In most cases, it's the wrong address for the (ComfyUI/WebUI) back-end API.      
 
 A Browser based SAA?    
-1. No, consider forward your back-end API.       
+1. Currently the answer is "No, consider forward your back-end API", but I'll think about it.       
 2. Check `Advanced security settings (API authentication)` for more information.    
 
