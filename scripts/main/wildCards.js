@@ -56,57 +56,67 @@ function setupWildcardsHandlers() {
 
     // Handle request to get the list of wildcards files
     ipcMain.handle('load-wildcards', async (event, fileName, seed) => {
-        // fileName must be a string and not contain any path traversal characters
-        if (
-            typeof fileName !== 'string' ||
-            fileName.includes('/') ||
-            fileName.includes('\\') ||
-            fileName.includes('..') ||
-            fileName.trim() === ''
-        ) {
-            console.error('[wildcards] Invalid file name:', fileName);
-            return '';
-        }
-
-        // only allow alphanumeric characters, underscores, and hyphens
-        const safeFileName = fileName.replace(/[^a-zA-Z0-9_\-]/g, '');
-
-        // check if the file is in list
-        if (!wildcardsList.includes(safeFileName)) {
-            console.error('[wildcards] File not in wildcards list:', safeFileName);
-            return '';
-        }
-
-        // hits in the cache
-        if (wildcardsCache[safeFileName]) {
-            return parseWildcards(wildcardsCache[safeFileName], seed);
-        }
-
-        // load the file from disk
-        const absPath = path.resolve(wildcardsDir, `${safeFileName}.txt`);
-        if (path.dirname(absPath) !== wildcardsDir) {
-            console.error('[wildcards] Attempt to access outside current directory:', absPath);
-            return '';
-        }
-
-        try {
-            const text = await fs.promises.readFile(absPath, 'utf-8');
-            wildcardsCache[safeFileName] = text;
-            return parseWildcards(text, seed);
-        } catch (err) {
-            console.error('[wildcards] Failed to load:', absPath, err);
-            return '';
-        }
+        return await loadWildcard(fileName, seed);
     });
 
     // update the wildcards list and clear the cache
     ipcMain.handle('update-wildcards', async () => {
-        wildcardsCache = {};
-        return updateWildcardsList();
+        return updateWildcards();
     });
+}
+
+function updateWildcards() {
+    wildcardsCache = {};
+    return updateWildcardsList();
+}
+
+async function loadWildcard(fileName, seed) {
+    // fileName must be a string and not contain any path traversal characters
+    if (
+        typeof fileName !== 'string' ||
+        fileName.includes('/') ||
+        fileName.includes('\\') ||
+        fileName.includes('..') ||
+        fileName.trim() === ''
+    ) {
+        console.error('[wildcards] Invalid file name:', fileName);
+        return '';
+    }
+
+    // only allow alphanumeric characters, underscores, and hyphens
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9_\-]/g, '');
+
+    // check if the file is in list
+    if (!wildcardsList.includes(safeFileName)) {
+        console.error('[wildcards] File not in wildcards list:', safeFileName);
+        return '';
+    }
+
+    // hits in the cache
+    if (wildcardsCache[safeFileName]) {
+        return parseWildcards(wildcardsCache[safeFileName], seed);
+    }
+
+    // load the file from disk
+    const absPath = path.resolve(wildcardsDir, `${safeFileName}.txt`);
+    if (path.dirname(absPath) !== wildcardsDir) {
+        console.error('[wildcards] Attempt to access outside current directory:', absPath);
+        return '';
+    }
+
+    try {
+        const text = await fs.promises.readFile(absPath, 'utf-8');
+        wildcardsCache[safeFileName] = text;
+        return parseWildcards(text, seed);
+    } catch (err) {
+        console.error('[wildcards] Failed to load:', absPath, err);
+        return '';
+    }
 }
 
 module.exports = {
     setupWildcardsHandlers,
     getWildcardsList,
+    updateWildcards,
+    loadWildcard
 };

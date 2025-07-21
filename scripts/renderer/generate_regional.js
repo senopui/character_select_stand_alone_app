@@ -2,8 +2,7 @@ import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
 import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
     getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred, extractAPISecure } from './generate.js';
-
-const CAT = '[Generate Regional]';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None'){    
     const commonColor = (window.globalSettings.css_style==='dark')?'darkorange':'Sienna';
@@ -54,7 +53,7 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
         lora:loraPromot}
 }
 
-function createCharacters(index, seeds) {
+async function createCharacters(index, seeds) {
     const FILES = window.cachedFiles;
     const character = window.characterListRegional.getKey()[index];
     const isValueOnly = window.characterListRegional.isValueOnly();
@@ -67,7 +66,7 @@ function createCharacters(index, seeds) {
     const isOriginalCharacter = (index === 3 || index === 2);
     const { tag, thumb, info, weight } = isOriginalCharacter
         ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
-        : handleStandardCharacter(character, seed, isValueOnly, index, FILES);    
+        : await handleStandardCharacter(character, seed, isValueOnly, index, FILES);    
 
     const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
     if (tagAssist.tas !== '')
@@ -83,19 +82,19 @@ function createCharacters(index, seeds) {
     };
 }
 
-function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
+async function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
     let tag, thumb, info;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.characterListArray.length);
         tag = FILES.characterListArray[selectedIndex][1];
-        thumb = decodeThumb(FILES.characterListArray[selectedIndex][0]);
+        thumb = await decodeThumb(FILES.characterListArray[selectedIndex][0]);
         info = formatCharacterInfo(index, isValueOnly, {
         key: FILES.characterListArray[selectedIndex][0],
         value: FILES.characterListArray[selectedIndex][1]
         });        
     } else {
         tag = FILES.characterList[character];
-        thumb = decodeThumb(character);
+        thumb = await decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
         value: window.characterListRegional.getValue()[index]
@@ -123,7 +122,7 @@ function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
 }
 
 
-function getCharacters(){    
+async function getCharacters(){    
     function parseCharacter(weight, tag){
         if(weight === 1.0){
             return (tag !== '')?`${tag}, `:'';
@@ -144,7 +143,7 @@ function getCharacters(){
     let thumbImages = [];
 
     for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info, weight} = createCharacters(index, seeds);
+        let {tag, tag_assist, thumb, info, weight} = await createCharacters(index, seeds);
         if (index === 0 || index === 2){
             character_left += parseCharacter(weight, tag);
             character_left += tag_assist;
@@ -198,7 +197,7 @@ async function createPrompt(runSame, aiPromot, apiInterface){
         negativePrompt = window.generate.lastNeg;
 
     } else {            
-        const {thumb, character_left, character_right, information, seed} = getCharacters();
+        const {thumb, character_left, character_right, information, seed} = await getCharacters();
         randomSeed = seed;
         randomSeedr = Math.floor(seed / 3);
         finalInfo = information;
@@ -265,9 +264,16 @@ function createGenerateData(createPromptResult, apiInterface){
     const refiner = createRefiner();
     const regional = createRegional();
 
+    let browserUUID = 'none';
+    if(window.inBrowser) {
+        browserUUID = window.clientUUID;
+    }   
+
     const generateData = {
             addr: extractHostPort(window.generate.api_address.getValue()),
             auth: extractAPISecure(apiInterface),
+            uuid: browserUUID,
+            
             model: window.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive_left: swap?createPromptResult.positivePromptRight:createPromptResult.positivePromptLeft,
@@ -394,17 +400,29 @@ async function runComfyUI(apiInterface, generateData){
     let breakNow = false;
 
     try {
-        const result = await window.api.runComfyUI_Regional(generateData);
+        let result;
+        if (!window.inBrowser) {
+            result = await window.api.runComfyUI_Regional(generateData);
+        } else {
+            result = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI_Regional', params: [generateData] });
+        }
+
         if(result.startsWith('Error')){                    
-            ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface)
+            ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface);
             retCopy = result;
             breakNow = true;
         } else {
-            const parsedResult = JSON.parse(result);
+            const parsedResult = JSON.parse(result);            
             if (parsedResult.prompt_id) {
                 try {
-                    const image = await window.api.openWsComfyUI(parsedResult.prompt_id);
-                    if(window.generate.cancelClicked){
+                    let image;
+                    if (!window.inBrowser) {
+                        image = await window.api.openWsComfyUI(parsedResult.prompt_id);
+                    } else {
+                        image = await sendWebSocketMessage({ type: 'API', method: 'openWsComfyUI', params: [parsedResult.prompt_id] });
+                    }
+
+                    if(window.generate.cancelClicked) {
                         breakNow = true;
                     } else {                    
                         sendToGallery(image, generateData);
@@ -414,8 +432,16 @@ async function runComfyUI(apiInterface, generateData){
                     retCopy = error.message;
                     breakNow = true;
                 } finally {
-                    window.api.closeWsComfyUI();
+                    if (!window.inBrowser) {
+                        window.api.closeWsComfyUI();
+                    } else {
+                        sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI' });
+                    }
                 }                
+            } else {
+                ret = parsedResult;
+                retCopy = result;
+                breakNow = true;
             }
         }
     } catch (error) {

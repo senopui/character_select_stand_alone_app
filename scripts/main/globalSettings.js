@@ -6,8 +6,13 @@ const fs = require('fs');
 const CAT = '[GlobalSettings]'
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 let SETTINGFILES = [];
+let globalSettings;
 
 const defaultSettings = {
+    "ws_service": true,
+    "ws_addr": '0.0.0.0',
+    "ws_port": 51028,
+
     "setup_wizard": true,
     "language": "en-US",
     "css_style": "dark",
@@ -99,7 +104,7 @@ const defaultSettings = {
 }
 
 function setupGlobalSettings() { 
-    let globalSettings = JSON.parse(JSON.stringify(defaultSettings));
+    globalSettings = JSON.parse(JSON.stringify(defaultSettings));
     const filePath = path.join(appPath, 'settings', 'settings.json');
     const mySettings = loadJSONFile(filePath);
     if (mySettings) {
@@ -119,16 +124,15 @@ function setupGlobalSettings() {
 
     // Setup IPC
     ipcMain.handle('get-global-settings', async () => {
-        return globalSettings;
+        return getGlobalSettings();
     });
     
     ipcMain.handle('get-all-settings-files', async () => {
-        return SETTINGFILES;
+        return getSettingFiles();
     });
 
     ipcMain.handle('update-all-setting-files', async () => {
-        SETTINGFILES = enumSettings();
-        return SETTINGFILES;
+        return updateSettingFiles();
     });
     
     ipcMain.handle('load-setting-file', async (event, fineName) => {
@@ -180,7 +184,7 @@ function saveSettings(fineName, settings) {
 }
 
 function loadSettings(fineName) {
-    let globalSettings = JSON.parse(JSON.stringify(defaultSettings));
+    globalSettings = JSON.parse(JSON.stringify(defaultSettings));
     const settingsDir = path.join(appPath, 'settings', fineName);
     console.log(CAT, `Loading ${settingsDir}`);
     const mySettings = loadJSONFile(settingsDir);
@@ -220,6 +224,24 @@ function enumSettings() {
     return jsonFiles;
 }
 
+function getGlobalSettings() {
+    return globalSettings;
+}
+
+function getSettingFiles() {
+    return SETTINGFILES;
+}
+
+function updateSettingFiles() {
+    SETTINGFILES = enumSettings();
+    return getSettingFiles();
+}
+
 module.exports = {
-    setupGlobalSettings
+    setupGlobalSettings,
+    getGlobalSettings,
+    getSettingFiles,
+    updateSettingFiles,
+    loadSettings,
+    saveSettings
 };

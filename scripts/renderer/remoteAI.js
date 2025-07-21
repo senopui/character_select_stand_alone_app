@@ -1,4 +1,4 @@
-const CAT = '[AiPrompt]';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 let lastAIPromot = '';
 
@@ -12,10 +12,15 @@ async function remoteGenerateWithPrompt() {
             systemPrompt: window.ai.ai_system_prompt.getValue(),
             timeout: window.ai.remote_timeout.getValue() * 1000
         };
-        const result = await window.api.remoteAI(options);
+        let result;
+        if (!window.inBrowser) {
+            result = await window.api.remoteAI(options);
+        } else {
+            result = await sendWebSocketMessage({ type: 'API', method: 'remoteAI', params: [options] });
+        }
 
         if(result.startsWith('Error:')){
-            console.error(CAT, 'Request remote AI failed:', result);
+            console.error('Request remote AI failed:', result);
             return '';
         }
         
@@ -23,19 +28,19 @@ async function remoteGenerateWithPrompt() {
         try {
             parsedResult = JSON.parse(result);
         } catch (error) {
-            console.error(CAT, 'Failed to parse JSON response:', error.message);
+            console.error('Failed to parse JSON response:', error.message);
             return '';
         }
 
         const content = parsedResult?.choices?.[0]?.message?.content;
         if (!content) {
-            console.error(CAT, 'Content not found in response:', parsedResult);
+            console.error('Content not found in response:', parsedResult);
             return '';
         }
 
         return content;
     } catch (error) {
-        console.error(CAT, 'Request remote AI failed:', error.message);
+        console.error('Request remote AI failed:', error.message);
         return '';
     }
 }
@@ -50,10 +55,16 @@ async function localGenerateWithPrompt() {
             n_predict:window.ai.local_n_predict.getValue(),
             timeout: window.ai.remote_timeout.getValue() * 1000
         };
-        const result = await window.api.localAI(options);
+
+        let result;
+        if (!window.inBrowser) {
+            result = await window.api.localAI(options);
+        } else {
+            result = await sendWebSocketMessage({ type: 'API', method: 'localAI', params: [options] });
+        }
 
         if(result.startsWith('Error:')){
-            console.error(CAT, 'Request local AI failed:', result);
+            console.error('Request local AI failed:', result);
             return '';
         }
         
@@ -61,19 +72,19 @@ async function localGenerateWithPrompt() {
         try {
             parsedResult = JSON.parse(result);
         } catch (error) {
-            console.error(CAT, 'Failed to parse JSON local response:', error.message);
+            console.error('Failed to parse JSON local response:', error.message);
             return '';
         }
 
         const content = parsedResult?.choices?.[0]?.message?.content;
         if (!content) {
-            console.error(CAT, 'Content not found in local response:', parsedResult);
+            console.error('Content not found in local response:', parsedResult);
             return '';
         }
 
         return content;
     } catch (error) {
-        console.error(CAT, 'Request local AI failed:', error.message);
+        console.error('Request local AI failed:', error.message);
         return '';
     }
 }

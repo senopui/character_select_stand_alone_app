@@ -1,64 +1,97 @@
-import { updateLanguage, updateSettings } from './renderer/language.js';
-import { setupGallery } from './renderer/customGallery.js';
-import { setupThumbOverlay, setupThumb } from './renderer/customThumbGallery.js';
-import { setupSuggestionSystem } from './renderer/tagAutoComplete.js';
-import { setupButtonOverlay, customCommonOverlay } from './renderer/customOverlay.js';
-import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from './renderer/myDropdown.js';
+import { updateLanguage, updateSettings } from '../scripts/renderer/language.js';
+import { setupGallery } from '../scripts/renderer/customGallery.js';
+import { setupThumbOverlay, setupThumb } from '../scripts/renderer/customThumbGallery.js';
+import { setupSuggestionSystem } from '../scripts/renderer/tagAutoComplete.js';
+import { setupButtonOverlay, customCommonOverlay } from '../scripts/renderer/customOverlay.js';
+import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from '../scripts/renderer/myDropdown.js';
 import { callback_mySettingList, callback_api_interface, callback_sync_click_hf, callback_sync_click_refiner,
     callback_generate_start, callback_generate_skip, callback_generate_cancel,callback_keep_gallery,
     callback_regional_condition
- } from './renderer/callbacks.js';
-import { setupSlider } from './renderer/mySlider.js';
-import { setupCheckbox, setupRadiobox } from './renderer/myCheckbox.js';
-import { setupButtons, toggleButtons } from './renderer/myButtons.js';
+ } from '../scripts/renderer/callbacks.js';
+import { setupSlider } from '../scripts/renderer/mySlider.js';
+import { setupCheckbox, setupRadiobox } from '../scripts/renderer/myCheckbox.js';
+import { setupButtons, toggleButtons } from '../scripts/renderer/myButtons.js';
 import { setupCollapsed, setupSaveSettingsToggle, setupModelReloadToggle, 
-    setupRefreshToggle, setupSwapToggle, doSwap, reloadFiles } from './renderer/myCollapsed.js';
-import { setupTextbox, setupInfoBox } from './renderer/myTextbox.js';
-import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from './renderer/generate_backend.js';
-import { setupLoRA } from './renderer/myLoRASlot.js';
-import { setBlur, setNormal, showDialog } from './renderer/myDialog.js';
-import { setupImageUploadOverlay } from './renderer/imageInfo.js';
-import { setupThemeToggle } from './renderer/mytheme.js';
-import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/myRightClickMenu.js';
-import { extractHostPort } from './renderer/generate.js';
+    setupRefreshToggle, setupSwapToggle, doSwap } from '../scripts/renderer/myCollapsed.js';
+import { setupTextbox, setupInfoBox } from '../scripts/renderer/myTextbox.js';
+import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from '../scripts/renderer/generate_backend.js';
+import { setupLoRA } from '../scripts/renderer/myLoRASlot.js';
+import { setBlur, setNormal, showDialog } from '../scripts/renderer/myDialog.js';
+import { setupImageUploadOverlay } from '../scripts/renderer/imageInfo.js';
+import { setupThemeToggle } from '../scripts/renderer/mytheme.js';
+import { setupRightClickMenu } from '../scripts/renderer/myRightClickMenu.js';
+import { initWebSocket, sendWebSocketMessage, registerCallback, getClientUUID } from './front/wsRequest.js';
 
+// Run the init function when the DOM is fully loaded
 function afterDOMinit() {
     console.log("Script loaded, attempting initial setup");
-    (async () => {
+    (async () => {        
         setBlur();
-        await init();
-        window.okm.setup_mainGallery_appendImageData(from_main_updateGallery);
-        window.okm.setup_customOverlay_updatePreview(from_main_updatePreview);
-        window.okm.setup_customOverlay_progressBar(from_main_customOverlayProgress);
-        window.okm.setup_rightClickMenu_spellCheck(addSpellCheckSuggestions);
-        if (window.initialized) {
-            setNormal();
+        if( await initWebSocket()) {
+            await init();         
+            registerCallback('updatePreview', from_main_updatePreview);
+            registerCallback('appendImage', from_main_updateGallery);
+            registerCallback('updateProgress', from_main_customOverlayProgress);
+            if (window.initialized) {
+                setNormal();
+            }
+        } else {
+            console.error('WebSocket initialization failed.');
+            await showDialog('error', { 
+                message: 'WebSocket initialization failed.\nWebSocket初始化失败',
+                buttonText: 'OK'
+            });
         }
-    })();    
+    })().catch((error) => {
+        console.error('Error:', error);
+    });
 }
 
-async function init(){
+async function init() {    
     window.initialized = false;
-    window.inBrowser = false; // Set to false for Electron environment
-        
-    try {
-        // Init Global Settings
-        window.globalSettings = await window.api.getGlobalSettings();
+    window.inBrowser = true; // Set to true for browser environment
+    window.clientUUID = getClientUUID();    // Get the ws client UUID
 
+    // Init Global Settings
+    try {
+        window.globalSettings = await sendWebSocketMessage({ type: 'API', method: 'getGlobalSettings' });
+        console.log('Global settings loaded:', window.globalSettings);
+    } catch (error) {
+        console.error('Failed to load global settings:', error);
+        return;
+    }
+
+    if(window.globalSettings.setup_wizard) {
+        console.error('Run setup wizard at SAA first');
+        while(true) {
+            await showDialog('info', { 
+                message: 'Run setup wizard at SAA first\n请先在SAA运行设置向导',
+                buttonText: 'OK'
+            }); 
+
+            window.globalSettings = await sendWebSocketMessage({ type: 'API', method: 'getGlobalSettings' });
+            if(!window.globalSettings.setup_wizard) {
+                break;
+            }
+        }       
+    }
+    
+    try {
         // Setup main func
         window.mainGallery = {};
         window.thumbGallery = {};        
 
         // Loading files
-        const cachedFiles = await window.api.getCachedFiles();
+        const cachedFiles = await sendWebSocketMessage({ type: 'API', method: 'getCachedFiles'});
+        console.log('Cached files loaded:', cachedFiles);
         window.cachedFiles = {
             language: cachedFiles.languages,
-            characterThumb: cachedFiles.characterThumb,
+            //characterThumb: cachedFiles.characterThumb,
             characterList: cachedFiles.characters,
             ocList: cachedFiles.ocCharacters,
             viewTags: cachedFiles.viewTags,
             tagAssist: cachedFiles.tagAssist,            
-            settingList: await window.api.getSettingFiles(),
+            settingList: await sendWebSocketMessage({ type: 'API', method: 'getSettingFiles'}),
             loadingWait:`data:image/webp;base64,${cachedFiles.loadingWait.data}`,
             loadingFailed:`data:image/webp;base64,${cachedFiles.loadingFailed.data}`,
             privacyBall:`data:image/webp;base64,${cachedFiles.privacyBall.data}`
@@ -68,9 +101,9 @@ async function init(){
         const FILES = window.cachedFiles;
         const LANG = FILES.language[SETTINGS.language];
 
-        window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
-        window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
-        window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
+        window.cachedFiles.modelList = await sendWebSocketMessage({ type: 'API', method: 'getModelList', params: [SETTINGS.api_interface] });
+        window.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
+        window.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
         window.cachedFiles.characterListArray = Object.entries(FILES.characterList);
         window.cachedFiles.ocListArray = Object.entries(FILES.ocList);
 
@@ -93,13 +126,13 @@ async function init(){
             refresh: setupRefreshToggle(),
             swap: setupSwapToggle(),
             theme: setupThemeToggle()
-        }        
+        } 
 
         // Character and OC List
         window.characterList = myCharacterList('dropdown-character', FILES.characterList, FILES.ocList);
         window.characterListRegional = myRegionalCharacterList('dropdown-character-regional', FILES.characterList, FILES.ocList);
 
-        // Init Left        
+        // Init Left
         window.viewList = myViewsList('dropdown-view', FILES.viewTags);        
         setupGallery('gallery-main-main');        
         window.infoBox = {
@@ -122,6 +155,7 @@ async function init(){
             regional: setupCollapsed('regional-condition', true),
         }
 
+        // Functions
         console.log('Creating window.generate');
         window.generate = {
             skipClicked: false,
@@ -162,7 +196,7 @@ async function init(){
                     hidden: false,
                     clickable: true              
                 }, async () =>{
-                    await callback_generate_start(1, false);
+                    await callback_generate_start(1, false);                    
                 }),
             generate_batch: setupButtons('generate-button-batch', LANG.run_random_button, {
                     defaultColor: 'rgb(185,28,28)',
@@ -172,8 +206,8 @@ async function init(){
                     height: '32px',
                     hidden: false,
                     clickable: true              
-                }, () =>{
-                    callback_generate_start(window.generate.batch.getValue(), false);
+                }, async () =>{
+                    await callback_generate_start(window.generate.batch.getValue(), false);                    
                 }),
             generate_same: setupButtons('generate-button-same', LANG.run_same_button, {
                     defaultColor: 'rgb(20,28,46)',
@@ -183,8 +217,8 @@ async function init(){
                     height: '32px',
                     hidden: false,
                     clickable: true              
-                }, () =>{
-                    callback_generate_start(window.generate.batch.getValue(), true);
+                }, async () =>{
+                    await callback_generate_start(window.generate.batch.getValue(), true);
                 }),            
             generate_skip: setupButtons('generate-button-skip', LANG.run_skip_button, {
                     defaultColor: 'rgb(82,82,91)',
@@ -393,152 +427,13 @@ async function init(){
 
         // Done
         window.initialized = true;        
-        if(SETTINGS.setup_wizard) {
-            window.globalSettings.setup_wizard = false;
-            await setupWizard();
-            await setupModelReloadToggle();
-        }
+        
         doSwap(window.globalSettings.rightToleft);   //default is right to left        
-        updateLanguage(false, window.inBrowser);
-        updateSettings();        
+        updateLanguage(false, window.inBrowser); 
+        updateSettings();   
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error during initialization:', error);
     }
-}
-
-async function setupWizard(){
-    const languageSelect = await showDialog('radio', { 
-        message: 'Select your language\n请选择界面语言',
-        items: 'en-US,zh-CN',
-        itemsTitle:'English (US),中文（简体）',
-        buttonText: 'OK'
-    });
-    console.log(languageSelect);
-    window.globalSettings.language = ['en-US','zh-CN'][languageSelect];
-
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
-    const LANG = FILES.language[SETTINGS.language];
-
-    await showDialog('info', { message: LANG.setup_greet_message, buttonText:SETTINGS.setup_ok});
-    const interfaceSelectIndex = await showDialog('radio', { 
-        message: LANG.setup_webui_comfyui_select,
-        items: 'ComfyUI,WebUI,None',
-        itemsTitle:'ComfyUI,WebUI,None',
-        buttonText: SETTINGS.setup_ok
-    });
-    const interfaceSelect= ['ComfyUI', 'WebUI', 'None'];
-    window.globalSettings.api_interface = interfaceSelect[interfaceSelectIndex];
-
-    console.log('window.globalSettings.api_interface', window.globalSettings.api_interface);
-
-    if(window.globalSettings.api_interface !== 'None'){       
-        if(window.globalSettings.api_interface === 'ComfyUI'){
-            window.globalSettings.model_path_comfyui = await showDialog('input', { 
-                message: LANG.setup_model_folder,
-                placeholder: SETTINGS.model_path_comfyui, 
-                defaultValue: SETTINGS.model_path_comfyui,
-                showCancel: false,
-                buttonText: LANG.setup_ok
-            });                
-        } else {
-            window.globalSettings.model_path_webui = await showDialog('input', { 
-                message: LANG.setup_model_folder,
-                placeholder: SETTINGS.model_path_webui, 
-                defaultValue: SETTINGS.model_path_webui,
-                showCancel: false,
-                buttonText: LANG.setup_ok
-            });    
-        }
-
-        const api_addr = await showDialog('input', { 
-            message: LANG.setup_webui_comfyui_api_addr.replace('{0}', window.globalSettings.api_interface),
-            placeholder: SETTINGS.api_addr, 
-            defaultValue: SETTINGS.api_addr,
-            showCancel: false,
-            buttonText: LANG.setup_ok
-        });
-        window.globalSettings.api_addr = extractHostPort(api_addr);
-
-        window.globalSettings.model_filter = await showDialog('confirm', { 
-            message: LANG.setup_model_filter,
-            yesText: LANG.setup_yes,
-            noText: LANG.setup_no
-        });
-
-        window.globalSettings.model_filter_keyword = await showDialog('input', { 
-            message: LANG.setup_model_filter_keyword,
-            placeholder: SETTINGS.model_filter_keyword, 
-            defaultValue: SETTINGS.model_filter_keyword,
-            showCancel: false,
-            buttonText: LANG.setup_ok
-        });
-
-        window.globalSettings.search_modelinsubfolder = await showDialog('confirm', { 
-            message: LANG.setup_search_modelinsubfolder,
-            yesText: LANG.setup_yes,
-            noText: LANG.setup_no
-        });
-    } else {
-        const skipWizard = await await showDialog('confirm', { 
-            message: LANG.setup_skip_wizard,
-            yesText: LANG.setup_yes,
-            noText: LANG.setup_no
-        });
-
-        if(skipWizard)
-            return;
-    }
-
-    const aiInterfaceSelectIndex = await showDialog('radio', { 
-        message: LANG.setup_remote_ai_interface,
-        items: 'None,Remote,Local',
-        itemsTitle:'None,Remote,Local',
-        buttonText: LANG.setup_ok
-    });
-    const aiInterfaceSelect= ['None', 'Remote', 'Local'];
-    window.globalSettings.ai_interface = aiInterfaceSelect[aiInterfaceSelectIndex];
-
-    if(window.globalSettings.ai_interface === 'Remote') {
-        window.globalSettings.remote_ai_base_url = await showDialog('input', { 
-            message: LANG.setup_remote_ai_addr,
-            placeholder: SETTINGS.remote_ai_base_url, 
-            defaultValue: SETTINGS.remote_ai_base_url,
-            showCancel: false,
-            buttonText: SETTINGS.setup_ok
-        });
-
-        window.globalSettings.remote_ai_model = await showDialog('input', { 
-            message: LANG.setup_remote_ai_model,
-            placeholder: SETTINGS.remote_ai_model, 
-            defaultValue: SETTINGS.remote_ai_model,
-            showCancel: false,
-            buttonText: LANG.setup_ok
-        });
-
-        window.globalSettings.remote_ai_api_key = await showDialog('input', { 
-            message: LANG.setup_remote_ai_api_key,
-            placeholder: SETTINGS.remote_ai_api_key, 
-            defaultValue: '',
-            showCancel: false,
-            buttonText: LANG.setup_ok
-        });
-    } else if(window.globalSettings.ai_interface === 'Local') {
-        window.globalSettings.ai_local_addr = await showDialog('input', { 
-            message: LANG.setup_local_ai_addr,
-            placeholder: SETTINGS.ai_local_addr, 
-            defaultValue: SETTINGS.ai_local_addr,
-            showCancel: false,
-            buttonText: LANG.setup_ok
-        });
-    }
-
-    await window.api.saveSettingFile('settings.json', window.globalSettings);
-    window.cachedFiles.settingList = await window.api.updateSettingFiles();
-    window.dropdownList.settings.setOptions(window.cachedFiles.settingList);
-    window.dropdownList.settings.updateDefaults(`settings.json`);
-    await reloadFiles();
-    await showDialog('info', { message: LANG.setup_done, buttonText:SETTINGS.setup_ok});
 }
 
 // Run the init function when the DOM is fully loaded

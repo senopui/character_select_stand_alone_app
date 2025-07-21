@@ -1,4 +1,4 @@
-const CAT = '[TagAutoComplete]'
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 function debounce(func, wait) {
     let timeout;
@@ -20,7 +20,7 @@ export function setupSuggestionSystem() {
     textboxes.forEach(textbox => {
         if (textbox.dataset.suggestionSetup) return;
 
-        console.log(CAT, 'Setting up the Suggestion System for ', textbox);
+        console.log('Setting up the Suggestion System for ', textbox);
 
         const suggestionBox = document.createElement('div');
         suggestionBox.className = 'suggestion-box scroll-container';
@@ -55,7 +55,12 @@ export function setupSuggestionSystem() {
             lastWordSent = wordToSend;
 
             try {            
-                const suggestions = await window.api.tagGet(wordToSend);
+                let suggestions;
+                if (!window.inBrowser) {
+                    suggestions = await window.api.tagGet(wordToSend);
+                } else {
+                    suggestions = await sendWebSocketMessage({ type: 'API', method: 'tagGet', params: [wordToSend] });
+                }
 
                 if (!suggestions || suggestions.length === 0 || suggestions.every(s => s.length === 0)) {
                     suggestionBox.style.display = 'none';
@@ -73,12 +78,12 @@ export function setupSuggestionSystem() {
                 currentSuggestions = [];
                 suggestions.forEach((suggestion, index) => {
                     if (!Array.isArray(suggestion) || suggestion.length === 0) {
-                        console.warn(CAT, 'Invalid suggestion format at index', index, suggestion);
+                        console.warn('Invalid suggestion format at index', index, suggestion);
                         return;
                     }
                     const element = suggestion[0];
                     if (typeof element !== 'string') {
-                        console.error(CAT, 'Unexpected element type at index', index, ':', typeof element, element);
+                        console.error('Unexpected element type at index', index, ':', typeof element, element);
                         return;
                     }
                     const item = document.createElement('div');
@@ -107,7 +112,7 @@ export function setupSuggestionSystem() {
                 selectedIndex = -1;
 
             } catch (error) {
-                console.error(CAT, 'Suggestion system error:', error);
+                console.error('Suggestion system error:', error);
                 suggestionBox.style.display = 'none';
             }
         }, 50));

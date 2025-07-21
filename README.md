@@ -1,12 +1,15 @@
 # Character Select SAA
+## SAA now supports Chrome and Edge.
+For more information check [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
+
 *If you find a character that isn't on the list but can be generated correctly, please don't hesitate to let me know.*    
 
-This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI API support.    
+This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.    
 Now supports 5326 (includes multiple costumes) Characters in list.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%>   
 
-| Item Support | ComfyUI| WebUI | Forge|
+| Item Support | ComfyUI| WebUI(A1111) | Forge|
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |
@@ -49,7 +52,7 @@ Many thanks to the following people for their selfless contributions, who gave u
 **Silence, 燦夜, 镜流の粉丝, 樱小路朝日, 满开之萤, and two more who wish to remain anonymous.**   
 
 Special thanks    
-lanner0403 [WAI-NSFW-illustrious-character-select](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) 2000+  Verified Character List, please support his WebUI plugin.   
+lanner0403 [WAI-NSFW-illustrious-character-select](https://github.com/lanner0403/WAI-NSFW-illustrious-character-select) 2000+  Verified Character List, please support his plugin.   
 Cell1310  [Illustrious XL (v0.1) Recognized Characters List](https://civitai.com/articles/10242/illustrious-xl-v01-recognized-characters-list) more than 100+ Verified Character List.     
 mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_select_stand_alone_app/issues/23)       
      
@@ -63,7 +66,7 @@ By default, wildcards are randomly selected using the current seed. If `wildcard
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
 
 ## Regional Condition (ComfyUI only)
-**'Cause WebUI dosn't provide any regional API, sorry...**  
+**'Cause WebUI(A1111) dosn't provide any regional API, sorry...**  
 
 Get tired of [complex workflow](https://github.com/mirabarukaso/ComfyUI_Mira/issues/12#issuecomment-2727190727)?      
 Try SAA Regional Condition with only 3 steps:     
@@ -74,7 +77,7 @@ Try SAA Regional Condition with only 3 steps:
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/regionalCondition.png" width=35%>   
 
 ## LoRA Slot 
-WebUI supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.    
+WebUI(A1111) supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.    
 ComfyUI supports more detailed configuration of LoRA, for more information please refer to [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
 Also support check LoRA info by click the 'i' button in LoRA Slot. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
 
@@ -92,7 +95,7 @@ Use `mouse` to select the prompt word, but you can also use the `keyboard up and
 
 ## Image info
 Just drag your image into SAA window, only support PNG for now.     
-Works both for WebUI and ComfyUI(with image save node).      
+Works both for WebUI(A1111) and ComfyUI(with image save node).      
 Double click the image to close.     
 The `Send` button will override `Common Prompt`, `Negative Prompt`, `Width & Height`, `CFG`, `Setp` and `Seed`.    
 LoRA in `Common Prompt` also works if you have the same one. If you don't like LoRA in prompts, try `Send LoRA to Slot`.      
@@ -153,7 +156,7 @@ ComfyUI
 3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
 4. Have fun
 
-WebUI    
+WebUI(A111/Forge)    
 1. Enable `API mode` by add ` --api` in `COMMANDLINE_ARGS` (webui-user.bat)   
 2. Start WebUI       
 3. Select `Local Image Generator API` to `WebUI`   
@@ -211,6 +214,6 @@ ERR_CONNECTION_REFUSED
 1. In most cases, it's the wrong address for the (ComfyUI/WebUI) back-end API.      
 
 A Browser based SAA?    
-1. Currently the answer is "No, consider forward your back-end API", but I'll think about it.       
+1. YES    
 2. Check `Advanced security settings (API authentication)` for more information.    
 

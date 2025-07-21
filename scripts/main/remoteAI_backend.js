@@ -139,6 +139,16 @@ function setupModelApi() {
     });
 }
 
+async function remoteAI(options){
+    return await requestRemote(options);
+}
+
+async function localAI(options){
+    return await requestLocal(options);
+}
+
 module.exports = {
-    setupModelApi
+    setupModelApi,
+    remoteAI,
+    localAI
 };

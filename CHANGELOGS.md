@@ -1,3 +1,7 @@
+2025.07.22 v1.9.0
+Add web client for SAA    
+
+
 2025.07.18 v1.8.0    
 Add WebUI(A1111) API authentication     
 

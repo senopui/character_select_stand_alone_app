@@ -173,141 +173,153 @@ function setupFileHandlers() {
   });
 
   ipcMain.handle('read-safetensors', async (event, modelPath, prefix, filePath) => {
-    try {
-      const fullPath = path.join(path.dirname(modelPath), prefix, filePath);
-      const buffer = fs.readFileSync(fullPath);
-      const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-
-      let jsonLength = 0;
-      for (let i = 0; i < 8; i++) {
-        jsonLength |= view.getUint8(i) << (i * 8);
-      }
-
-      if (jsonLength <= 0 || jsonLength > buffer.length - 8) {
-        return 'None';
-      }
-
-      const jsonBytes = buffer.subarray(8, 8 + jsonLength);
-      const jsonString = jsonBytes.toString('utf8');
-      const metadata = JSON.parse(jsonString);
-
-      if (metadata.__metadata__) {
-        return metadata.__metadata__;
-      } else {
-        return 'None';
-      }
-    } catch (error) {
-      console.error(CAT, `Reading metadata failed: ${error.message}`);
-      return `Error: Reading metadata failed: ${error.message}`;
-    }
+    return readSafetensors(modelPath, prefix, filePath);
   });
 
   ipcMain.handle('read-image-metadata', async (event, buffer, fileName, fileType) => {
-    try {
-      const imageBuffer = Buffer.from(buffer);
-      const metadata = {
-        fileName: fileName,
-        fileType: fileType,
-        metadata: null
-      };
-      
-      if (fileType.includes('png')) {         
-        const pngMetadata = extractPngMetadata(imageBuffer);
-        if (pngMetadata) {
-          metadata.metadata = pngMetadata;
-        }
-      } else {
-        console.warn(CAT, `Not a PNG file: ${fileType}`);
-        throw new Error(`Only PNG format is supported, received: ${fileType}`);
-      }
-      
-      if (!metadata.metadata) {
-        metadata.metadata = {
-          dimensions: `${metadata.width}x${metadata.height}`,
-          format: 'png',
-          note: 'No AI generation metadata found'
-        };
-      }
-      
-      return metadata;
-      
-    } catch (processingError) {
-      console.error(CAT, `Image processing error: ${processingError.message}`);
-      return {
-        fileName: fileName,
-        fileType: fileType,
-        error: `Image processing failed: ${processingError.message}`,
-        metadata: { note: 'Processing error occurred' }
-      };
-    }
+    return readImage(buffer, fileName, fileType);
   });
 
   ipcMain.handle('read-base64-image-metadata', async (event, dataUrl) => {
-    try {
-      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
-          console.error('Invalid data URL: Must start with "data:"');
-          return null;
-      }
+    return readBase64Image(dataUrl);
+  });
+}
 
-      const parts = dataUrl.split(',');
-      if (parts.length !== 2) {
-          console.error('Invalid data URL: Missing comma separator');
-          return null;
-      }
-
-      const mimePart = parts[0];
-      const dataPart = parts[1];
-
-      if (!mimePart.includes(';base64')) {
-          console.error('Invalid data URL: Only base64 encoding is supported');
-          return null;
-      }
-
-      if (typeof Buffer === 'undefined') {
-          console.error('Buffer class not available in this environment');
-          return null;
-      }
-
-      let uint8Array;
-      if (typeof atob !== 'undefined') {
-          const binaryString = atob(dataPart);
-          const len = binaryString.length;
-          uint8Array = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-              uint8Array[i] = binaryString.charCodeAt(i);
-          }
-      } else {
-          uint8Array = Buffer.from(dataPart, 'base64');
-      }
-
-      const imageBuffer = Buffer.from(uint8Array);
-      const metadata = {
-        metadata: null
-      };
-      
+function readImage(buffer, fileName, fileType){
+  try {
+    const imageBuffer = Buffer.from(buffer);
+    const metadata = {
+      fileName: fileName,
+      fileType: fileType,
+      metadata: null
+    };
+    
+    if (fileType.includes('png')) {         
       const pngMetadata = extractPngMetadata(imageBuffer);
       if (pngMetadata) {
         metadata.metadata = pngMetadata;
       }
-      
-      if (!metadata.metadata) {
-        console.log(CAT, `No special metadata found`);
-        metadata.metadata = {
-          dimensions: `${metadata.width}x${metadata.height}`,
-          format: 'png',
-          note: 'No AI generation metadata found'
-        };
-      }      
-      return metadata;
-      
-    } catch (processingError) {
-      console.error(CAT, `Image processing error: ${processingError.message}`);
-      return {
-        error: `Image processing failed: ${processingError.message}`,
-        metadata: { note: 'Processing error occurred' }
+    } else {
+      console.warn(CAT, `Not a PNG file: ${fileType}`);
+      throw new Error(`Only PNG format is supported, received: ${fileType}`);
+    }
+    
+    if (!metadata.metadata) {
+      metadata.metadata = {
+        dimensions: `${metadata.width}x${metadata.height}`,
+        format: 'png',
+        note: 'No AI generation metadata found'
       };
     }
-  });
+    
+    return metadata;
+    
+  } catch (processingError) {
+    console.error(CAT, `Image processing error: ${processingError.message}`);
+    return {
+      fileName: fileName,
+      fileType: fileType,
+      error: `Image processing failed: ${processingError.message}`,
+      metadata: { note: 'Processing error occurred' }
+    };
+  }
+}
+
+function readSafetensors(modelPath, prefix, filePath) {
+  try {
+    const fullPath = path.join(path.dirname(modelPath), prefix, filePath);
+    const buffer = fs.readFileSync(fullPath);
+    const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+
+    let jsonLength = 0;
+    for (let i = 0; i < 8; i++) {
+      jsonLength |= view.getUint8(i) << (i * 8);
+    }
+
+    if (jsonLength <= 0 || jsonLength > buffer.length - 8) {
+      return 'None';
+    }
+
+    const jsonBytes = buffer.subarray(8, 8 + jsonLength);
+    const jsonString = jsonBytes.toString('utf8');
+    const metadata = JSON.parse(jsonString);
+
+    if (metadata.__metadata__) {
+      return metadata.__metadata__;
+    } else {
+      return 'None';
+    }
+  } catch (error) {
+    console.error(CAT, `Reading metadata failed: ${error.message}`);
+    return `Error: Reading metadata failed: ${error.message}`;
+  }
+}
+
+function readBase64Image(dataUrl){
+  try {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+        console.error('Invalid data URL: Must start with "data:"');
+        return null;
+    }
+
+    const parts = dataUrl.split(',');
+    if (parts.length !== 2) {
+        console.error('Invalid data URL: Missing comma separator');
+        return null;
+    }
+
+    const mimePart = parts[0];
+    const dataPart = parts[1];
+
+    if (!mimePart.includes(';base64')) {
+        console.error('Invalid data URL: Only base64 encoding is supported');
+        return null;
+    }
+
+    if (typeof Buffer === 'undefined') {
+        console.error('Buffer class not available in this environment');
+        return null;
+    }
+
+    let uint8Array;
+    if (typeof atob !== 'undefined') {
+        const binaryString = atob(dataPart);
+        const len = binaryString.length;
+        uint8Array = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            uint8Array[i] = binaryString.charCodeAt(i);
+        }
+    } else {
+        uint8Array = Buffer.from(dataPart, 'base64');
+    }
+
+    const imageBuffer = Buffer.from(uint8Array);
+    const metadata = {
+      metadata: null
+    };
+    
+    const pngMetadata = extractPngMetadata(imageBuffer);
+    if (pngMetadata) {
+      metadata.metadata = pngMetadata;
+    }
+    
+    if (!metadata.metadata) {
+      console.log(CAT, `No special metadata found`);
+      metadata.metadata = {
+        dimensions: `${metadata.width}x${metadata.height}`,
+        format: 'png',
+        note: 'No AI generation metadata found'
+      };
+    }      
+    return metadata;
+    
+  } catch (processingError) {
+    console.error(CAT, `Image processing error: ${processingError.message}`);
+    return {
+      error: `Image processing failed: ${processingError.message}`,
+      metadata: { note: 'Processing error occurred' }
+    };
+  }
 }
 
 module.exports = {
@@ -315,4 +327,7 @@ module.exports = {
   loadCSVFile,
   loadFile,
   setupFileHandlers,
+  readImage,
+  readSafetensors,
+  readBase64Image
 };

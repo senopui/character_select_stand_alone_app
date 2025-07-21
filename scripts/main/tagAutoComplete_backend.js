@@ -254,15 +254,11 @@ async function setupTagAutoCompleteBackend(){
     if (await reloadData())
     {
         ipcMain.handle('tag-reload', async () => {
-            tagBackend.prompts = [];
-            tagBackend.lastCustomPrompt = "";
-            tagBackend.previousCustomPrompt = "";
-            await reloadData();
-            return tagBackend.dataLoaded;
+            return await tagReload();
         });
 
         ipcMain.handle('tag-get-suggestions', async (event, text) => {            
-            return tagBackend.updateSuggestions(text);
+            return tagGet(text);
         });
 
         return tagBackend.dataLoaded;
@@ -273,7 +269,21 @@ async function setupTagAutoCompleteBackend(){
     return false;
 }
 
+async function tagReload(){
+    tagBackend.prompts = [];
+    tagBackend.lastCustomPrompt = "";
+    tagBackend.previousCustomPrompt = "";
+    await reloadData();
+    return tagBackend.dataLoaded;
+}
+
+function tagGet(text) {
+    return tagBackend.updateSuggestions(text);
+}
+
 module.exports = {
-    setupTagAutoCompleteBackend
+    setupTagAutoCompleteBackend,
+    tagReload,
+    tagGet
 };
 

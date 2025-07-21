@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('node:path');
 const { app, ipcMain } = require('electron');
+const Main = require('../../main');
 
 const CAT = '[ModelList]';
 let MODELLIST_COMFYUI = ['Default'];
@@ -82,38 +83,20 @@ function updateModelList(model_path_comfyui, model_path_webui, model_filter, ena
 }
 
 function setupModelList(settings) {
-    ipcMain.handle('update-model-list', (event, args) => {
-        // model_path, model_path_2nd, model_filter, enable_filter, search_subfolder
-        console.log('Update model/lora list with following args: ', args);
-        updateModelList(args[0], args[1], args[2], args[3], args[4]);
-        updateLoRAList(args[0], args[1], args[4]);
+    ipcMain.handle('update-model-list', (event, args) => {                
+        updateModelAndLoRAList(args);
     });
 
     ipcMain.handle('get-model-list', async (event, args) => {
-        if(args === 'ComfyUI')
-            return MODELLIST_COMFYUI;
-        else if (args === 'WebUI')
-            return MODELLIST_WEBUI;
-        else
-            return ['Default'];
+        return getModelList(args);
     });
 
     ipcMain.handle('get-model-list-all', async (event, args) => {
-        if(args === 'ComfyUI')
-            return MODELLIST_ALL_COMFYUI;
-        else if (args === 'WebUI')
-            return MODELLIST_ALL_WEBUI;
-        else
-            return ['None'];
+        return getModelListAll(args);
     });
 
     ipcMain.handle('get-lora-list-all', async (event, args) => {
-        if(args === 'ComfyUI')
-            return LORALIST_COMFYUI;
-        else if (args === 'WebUI')
-            return LORALIST_WEBUI;
-        else
-            return ['None'];
+        return getLoRAList(args);
     });
 
     updateModelList(
@@ -131,6 +114,53 @@ function setupModelList(settings) {
     );
 }
 
+function getModelList(apiInterface) {
+    if (apiInterface === 'ComfyUI') {
+        return MODELLIST_COMFYUI;
+    } else if (apiInterface === 'WebUI') {
+        return MODELLIST_WEBUI;
+    } else {
+        return ['None'];
+    }
+}
+
+function getModelListAll(apiInterface) {
+    if (apiInterface === 'ComfyUI') {
+        return MODELLIST_ALL_COMFYUI;
+    } else if (apiInterface === 'WebUI') {
+        return MODELLIST_ALL_WEBUI;
+    } else {
+        return ['None'];
+    }
+}
+
+function getLoRAList(apiInterface) {
+    if (apiInterface === 'ComfyUI') {
+        return LORALIST_COMFYUI;
+    } else if (apiInterface === 'WebUI') {
+        return LORALIST_WEBUI;
+    } else {
+        return ['None'];
+    }
+}
+
+function updateModelAndLoRAList(args) {
+    // model_path, model_path_2nd, model_filter, enable_filter, search_subfolder
+    console.log(CAT, 'Update model/lora list with following args: ', args);
+    updateModelList(args[0], args[1], args[2], args[3], args[4]);
+    updateLoRAList(args[0], args[1], args[4]);
+
+    // This is the Skeleton Key to unlock the Mutex Lock
+    // In case ...
+    console.warn(CAT, 'The Skeleton Key triggerd, Mutex Lock set to false');
+    Main.setMutexBackendBusy(false);
+}
+
 module.exports = {
     setupModelList,
+    getModelList,
+    getModelListAll,
+    getLoRAList,
+    updateModelAndLoRAList
 };
+

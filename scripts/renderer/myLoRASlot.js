@@ -1,9 +1,10 @@
 import { mySimpleList } from './myDropdown.js';
 import { setupTextbox } from './myTextbox.js';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 let instanceSlotManager = null;
 
-function generateGUID() {
+export function generateGUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = (Math.random() * 16) | 0;
         const v = c === 'x' ? r : (r & 0x3) | 0x8;
@@ -66,7 +67,12 @@ async function processLoraMetadata(data) {
 async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lora_metadata, lora_no_metadata){
     const greenColor = (window.globalSettings.css_style==='dark')?'Chartreuse':'SeaGreen';
     try {
-        const loraInfo = await window.api.readSafetensors(modelPath, prefix, loraPath);
+        let loraInfo;
+        if (!window.inBrowser) {
+            loraInfo = await window.api.readSafetensors(modelPath, prefix, loraPath);
+        } else {
+            loraInfo = await sendWebSocketMessage({ type: 'API', method: 'readSafetensors', params: [modelPath, prefix, loraPath] });
+        }
         if(typeof loraInfo === 'string')
         {
             if(loraInfo.startsWith('None'))
@@ -77,7 +83,12 @@ async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lor
             }
         } else {
             const { jsonString, basicInfo, topTags } = await processLoraMetadata(loraInfo);
-            const loraImage = await window.api.readFile(modelPath, prefix, loraPath.replace('.safetensors', '.png'));
+            let loraImage;
+            if (!window.inBrowser) {
+                loraImage = await window.api.readFile(modelPath, prefix, loraPath.replace('.safetensors', '.png'));
+            } else {
+                loraImage = await sendWebSocketMessage({ type: 'API', method: 'readFile', params: [modelPath, prefix, loraPath.replace('.safetensors', '.png')] });
+            }
             const message = `\n\n${basicInfo}\n${lora_trigger_words}[color=${greenColor}]${topTags}[/color]\n\n${lora_metadata}\n${jsonString}`;
             window.overlay.custom.createCustomOverlay(loraImage, message);
         }

@@ -1,4 +1,5 @@
 import { getAiPrompt } from './remoteAI.js';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 const CAT = '[RightClickMenu]';
 
@@ -190,10 +191,12 @@ export function setupRightClickMenu() {
         }
     };
 
-    // global spellcheck API
-    window.api.onSpellCheckSuggestions?.((suggestions, word) => {
-        addSpellCheckSuggestions(suggestions, word);
-    });
+    if (!window.inBrowser) {
+        // global spellcheck API
+        window.api.onSpellCheckSuggestions?.((suggestions, word) => {
+            addSpellCheckSuggestions(suggestions, word);
+        });
+    }
 
     document.addEventListener('mousedown', (e) => {
         if (e.button === 2 && !allowMenu && !isMoved) { // Right-click
@@ -236,7 +239,12 @@ export function setupRightClickMenu() {
         }
 
         const targetElement = e.target;
-        await renderMenu(e.clientX, e.clientY, targetElement);
+        if (!window.inBrowser) {
+            await renderMenu(e.clientX, e.clientY, targetElement);
+        } else {
+            // Move my right click menu a little left
+            await renderMenu(e.clientX - 128, e.clientY, targetElement);
+        }
         rightClickStartX = undefined;
         rightClickStartY = undefined;
         rightClickStartTime = undefined;
@@ -540,7 +548,12 @@ async function menu_copyImageMetadata(element) {
     const img = element.querySelector('img');
     if (img?.src.startsWith('data:image/')) {
         try {
-            const result = await window.api.readBase64Image(img.src);
+            let result;
+            if (!window.inBrowser) {
+                result = await window.api.readBase64Image(img.src);
+            } else {
+                result = await sendWebSocketMessage({ type: 'API', method: 'readBase64Image', params: [img.src] });
+            }
             if (result.error || !result.metadata) {
                 return ;
             }

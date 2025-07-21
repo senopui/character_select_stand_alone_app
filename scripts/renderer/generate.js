@@ -1,7 +1,6 @@
 import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
-
-const CAT = '[Generate]';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 export function extractHostPort(input) {
     input = input.trim();
@@ -46,7 +45,7 @@ function createViewTag(view_list, in_tag, seed, weight) {
 
     if (in_tag.toLowerCase() === 'random') {
         if (!window.cachedFiles.viewTags[view_list]) {
-            console.error(CAT, `[createViewTag] Invalid view_list: ${view_list}`);
+            console.error( `[createViewTag] Invalid view_list: ${view_list}`);
             return '';
         }
         const tags = window.cachedFiles.viewTags[view_list];
@@ -88,7 +87,7 @@ export function getViewTags(seed) {
     return combo;
 }
 
-function createCharacters(index, seeds) {
+async function createCharacters(index, seeds) {
     const FILES = window.cachedFiles;
     const character = window.characterList.getKey()[index];
     const isValueOnly = window.characterList.isValueOnly();
@@ -101,7 +100,7 @@ function createCharacters(index, seeds) {
     const isOriginalCharacter = index === 3;
     const { tag, thumb, info, weight } = isOriginalCharacter
         ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
-        : handleStandardCharacter(character, seed, isValueOnly, index, FILES);
+        : await handleStandardCharacter(character, seed, isValueOnly, index, FILES);
 
     const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
     if (tagAssist.tas !== '')
@@ -116,19 +115,19 @@ function createCharacters(index, seeds) {
     };
 }
 
-function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
+async function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
     let tag, thumb, info;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.characterListArray.length);
         tag = FILES.characterListArray[selectedIndex][1];
-        thumb = decodeThumb(FILES.characterListArray[selectedIndex][0]);
+        thumb = await decodeThumb(FILES.characterListArray[selectedIndex][0]);
         info = formatCharacterInfo(index, isValueOnly, {
         key: FILES.characterListArray[selectedIndex][0],
         value: FILES.characterListArray[selectedIndex][1]
         });        
     } else {
         tag = FILES.characterList[character];
-        thumb = decodeThumb(character);
+        thumb = await decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
         value: window.characterList.getValue()[index]
@@ -192,7 +191,7 @@ export function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
     return { tas, info };
 }
 
-function getCharacters(){
+async function getCharacters(){
     const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     let random_seed = window.generate.seed.getValue();
     if (random_seed === -1){
@@ -204,7 +203,7 @@ function getCharacters(){
     let information = '';
     let thumbImages = [];
     for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info, weight} = createCharacters(index, seeds);
+        let {tag, tag_assist, thumb, info, weight} = await createCharacters(index, seeds);
         if(weight === 1.0){
             character += (tag !== '')?`${tag}, `:'';
         } else {
@@ -332,7 +331,12 @@ export async function replaceWildcardsAsync(pos, seed) {
         if (window.generate.wildcard_random.getValue()) {
             random_seed = generateRandomSeed();
         }
-        const replacement = await window.api.loadWildcard(wildcardName, random_seed);
+        let replacement;
+        if (!window.inBrowser) {
+            replacement = await window.api.loadWildcard(wildcardName, random_seed);
+        } else {
+            replacement = await sendWebSocketMessage({ type: 'API', method: 'loadWildcard', params: [wildcardName, random_seed] }); 
+        }
         pos = pos.replace(new RegExp(`__${wildcardName}__`, 'g'), `${replacement}`);
     }
     return pos;
@@ -355,7 +359,7 @@ async function createPrompt(runSame, aiPromot, apiInterface){
         negativePrompt = window.generate.lastNeg;
 
     } else {            
-        const {thumb, characters_tag, information, seed} = getCharacters();
+        const {thumb, characters_tag, information, seed} = await getCharacters();
         randomSeed = seed;
         finalInfo = information;
 
@@ -397,14 +401,14 @@ export function createHiFix(randomSeed, apiInterface, brownColor){
     if(hifix.enable) {
         if(apiInterface === 'ComfyUI') {
             if(!hifix.model.endsWith('(C)')) {
-                console.warn(CAT, `Reset ${hifix.model} to 4x-UltraSharp`);
+                console.warn( `Reset ${hifix.model} to 4x-UltraSharp`);
                 hifix.model = '4x-UltraSharp';
             } else {
                 hifix.model = hifix.model.replace('(C)', ''); 
             }
         } else if(apiInterface === 'WebUI') {
             if(!hifix.model.endsWith('(W)')) {
-                console.warn(CAT, `Reset ${hifix.model} to R-ESRGAN 4x+`);
+                console.warn( `Reset ${hifix.model} to R-ESRGAN 4x+`);
                 hifix.model = 'R-ESRGAN 4x+';
             } else {
                 hifix.model = hifix.model.replace('(W)', ''); 
@@ -495,9 +499,16 @@ export async function generateImage(loops, runSame){
         window.generate.lastPosColored = createPromptResult.positivePromptColored;
         window.generate.lastNeg = createPromptResult.negativePrompt;
 
+        let browserUUID = 'none';
+        if(window.inBrowser) {
+            browserUUID = window.clientUUID;
+        }
+
         const generateData = {
             addr: extractHostPort(window.generate.api_address.getValue()),
             auth: extractAPISecure(apiInterface),
+            uuid: browserUUID,
+            
             model: window.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive: createPromptResult.positivePrompt,
@@ -587,17 +598,29 @@ async function runComfyUI(apiInterface, generateData){
     let breakNow = false;
 
     try {
-        const result = await window.api.runComfyUI(generateData);
+        let result;
+        if (!window.inBrowser) {
+            result = await window.api.runComfyUI(generateData);
+        } else {
+            result = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI', params: [generateData] });
+        }        
+
         if(result.startsWith('Error')){                    
-            ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface)
+            ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface);
             retCopy = result;
             breakNow = true;
         } else {
-            const parsedResult = JSON.parse(result);
+            const parsedResult = JSON.parse(result);            
             if (parsedResult.prompt_id) {
                 try {
-                    const image = await window.api.openWsComfyUI(parsedResult.prompt_id);
-                    if(window.generate.cancelClicked){
+                    let image;
+                    if (!window.inBrowser) {
+                        image = await window.api.openWsComfyUI(parsedResult.prompt_id);
+                    } else {
+                        image = await sendWebSocketMessage({ type: 'API', method: 'openWsComfyUI', params: [parsedResult.prompt_id] });
+                    }
+
+                    if(window.generate.cancelClicked) {
                         breakNow = true;
                     } else {                    
                         sendToGallery(image, generateData);
@@ -607,8 +630,16 @@ async function runComfyUI(apiInterface, generateData){
                     retCopy = error.message;
                     breakNow = true;
                 } finally {
-                    window.api.closeWsComfyUI();
+                    if (!window.inBrowser) {
+                        window.api.closeWsComfyUI();
+                    } else {
+                        sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI' });
+                    }
                 }                
+            } else {
+                ret = parsedResult;
+                retCopy = result;
+                breakNow = true;
             }
         }
     } catch (error) {
@@ -632,7 +663,12 @@ async function runWebUI(apiInterface, generateData) {
     let breakNow = false;
 
     try {
-        const result = await window.api.runWebUI(generateData);
+        let result;
+        if (!window.inBrowser) {
+            result = await window.api.runWebUI(generateData);
+        } else {
+            result = await sendWebSocketMessage({ type: 'API', method: 'runWebUI', params: [generateData] });
+        }        
         
         if(window.generate.cancelClicked) {
             breakNow = true;
@@ -656,6 +692,11 @@ async function runWebUI(apiInterface, generateData) {
         breakNow = true;
     }
 
-    window.api.stopPollingWebUI();    
+    if (!window.inBrowser) {
+        window.api.stopPollingWebUI();
+    } else {
+        sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
+    }    
+    
     return {ret, retCopy, breakNow }
 }

@@ -1,7 +1,7 @@
-const { ipcMain } = require('electron')
-const { BrowserWindow } = require('electron');
-const { net } = require('electron');
+const { ipcMain, BrowserWindow, net } = require('electron')
 const WebSocket = require('ws');
+const wsService = require('../../webserver/back/wsService');
+const Main = require('../../main');
 
 const CAT = '[ComfyUI]';
 let backendComfyUI = null;
@@ -15,16 +15,13 @@ function sendToRendererEx(channel, data) {
     }
 }
 
-function sendToRenderer(functionName, ...args) {
+function sendToRenderer(uuid, functionName, ...args) {
+  if (!uuid || uuid === 'none') {
     sendToRendererEx('generate-backend', { functionName, args });
-}
-
-function generateGUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
+  } else {
+    const callbackName = `${uuid}-${functionName}`;
+    wsService.sendToClient(uuid, 'Callback', { callbackName, args }); 
+  }
 }
 
 function processImage(imageData) {
@@ -55,114 +52,106 @@ class ComfyUI {
         this.refresh = 0;
         this.timeout = 5000;
         this.urlPrefix = '';
-        this.cancel = false;
         this.step = 0;
         this.firstValidPreview = false;
+        this.uuid = 'none';
     }
 
     cancelGenerate() {
-        const apiUrl = `http://${this.addr}/interrupt`;
-    
-            let request = net.request({
-                method: 'POST',
-                url: apiUrl,
-                timeout: this.timeout
-            });
+      const apiUrl = `http://${this.addr}/interrupt`;
+      let request = net.request({
+        method: 'POST',
+        url: apiUrl,
+        timeout: this.timeout
+      });
 
-            request.on('response', (response) => {
-                response.on('end', () => {
-                    if (response.statusCode !== 200) {
-                        console.error(`${CAT} HTTP error: ${response.statusCode} - ${response.Data}`);
-                        resolve(`Error: HTTP error: ${response.statusCode}`);
-                    }
-                    console.log('Processing interrupted');
-                    this.cancel = true;
-                })
-            })
+      request.on('response', (response) => {
+        response.on('end', () => {
+          if (response.statusCode !== 200) {
+            console.error(`${CAT} HTTP error: ${response.statusCode} - ${response.Data}`);
+            resolve(`Error: HTTP error: ${response.statusCode}`);
+          }                    
+        })
+      })
 
-            request.on('error', (error) => {
-                this.cancel = true;
-            });
+      request.on('error', (error) => {
+        console.warn(CAT, 'Error on cancel:', error);
+      });
 
-            request.end();
+      request.end();
     }
 
     async openWS(prompt_id){
-        return new Promise((resolve, reject) => {
-            this.prompt_id = prompt_id;
-            this.preview = 0;
-            this.cancel = false;
-            this.step = 0;
-            this.firstValidPreview = false;
+        return new Promise((resolve) => {
+          this.prompt_id = prompt_id;
+          this.preview = 0;
+          this.step = 0;
+          this.firstValidPreview = false;
 
-            const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
-            this.webSocket = new WebSocket(wsUrl);            
-            this.webSocket.on('message', async (data) => {
-                try {
-                    if(this.cancel){
-                        resolve();
-                    }
-                    const message = JSON.parse(data.toString('utf8'));
-                    if (message.type === 'executing' || message.type === 'status') {
-                      const msgData = message.data;
-                      if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
-                        try {
-                            const image = await this.getImage();
-                            if (image && Buffer.isBuffer(image)) {
-                                const base64Image = processImage(image);
-                                if (base64Image) {
-                                    resolve(`data:image/png;base64,${base64Image}`);
-                                } else {
-                                    resolve('Error: Failed to convert image to base64');
-                                }
-                            } else {
-                                resolve('Error: Image not found or invalid');
-                            }
-                        } catch (err) {
-                            console.error(CAT, 'Error getting image:', err);
-                            resolve(`Error: ${err.message}`);
-                        }
-                      } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {
-                        console.log(CAT, 'Running same promot? message =', message);
-                        resolve(null);
+          const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
+          this.webSocket = new WebSocket(wsUrl);            
+          this.webSocket.on('message', async (data) => {
+              try {
+                  const message = JSON.parse(data.toString('utf8'));
+                  if (message.type === 'executing' || message.type === 'status') {
+                    const msgData = message.data;
+                    if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
+                      try {
+                          const image = await this.getImage();
+                          Main.setMutexBackendBusy(false);  // Release the mutex after getting the image
+                          if (image && Buffer.isBuffer(image)) {
+                              const base64Image = processImage(image);
+                              if (base64Image) {
+                                  resolve(`data:image/png;base64,${base64Image}`);
+                              } else {
+                                  resolve('Error: Failed to convert image to base64');
+                              }
+                          } 
+                          resolve('Error: Image not found or invalid');
+                      } catch (err) {
+                          console.error(CAT, 'Error getting image:', err);
+                          resolve(`Error: ${err.message}`);
                       }
-                    } else if(message.type === 'progress'){
-                      this.step += 1;
-                      const progress = message.data;
-                      if(progress?.value && progress?.max){
-                        sendToRenderer(`updateProgress`, progress.value, progress.max);
-                      }                    
+                    } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {
+                      console.log(CAT, 'Running same promot? message =', message);
+                      resolve(null);
                     }
-                } catch {
-                    // preview
-                    if (this.refresh !== 0) {
-                        if (this.preview !== 0 && this.preview % this.refresh === 0) {
-                            try {
-                                const previewData = data.slice(8);  //skip websocket header
-                                if(previewData.byteLength > 256){ // json parse failed 'executing' 110 ~ 120
-                                  if(!this.firstValidPreview) { // skip 1st preview, might last image
-                                    this.firstValidPreview = true;
-                                  } else {
-                                    const base64Data = processImage(previewData);
-                                    if (base64Data) {
-                                        sendToRenderer(`updatePreview`, `data:image/png;base64,${base64Data}`);
-                                    }
+                  } else if(message.type === 'progress'){
+                    this.step += 1;
+                    const progress = message.data;
+                    if(progress?.value && progress?.max){
+                      sendToRenderer(this.uuid, `updateProgress`, progress.value, progress.max);
+                    }                    
+                  }
+              } catch {
+                  // preview
+                  if (this.refresh !== 0) {
+                      if (this.preview !== 0 && this.preview % this.refresh === 0) {
+                          try {
+                              const previewData = data.slice(8);  //skip websocket header
+                              if(previewData.byteLength > 256){ // json parse failed 'executing' 110 ~ 120
+                                if(!this.firstValidPreview) { // skip 1st preview, might last image
+                                  this.firstValidPreview = true;
+                                } else {
+                                  const base64Data = processImage(previewData);
+                                  if (base64Data) {
+                                      sendToRenderer(this.uuid, `updatePreview`, `data:image/png;base64,${base64Data}`);
                                   }
                                 }
-                            } catch (err) {
-                                console.error(CAT, 'Error processing preview image:', err);
-                            }
-                        }
-                        this.preview += 1;  
-                    }                                        
-                }
-            });
+                              }
+                          } catch (err) {
+                              console.error(CAT, 'Error processing preview image:', err);
+                          }
+                      }
+                      this.preview += 1;  
+                  }                                        
+              }
+          });
 
-            this.webSocket.on('error', (error) => {
-                console.error(CAT, 'WebSocket error:', error.message);
-                resolve(`Error:${error.message}`);
-            });
-
+          this.webSocket.on('error', (error) => {
+              console.error(CAT, 'WebSocket error:', error.message);
+              resolve(`Error:${error.message}`);
+          });
         });
     }
 
@@ -261,9 +250,11 @@ class ComfyUI {
     }
 
     createWorkflow(generateData) {
-        const {addr, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
+        const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
         this.addr = addr;
         this.refresh = refresh;
+        this.auth = auth;
+        this.uuid = uuid;
 
         let workflow = JSON.parse(JSON.stringify(WORKFLOW));
         let refiner_start_step = 1000;
@@ -364,9 +355,11 @@ class ComfyUI {
     }
 
     createWorkflowRegional(generateData) {      
-      const {addr, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional} = generateData;
+      const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional} = generateData;
       this.addr = addr;
-      this.refresh = refresh;      
+      this.refresh = refresh;
+      this.auth = auth;
+      this.uuid = uuid;
       
       let workflow = JSON.parse(JSON.stringify(WORKFLOW_REGIONAL));
       let refiner_start_step = 1000;
@@ -485,94 +478,139 @@ class ComfyUI {
     }
 
     run(workflow) {
-        return new Promise((resolve, reject) => {
-            const requestBody = {
-                prompt: workflow,
-                client_id: this.clientID
-            };
-            const body = JSON.stringify(requestBody);
-            const apiUrl = `http://${this.addr}/prompt`;
+      return new Promise((resolve, reject) => {
 
-            let request = net.request({
-                method: 'POST',
-                url: apiUrl,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                timeout: this.timeout,
-            });
+        const requestBody = {
+          prompt: workflow,
+          client_id: this.clientID
+        };
+        const body = JSON.stringify(requestBody);
+        const apiUrl = `http://${this.addr}/prompt`;
 
-            request.on('response', (response) => {
-                let responseData = ''            
-                response.on('data', (chunk) => {
-                    responseData += chunk
-                })
-                response.on('end', () => {
-                    if (response.statusCode !== 200) {
-                        console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
-                        resolve(`Error HTTP ${response.statusCode} - ${responseData}`);
-                    }
-                    
-                    resolve(responseData);
-                })
-            });
-            
-            request.on('error', (error) => {
-                let ret = '';
-                if (error.code === 'ECONNABORTED') {
-                    console.error(`${CAT} Request timed out after ${timeout}ms`);
-                    ret = `Error: Request timed out after ${timeout}ms`;
-                } else {
-                    console.error(CAT, 'Request failed:', error.message);
-                    ret = `Error: Request failed:, ${error.message}`;
-                }
-                resolve(ret);
-            });
-
-            request.on('timeout', () => {
-                req.destroy();
-                console.error(`${CAT} Request timed out after ${timeout}ms`);
-                resolve(`Error: Request timed out after ${timeout}ms`);
-            });
-
-            request.write(body);
-            request.end();   
+        let request = net.request({
+          method: 'POST',
+          url: apiUrl,
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          timeout: this.timeout,
         });
-    }   
 
+        request.on('response', (response) => {
+          let responseData = ''            
+          response.on('data', (chunk) => {
+            responseData += chunk
+          })
+          response.on('end', () => {
+            if (response.statusCode !== 200) {
+              console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
+              Main.setMutexBackendBusy(false); // Release the mutex lock
+              resolve(`Error HTTP ${response.statusCode} - ${responseData}`);
+            }
+            Main.setMutexBackendBusy(false); // Release the mutex lock
+            resolve(responseData);
+          })
+        });
+        
+        request.on('error', (error) => {
+          let ret = '';
+          if (error.code === 'ECONNABORTED') {
+            console.error(`${CAT} Request timed out after ${timeout}ms`);
+            ret = `Error: Request timed out after ${timeout}ms`;
+          } else {
+            console.error(CAT, 'Request failed:', error.message);
+            ret = `Error: Request failed:, ${error.message}`;
+          }
+          Main.setMutexBackendBusy(false); // Release the mutex lock
+          resolve(ret);
+        });
+
+        request.on('timeout', () => {
+          req.destroy();
+          console.error(`${CAT} Request timed out after ${timeout}ms`);
+          Main.setMutexBackendBusy(false); // Release the mutex lock
+          resolve(`Error: Request timed out after ${timeout}ms`);
+        });
+
+        request.write(body);
+        request.end();   
+      });
+    }   
 }
 
 async function setupGenerateBackendComfyUI() {
-    backendComfyUI = new ComfyUI(generateGUID());
+    backendComfyUI = new ComfyUI(crypto.randomUUID());
 
     ipcMain.handle('generate-backend-comfyui-run', async (event, generateData) => {
-        const workflow = backendComfyUI.createWorkflow(generateData)
-        const result = await backendComfyUI.run(workflow);        
-        return result;
+        return await runComfyUI(generateData);
     });
 
     ipcMain.handle('generate-backend-comfyui-run-regional', async (event, generateData) => {
-        const workflow = backendComfyUI.createWorkflowRegional(generateData)
-        const result = await backendComfyUI.run(workflow);        
-        return result;
+        return await runComfyUI_Regional(generateData);
     });
 
     ipcMain.handle('generate-backend-comfyui-open-ws', async (event, prompt_id) => {
         return await backendComfyUI.openWS(prompt_id);
     });
 
-    ipcMain.handle('generate-backend-comfyui-close-ws', async (event) => {
-        backendComfyUI.closeWS();
+    ipcMain.handle('generate-backend-comfyui-close-ws', (event) => {
+        closeWsComfyUI();
     });
 
     ipcMain.handle('generate-backend-comfyui-cancel', async (event) => {
-        backendComfyUI.cancelGenerate();
+        await cancelComfyUI();
     });
+}
+
+async function runComfyUI(generateData) {
+  const isBusy = await Main.getMutexBackendBusy();
+  if (isBusy) {
+    console.warn(CAT, 'ComfyUI is busy, cannot run new generation, please try again later.');
+    return 'Error: ComfyUI is busy, cannot run new generation, please try again later.';
+  }
+  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+
+  const workflow = backendComfyUI.createWorkflow(generateData)
+  console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
+  const result = await backendComfyUI.run(workflow);            
+  return result;
+}
+
+async function runComfyUI_Regional(generateData) {
+  const isBusy = await Main.getMutexBackendBusy();
+  if (isBusy) {
+    console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
+    return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
+  }
+  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+
+  const workflow = backendComfyUI.createWorkflowRegional(generateData)
+  console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
+  const result = await backendComfyUI.run(workflow);
+  return result;
+}
+
+async function openWsComfyUI(prompt_id) {
+  return await backendComfyUI.openWS(prompt_id);
+}
+
+function closeWsComfyUI() {
+  backendComfyUI.closeWS();
+}
+
+async function cancelComfyUI() {
+  console.log(CAT, 'Processing interrupted');
+  await backendComfyUI.cancelGenerate();  
 }
 
 module.exports = {
   sendToRenderer,
-  setupGenerateBackendComfyUI
+  setupGenerateBackendComfyUI,
+  runComfyUI,
+  runComfyUI_Regional,
+  openWsComfyUI,
+  closeWsComfyUI,
+  cancelComfyUI
 };
 
 // Do NOT Modify it here

@@ -94,6 +94,46 @@ function setupCachedFiles(){
     return thumb && language && characters && oc_characters && view_tags && character_tag_assist && loadingWait && loadingFailed && privacyBall;
 }
 
+function getCachedFiles() {
+    return {
+        characterThumb: cachedCharacterThumb,
+        languages: cachedLanguages,
+        characters: cachedCharacter,
+        ocCharacters: cachedOCCharacter,
+        viewTags: cachedViewTags,
+        tagAssist: cachedTagAssist,
+        loadingWait: cachedLoadingWait,
+        loadingFailed: cachedLoadingFailed,
+        privacyBall: cachedPrivacyBall
+    };
+}   
+
+function getCachedFilesWithoutThumb() {
+    return {
+        //characterThumb: cachedCharacterThumb,
+        languages: cachedLanguages,
+        characters: cachedCharacter,
+        ocCharacters: cachedOCCharacter,
+        viewTags: cachedViewTags,
+        tagAssist: cachedTagAssist,
+        loadingWait: cachedLoadingWait,
+        loadingFailed: cachedLoadingFailed,
+        privacyBall: cachedPrivacyBall
+    };
+}   
+
+function getCharacterThumb(md5Chara) {
+    if (cachedCharacterThumb[md5Chara] === undefined) {
+        console.warn(CAT, `Character thumb for ${md5Chara} not found in cache.`);
+        return null;
+    }
+    
+    return cachedCharacterThumb[md5Chara];
+}
+
 module.exports = {
-    setupCachedFiles
+    setupCachedFiles,
+    getCachedFiles,
+    getCachedFilesWithoutThumb,
+    getCharacterThumb
 };

@@ -1,6 +1,7 @@
 import { updateLanguage } from './language.js';
 import { decodeThumb } from './customThumbGallery.js';
 import { callback_myCharacterList_updateThumb, callback_myViewList_Update } from './callbacks.js'
+import { generateGUID } from './myLoRASlot.js'
 
 const CAT = '[myDropdown]'
 
@@ -10,14 +11,6 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
-}
-
-function generateGUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
 }
 
 // Global registry to track active dropdowns (only for managing overlapping dropdowns)
@@ -223,7 +216,7 @@ export function myLanguageList(language) {
 
     const callback = (index, selectedValue) => {
         window.globalSettings.language = selectedValue[0];
-        updateLanguage();    
+        updateLanguage(false, window.inBrowser);    
     };
 
     const dropdown = createDropdown({
@@ -551,12 +544,13 @@ function createDropdown({
             let lastOptionKey = null;
             let lastUpdateTime = 0;
             const throttleDelay = 8; // 120 fps
+            let overlayTaskId = 0;
        
             if (shouldAddOverlayEvents && (containerId === 'dropdown-character' || containerId === 'dropdown-character-regional')) {
                 optionsList.removeEventListener('mouseenter', optionsList._onMouseEnter);
                 optionsList.removeEventListener('mouseleave', optionsList._onMouseLeave);
     
-                optionsList._onMouseEnter = (e) => {
+                optionsList._onMouseEnter = async (e) => {
                     const item = e.target.closest('.mydropdown-item');
                     if (!item) {
                         return;
@@ -573,7 +567,12 @@ function createDropdown({
                     }
                     lastOptionKey = item.dataset.key;
                     
-                    const image = decodeThumb(lastOptionKey);
+                    overlayTaskId++;
+                    const currentTaskId = overlayTaskId;
+
+                    const image = await decodeThumb(lastOptionKey);
+                    if (currentTaskId !== overlayTaskId) return;
+
                     window.updateThumbOverlay(lastOptionKey, image);
         
                     const overlayContainer = document.getElementById('cg-thumb-overlay');
@@ -627,6 +626,7 @@ function createDropdown({
                 };
         
                 optionsList._onMouseLeave = (e) => {
+                    overlayTaskId++;
                     const item = e.target.closest('.mydropdown-item');
                     if (!item) {
                         return;

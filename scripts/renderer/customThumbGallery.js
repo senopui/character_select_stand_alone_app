@@ -1,15 +1,35 @@
-const CAT = '[ThumbGallery]'
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
-function decompressImageData(base64Data) {
-    try {
-        const decompressedData = window.api.decompressGzip(base64Data);
-        if (decompressedData) {
-            return new Uint8Array(decompressedData);
+async function decompressImageData(base64Data) {
+    return new Promise((resolve) => {
+        async function decodeImage() {
+            try {
+                let decompressedData;
+                if (!window.inBrowser) {
+                    decompressedData = await window.api.decompressGzip(base64Data);
+                    if (decompressedData) {
+                        const image = new Uint8Array(decompressedData);
+                        return resolve(image);
+                    }
+                } else {
+                    const response = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [base64Data] });
+                    // Check if the response is valid and contains the expected data
+                    if (response && response.type === 'Buffer' && Array.isArray(response.data)) {
+                        decompressedData = new Uint8Array(response.data);
+                        return resolve(decompressedData);
+                    } else {
+                        console.error('Invalid decompressed data format:', response);
+                        return resolve(null);
+                    }
+                }
+            } catch (error) {
+                console.error('Error decompressing image data:', error);
+                return resolve(null);
+            }
         }
-    } catch (error) {
-        console.error(CAT, '[ThumbGallery] Error decompressing image data:', error);
-    }
-    return null;
+
+        decodeImage();
+    });
 }
 
 function convertWebPToBase64(webpData) {
@@ -21,7 +41,7 @@ function convertWebPToBase64(webpData) {
 
         return base64Data;
     } catch (error) {
-        console.error(CAT, '[ThumbGallery] Error converting WebP data to Base64:', error);
+        console.error('Error converting WebP data to Base64:', error);
         return null;
     }
 }
@@ -126,7 +146,7 @@ export function setupThumbOverlay() {
     container.style.willChange = 'transform';
     document.body.appendChild(container);
 
-    console.log(CAT, 'Setting up the thumbnail overlay', container);
+    console.log('Setting up the thumbnail overlay', container);
 
     function renderOverlay(newImages) {
         if (JSON.stringify(newImages) === JSON.stringify(images)) return;
@@ -211,11 +231,11 @@ export function setupThumb(containerId) {
 
     const container = document.querySelector(`.${containerId}`);
     if (!container) {
-        console.error(CAT, 'Thumbnail gallery container not found', containerId);
+        console.error('Thumbnail gallery container not found', containerId);
         return;
     }
 
-    console.log(CAT, 'Setting up the thumbnail gallery', container);
+    console.log('Setting up the thumbnail gallery', container);
 
     function thumb_renderGridMode(incremental = false) {
         if (!images || images.length === 0) {
@@ -391,19 +411,36 @@ export function setupThumb(containerId) {
     thumb_renderGridMode();
 }
 
-export function decodeThumb(character, random_seed = -1) {
-    if (!isValidCharacter(character, random_seed)) return null;
+export async function decodeThumb(character, random_seed = -1) {
+    return new Promise((resolve) => {
+        async function getImage() {
+            if (!isValidCharacter(character, random_seed)) return resolve(null);
 
-    const chara = getCharacterData(character);
-    if (!chara) return null;
+            const chara = getCharacterData(character);
+            if (!chara) return resolve(null);
 
-    const md5Chara = getMd5Hash(chara);
-    if (!md5Chara) return null;
+            const md5Chara = await getMd5Hash(chara);
+            if (!md5Chara) return resolve(null);
 
-    const gzipWebp = window.cachedFiles.characterThumb[md5Chara];
-    if (!gzipWebp) return null;
+            let gzipWebp;
+            if(!window.inBrowser) {
+                gzipWebp = window.cachedFiles.characterThumb[md5Chara];
+            } else {
+                gzipWebp = await sendWebSocketMessage({ type: 'API', method: 'getCharacterThumb', params: [md5Chara] });                
+            }
+            if (!gzipWebp) return resolve(null);
 
-    return getBase64Image(gzipWebp);
+            const image = await getBase64Image(gzipWebp);
+            if (!image) {
+                console.error('Failed to decode image for character:', character);
+                return resolve(null);
+            } else {
+                return resolve(image);
+            }
+        }
+
+        getImage();
+    });
 }
 
 function isValidCharacter(character, random_seed) {
@@ -415,12 +452,23 @@ function getCharacterData(character) {
     return window.cachedFiles.characterList[character] || null;
 }
 
-function getMd5Hash(chara) {
-    return window.api.md5Hash(chara.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'));
+async function getMd5Hash(chara) {
+    const sanitizedChara = chara.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    if(!window.inBrowser) {
+        return window.api.md5Hash(sanitizedChara);
+    } else {
+        try {
+            const md5Hash = await sendWebSocketMessage({ type: 'API', method: 'md5Hash', params: [sanitizedChara] });
+            return md5Hash;
+        } catch (error) {
+            console.error('Error generating MD5 hash:', error);
+            return null;
+        }
+    }
 }
 
-function getBase64Image(gzipWebp) {
-    const webpData = decompressImageData(gzipWebp);
+async function getBase64Image(gzipWebp) {
+    let webpData = await decompressImageData(gzipWebp);
     if (!webpData) return null;
 
     const base64Data = convertWebPToBase64(webpData);

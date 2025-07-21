@@ -5,19 +5,25 @@ import { doSwap, reloadFiles } from './myCollapsed.js';
 import { SAMPLER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_COMFYUI, SCHEDULER_WEBUI, updateLanguage, updateSettings } from './language.js';
 import { setBlur, setNormal } from './myDialog.js';
 import { applyTheme } from './mytheme.js';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 export async function callback_mySettingList(index, selectedValue) {    
     if(!window.initialized)
         return;
+    console.log('Loading settings file:', selectedValue);
     
     const value = selectedValue[0];
     const old_css = window.globalSettings.css_style;
     setBlur();
     window.initialized = false;
-    window.globalSettings = await window.api.loadSettingFile(value);
+    if (!window.inBrowser) {
+        window.globalSettings = await window.api.loadSettingFile(value);
+    } else {
+        window.globalSettings = await sendWebSocketMessage({ type: 'API', method: 'loadSettingFile', params: [value] });
+    }
     doSwap(window.globalSettings.rightToleft);    
     await reloadFiles()
-    updateLanguage(true); 
+    updateLanguage(true, window.inBrowser); 
     updateSettings(true);
     window.dropdownList.settings.updateDefaults(value);
     if(old_css !== window.globalSettings.css_style)
@@ -36,9 +42,15 @@ export async function callback_api_interface(index, selectedValue){
     window.generate.sampler.setValue(LANG.api_model_sampler, (SETTINGS.api_interface==='ComfyUI')?SAMPLER_COMFYUI:SAMPLER_WEBUI);
     window.generate.scheduler.setValue(LANG.api_model_scheduler, (SETTINGS.api_interface==='ComfyUI')?SCHEDULER_COMFYUI:SCHEDULER_WEBUI);
 
-    window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
-    window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
-    window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
+    if (!window.inBrowser) {
+        window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
+        window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
+        window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
+    } else {
+        window.cachedFiles.modelList = await sendWebSocketMessage({ type: 'API', method: 'getModelList', params: [SETTINGS.api_interface] });
+        window.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
+        window.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
+    }
     window.lora.reload();
 
     if(window.generate.api_interface.getValue() !== 'ComfyUI'){
@@ -50,13 +62,13 @@ export async function callback_api_interface(index, selectedValue){
     }   
 }
 
-export function callback_myCharacterList_updateThumb(){
+export async function callback_myCharacterList_updateThumb(){
     if(window.globalSettings.regional_condition) {
         const L = window.characterListRegional.getKey()[0];
         const R = window.characterListRegional.getKey()[1];
 
-        const iL = decodeThumb(L);
-        const iR = decodeThumb(R);
+        const iL = await decodeThumb(L);
+        const iR = await decodeThumb(R);
         const imgData = [];
 
         if (iR !== null) imgData.push(iR);
@@ -71,9 +83,9 @@ export function callback_myCharacterList_updateThumb(){
         const c2 = window.characterList.getKey()[1];
         const c3 = window.characterList.getKey()[2];
 
-        const i1 = decodeThumb(c1);
-        const i2 = decodeThumb(c2);
-        const i3 = decodeThumb(c3);
+        const i1 = await decodeThumb(c1);
+        const i2 = await decodeThumb(c2);
+        const i3 = await decodeThumb(c3);
         const imgData = [];
 
         if (i3 !== null) imgData.push(i3);
@@ -145,11 +157,20 @@ export async function callback_generate_cancel() {
     window.generate.generate_cancel.setClickable(false);
     window.generate.cancelClicked = true;
 
-    const apiInterface = window.generate.nowAPI;
-    if(apiInterface === 'ComfyUI') {
-        await window.api.cancelComfyUI();
-    } else if(apiInterface === 'WebUI') {
-        await window.api.cancelWebUI();
+    if (!window.inBrowser) {
+        const apiInterface = window.generate.nowAPI;
+        if(apiInterface === 'ComfyUI') {
+            await window.api.cancelComfyUI();
+        } else if(apiInterface === 'WebUI') {
+            await window.api.cancelWebUI();
+        }
+    } else {
+        const apiInterface = window.generate.nowAPI;
+        if(apiInterface === 'ComfyUI') {
+            await sendWebSocketMessage({ type: 'API', method: 'cancelComfyUI' });
+        } else if(apiInterface === 'WebUI') {
+            await sendWebSocketMessage({ type: 'API', method: 'cancelWebUI' });
+        }
     }
 }
 

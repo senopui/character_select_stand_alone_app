@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron')
 const { net } = require('electron');
 const { sendToRenderer } = require('./generate_backend_comfyui'); 
+const Main = require('../../main');
 
 const CAT = '[WebUI]';
 let backendWebUI = null;
@@ -16,6 +17,7 @@ class WebUI {
         this.pollingInterval = null;
         this.vpred = false;
         this.auth = '';
+        this.uuid = 'none';
     }
 
     async setModel(addr, model, auth) {
@@ -84,12 +86,13 @@ class WebUI {
 
     async run (generateData) {
         return new Promise((resolve, reject) => {
-            const {addr, auth, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
+            const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
             this.vpred = vpred;
             this.auth = auth;
+            this.uuid = uuid;
 
             backendWebUI.startPolling();
 
@@ -161,11 +164,13 @@ class WebUI {
                 response.on('end', () => {
                     if (response.statusCode !== 200) {
                         console.error(`${CAT} HTTP error: ${response.statusCode}`);
+                        Main.setMutexBackendBusy(false); // Release the mutex lock
                         resolve(`Error: HTTP error ${response.statusCode}`);
                         return;
                     }
                     
                     const buffer = Buffer.concat(chunks);
+                    Main.setMutexBackendBusy(false); // Release the mutex lock
                     resolve(buffer);
                 })
             });
@@ -179,12 +184,14 @@ class WebUI {
                     console.error(CAT, 'Request failed:', error.message);
                     ret = `Error: Request failed:, ${error.message}`;
                 }
+                Main.setMutexBackendBusy(false); // Release the mutex lock
                 resolve(ret);
             });
     
             request.on('timeout', () => {
                 request.destroy();
                 console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                Main.setMutexBackendBusy(false); // Release the mutex lock
                 resolve(`Error: Request timed out after ${this.timeout}ms`);
             });
 
@@ -265,8 +272,8 @@ class WebUI {
                             this.lastProgress = progress;
                             const image = jsonData.current_image;
                             const previewData = `data:image/png;base64,${image}`;
-                            sendToRenderer(`updatePreview`, previewData);
-                            sendToRenderer(`updateProgress`, `${Math.floor(progress*100)}`, '100%');
+                            sendToRenderer(this.uuid, `updatePreview`, previewData);
+                            sendToRenderer(this.uuid, `updateProgress`, `${Math.floor(progress*100)}`, '100%');
                         }
                     } catch (error) {
                         console.error(`${CAT} Ignore Error: ${error}`);
@@ -303,43 +310,71 @@ async function setupGenerateBackendWebUI() {
     backendWebUI = new WebUI();
 
     ipcMain.handle('generate-backend-webui-run', async (event, generateData) => {
-        const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
-        if(result === '200') {
-            try {
-                const imageData = await backendWebUI.run(generateData);
-
-                if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
-                    console.error(CAT, imageData);
-                    return `${imageData}`;
-                }
-
-                const jsonData =  JSON.parse(imageData);
-                sendToRenderer(`updateProgress`, `100`, '100%');
-                const image = jsonData.images[0];
-                // parameters info
-                return `data:image/png;base64,${image}`;
-            } catch (error) {
-                console.error(CAT, 'Image not found or invalid:', error);
-                return `Error: Image not found or invalid: ${error}`;
-            }
-        }
-        return result;
+        return await runWebUI(generateData);
     });
 
     ipcMain.handle('generate-backend-webui-start-polling', async (event) => {
-        backendWebUI.startPolling();
+        startPollingWebUI();
     });
 
     ipcMain.handle('generate-backend-webui-stop-polling', async (event) => {
-        backendWebUI.stopPolling();
+        stopPollingWebUI();
     });
 
     ipcMain.handle('generate-backend-webui-cancel', async (event) => {        
-        backendWebUI.cancelGenerate();
-        backendWebUI.stopPolling();
+        cancelWebUI();
     });
 }
 
+async function runWebUI(generateData){
+    const isBusy = await Main.getMutexBackendBusy();
+    if (isBusy) {
+        console.warn(CAT, 'WebUI is busy, cannot run new generation, please try again later.');
+        return 'Error: WebUI is busy, cannot run new generation, please try again later.';
+    }
+
+    Main.setMutexBackendBusy(true); // Acquire the mutex lock
+    const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
+    if(result === '200') {
+        try {
+            const imageData = await backendWebUI.run(generateData);
+
+            if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
+                console.error(CAT, imageData);
+                return `${imageData}`;
+            }
+
+            const jsonData =  JSON.parse(imageData);
+            sendToRenderer(this.uuid, `updateProgress`, `100`, '100%');
+            const image = jsonData.images[0];
+            // parameters info
+            return `data:image/png;base64,${image}`;
+        } catch (error) {
+            console.error(CAT, 'Image not found or invalid:', error);
+            return `Error: Image not found or invalid: ${error}`;
+        }
+    }
+
+    return result;
+} 
+
+function cancelWebUI() {
+    backendWebUI.cancelGenerate();
+    backendWebUI.stopPolling();
+}
+
+function startPollingWebUI() {
+    backendWebUI.startPolling();
+}
+
+function stopPollingWebUI() {
+    backendWebUI.stopPolling();
+}
+
 module.exports = {
-    setupGenerateBackendWebUI
+    setupGenerateBackendWebUI,
+    runWebUI,
+    cancelWebUI,
+    startPollingWebUI,
+    stopPollingWebUI
 };

@@ -1,6 +1,10 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('node:path')
+const { Mutex } = require('async-mutex');
+// WebSocket server
+const { setupHttpServer, closeWebSocketServer } = require('./webserver/back/wsService');
+// Import custom modules
 const { setupFileHandlers } = require('./scripts/main/fileHandlers'); 
 const { setupGlobalSettings } = require('./scripts/main/globalSettings'); 
 const { setupDownloadFiles } = require('./scripts/main/downloadFiles'); 
@@ -12,7 +16,45 @@ const { setupGenerateBackendWebUI } = require('./scripts/main/generate_backend_w
 const { setupCachedFiles } = require('./scripts/main/cachedFiles'); 
 const { setupWildcardsHandlers } = require('./scripts/main/wildCards');
 
-let mainWindow;
+let backendBusy = false;
+const mutex = new Mutex();
+async function getMutexBackendBusy() {
+  console.log('[Mutex] Checking backendBusy status:', backendBusy);
+  const release = await mutex.acquire();
+  try {
+    return backendBusy; 
+  } finally {
+    release(); 
+  }
+}
+
+async function setMutexBackendBusy(newValue) {
+  console.log('[Mutex] Setting backendBusy status to:', newValue);
+  const release = await mutex.acquire();
+  try {
+    backendBusy = newValue;
+    return { success: true, value: backendBusy };
+  } finally {
+    release(); 
+  }
+}
+
+function replaceMisspelling(word) {
+  mainWindow.webContents.replaceMisspelling(word);
+  return true;
+}
+
+function addToDictionary(word) {
+  mainWindow.webContents.session.addWordToSpellCheckerDictionary(word);
+  return true;
+}
+
+exports.getMutexBackendBusy = getMutexBackendBusy;
+exports.setMutexBackendBusy = setMutexBackendBusy;
+exports.replaceMisspelling = replaceMisspelling;
+exports.addToDictionary = addToDictionary;
+
+let mainWindow; // Main browser window instance
 
 function createWindow () {
   // Create the browser window.
@@ -37,17 +79,17 @@ function createWindow () {
     event.preventDefault();
     const suggestions = params.dictionarySuggestions || [];
     const word = params.misspelledWord || '';
-    sendToRenderer(`rightClickMenu_spellCheck`, suggestions, word);
+    sendToRenderer(`none`, `rightClickMenu_spellCheck`, suggestions, word);
   });
 
-  // and load the index.html of the app.
-  mainWindow.loadFile('index.html');
+  // and load the index_electron.html of the app.
+  mainWindow.loadFile('index_electron.html');
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(async () => {  
+app.whenReady().then(async () => {   
   setupFileHandlers();  
   const SETTINGS = setupGlobalSettings();
   setupModelList(SETTINGS);
@@ -62,7 +104,7 @@ app.whenReady().then(async () => {
   setupGenerateBackendComfyUI();
   setupGenerateBackendWebUI();  
 
-  if (downloadSuccess && cacheSuccess && tacSuccess) {
+  if (downloadSuccess && cacheSuccess && tacSuccess) {   
     createWindow();
 
     app.on('activate', function () {
@@ -71,23 +113,28 @@ app.whenReady().then(async () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
   } else {
-    console.error('Failed to download required files. Exiting...');
+    console.error('[Main] Failed to download required files. Exiting...');
     app.quit();
   }
 
   // IPC handlers for spellcheck
-  ipcMain.handle('replace-misspelling', async (event, word) => {
-    mainWindow.webContents.replaceMisspelling(word);
-    return true;
+  ipcMain.handle('replace-misspelling', async (event, word) => {    
+    return replaceMisspelling(word);
+  });
+  ipcMain.handle('add-to-dictionary', async (event, word) => {    
+    return addToDictionary(word);
   });
 
-  ipcMain.handle('add-to-dictionary', async (event, word) => {
-    mainWindow.webContents.session.addWordToSpellCheckerDictionary(word);
-    return true;
-  });
+  // Start the HTTP server
+  if(SETTINGS.ws_service) {
+    setupHttpServer(path.join(__dirname), SETTINGS.ws_addr, SETTINGS.ws_port, mainWindow);
+  }
 })
 
-// Quit when all windows are closed, except on macOS.
+// Quit when all windows are closed
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit()
+  // close the WebSocket server
+  closeWebSocketServer();
+
+  app.quit()
 })

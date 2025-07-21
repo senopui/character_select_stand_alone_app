@@ -1,4 +1,5 @@
 import { setBlur, setNormal, showDialog } from './myDialog.js';
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 const CAT = '[myCollapsed]'
 
@@ -57,11 +58,20 @@ export async function setupSaveSettingsToggle(){
         const inputResult = await showDialog('input', { message: window.cachedFiles.language[window.globalSettings.language].save_settings_title, placeholder: 'tmp_settings', defaultValue: 'tmp_settings' });
         if(inputResult){
             window.globalSettings.lora_slot = window.lora.getValues();
-            const result = await window.api.saveSettingFile(`${inputResult}.json`, window.globalSettings);
+            let result;
+            if (!window.inBrowser) {
+                result = await window.api.saveSettingFile(`${inputResult}.json`, window.globalSettings);
+            } else {
+                result = await sendWebSocketMessage({ type: 'API', method: 'saveSettingFile', params: [`${inputResult}.json`, window.globalSettings] });
+            }
 
             if(result === true) {
                 await showDialog('info', { message: window.cachedFiles.language[window.globalSettings.language].save_settings_success.replace('{0}', inputResult) });
-                window.cachedFiles.settingList = await window.api.updateSettingFiles();
+                if (!window.inBrowser) {
+                    window.cachedFiles.settingList = await window.api.updateSettingFiles();
+                } else {
+                    window.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
+                }
                 window.dropdownList.settings.setOptions(window.cachedFiles.settingList);
                 window.dropdownList.settings.updateDefaults(`${inputResult}.json`);
             } else {
@@ -97,16 +107,25 @@ export async function reloadFiles(){
                 window.globalSettings.model_filter,
                 window.globalSettings.search_modelinsubfolder];
 
-    
-    await window.api.updateModelList(args);
-    await window.api.updateWildcards();
-    await window.api.tagReload();
+    if (!window.inBrowser) {
+        await window.api.updateModelList(args);
+        await window.api.updateWildcards();
+        await window.api.tagReload();
 
-    window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
-    window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
-    window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
-    window.cachedFiles.settingList = await window.api.updateSettingFiles();
-    
+        window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
+        window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
+        window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
+        window.cachedFiles.settingList = await window.api.updateSettingFiles();
+    } else {
+        await sendWebSocketMessage({ type: 'API', method: 'updateModelList', params: [args] });
+        await sendWebSocketMessage({ type: 'API', method: 'updateWildcards'});
+        await sendWebSocketMessage({ type: 'API', method: 'tagReload'});
+
+        window.cachedFiles.modelList = await sendWebSocketMessage({ type: 'API', method: 'getModelList', params: [SETTINGS.api_interface] });
+        window.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
+        window.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
+        window.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
+    }
     window.dropdownList.model.setValue(LANG.api_model_file_select, window.cachedFiles.modelList);
     window.dropdownList.settings.setValue('', window.cachedFiles.settingList);
 

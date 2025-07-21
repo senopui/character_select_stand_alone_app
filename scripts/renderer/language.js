@@ -37,7 +37,7 @@ function setDropdownLanguage(containerID, labelPrefixList){
     });
 }
 
-export function updateLanguage(skipLoRA = false) {
+export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     if(!safeCheck)
         return;    
 
@@ -162,7 +162,8 @@ export function updateLanguage(skipLoRA = false) {
         window.lora.reload();
     }
 
-    window.rightClick.updateLanguage();
+    if(!skipRightClick)
+        window.rightClick.updateLanguage();
 }
 
 export function updateSettings() {

@@ -1,3 +1,5 @@
+import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+
 export function setupImageUploadOverlay() {
     const fullBody = document.querySelector('#full-body');
     
@@ -493,7 +495,12 @@ export function setupImageUploadOverlay() {
         const uint8Array = new Uint8Array(buffer);
 
         try {
-            const result = await window.api.readImage(Array.from(uint8Array), file.name, file.type);
+            let result;
+            if (!window.inBrowser) {
+                result = await window.api.readImage(Array.from(uint8Array), file.name, file.type);
+            } else {
+                result = await sendWebSocketMessage({ type: 'API', method: 'readImage', params: [Array.from(uint8Array), file.name, file.type]});
+            }
             if (result.error || !result.metadata) {
                 console.warn('Main process metadata extraction failed:', result.error || 'No metadata found');
                 return basicMetadata;
