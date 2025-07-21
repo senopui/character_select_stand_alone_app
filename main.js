@@ -18,8 +18,8 @@ const { setupWildcardsHandlers } = require('./scripts/main/wildCards');
 
 let backendBusy = false;
 const mutex = new Mutex();
-async function getMutexBackendBusy() {
-  console.log('[Mutex] Checking backendBusy status:', backendBusy);
+async function getMutexBackendBusy(uuid) {
+  console.log('[Mutex] Checking backendBusy status:', backendBusy, uuid);
   const release = await mutex.acquire();
   try {
     return backendBusy; 
@@ -28,8 +28,8 @@ async function getMutexBackendBusy() {
   }
 }
 
-async function setMutexBackendBusy(newValue) {
-  console.log('[Mutex] Setting backendBusy status to:', newValue);
+async function setMutexBackendBusy(newValue, uuid) {
+  console.log('[Mutex] Setting backendBusy status to:', newValue, uuid);
   const release = await mutex.acquire();
   try {
     backendBusy = newValue;

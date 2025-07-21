@@ -164,13 +164,11 @@ class WebUI {
                 response.on('end', () => {
                     if (response.statusCode !== 200) {
                         console.error(`${CAT} HTTP error: ${response.statusCode}`);
-                        Main.setMutexBackendBusy(false); // Release the mutex lock
                         resolve(`Error: HTTP error ${response.statusCode}`);
                         return;
                     }
                     
                     const buffer = Buffer.concat(chunks);
-                    Main.setMutexBackendBusy(false); // Release the mutex lock
                     resolve(buffer);
                 })
             });
@@ -184,14 +182,14 @@ class WebUI {
                     console.error(CAT, 'Request failed:', error.message);
                     ret = `Error: Request failed:, ${error.message}`;
                 }
-                Main.setMutexBackendBusy(false); // Release the mutex lock
+                Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
                 resolve(ret);
             });
     
             request.on('timeout', () => {
                 request.destroy();
                 console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                Main.setMutexBackendBusy(false); // Release the mutex lock
+                Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
                 resolve(`Error: Request timed out after ${this.timeout}ms`);
             });
 
@@ -302,7 +300,7 @@ class WebUI {
         if (this.pollingInterval) {
             clearInterval(this.pollingInterval);
             this.pollingInterval = null;
-        }
+        }        
     }
 }
 
@@ -327,13 +325,13 @@ async function setupGenerateBackendWebUI() {
 }
 
 async function runWebUI(generateData){
-    const isBusy = await Main.getMutexBackendBusy();
+    const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
     if (isBusy) {
         console.warn(CAT, 'WebUI is busy, cannot run new generation, please try again later.');
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
 
-    Main.setMutexBackendBusy(true); // Acquire the mutex lock
+    Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
     const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
     if(result === '200') {
         try {
@@ -345,8 +343,9 @@ async function runWebUI(generateData){
             }
 
             const jsonData =  JSON.parse(imageData);
-            sendToRenderer(this.uuid, `updateProgress`, `100`, '100%');
+            sendToRenderer(backendWebUI.uuid, `updateProgress`, `100`, '100%');
             const image = jsonData.images[0];
+            Main.setMutexBackendBusy(false, backendWebUI.uuid); // Release the mutex lock
             // parameters info
             return `data:image/png;base64,${image}`;
         } catch (error) {
@@ -360,7 +359,7 @@ async function runWebUI(generateData){
 
 function cancelWebUI() {
     backendWebUI.cancelGenerate();
-    backendWebUI.stopPolling();
+    stopPollingWebUI();    
 }
 
 function startPollingWebUI() {
@@ -368,7 +367,7 @@ function startPollingWebUI() {
 }
 
 function stopPollingWebUI() {
-    backendWebUI.stopPolling();
+    backendWebUI.stopPolling();    
 }
 
 module.exports = {

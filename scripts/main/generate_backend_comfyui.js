@@ -98,7 +98,7 @@ class ComfyUI {
                     if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
                       try {
                           const image = await this.getImage();
-                          Main.setMutexBackendBusy(false);  // Release the mutex after getting the image
+                          Main.setMutexBackendBusy(false, this.uuid);  // Release the mutex after getting the image
                           if (image && Buffer.isBuffer(image)) {
                               const base64Image = processImage(image);
                               if (base64Image) {
@@ -504,10 +504,8 @@ class ComfyUI {
           response.on('end', () => {
             if (response.statusCode !== 200) {
               console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
-              Main.setMutexBackendBusy(false); // Release the mutex lock
               resolve(`Error HTTP ${response.statusCode} - ${responseData}`);
             }
-            Main.setMutexBackendBusy(false); // Release the mutex lock
             resolve(responseData);
           })
         });
@@ -521,14 +519,14 @@ class ComfyUI {
             console.error(CAT, 'Request failed:', error.message);
             ret = `Error: Request failed:, ${error.message}`;
           }
-          Main.setMutexBackendBusy(false); // Release the mutex lock
+          Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
           resolve(ret);
         });
 
         request.on('timeout', () => {
           req.destroy();
           console.error(`${CAT} Request timed out after ${timeout}ms`);
-          Main.setMutexBackendBusy(false); // Release the mutex lock
+          Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
           resolve(`Error: Request timed out after ${timeout}ms`);
         });
 
@@ -563,12 +561,12 @@ async function setupGenerateBackendComfyUI() {
 }
 
 async function runComfyUI(generateData) {
-  const isBusy = await Main.getMutexBackendBusy();
+  const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
   if (isBusy) {
     console.warn(CAT, 'ComfyUI is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+  Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflow(generateData)
   console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
