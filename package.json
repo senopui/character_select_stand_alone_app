@@ -17,6 +17,7 @@
   "dependencies": {
     "async-mutex": "^0.5.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
     "isomorphic-dompurify": "^2.24.0",
     "ws": "^8.18.1"
   }

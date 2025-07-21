@@ -189,7 +189,7 @@ export async function sendWebSocketMessage(message) {
                     if (type === 'APIResponse') {
                         promiseCallback.resolve(value);
                     } else {
-                        console.error(`API Error for method ${method}:`, error);
+                        console.error('API Error for method:', method, 'error:', error);
                         promiseCallback.reject(new Error(`API Error for method ${method}: ${error}`));
                     }
                     pendingMessages.delete(id);

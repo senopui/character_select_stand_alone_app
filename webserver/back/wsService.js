@@ -2,6 +2,7 @@ const { createHash } = require('crypto');
 const { gunzipSync } = require('zlib');
 const path = require('node:path')
 const express = require('express'); 
+const rateLimit = require('express-rate-limit');
 const { WebSocketServer } = require('ws');
 const { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } = require('../../scripts/main/globalSettings');
 const { getCachedFilesWithoutThumb, getCharacterThumb } = require('../../scripts/main/cachedFiles');
@@ -22,10 +23,19 @@ let clients = new Map(); // Track clients with UUIDs
 // Function to set up the HTTP server
 function setupHttpServer(basePatch, wsAddr, wsPort, mainWindow) {
   const expressApp = express();
+  
+  // Set up rate limiter: max 100 requests per 15 minutes per IP for index.html
+  const indexLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  });
+
   expressApp.use(express.static(basePatch));
 
   // Serve index_browser.html for browser access
-  expressApp.get('/', (req, res) => {
+  expressApp.get('/', indexLimiter, (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
   });
 
