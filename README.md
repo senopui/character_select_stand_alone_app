@@ -1,7 +1,7 @@
-# Character Select SAA
-## SAA now supports Chrome and Edge.
+## SAA now supports browser UI for Chrome and Edge.
 For more information check [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
 
+# Character Select SAA
 *If you find a character that isn't on the list but can be generated correctly, please don't hesitate to let me know.*    
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.    
@@ -34,9 +34,8 @@ npm install
 npm start
 ```
 
-*One-Click package*    
-In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)     
-HF unsafe mark [Win.Packed.Mikey-9859688-0](https://github.com/electron/electron/issues/43180) confirmed as a false positive          
+*One-Click package v1.9.1*    
+In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)      
 
 ## Update
 The `One-Click package` may not the latest version. If you need to update, please use the GitHub clone version with following command instead.     
