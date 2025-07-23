@@ -1,19 +1,21 @@
 const CAT='[myTextbox]';
 
 function addDynamicColorClass(color) {
-    const sanitizedColor = color.replace(/[^a-zA-Z0-9]/g, '-');
-    const className = `color-${sanitizedColor}`;
-    const styleSheet = document.styleSheets[0];
+    try {
+        const sanitizedColor = color.replace(/[^a-zA-Z0-9]/g, '-');
+        const className = `color-${sanitizedColor}`;
+        const styleSheet = document.styleSheets[0];
 
-    if (![...styleSheet.cssRules].some(rule => rule.selectorText === `.${className}`)) {
-        try {
-            styleSheet.insertRule(`.${className} { color: ${color}; }`, styleSheet.cssRules.length);
-        } catch (e) {
-            console.error(`[setupInfoBox] Failed to add dynamic color class for color: ${color}`, e);
+        if (![...styleSheet.cssRules].some(rule => rule.selectorText === `.${className}`)) {        
+            styleSheet.insertRule(`.${className} { color: ${color}; }`, styleSheet.cssRules.length);    
         }
-    }
 
-    return className;
+        return className;
+    } catch (e) {
+        console.error(`[setupInfoBox] Failed to add dynamic color class for color: ${color}`, e);
+    } 
+    
+    return 'none';
 }
 
 export function parseTaggedContent(content) {

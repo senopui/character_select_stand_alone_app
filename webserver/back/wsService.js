@@ -1,7 +1,11 @@
 const { createHash } = require('crypto');
 const { gunzipSync } = require('zlib');
-const path = require('node:path')
-const express = require('express'); 
+const path = require('node:path');
+const fs = require('fs');
+const http = require('http'); 
+const https = require('https');
+const express = require('express');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const { WebSocketServer } = require('ws');
 const { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } = require('../../scripts/main/globalSettings');
@@ -17,169 +21,228 @@ const Main = require('../../main');
 
 const CAT = '[WSS]';
 
-let server; // HTTP server instance
-let wss; // WebSocket server instance
+let server; // HTTP or HTTPS server instance
+let wss; // WebSocket or WebSocket Secure server instance
 let clients = new Map(); // Track clients with UUIDs
 
-// Function to set up the HTTP server
-function setupHttpServer(basePatch, wsAddr, wsPort, mainWindow) {
-  const expressApp = express();
-  
-  // Set up rate limiter: max 100 requests per 15 minutes per IP for index.html
-  const indexLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  });
+// Function to set up the HTTP or HTTPS server based on certificate availability
+function setupHttpServer(basePatch, wsAddr, wsPort) {
+    // Check for certificate files
+    const certPath = process.env.SSL_CERT_PATH || path.join(__dirname, '../../html/cert.pem');
+    const keyPath = process.env.SSL_KEY_PATH || path.join(__dirname, '../../html/key.pem');
+    let useHttps = false;
 
-  expressApp.use(express.static(basePatch));
+    try {
+        // Verify that both certificate files exist and are readable
+        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+            fs.accessSync(certPath, fs.constants.R_OK);
+            fs.accessSync(keyPath, fs.constants.R_OK);
+            useHttps = true;
+            console.log(CAT, 'Certificate files found. Starting HTTPS server.');
+        } else {
+            console.log(CAT, 'Certificate files not found or inaccessible. Falling back to HTTP server.');
+        }
+    } catch (error) {
+        console.warn(CAT, 'Error accessing certificate files. Falling back to HTTP server:', error);
+    }
 
-  // Serve index_browser.html for browser access
-  expressApp.get('/', indexLimiter, (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-  });
+    const expressApp = express();
 
-  // API endpoint to provide WebSocket configuration
-  expressApp.get('/api/ws-config', (req, res) => {
-    const host = req.headers.host.split(':')[0]; // Get hostname from request
-    const protocol = req.headers['x-forwarded-proto'] || 'http'; // Detect protocol (useful for proxies)
-    const wsProtocol = protocol === 'https' ? 'wss' : 'ws';
-    res.json({
-      wsAddress: `${wsProtocol}://${host}:${wsPort}`,
-      wsPort: wsPort
+    if (useHttps) {
+      // Setup helmet for security headers
+      expressApp.use(helmet({
+          contentSecurityPolicy: {
+              directives: {
+                  defaultSrc: ["'self'"],
+                  connectSrc: ["'self'", `wss://${wsAddr}:${wsPort}`, `ws://${wsAddr}:${wsPort}`], // Allow both WS and WSS
+                  scriptSrc: ["'self'"],
+                  styleSrc: ["'self'"],
+                  imgSrc: ["'self'", 'data:'],
+              },
+          },
+          hsts: {
+              maxAge: 31536000, // 1 year, only applied for HTTPS
+              includeSubDomains: true,
+              preload: true,
+          },
+      }));
+    }
+
+    // Set up rate limiter: max 100 requests per 15 minutes per IP for index.html
+    const indexLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100,
+        standardHeaders: true,
+        legacyHeaders: false,
     });
-  });
 
-  server = expressApp.listen(wsPort, wsAddr, () => {
-    console.log(CAT, `HTTP server running at http://${wsAddr}:${wsPort}`);
-  });
+    expressApp.use(express.static(basePatch));
 
-  // Set up WebSocket server
-  wss = createWebSocketServer(server);
+    // Serve index_browser.html for browser access
+    expressApp.get('/', indexLimiter, (req, res) => {
+        res.sendFile(path.join(__dirname, 'index.html'));
+    });
+
+    // API endpoint to provide WebSocket configuration
+    expressApp.get('/api/ws-config', (req, res) => {
+        const host = req.headers.host.split(':')[0];
+        const protocol = req.headers['x-forwarded-proto'] || (useHttps ? 'https' : 'http');
+        const wsProtocol = protocol === 'https' ? 'wss' : 'ws';
+        res.json({
+            wsAddress: `${wsProtocol}://${host}:${wsPort}`,
+            wsPort: wsPort,
+        });        
+    });
+
+    // Start HTTPS or HTTP server
+    if (useHttps) {
+        try {
+            const options = {
+                cert: fs.readFileSync(certPath),
+                key: fs.readFileSync(keyPath),
+            };
+            server = https.createServer(options, expressApp).listen(wsPort, wsAddr, () => {
+                console.log(CAT, `HTTPS server running at https://${wsAddr}:${wsPort}`);
+            });
+        } catch (error) {
+            console.error(CAT, 'Failed to start HTTPS server:', error);
+            throw error;
+        }
+    } else {
+        server = http.createServer(expressApp).listen(wsPort, wsAddr, () => {
+            console.log(CAT, `HTTP server running at http://${wsAddr}:${wsPort}`);
+        });
+    }
+
+    // Set up WebSocket server
+    wss = createWebSocketServer(server, useHttps);
 }
 
 function closeWebSocketServer() {
-  if (wss) {
-    wss.close(() => {
-      console.log(CAT, 'WebSocket server closed');
-    });
-    clients.clear(); // Clear connected clients
-  }
+    if (wss) {
+        wss.close(() => {
+            console.log(CAT, 'WebSocket server closed');
+        });
+        clients.clear();
+    }
 
-  if (server) {
-    server.close(() => {
-      console.log(CAT, 'HTTP server closed');
-    });
-  }
+    if (server) {
+        server.close(() => {
+            console.log(CAT, 'Server closed');
+        });
+    }
 }
 
-function createWebSocketServer(server) {
-  const wss = new WebSocketServer({ server });
+function createWebSocketServer(server, useHttps) {
+    const wss = new WebSocketServer({ server });
 
-  wss.on('connection', (ws) => {
-    console.log(CAT, 'WebSocket client connected');
-    const tempId = crypto.randomUUID(); // Temporary ID for the client
-    clients.set(tempId, { ws, uuid: null });
+    wss.on('connection', (ws, req) => {
+        console.log(CAT, `WebSocket${useHttps ? ' Secure' : ''} client connected`);
+        const tempId = crypto.randomUUID();
+        clients.set(tempId, { ws, uuid: null });
 
-    ws.on('message', async (message) => {
-      try {
-        const data = JSON.parse(message);
-        const { id, type } = data; // Extract message ID
+        ws.on('message', async (message) => {
+            try {
+                const data = JSON.parse(message);
+                const { id, type } = data;
 
-        switch (type) {
-          case 'registerUUID': {
-            const uuid = crypto.randomUUID();
-            clients.set(uuid, { ws, uuid });
-            clients.delete(tempId);
-            console.log(CAT, `Client registered with UUID: ${uuid}`);
-            ws.send(JSON.stringify({ type: 'registerUUIDResponse', id, value: uuid }));
-            return;
-          }
-          case 'API': {
-            const { method, params = {} } = data;
-            if (!method) {
-              ws.send(JSON.stringify({ type: 'APIError', id, error: 'Method not specified' }));
-              console.warn(CAT, 'Received API message without method');
-              return;
+                // Sanitize input
+                if (typeof data !== 'object' || data === null) {
+                    ws.send(JSON.stringify({ type: 'APIError', id, error: 'Invalid message format' }));
+                    return;
+                }
+
+                switch (type) {
+                    case 'registerUUID': {
+                        const uuid = crypto.randomUUID();
+                        clients.set(uuid, { ws, uuid });
+                        clients.delete(tempId);
+                        console.log(CAT, `Client registered with UUID: ${uuid}`);
+                        ws.send(JSON.stringify({ type: 'registerUUIDResponse', id, value: uuid }));
+                        return;
+                    }
+                    case 'API': {
+                        const { method, params = {} } = data;
+                        if (!method || typeof method !== 'string') {
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Method not specified or invalid' }));
+                            console.warn(CAT, 'Received API message with invalid method');
+                            return;
+                        }
+                        await handleApiRequest(ws, method, params, id);
+                        break;
+                    }
+                    default:
+                        console.warn(CAT, `Unknown message type: ${type}`);
+                        ws.send(JSON.stringify({ type: 'APIError', id, error: `Unknown message type: ${type}` }));
+                }
+            } catch (error) {
+                console.error(CAT, 'Error processing message:', error);
+                ws.send(JSON.stringify({ type: 'APIError', id, error: 'Invalid message format or server error' }));
             }
-            await handleApiRequest(ws, method, params, id);
-            break;
-          }
-          default:
-            console.warn(CAT, `Unknown message type: ${type}`);
-            ws.send(JSON.stringify({ type: 'APIError', id, error: `Unknown message type: ${type}` }));
-        }
-      } catch (error) {
-        console.error(CAT, 'Error processing message:', error);
-        ws.send(JSON.stringify({ type: 'APIError', id, error: 'Invalid message format or server error' }));
-      }
+        });
+
+        ws.on('close', () => {
+            console.log(CAT, `WebSocket${useHttps ? ' Secure' : ''} client disconnected`);
+            for (let [key, client] of clients) {
+                if (client.ws === ws) {
+                    clients.delete(key);
+                    console.log(CAT, `Removed client with UUID: ${client.uuid || tempId}`);
+                    break;
+                }
+            }
+        });
+
+        ws.on('error', (error) => {
+            console.error(CAT, `WebSocket${useHttps ? ' Secure' : ''} error:`, error);
+            for (let [key, client] of clients) {
+                if (client.ws === ws) {
+                    clients.delete(key);
+                    console.log(CAT, `Removed client with UUID: ${client.uuid || tempId} due to error`);
+                    break;
+                }
+            }
+        });
     });
 
-    ws.on('close', () => {
-      console.log(CAT, 'WebSocket client disconnected');
-      // Cleanup clients Map
-      for (let [key, client] of clients) {
-        if (client.ws === ws) {
-          clients.delete(key);
-          console.log(CAT, `Removed client with UUID: ${client.uuid || tempId}`);
-          break;
-        }
-      }
-    });
-
-    ws.on('error', (error) => {
-      console.error(CAT, 'WebSocket error:', error);
-      // Cleanup clients Map
-      for (let [key, client] of clients) {
-        if (client.ws === ws) {
-          clients.delete(key);
-          console.log(CAT, `Removed client with UUID: ${client.uuid || tempId} due to error`);
-          break;
-        }
-      }
-    });
-  });
-
-  return wss;
+    return wss;
 }
 
 // Function to send a message to a specific client by UUID
 function sendToClient(uuid, type, data) {
-  const client = clients.get(uuid);
-  if (client && client.ws.readyState === client.ws.OPEN) {
-    try {
-      const message = JSON.stringify({ type, value: data });
-      client.ws.send(message);
-      return true;
-    } catch (error) {
-      console.error(CAT, `Failed to send message to client ${uuid}:`, error);
-      return false;
+    const client = clients.get(uuid);
+    if (client && client.ws.readyState === client.ws.OPEN) {
+        try {
+            const message = JSON.stringify({ type, value: data });
+            client.ws.send(message);
+            return true;
+        } catch (error) {
+            console.error(CAT, `Failed to send message to client ${uuid}:`, error);
+            return false;
+        }
+    } else {
+        console.warn(CAT, `Client ${uuid} not found or not open`);
+        return false;
     }
-  } else {
-    console.warn(CAT, `Client ${uuid} not found or not open`);
-    return false;
-  }
 }
 
 // Function to broadcast a message to all connected clients
 function broadcastMessage(type, data) {
-  const message = JSON.stringify({ type, value: data });
-  clients.forEach((client, uuid) => {
-    if (client.ws.readyState === client.ws.OPEN) {
-      try {
-        client.ws.send(message);
-        console.log(CAT, `Broadcasted message of type ${type} to client ${uuid}`);
-      } catch (error) {
-        console.error(CAT, `Failed to broadcast to client ${uuid}:`, error);
-      }
-    }
-  });
+    const message = JSON.stringify({ type, value: data });
+    clients.forEach((client, uuid) => {
+        if (client.ws.readyState === client.ws.OPEN) {
+            try {
+                client.ws.send(message);
+                console.log(CAT, `Broadcasted message of type ${type} to client ${uuid}`);
+            } catch (error) {
+                console.error(CAT, `Failed to broadcast to client ${uuid}:`, error);
+            }
+        }
+    });
 }
 
-// API method handler
+// API method handler (unchanged)
 const methodHandlers = {
-  // version
+    // version
   'getAppVersion': ()=> Main.getAppVersion(),
 
   // cached files
@@ -234,7 +297,7 @@ const methodHandlers = {
     const decompressedData = gunzipSync(compressedData);
     return decompressedData;
   },
-  
+
   // comfyui
   'runComfyUI': (params)=> runComfyUI(...params),
   'runComfyUI_Regional': (params)=> runComfyUI_Regional(...params),
@@ -250,29 +313,29 @@ const methodHandlers = {
 };
 
 async function handleApiRequest(ws, method, params, id) {
-  let result;
+    let result;
 
-  const handler = methodHandlers[method];
-  if (handler) {
-    result = await handler(params); // Use await for async methods
-  } else {
-    ws.send(JSON.stringify({ type: 'APIError', method, id, error: `Unknown API method: ${method}` }));
-    console.warn(CAT, `Unknown API method: ${method}`);
-    return;
-  }
+    const handler = methodHandlers[method];
+    if (handler) {
+        result = await handler(params);
+    } else {
+        ws.send(JSON.stringify({ type: 'APIError', method, id, error: `Unknown API method: ${method}` }));
+        console.warn(CAT, `Unknown API method: ${method}`);
+        return;
+    }
 
-  try {
-    ws.send(JSON.stringify({ type: 'APIResponse', method, id, value: result }));
-  } catch (error) {
-    ws.send(JSON.stringify({ type: 'APIError', method, id, error: error.message }));
-    console.error(CAT, `Error executing API method ${method}:`, error);
-  }
+    try {
+        ws.send(JSON.stringify({ type: 'APIResponse', method, id, value: result }));
+    } catch (error) {
+        ws.send(JSON.stringify({ type: 'APIError', method, id, error: error.message }));
+        console.error(CAT, `Error executing API method ${method}:`, error);
+    }
 }
 
 module.exports = {
-  setupHttpServer,
-  closeWebSocketServer,
-  broadcastMessage  
+    setupHttpServer,
+    closeWebSocketServer,
+    broadcastMessage,
 };
 
 exports.sendToClient = sendToClient;

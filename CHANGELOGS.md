@@ -1,7 +1,12 @@
+
+2025.07.23 v1.9.5      
+Add [HTTPS mode](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md#https) to solve HTTP mode clipboard issue    
+
+
 2025.07.23 v1.9.4      
 Bugfix and Alternative solution:     
-Write to clipboard not working in MacOS     
-[More information](https://webkit.org/blog/10855/async-clipboard-api/)       
+Write to clipboard not working from remote addr with HTTP protocol       
+[More information](https://webkit.org/blog/10855/async-clipboard-api/)        
 
 
 2025.07.23 v1.9.3     

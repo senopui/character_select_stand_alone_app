@@ -20,8 +20,7 @@ import { setBlur, setNormal, showDialog } from '../scripts/renderer/myDialog.js'
 import { setupImageUploadOverlay } from '../scripts/renderer/imageInfo.js';
 import { setupThemeToggle } from '../scripts/renderer/mytheme.js';
 import { setupRightClickMenu } from '../scripts/renderer/myRightClickMenu.js';
-import { initWebSocket, sendWebSocketMessage, registerCallback, getClientUUID } from './front/wsRequest.js';
-
+import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback, getClientUUID } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
 function afterDOMinit() {
@@ -34,7 +33,15 @@ function afterDOMinit() {
             registerCallback('appendImage', from_main_updateGallery);
             registerCallback('updateProgress', from_main_customOverlayProgress);
             if (window.initialized) {
-                setNormal();
+                setNormal();                
+
+                // not localhost and not HTTPS
+                const SETTINGS = window.globalSettings;
+                const FILES = window.cachedFiles;
+                const LANG = FILES.language[SETTINGS.language];
+                if(!isSecuredConnection()){
+                    window.overlay.custom.createErrorOverlay(LANG.saac_http_connection, LANG.saac_http_connection);
+                }
             }
         } else {
             console.error('WebSocket initialization failed.');
@@ -457,7 +464,7 @@ async function init() {
         
         doSwap(window.globalSettings.rightToleft);   //default is right to left        
         updateLanguage(false, window.inBrowser); 
-        updateSettings();   
+        updateSettings();           
     } catch (error) {
         console.error('Error during initialization:', error);
     }
