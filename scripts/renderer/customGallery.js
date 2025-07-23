@@ -626,20 +626,25 @@ export function setupGallery(containerId) {
             seedButton.id = 'cg-seed-button';
             seedButton.className = 'cg-button';
             seedButton.textContent = 'Seed';
-            seedButton.addEventListener('click', () => {
+            seedButton.addEventListener('click', async () => {
                 if (!seeds?.[currentIndex]) return;
     
                 const seedToCopy = seeds[currentIndex].trim();
                 try {
-                    navigator.clipboard.writeText(seedToCopy);
-                    console.log(`Seed ${seedToCopy} copied to clipboard`);
+                    await navigator.clipboard.writeText(seedToCopy);
                     seedButton.textContent = 'Copied!';
+                } catch (err) {
+                    seedButton.textContent = 'Copy failed!';
+                    console.warn('Failed to copy seed:', err);
+                    const SETTINGS = window.globalSettings;
+                    const FILES = window.cachedFiles;
+                    const LANG = FILES.language[SETTINGS.language];
+                    window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', seedToCopy));                    
+                } finally {                                        
                     setTimeout(() => {
                         seedButton.textContent = 'Seed';
                     }, 2000);
                     updateSeedInputs(seedToCopy);
-                } catch (err) {
-                    console.error('Failed to copy seed:', err);
                 }
             });
             container.appendChild(seedButton);
@@ -663,19 +668,24 @@ export function setupGallery(containerId) {
             tagButton.id = 'cg-tag-button';
             tagButton.className = 'cg-button';
             tagButton.textContent = 'Tags';
-            tagButton.addEventListener('click', () => {
+            tagButton.addEventListener('click', async () => {
                 if (!tags?.[currentIndex]) return;
     
                 const tagToCopy = tags[currentIndex].trim();
                 try {
-                    navigator.clipboard.writeText(tagToCopy);
-                    console.log(`Tag [${tagToCopy}] copied to clipboard`);
-                    tagButton.textContent = 'Copied!';
+                    await navigator.clipboard.writeText(tagToCopy);
+                    tagButton.textContent = 'Copied!';                    
+                } catch (err) {
+                    tagButton.textContent = 'Copy failed!';
+                    console.warn('Failed to copy tag:', err);
+                    const SETTINGS = window.globalSettings;
+                    const FILES = window.cachedFiles;
+                    const LANG = FILES.language[SETTINGS.language];
+                    window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', tagToCopy));
+                } finally {
                     setTimeout(() => {
                         tagButton.textContent = 'Tags';
                     }, 2000);
-                } catch (err) {
-                    console.error('Failed to copy tag:', err);
                 }
             });
             container.appendChild(tagButton);

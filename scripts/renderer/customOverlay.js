@@ -644,7 +644,6 @@ export function customCommonOverlay() {
 
     function createErrorOverlay(errorMessage, copyMessage) {
         const displayMessage = parseTaggedContent(errorMessage);
-        const copyContent = copyMessage;
 
         const overlay = createInfoOverlay({
             id: 'cg-error-overlay',
@@ -655,14 +654,20 @@ export function customCommonOverlay() {
                     <pre>${displayMessage}</pre>
                 </div>
             `,
-            onClick: (e) => {
+            onClick: async (e) => {
                 if (e.target.tagName === 'A') {
                     e.stopPropagation();
                     return;
                 }
-                navigator.clipboard.writeText(copyContent)
-                    .then(() => console.log(`Copied to clipboard: "${copyContent}"`))
-                    .catch(err => console.error('Failed to copy:', err));
+                try {
+                    await navigator.clipboard.writeText(copyMessage);
+                } catch (err){
+                    console.warn('Failed to copy:', err);
+                    const SETTINGS = window.globalSettings;
+                    const FILES = window.cachedFiles;
+                    const LANG = FILES.language[SETTINGS.language];
+                    createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', copyMessage));
+                }
                 document.getElementById('cg-error-overlay').remove();
             }
         });

@@ -21,7 +21,6 @@ const version = app.getVersion();
 let backendBusy = false;
 const mutex = new Mutex();
 async function getMutexBackendBusy(uuid) {
-  console.log('[Mutex] Checking backendBusy status:', backendBusy, uuid);
   const release = await mutex.acquire();
   try {
     return backendBusy; 
@@ -31,7 +30,6 @@ async function getMutexBackendBusy(uuid) {
 }
 
 async function setMutexBackendBusy(newValue, uuid) {
-  console.log('[Mutex] Setting backendBusy status to:', newValue, uuid);
   const release = await mutex.acquire();
   try {
     backendBusy = newValue;
