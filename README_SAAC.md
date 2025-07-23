@@ -5,7 +5,7 @@
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall02.png" width=55%>   
 
 ## Start 
-Start your SAA as normal, finish the setup wizard, then navigate to `http://localhost:58189/`     
+Start your SAA as normal, finish the setup wizard, then navigate to `http://localhost:51028/`     
 Web Service/Ports/Addr can be modify in your `settings.json`.    
 
 ## Things you need to know
@@ -26,7 +26,7 @@ Browers and Antivirus Software will Flag Self-Signed Certificates as "Not Secure
 Self-signed certificates are not issued by a trusted Certificate Authority (CA) like Let’s Encrypt, DigiCert, or GlobalSign. Browsers rely on a pre-installed list of trusted CAs to verify certificates. Since self-signed certificates are created by the user (or server admin), they aren’t in this list, triggering a warning.     
 *The safety of self-signed certificates depends on the use case, in short it's safe for SAAC. DO NOT share your cert.pem and key.pem to others.*      
 
-Place `cert.pem` and `key.pem` to `html` folder and restart SAA, then navigate to `https://127.0.0.1:58189/` or connect from other computer via HTTPS. Otherwise SAA will run in HTTP fallback mode.       
+Place `cert.pem` and `key.pem` to `html` folder and restart SAA, then navigate to `https://127.0.0.1:51028/` or connect from other computer via HTTPS. Otherwise SAA will run in HTTP fallback mode.       
 
 Generate self-signed certificates:    
 ```
