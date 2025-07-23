@@ -1,8 +1,16 @@
+import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from '../../scripts/renderer/generate_backend.js';
+import { customCommonOverlay } from '../../scripts/renderer/customOverlay.js';
+
+function setHTMLTitle(title) {
+    document.title = title;
+}
+
+let version;
 let ws;
-let triedReconnect = 0;
 let messageId = 0; // Unique ID for tracking messages
 const callbacks = new Map(); // Registry for message type callbacks
 let clientUUID = null; // Store client's UUID
+let reconnectingTrigger = false;
 
 // Stroge the instance of message by id
 const pendingMessages = new Map();
@@ -12,6 +20,8 @@ export async function initWebSocket() {
         const { wsAddress, wsPort } = await fetchWsConfig();
         await connectWebSocket(wsAddress, wsPort);
         setupBeforeUnloadListener();
+        version = await sendWebSocketMessage({ type: 'API', method: 'getAppVersion'});
+        setHTMLTitle(`SAA Client ${version} (Connected)`);
         return true;
     } catch (error) {
         console.error('Failed to initialize WebSocket:', error);
@@ -83,68 +93,65 @@ export function getClientUUID() {
 
 async function connectWebSocket(wsAddress, wsPort) {
     return new Promise((resolve, reject) => {
-        function setupWS() {
-            if (ws && ws.readyState !== WebSocket.CLOSED) {
-                ws.close();
-            }
-
-            ws = new WebSocket(wsAddress);
-
-            ws.onopen = () => {
-                console.log('Connected to WebSocket server', wsAddress, `Port: ${wsPort}`);
-                triedReconnect = 0;
-                // Request Register UUID with the server
-                console.log('Requesting UUID registration');
-                ws.send(JSON.stringify({ type: 'registerUUID', id: messageId++}));                
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-
-                    // Register the client UUID on the first message
-                    // then override the onmessage handler in sendWebSocketMessage
-                    if (data.type === 'registerUUIDResponse') {
-                        console.log(`UUID registration response: ${data.value}`);
-                        clientUUID = data.value; // Store the client's UUID
-                        resolve();
-                    } else {
-                        console.error(`Unexpected message at init stage type: ${data.type}`);
-                        reject(new Error(`Unexpected message at init stage type: ${data.type}`));
-                    }
-                } catch (error) {
-                    console.error('Error parsing message:', error);
-                    reject(new Error('Error parsing message:', error));
-                }
-            };
-
-            ws.onclose = () => {
-                console.log('Disconnected from WebSocket server');
-                // cleanup pendingMessages
-                pendingMessages.forEach(({ reject }, id) => {
-                    reject(new Error('WebSocket connection closed'));
-                    pendingMessages.delete(id);
-                });
-                // cleanup callbacks
-                callbacks.clear();
-                console.log('Cleared all pending messages and callbacks');
-            };
-
-            ws.onerror = (err) => {
-                console.error('WebSocket error:', err);
-                if (triedReconnect < 3) {
-                    triedReconnect = triedReconnect + 1;
-                    console.log(`Trying to reconnect after in ${triedReconnect} second... Retire ${triedReconnect}`);
-                    setTimeout(setupWS, triedReconnect * 1000);
-                } else {
-                    console.error('Give up. Failed to reconnect to WebSocket server');
-                    ws.close();
-                    reject(new Error('Failed to reconnect to WebSocket server'));
-                }
-            };
+        if (ws && ws.readyState !== WebSocket.CLOSED) {
+            ws.close();
         }
 
-        setupWS();
+        ws = new WebSocket(wsAddress);
+
+        ws.onopen = () => {
+            if(ws.readyState === WebSocket.OPEN) {
+                console.log('Connected to WebSocket server', wsAddress, `Port: ${wsPort}`);
+                // Request Register UUID with the server
+                console.log('Requesting UUID registration');
+                ws.send(JSON.stringify({ type: 'registerUUID', id: messageId++}));
+                reconnectingTrigger = false;                
+            }
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                // Register the client UUID on the first message
+                // then override the onmessage handler in sendWebSocketMessage
+                if (data.type === 'registerUUIDResponse') {
+                    console.log(`UUID registration response: ${data.value}`);
+                    clientUUID = data.value; // Store the client's UUID
+                    resolve();
+                } else {
+                    console.error(`Unexpected message at init stage type: ${data.type}`);
+                    reject(new Error(`Unexpected message at init stage type: ${data.type}`));
+                }
+            } catch (error) {
+                console.error('Error parsing message:', error);
+                reject(new Error('Error parsing message:', error));
+            }
+        };
+
+        ws.onclose = () => {
+            const SETTINGS = window.globalSettings;
+            const FILES = window.cachedFiles;
+            const LANG = FILES.language[SETTINGS.language];
+            console.warn('Disconnected from SAA');
+            customCommonOverlay().createErrorOverlay(LANG.saac_disconnected, 'Disconnected from SAA');
+
+            // cleanup pendingMessages
+            pendingMessages.forEach(({ reject }, id) => {gi
+                reject(new Error('WebSocket connection closed'));
+                pendingMessages.delete(id);
+            });
+            // cleanup callbacks
+            callbacks.clear();
+            console.log('Cleared all pending messages and callbacks');
+            ws = null;
+            setHTMLTitle("SAA Client (Disconnected)");
+        };
+
+        ws.onerror = (err) => {
+            console.error('WebSocket error:', err);            
+            reconnectingTrigger = false;
+        };
     });
 }
 
@@ -160,10 +167,22 @@ export async function sendWebSocketMessage(message) {
     const messageWithId = { ...message, id };
 
     if (!isWebSocketOpen(ws)) {
+        if(reconnectingTrigger)
+            return;
+
         console.log('WebSocket is not open, attempting to reconnect...');
         try {
+            reconnectingTrigger = true;
             const { wsAddress, wsPort } = await fetchWsConfig();
             await connectWebSocket(wsAddress, wsPort);
+            // Update uuid and register callbacks
+            window.clientUUID = getClientUUID();    // Get the ws client UUID
+            registerCallback('updatePreview', from_main_updatePreview);
+            registerCallback('appendImage', from_main_updateGallery);
+            registerCallback('updateProgress', from_main_customOverlayProgress);            
+
+            version = await sendWebSocketMessage({ type: 'API', method: 'getAppVersion'});
+            setHTMLTitle(`SAA Client ${version} (Connected)`);
         } catch (error) {
             console.error('Failed to reconnect:', error);
             return;

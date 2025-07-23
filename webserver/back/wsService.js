@@ -13,6 +13,7 @@ const { runComfyUI, runComfyUI_Regional, openWsComfyUI, closeWsComfyUI, cancelCo
 const { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI } = require('../../scripts/main/generate_backend_webui');
 const { remoteAI, localAI } = require('../../scripts/main/remoteAI_backend');
 const { loadFile, readImage, readSafetensors, readBase64Image } = require('../../scripts/main/fileHandlers');
+const Main = require('../../main');
 
 const CAT = '[WSS]';
 
@@ -178,6 +179,9 @@ function broadcastMessage(type, data) {
 
 // API method handler
 const methodHandlers = {
+  // version
+  'getAppVersion': ()=> Main.getAppVersion(),
+
   // cached files
   'getCachedFiles': ()=> getCachedFilesWithoutThumb(),
 
@@ -198,7 +202,7 @@ const methodHandlers = {
   'getModelList': (params)=> getModelList(...params),
   'getModelListAll': (params)=> getModelListAll(...params),
   'getLoRAList': (params)=> getLoRAList(...params),
-  'updateModelList': (params)=> updateModelList(...params),
+  'updateModelList': (params)=> updateModelAndLoRAList(...params),
 
   // wildcards
   'updateWildcards': ()=> updateWildcards(),

@@ -1,3 +1,17 @@
+2025.07.23 v1.9.3     
+Minor bug fixes    
+
+Improvements:    
+Add Connection status indicator for SAAC    
+Sync SAC version to SAAC    
+SAAC will reconnect and re-register Callbacks after SAA restart    
+
+Update dependencies:    
+- electron 37.2.0 to 37.2.3       
+- isomorphic-dompurify 2.24.0 to 2.26.0    
+- ws 8.18.1 to 8.18.3    
+
+
 2025.07.22 v1.9.1    
 Bugfix:    
 Mutex Lock for both backend    

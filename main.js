@@ -16,6 +16,8 @@ const { setupGenerateBackendWebUI } = require('./scripts/main/generate_backend_w
 const { setupCachedFiles } = require('./scripts/main/cachedFiles'); 
 const { setupWildcardsHandlers } = require('./scripts/main/wildCards');
 
+const version = app.getVersion();
+
 let backendBusy = false;
 const mutex = new Mutex();
 async function getMutexBackendBusy(uuid) {
@@ -39,20 +41,13 @@ async function setMutexBackendBusy(newValue, uuid) {
   }
 }
 
-function replaceMisspelling(word) {
-  mainWindow.webContents.replaceMisspelling(word);
-  return true;
-}
-
-function addToDictionary(word) {
-  mainWindow.webContents.session.addWordToSpellCheckerDictionary(word);
-  return true;
+async function getAppVersion() {
+  return version;
 }
 
 exports.getMutexBackendBusy = getMutexBackendBusy;
 exports.setMutexBackendBusy = setMutexBackendBusy;
-exports.replaceMisspelling = replaceMisspelling;
-exports.addToDictionary = addToDictionary;
+exports.getAppVersion = getAppVersion;
 
 let mainWindow; // Main browser window instance
 
@@ -62,6 +57,7 @@ function createWindow () {
     autoHideMenuBar: true,  // Hide menu
     width: 1300,
     height: 1200,
+    icon: path.join(__dirname, 'html/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'scripts/preload.js'),
       contextIsolation: true, // Enable context isolation
@@ -89,7 +85,9 @@ function createWindow () {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(async () => {   
+app.whenReady().then(async () => {     
+  console.log("Character Select SAA Version:", version);
+
   setupFileHandlers();  
   const SETTINGS = setupGlobalSettings();
   setupModelList(SETTINGS);
@@ -106,6 +104,7 @@ app.whenReady().then(async () => {
 
   if (downloadSuccess && cacheSuccess && tacSuccess) {   
     createWindow();
+    mainWindow.setTitle(`Wai Character Select SAA ${version}`);
 
     app.on('activate', function () {
       // On macOS it's common to re-create a window in the app when the
@@ -123,6 +122,11 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('add-to-dictionary', async (event, word) => {    
     return addToDictionary(word);
+  });
+
+  // Version
+  ipcMain.handle('get-saa-version', async (event) => {    
+    return version;
   });
 
   // Start the HTTP server

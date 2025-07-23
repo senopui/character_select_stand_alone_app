@@ -18,9 +18,13 @@ function sendToRendererEx(channel, data) {
 function sendToRenderer(uuid, functionName, ...args) {
   if (!uuid || uuid === 'none') {
     sendToRendererEx('generate-backend', { functionName, args });
-  } else {
+  } else if(uuid !== 'error') {
     const callbackName = `${uuid}-${functionName}`;
-    wsService.sendToClient(uuid, 'Callback', { callbackName, args }); 
+    const success = wsService.sendToClient(uuid, 'Callback', { callbackName, args }); 
+    if(!success) {
+      console.warn('Got error from WS. Set uuid to "error" for current generation');
+      backendComfyUI.uuid = 'error';
+    }
   }
 }
 
@@ -575,12 +579,12 @@ async function runComfyUI(generateData) {
 }
 
 async function runComfyUI_Regional(generateData) {
-  const isBusy = await Main.getMutexBackendBusy();
+  const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
   if (isBusy) {
     console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+  Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowRegional(generateData)
   console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);

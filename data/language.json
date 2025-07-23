@@ -144,6 +144,8 @@
         "save_settings_title": "Save Settings file\nPlease enter the name of the file to be saved.",
         "save_settings_success": "{0} Saved!",
         "save_settings_failed": "Save {0} failed!",
+
+        "saac_disconnected": "[color=red][Error] Disconnected from SAA...[/color]\nThe system will automatically attempt to reconnect when you select character or generate image.",
         
         "setup_yes": "Yes",
         "setup_no": "No",
@@ -312,6 +314,8 @@
         "save_settings_success": "配置文件 {0} 保存成功",
         "save_settings_failed": "配置文件 {0} 保存失败",
         
+        "saac_disconnected": "[color=red]错误：与SAA失去连接[/color]\n选择角色或生成图片时会自动尝试重连",
+
         "setup_yes": "是",
         "setup_no": "否",
         "setup_ok": "确定",

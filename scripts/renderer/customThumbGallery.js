@@ -273,15 +273,14 @@ export function setupThumb(containerId) {
 
             const fragment = document.createDocumentFragment();
             const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
+                for (const entry of entries) {
                     if (entry.isIntersecting) {
-                        const imgContainer = entry.target;
-                        const img = imgContainer.querySelector('img');
+                        const img = entry.target.querySelector('img');
                         img.src = img.dataset.src;
                         img.className = 'cg-thumb-image visible';
-                        observer.unobserve(imgContainer);
+                        observer.unobserve(entry.target);
                     }
-                });
+                }
             }, { root: gallery, threshold: 0.1 });
 
             // Render only new images in incremental mode

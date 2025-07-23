@@ -1,7 +1,7 @@
 # Character Select SAA Client v0.9.0 Beta
 *That's all you asked for*
 
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall02.png" width=45%>   
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall02.png" width=55%>   
 
 Start your SAA as normal, finish the setup wizard, then navigate to `http://127.0.0.1:58189/`     
 Web Service/Ports/Addr can be modify in your `settings.json`.    

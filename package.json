@@ -4,7 +4,7 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.9.1",
+  "version": "1.9.3",
   "author": "oOkami",
   "scripts": {
     "start": "electron . --trace-warnings",
@@ -12,13 +12,13 @@
     "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite"
   },
   "devDependencies": {
-    "electron": "^37.2.0"
+    "electron": "^37.2.3"
   },
   "dependencies": {
     "async-mutex": "^0.5.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
-    "isomorphic-dompurify": "^2.24.0",
-    "ws": "^8.18.1"
+    "isomorphic-dompurify": "^2.26.0",
+    "ws": "^8.18.3"
   }
 }

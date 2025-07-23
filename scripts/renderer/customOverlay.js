@@ -776,7 +776,7 @@ export function customCommonOverlay() {
 
     // Update the createCustomOverlay function to add proper styling to the resize handle
     function createCustomOverlay(image, message) {
-        const displayMessage = (typeof message === 'string' && message.trim()) ? message : 'No content provided';
+        const displayMessage = (typeof message === 'string' && message.trim()) ? message : '\nNo content provided';
         const hasImage = image && image !== 'none' && typeof image === 'string';
 
         let processedMessage = parseTaggedContent(displayMessage)

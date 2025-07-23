@@ -71,6 +71,9 @@ ipcRenderer.on('generate-backend', (event, { functionName, args }) => {
 
 // render to main
 contextBridge.exposeInMainWorld('api', {
+  // version
+  getAppVersion: async () => ipcRenderer.invoke('get-saa-version'),
+
   // fileHandlers
   readFile: async (relativePath, prefix, filePath) => ipcRenderer.invoke('read-file', relativePath, prefix, filePath),
   readSafetensors: async (modelPath, prefix, filePath) => ipcRenderer.invoke('read-safetensors', modelPath, prefix, filePath),
