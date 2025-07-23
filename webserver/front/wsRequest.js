@@ -137,7 +137,7 @@ async function connectWebSocket(wsAddress, wsPort) {
             customCommonOverlay().createErrorOverlay(LANG.saac_disconnected, 'Disconnected from SAA');
 
             // cleanup pendingMessages
-            pendingMessages.forEach(({ reject }, id) => {gi
+            pendingMessages.forEach(({ reject }, id) => {
                 reject(new Error('WebSocket connection closed'));
                 pendingMessages.delete(id);
             });
