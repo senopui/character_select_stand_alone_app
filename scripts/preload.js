@@ -10,6 +10,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const { createHash } = require('crypto');
 const { gunzipSync } = require('zlib');
+const DOMPurify = require('dompurify');
+
+contextBridge.exposeInMainWorld('DOMPurify', {
+  sanitize: (dirty) => DOMPurify.sanitize(dirty)
+});
 
 // main to render
 let okm = {

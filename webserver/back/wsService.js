@@ -242,7 +242,7 @@ function broadcastMessage(type, data) {
 
 // API method handler (unchanged)
 const methodHandlers = {
-    // version
+  // version
   'getAppVersion': ()=> Main.getAppVersion(),
 
   // cached files

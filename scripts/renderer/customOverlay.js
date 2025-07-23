@@ -637,7 +637,12 @@ export function customCommonOverlay() {
             overlay.className = `cg-overlay ${className}`;
             document.body.appendChild(overlay);
         }
-        overlay.innerHTML = content;
+        if(!window.inBrowser) {
+            overlay.innerHTML = window.DOMPurify.sanitize(content);
+        } else {
+            // impossible to use sanitize from backend when disconnect....
+            overlay.innerHTML = content;
+        }
         if (onClick) overlay.onclick = onClick;
         return overlay;
     }
@@ -831,6 +836,12 @@ export function customCommonOverlay() {
 
         const textDiv = document.createElement('div');
         textDiv.className = `cg-custom-textbox-data`;
+        if(!window.inBrowser) {
+            textDiv.innerHTML = window.DOMPurify.sanitize(processedMessage);
+        } else {
+            // impossible to use sanitize from backend when disconnect....
+            textDiv.innerHTML = processedMessage;
+        }
         textDiv.innerHTML = processedMessage;
         textDiv.style.whiteSpace = 'pre-wrap'; 
         textDiv.style.wordBreak = 'break-word';
