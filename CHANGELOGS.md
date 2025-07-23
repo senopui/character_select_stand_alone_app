@@ -1,3 +1,9 @@
+2025.07.23 v1.9.4      
+Bugfix and Alternative solution:     
+Write to clipboard not working in MacOS     
+[More information](https://webkit.org/blog/10855/async-clipboard-api/)       
+
+
 2025.07.23 v1.9.3     
 Minor bug fixes    
 

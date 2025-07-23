@@ -231,7 +231,7 @@ export function setupImageUploadOverlay() {
         copyButton.className = 'copy-all-metadata';
         copyButton.textContent = 'Copy All';
 
-        copyButton.addEventListener('click', () => {
+        copyButton.addEventListener('click', async () => {
             let fullText = '';
             const parsedMetadata = window.currentImageMetadata;
 
@@ -244,8 +244,16 @@ export function setupImageUploadOverlay() {
             if (parsedMetadata.otherParams) {
                 fullText += parsedMetadata.otherParams;
             }
-
-            navigator.clipboard.writeText(fullText);
+            
+            try {
+                await navigator.clipboard.writeText(fullText);
+            } catch (err){
+                console.warn('Failed to copy:', err);
+                const SETTINGS = window.globalSettings;
+                const FILES = window.cachedFiles;
+                const LANG = FILES.language[SETTINGS.language];
+                window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', fullText));
+            }
             copyButton.textContent = 'Copied!';
             setTimeout(() => {
                 copyButton.textContent = 'Copy All';

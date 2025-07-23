@@ -59,7 +59,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
                     await window.api.replaceMisspelling(suggestion);
                     menuBox.style.display = 'none';
                 } catch (error) {
-                    console.error(CAT, 'Error replacing misspelling:', error);
+                    console.error('Error replacing misspelling:', error);
                 }
             });
 
@@ -90,7 +90,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
                 await window.api.addToDictionary(word);
                 menuBox.style.display = 'none';
             } catch (error) {
-                console.error(CAT, 'Error adding to dictionary:', error);
+                console.error('Error adding to dictionary:', error);
             }
         });
 
@@ -119,11 +119,11 @@ export function addSpellCheckSuggestions(suggestions, word) {
 
 export function setupRightClickMenu() {
     if (window.rightClick?.initialized) {
-        console.log(CAT, 'RightClickMenu already initialized');
+        console.log('RightClickMenu already initialized');
         return;
     }
 
-    console.log(CAT, 'Initializing RightClickMenu system');
+    console.log('Initializing RightClickMenu system');
 
     menuBox = document.createElement('div');
     menuBox.className = 'right-click-menu';
@@ -140,11 +140,11 @@ export function setupRightClickMenu() {
         initialized: true,
         push: (index, displayName, handler) => {
             if (typeof index !== 'string' && typeof index !== 'number') {
-                console.error(CAT, 'Invalid index:', index);
+                console.error('Invalid index:', index);
                 return;
             }
             if (menuConfig.some(item => item.index === index)) {
-                console.warn(CAT, `Index ${index} already exists, use update or remove first`);
+                console.warn(`Index ${index} already exists, use update or remove first`);
                 return;
             }
             const newItem = { index, displayName, handler };
@@ -156,11 +156,11 @@ export function setupRightClickMenu() {
         },
         append: (index, displayName, handler) => {
             if (typeof index !== 'string' && typeof index !== 'number') {
-                console.error(CAT, 'Invalid index:', index);
+                console.error('Invalid index:', index);
                 return;
             }
             if (menuConfig.some(item => item.index === index)) {
-                console.warn(CAT, `Index ${index} already exists, use update or remove first`);
+                console.warn(`Index ${index} already exists, use update or remove first`);
                 return;
             }
             const newItem = { index, displayName, handler };
@@ -169,7 +169,7 @@ export function setupRightClickMenu() {
         remove: (index) => {
             const itemIndex = menuConfig.findIndex(item => item.index === index);
             if (itemIndex === -1) {
-                console.warn(CAT, `No menu item found with index ${index}`);
+                console.warn(`No menu item found with index ${index}`);
                 return;
             }
             menuConfig.splice(itemIndex, 1);
@@ -177,11 +177,11 @@ export function setupRightClickMenu() {
         setTitle: (index, newDisplayName) => {
             const item = menuConfig.find(item => item.index === index);
             if (!item) {
-                console.warn(CAT, `No menu item found with index ${index}`);
+                console.warn(`No menu item found with index ${index}`);
                 return;
             }
             if (item.displayName === null) {
-                console.warn(CAT, `Cannot update display name for separator at index ${index}`);
+                console.warn(`Cannot update display name for separator at index ${index}`);
                 return;
             }
             item.displayName = newDisplayName;
@@ -384,10 +384,10 @@ function executeMenuAction(handler, targetElement) {
                 handler.func(element);
             }
         } else {
-            console.warn(CAT, 'Invalid handler:', handler);
+            console.warn('Invalid handler:', handler);
         }
     } catch (error) {
-        console.error(CAT, 'Error executing menu action:', error);
+        console.error('Error executing menu action:', error);
     }
 }
 
@@ -499,7 +499,7 @@ function menu_copyImage(element) {
         try {
             // Check if the document is focused
             if (!document.hasFocus()) {
-                console.log(CAT, 'Document is not focused, attempting to focus the window');
+                console.log('Document is not focused, attempting to focus the window');
                 window.focus(); // Attempt to bring the window into focus
                 // Add a small delay to ensure focus is applied before clipboard access
                 setTimeout(() => {
@@ -509,7 +509,7 @@ function menu_copyImage(element) {
                 proceedWithCopy(img);
             }
         } catch (err) {
-            console.error(CAT, 'Error processing image:', err);
+            console.error('Error processing image:', err);
         }
     }
 }
@@ -524,23 +524,28 @@ function proceedWithCopy(img) {
             canvas.height = image.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(image, 0, 0);
-            canvas.toBlob((blob) => {
+            canvas.toBlob(async (blob) => {
                 if (blob) {
-                    navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]).then(() => {
-                        console.log(CAT, 'Image successfully copied to clipboard');
-                    }).catch((err) => {
-                        console.error(CAT, 'Failed to copy PNG image to clipboard:', err);
-                    });
+                    try {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': blob })
+                        ]);
+                        console.log('Image successfully copied to clipboard');
+                    } catch (err){
+                        console.warn('Failed to copy PNG image to clipboard:', err);
+                        const SETTINGS = window.globalSettings;
+                        const FILES = window.cachedFiles;
+                        const LANG = FILES.language[SETTINGS.language];
+                        window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_copy_image);
+                    }
                 }
             }, 'image/png');
         };
         image.onerror = () => {
-            console.error(CAT, 'Failed to load image for conversion');
+            console.error('Failed to load image for conversion');
         };
     } catch (err) {
-        console.error(CAT, 'Error in proceedWithCopy:', err);
+        console.error('Error in proceedWithCopy:', err);
     }
 }
 
@@ -557,9 +562,16 @@ async function menu_copyImageMetadata(element) {
             if (result.error || !result.metadata) {
                 return ;
             }
-            navigator.clipboard.writeText(result.metadata).then(() => {}).catch((err) => {
-                console.error(CAT, 'Failed to copy PNG image metadata to clipboard:', err);
-            });
+            try {
+                await navigator.clipboard.writeText(result.metadata);
+            } catch (err){
+                console.warn('Failed to copy PNG image metadata to clipboard:', err);
+                const SETTINGS = window.globalSettings;
+                const FILES = window.cachedFiles;
+                const LANG = FILES.language[SETTINGS.language];
+                window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', result.metadata));
+            }
+            
         } catch (error) {
             throw new Error(`Metadata extraction failed: ${error.message}`);
         }
@@ -570,13 +582,13 @@ function prompt_sendLoRAtoSlot(element, textArea){
     try {
         const textarea = element.querySelector(textArea);
         if (!textarea) {
-            console.warn(CAT, `No textarea found with class ${textArea}`,);
+            console.warn(`No textarea found with class ${textArea}`,);
             return null;
         }
 
         const text = textarea.value.trim();
         if (!text) {
-            console.warn(CAT, `${textArea} is empty`);
+            console.warn(`${textArea} is empty`);
             return null;
         }
 
@@ -588,12 +600,12 @@ function prompt_sendLoRAtoSlot(element, textArea){
         if(allLora.trim() !== '') {
             window.lora.flushSlot(allLora);
         } else {
-            console.warn(CAT, `No LoRA in ${textArea}`);
+            console.warn(`No LoRA in ${textArea}`);
         }
 
         return `${allPrompt} `;
     } catch (err) {
-        console.error(CAT, `Error on get ${textArea} prompt:`, err);
+        console.error(`Error on get ${textArea} prompt:`, err);
         return null;
     }
 }
@@ -602,19 +614,19 @@ async function prompt_testAIgenerate(element){
     try {
         const textarea = element.querySelector('.myTextbox-prompt-ai-textarea');
         if (!textarea) {
-            console.warn(CAT, 'No textarea found with class myTextbox-prompt-ai-textarea');
+            console.warn('No textarea found with class myTextbox-prompt-ai-textarea');
             return;
         }
 
         const text = textarea.value.trim();
         if (!text) {
-            console.warn(CAT, 'Textarea is empty');
+            console.warn('Textarea is empty');
             return;
         }
 
         const aiText = await getAiPrompt(0, text);
         window.overlay.custom.createCustomOverlay('none', `\n\n\n${aiText}`);
     } catch (err) {
-        console.error(CAT, 'Error on get AI prompt:', err);
+        console.error('Error on get AI prompt:', err);
     }
 }

@@ -17,3 +17,4 @@ Web Service/Ports/Addr can be modify in your `settings.json`.
 6. Just in case, there is a `Skeleton Key` to unlock the `Mutex Lock`; click `Reload Model` on the left of the `Model List`.    
 7. Start your Comfyui/WebUI API on `computer A`; start SAA on `computer B` and set API to `computer A`; connect SAAC from `computer C`...    
 8. You can modify/save `SAAC Settings` in `Settings` tab, but be noticed this is for your `SAA host PC`      
+9. Write to clipboard not working in MacOS. Self-signed cert for HTTPS could solve that problem, but browser didn't like it. Added a info window to show those message. [More information](https://webkit.org/blog/10855/async-clipboard-api/)       

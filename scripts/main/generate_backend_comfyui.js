@@ -587,7 +587,7 @@ async function runComfyUI_Regional(generateData) {
   Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowRegional(generateData)
-  console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
+  console.log(CAT, 'Running ComfyUI Regional with uuid:', backendComfyUI.uuid);
   const result = await backendComfyUI.run(workflow);
   return result;
 }
