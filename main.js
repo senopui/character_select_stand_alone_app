@@ -1,7 +1,14 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain } = require('electron')
+// Force enable sandbox
+app.enableSandbox();
+
 const path = require('node:path')
 const { Mutex } = require('async-mutex');
+const { createHash } = require('crypto');
+const { gunzipSync } = require('zlib');
+const bcrypt = require('bcrypt');
+
 // WebSocket server
 const { setupHttpServer, closeWebSocketServer } = require('./webserver/back/wsService');
 // Import custom modules
@@ -61,7 +68,9 @@ function createWindow () {
       contextIsolation: true, // Enable context isolation
       nodeIntegration: false, // Disable Node.js integration
       nodeIntegrationInWorker: true, // Enable multithread
-      spellcheck: true // Enable spellcheck
+      spellcheck: true, // Enable spellcheck
+      sandbox: true, // Enable sandbox
+      webSecurity: true, //Enable web security
     }
   });
 
@@ -125,6 +134,41 @@ app.whenReady().then(async () => {
   // Version
   ipcMain.handle('get-saa-version', async (event) => {    
     return version;
+  });
+
+  ipcMain.handle('md5-hash', async (event, input) => {
+    if (typeof input !== 'string') {
+      console.error('[get_md5_hash]: Input must be a string');
+      return null;
+    }
+    try {
+      const hash = createHash('md5');
+      hash.update(input);
+      return hash.digest('hex');
+    } catch (error) {
+      console.error('[get_md5_hash]: Error generating hash', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle('decompress-gzip', async (event, base64Data) => {
+    try {
+      const compressedData = Buffer.from(base64Data, 'base64');
+      const decompressedData = gunzipSync(compressedData);
+      return decompressedData.toString();
+    } catch (error) {
+      console.error('[decompressGzip]: Error decompressing data', error);
+      return null;
+    }
+  });
+
+  ipcMain.handle('bcrypt-hash', async (event, pass) => {
+    try {
+      return await bcrypt.hash(pass, 12);
+    } catch (error) {
+      console.error('[bcryptHash]: Error generating hash', error);
+      return null;
+    }
   });
 
   // Start the HTTP server

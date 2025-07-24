@@ -40,7 +40,7 @@ SAA
 |   |---auth.log
 ```
 
-Suports multi-users. Change default `username` and `passward` in `user.csv`. Use `Hash Password` in right0click menu of local SAA(*Recommend*) or [bcrypt-generator](https://bcrypt-generator.com/) to create your own passward, copy and paste the encrypted string to `user.csv`      
+Suports multi-users. Change default `username` and `passward` in `user.csv`. Use `Hash Password` in right-click menu of local SAA(*Recommend*) or [bcrypt-generator](https://bcrypt-generator.com/) to create your own passward, copy and paste the encrypted string to `user.csv`      
 The default password is: ******      
 
 Generate self-signed certificates:    

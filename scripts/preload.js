@@ -8,14 +8,6 @@
  */
 
 const { contextBridge, ipcRenderer } = require('electron');
-const { createHash } = require('crypto');
-const { gunzipSync } = require('zlib');
-const DOMPurify = require('dompurify');
-const bcrypt = require('bcrypt');
-
-contextBridge.exposeInMainWorld('DOMPurify', {
-  sanitize: (dirty) => DOMPurify.sanitize(dirty)
-});
 
 // main to render
 let okm = {
@@ -128,38 +120,10 @@ contextBridge.exposeInMainWorld('api', {
   loadWildcard: async (fileName, seed) => ipcRenderer.invoke('load-wildcards', fileName, seed),
   updateWildcards: async () => ipcRenderer.invoke('update-wildcards'),
 
-  // md5 hash
-  md5Hash: (input) => {
-    if (typeof input !== 'string') {
-        console.error('[get_md5_hash]: Input must be a string');
-        return null;
-    }
-
-    try {
-        const hash = createHash('md5');
-        hash.update(input);
-        return hash.digest('hex');
-    } catch (error) {
-        console.error('[get_md5_hash]: Error generating hash', error);
-        return null;
-    }
-  },
-
-  bcryptHash: (pass) => {
-    return bcrypt.hash(pass, 12);
-  },
-
-  // decompress gzip
-  decompressGzip: (base64Data) => {
-    try {
-        const compressedData = Buffer.from(base64Data, 'base64');
-        const decompressedData = gunzipSync(compressedData);
-        return decompressedData;
-    } catch (error) {
-        console.error('[decompressGzip]: Error decompressing data', error);
-        return null;
-    }
-  }
+  // function from Main
+  md5Hash: async (input) => ipcRenderer.invoke('md5-hash', input),
+  decompressGzip: async (base64Data) => ipcRenderer.invoke('decompress-gzip', base64Data),
+  bcryptHash: async (pass) => ipcRenderer.invoke('bcrypt-hash', pass),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

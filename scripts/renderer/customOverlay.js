@@ -636,13 +636,8 @@ export function customCommonOverlay() {
             overlay.id = id;
             overlay.className = `cg-overlay ${className}`;
             document.body.appendChild(overlay);
-        }
-        if(!window.inBrowser) {
-            overlay.innerHTML = window.DOMPurify.sanitize(content);
-        } else {
-            // impossible to use sanitize from backend when disconnect....
-            overlay.innerHTML = content;
-        }
+        }        
+        overlay.innerHTML = content;
         if (onClick) overlay.onclick = onClick;
         return overlay;
     }
@@ -789,7 +784,7 @@ export function customCommonOverlay() {
         const displayMessage = (typeof message === 'string' && message.trim()) ? message : '\nNo content provided';
         const hasImage = image && image !== 'none' && typeof image === 'string';
 
-        let processedMessage = parseTaggedContent(displayMessage)
+        const processedMessage = parseTaggedContent(displayMessage)
             .replace(/\n/g, '<br>')
             .replace(
                 /\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g,
@@ -836,12 +831,6 @@ export function customCommonOverlay() {
 
         const textDiv = document.createElement('div');
         textDiv.className = `cg-custom-textbox-data`;
-        if(!window.inBrowser) {
-            textDiv.innerHTML = window.DOMPurify.sanitize(processedMessage);
-        } else {
-            // impossible to use sanitize from backend when disconnect....
-            textDiv.innerHTML = processedMessage;
-        }
         textDiv.innerHTML = processedMessage;
         textDiv.style.whiteSpace = 'pre-wrap'; 
         textDiv.style.wordBreak = 'break-word';
