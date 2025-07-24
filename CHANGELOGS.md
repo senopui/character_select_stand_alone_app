@@ -1,6 +1,15 @@
+2025.07.24 v1.9.6      
+Add Login for HTTPS mode      
+Add Login Audit Log    
+Move `cert.pem` and `key.pem` to `html/ca`       
+
+HTTP mode not required any audit       
+HTTPS mode always required login     
+Reconnect with HTTPS now required login    
+
 
 2025.07.23 v1.9.5      
-Add [HTTPS mode](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md#https) to solve HTTP mode clipboard issue    
+Add [HTTPS mode](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md#https-mode) to solve HTTP mode clipboard issue    
 
 
 2025.07.23 v1.9.4      
@@ -28,7 +37,7 @@ Bugfix:
 Mutex Lock for both backend    
 
 
-2025.07.22 v1.9.0
+2025.07.22 v1.9.0    
 Add web client for SAA    
 
 

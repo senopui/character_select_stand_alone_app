@@ -4,7 +4,7 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.9.5",
+  "version": "1.9.6",
   "author": "oOkami",
   "scripts": {
     "start": "electron . --trace-warnings",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "async-mutex": "^0.5.0",
+    "bcrypt": "^6.0.0",
     "dompurify": "^3.2.6",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",

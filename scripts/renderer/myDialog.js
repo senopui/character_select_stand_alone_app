@@ -152,6 +152,20 @@ function showDialog(type, options = {}) {
                         }
                     );
                 }
+
+                // Press 'Enter'
+                if (!showCancel) {
+                    const inputElem = inputContainer.querySelector('input,textarea');
+                    if (inputElem) {
+                        inputElem.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                cleanup();
+                                resolve(result || textbox.getValue());
+                            }
+                        });
+                    }
+                }
                 break;
             }
 

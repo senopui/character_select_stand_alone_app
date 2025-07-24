@@ -2,11 +2,13 @@ const { createHash } = require('crypto');
 const { gunzipSync } = require('zlib');
 const path = require('node:path');
 const fs = require('fs');
+const { appendFileSync, existsSync, mkdirSync } = require('fs');
 const http = require('http'); 
 const https = require('https');
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcrypt');
 const { WebSocketServer } = require('ws');
 const { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } = require('../../scripts/main/globalSettings');
 const { getCachedFilesWithoutThumb, getCharacterThumb } = require('../../scripts/main/cachedFiles');
@@ -24,19 +26,50 @@ const CAT = '[WSS]';
 let server; // HTTP or HTTPS server instance
 let wss; // WebSocket or WebSocket Secure server instance
 let clients = new Map(); // Track clients with UUIDs
+let useHttps = false;
+
+const blockedIPs = new Map();   // Block IP timeouts
+const LOGIN_TIMEOUT = 30000;    // 30 seconds for test
+
+const validUUIDs = new Map(); // Maps UUID to { token, ip, username }
+
+let USERS = {};
+
+// Logs
+const LOG_DIR = path.join(__dirname, '../../logs');
+const LOG_FILE = path.join(LOG_DIR, 'auth.log');
+
+function ensureLogDir() {
+  if (!existsSync(LOG_DIR)) {
+    mkdirSync(LOG_DIR, { recursive: true });
+  }
+}
+
+function writeLog(message) {
+  const timestamp = new Date().toISOString();
+  const logEntry = `${timestamp} - ${message}\n`;
+  try {
+    ensureLogDir();
+    appendFileSync(LOG_FILE, logEntry, 'utf8');
+  } catch (error) {
+    console.error(CAT, 'Failed to write to log file:', error);
+  }
+}
 
 // Function to set up the HTTP or HTTPS server based on certificate availability
 function setupHttpServer(basePatch, wsAddr, wsPort) {
     // Check for certificate files
-    const certPath = process.env.SSL_CERT_PATH || path.join(__dirname, '../../html/cert.pem');
-    const keyPath = process.env.SSL_KEY_PATH || path.join(__dirname, '../../html/key.pem');
-    let useHttps = false;
+    const certPath = process.env.SSL_CERT_PATH || path.join(__dirname, '../../html/ca/cert.pem');
+    const keyPath = process.env.SSL_KEY_PATH || path.join(__dirname, '../../html/ca/key.pem');
+    const usersDataPath = path.join(__dirname, '../../html/ca/user.csv');
+    useHttps = false;
 
     try {
         // Verify that both certificate files exist and are readable
-        if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+        if (fs.existsSync(certPath) && fs.existsSync(keyPath) && fs.existsSync(usersDataPath)) {
             fs.accessSync(certPath, fs.constants.R_OK);
             fs.accessSync(keyPath, fs.constants.R_OK);
+            fs.accessSync(usersDataPath, fs.constants.R_OK);
             useHttps = true;
             console.log(CAT, 'Certificate files found. Starting HTTPS server.');
         } else {
@@ -93,14 +126,56 @@ function setupHttpServer(basePatch, wsAddr, wsPort) {
             wsPort: wsPort,
         });        
     });
-
-    // Start HTTPS or HTTP server
+    
     if (useHttps) {
+        // Start HTTPS server
+        expressApp.post('/api/login', express.json(), async (req, res) => {
+            const clientIP = req.ip || req.socket.remoteAddress;
+            const blockUntil = blockedIPs.get(clientIP);
+            if (blockUntil && blockUntil > Date.now()) {
+                console.log(CAT, `IPBlocked - IP: ${clientIP}, Reason: Previous login failures. Block Until: ${new Date(blockUntil)}`);
+                writeLog(`IPBlocked - IP: ${clientIP}, Reason: Previous login failures. Block Until: ${new Date(blockUntil)}`);
+                return res.status(403).json({ error: 'IP temporarily blocked due to failed login attempts' });
+            }
+
+            const { username, password } = req.body;
+            const user = USERS[username];
+
+            if (!user || !await bcrypt.compare(password, user.passwordHash)) {
+                blockedIPs.set(clientIP, Date.now() + LOGIN_TIMEOUT);
+                writeLog(`LoginFailed - IP: ${clientIP}, Username: ${username}, Reason: Invalid credentials`);
+                console.log(CAT, `Login failed for IP ${clientIP}, blocked for ${LOGIN_TIMEOUT / 1000} seconds`);
+                return res.status(401).json({ error: 'Invalid username or password' });
+            }
+
+            const loginToken = crypto.randomUUID();
+            clients.set(loginToken, { ip: clientIP, username });
+            writeLog(`LoginSuccess (HTTPS) - IP: ${clientIP}, Username: ${username}`);
+            res.json({ token: loginToken });
+        });
+    
+
+        function loadUsersFromCSV(usersDataPath) {
+            const users = {};
+            if (fs.existsSync(usersDataPath)) {
+                const lines = fs.readFileSync(usersDataPath, 'utf-8').split(/\r?\n/);
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const [username, password] = line.split(',');
+                    if (username && password) {
+                        users[username.trim()] = { passwordHash: password.trim() };
+                    }
+                }
+            }
+            return users;
+        }
+
         try {
             const options = {
                 cert: fs.readFileSync(certPath),
                 key: fs.readFileSync(keyPath),
             };
+            USERS = loadUsersFromCSV(usersDataPath);
             server = https.createServer(options, expressApp).listen(wsPort, wsAddr, () => {
                 console.log(CAT, `HTTPS server running at https://${wsAddr}:${wsPort}`);
             });
@@ -109,6 +184,18 @@ function setupHttpServer(basePatch, wsAddr, wsPort) {
             throw error;
         }
     } else {
+        // Start HTTP server
+        expressApp.post('/api/login', express.json(), async (req, res) => {
+            const clientIP = req.ip || req.socket.remoteAddress;
+            
+            // bypass username and password
+            const loginToken = crypto.randomUUID();
+            const username = 'saac_user';
+            clients.set(loginToken, { ip: clientIP, username });                        
+            writeLog(`LoginSuccess (HTTP) - IP: ${clientIP}`);
+            res.json({ token: loginToken });
+        });
+
         server = http.createServer(expressApp).listen(wsPort, wsAddr, () => {
             console.log(CAT, `HTTP server running at http://${wsAddr}:${wsPort}`);
         });
@@ -137,14 +224,14 @@ function createWebSocketServer(server, useHttps) {
     const wss = new WebSocketServer({ server });
 
     wss.on('connection', (ws, req) => {
-        console.log(CAT, `WebSocket${useHttps ? ' Secure' : ''} client connected`);
-        const tempId = crypto.randomUUID();
-        clients.set(tempId, { ws, uuid: null });
+        const clientIP = req.socket.remoteAddress;
+        writeLog(`RemoteAccess - IP: ${clientIP}, Protocol: ${useHttps ? 'WSS' : 'WS'}`);
+        console.log(CAT, `WebSocket${useHttps ? ' Secure' : ''} client connected`, clientIP);
 
         ws.on('message', async (message) => {
             try {
                 const data = JSON.parse(message);
-                const { id, type } = data;
+                const { id, type, uuid } = data;
 
                 // Sanitize input
                 if (typeof data !== 'object' || data === null) {
@@ -154,22 +241,58 @@ function createWebSocketServer(server, useHttps) {
 
                 switch (type) {
                     case 'registerUUID': {
-                        const uuid = crypto.randomUUID();
-                        clients.set(uuid, { ws, uuid });
-                        clients.delete(tempId);
+                         console.log(CAT, `Register UUID from ${clientIP} with ${uuid}`);
+                        // HTTPS: Require valid login token
+                        if (!uuid || !clients.has(uuid) || clients.get(uuid).ip !== clientIP) {
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Invalid or missing login token' }));
+                            ws.close(4001, 'Authentication required');
+                            return;
+                        }
+
+                        // Check if clients in list
+                        let client = clients.get(uuid);
+                        if (!client) {
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Client not found' }));
+                            ws.close(4001, 'Client not found');
+                            return;
+                        }
+                        
+                        clients.set(uuid, { ws, uuid, ip: clientIP, username: clients.get(uuid).username });
                         console.log(CAT, `Client registered with UUID: ${uuid}`);
                         ws.send(JSON.stringify({ type: 'registerUUIDResponse', id, value: uuid }));
                         return;
-                    }
+                    }                    
                     case 'API': {
-                        const { method, params = {} } = data;
+                        const { method, params = {}, uuid } = data;
+
+                        if (!uuid || !clients.has(uuid)) {
+                            console.log(CAT, 'APIError: Invalid or missing UUID');
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Invalid or missing UUID' }));
+                            ws.close(4001, 'Authentication required');
+                            return;
+                        }
+                        const client = clients.get(uuid);
+
+                        if (client.ws !== ws) {
+                            console.log(CAT, 'APIError: UUID does not match this connection');
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'UUID does not match this connection' }));
+                            ws.close(4001, 'Authentication required');
+                            return;
+                        }
+
+                        if (!client.uuid || !client.username) {
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Authentication required' }));
+                            ws.close(4001, 'Authentication required');
+                            return;
+                        }
+
                         if (!method || typeof method !== 'string') {
-                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Method not specified or invalid' }));
                             console.warn(CAT, 'Received API message with invalid method');
+                            ws.send(JSON.stringify({ type: 'APIError', id, error: 'Method not specified or invalid' }));                            
                             return;
                         }
                         await handleApiRequest(ws, method, params, id);
-                        break;
+                        return;
                     }
                     default:
                         console.warn(CAT, `Unknown message type: ${type}`);
@@ -182,22 +305,24 @@ function createWebSocketServer(server, useHttps) {
         });
 
         ws.on('close', () => {
+            writeLog(`ConnectionClosed - IP: ${clientIP}`);
             console.log(CAT, `WebSocket${useHttps ? ' Secure' : ''} client disconnected`);
             for (let [key, client] of clients) {
                 if (client.ws === ws) {
                     clients.delete(key);
-                    console.log(CAT, `Removed client with UUID: ${client.uuid || tempId}`);
+                    console.log(CAT, `Removed client with UUID: ${client.uuid}`);
                     break;
                 }
             }
         });
 
         ws.on('error', (error) => {
+            writeLog(`ConnectionError - IP: ${clientIP}, Error: ${error.message}`);
             console.error(CAT, `WebSocket${useHttps ? ' Secure' : ''} error:`, error);
             for (let [key, client] of clients) {
                 if (client.ws === ws) {
                     clients.delete(key);
-                    console.log(CAT, `Removed client with UUID: ${client.uuid || tempId} due to error`);
+                    console.log(CAT, `Removed client with UUID: ${client.uuid} due to error`);
                     break;
                 }
             }

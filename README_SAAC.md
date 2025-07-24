@@ -17,7 +17,7 @@ Web Service/Ports/Addr can be modify in your `settings.json`.
 6. Just in case, there is a `Skeleton Key` to unlock the `Mutex Lock`; click `Reload Model` on the left of the `Model List`.    
 7. Start your Comfyui/WebUI API on `computer A`; start SAA on `computer B` and set API to `computer A`; connect SAAC from `computer C`...    
 8. You can modify/save `SAAC Settings` in `Settings` tab, but be noticed this is for your `SAA host PC`      
-9. Write to clipboard not working from remote with HTTP mode, added a info window to show those message. Check `HTTPS mode` to solve that problem. [More information](https://webkit.org/blog/10855/async-clipboard-api/)       
+9. Write to clipboard not working from remote with HTTP mode (except `localhost`), added a info window to show those message. Check `HTTPS mode` to solve that problem. [More information](https://webkit.org/blog/10855/async-clipboard-api/)       
 
 ## HTTPS mode
 You should always use HTTPS/WSS for security. The HTTP fallback is suitable for development or local usage only.     
@@ -26,7 +26,22 @@ Browers and Antivirus Software will Flag Self-Signed Certificates as "Not Secure
 Self-signed certificates are not issued by a trusted Certificate Authority (CA) like Let’s Encrypt, DigiCert, or GlobalSign. Browsers rely on a pre-installed list of trusted CAs to verify certificates. Since self-signed certificates are created by the user (or server admin), they aren’t in this list, triggering a warning.     
 *The safety of self-signed certificates depends on the use case, in short it's safe for SAAC. DO NOT share your cert.pem and key.pem to others.*      
 
-Place `cert.pem` and `key.pem` to `html` folder and restart SAA, then navigate to `https://127.0.0.1:51028/` or connect from other computer via HTTPS. Otherwise SAA will run in HTTP fallback mode.       
+Place `cert.pem` `key.pem` `user.csv` to `html/ca` folder and restart SAA, then navigate to `https://127.0.0.1:51028/` or connect from other computer via HTTPS. Otherwise SAA will run in HTTP fallback mode.       
+
+Folder layout:      
+```
+SAA
+|---html
+|   |---ca
+|       |---cert.pem
+|       |---key.pem
+|       |---user.csv
+|---logs
+|   |---auth.log
+```
+
+Suports multi-users. Change default `username` and `passward` in `user.csv`. Use [bcrypt-generator](https://bcrypt-generator.com/) to create your own passward, copy and paste the encrypted string to `user.csv`      
+The default password is: ******      
 
 Generate self-signed certificates:    
 ```

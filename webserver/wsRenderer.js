@@ -20,13 +20,14 @@ import { setBlur, setNormal, showDialog } from '../scripts/renderer/myDialog.js'
 import { setupImageUploadOverlay } from '../scripts/renderer/imageInfo.js';
 import { setupThemeToggle } from '../scripts/renderer/mytheme.js';
 import { setupRightClickMenu } from '../scripts/renderer/myRightClickMenu.js';
-import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback, getClientUUID } from './front/wsRequest.js';
+import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
 function afterDOMinit() {
     console.log("Script loaded, attempting initial setup");
     (async () => {        
-        setBlur();
+        setBlur();     
+
         if( await initWebSocket()) {
             await init();         
             registerCallback('updatePreview', from_main_updatePreview);
@@ -368,8 +369,7 @@ export async function createAI(SETTINGS, FILES, LANG) {
 
 async function init() {    
     window.initialized = false;
-    window.inBrowser = true; // Set to true for browser environment
-    window.clientUUID = getClientUUID();    // Get the ws client UUID
+    window.inBrowser = true; // Set to true for browser environment    
 
     // Init Global Settings
     try {
