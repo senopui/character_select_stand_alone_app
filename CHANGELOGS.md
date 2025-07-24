@@ -1,3 +1,7 @@
+2025.07.24 v1.9.7      
+Add right-click menu `Hash Password` for local SAA to generate password for SAAC HTTPS      
+
+
 2025.07.24 v1.9.6      
 Add Login for HTTPS mode      
 Add Login Audit Log    

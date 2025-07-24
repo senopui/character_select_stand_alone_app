@@ -31,8 +31,6 @@ let useHttps = false;
 const blockedIPs = new Map();   // Block IP timeouts
 const LOGIN_TIMEOUT = 30000;    // 30 seconds for test
 
-const validUUIDs = new Map(); // Maps UUID to { token, ip, username }
-
 let USERS = {};
 
 // Logs
@@ -421,6 +419,12 @@ const methodHandlers = {
     const compressedData = Buffer.from(base64Data, 'base64');
     const decompressedData = gunzipSync(compressedData);
     return decompressedData;
+  },
+
+  // create password
+  'bcryptHash': (params) => {
+    const pass = params[0];
+    return bcrypt.hash(pass, 12);
   },
 
   // comfyui

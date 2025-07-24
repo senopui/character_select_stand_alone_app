@@ -11,6 +11,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 const { createHash } = require('crypto');
 const { gunzipSync } = require('zlib');
 const DOMPurify = require('dompurify');
+const bcrypt = require('bcrypt');
 
 contextBridge.exposeInMainWorld('DOMPurify', {
   sanitize: (dirty) => DOMPurify.sanitize(dirty)
@@ -142,6 +143,10 @@ contextBridge.exposeInMainWorld('api', {
         console.error('[get_md5_hash]: Error generating hash', error);
         return null;
     }
+  },
+
+  bcryptHash: (pass) => {
+    return bcrypt.hash(pass, 12);
   },
 
   // decompress gzip

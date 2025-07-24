@@ -305,7 +305,6 @@ export async function sendWebSocketMessage(message) {
         }
         reconnectingTrigger = true;
 
-        const { wsAddress, wsPort } = await fetchWsConfig();
         try {
             await attemptReconnection();
         } catch (error) {

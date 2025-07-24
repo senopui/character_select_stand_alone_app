@@ -140,6 +140,8 @@
         "right_menu_clear_gallery": "Clear Gallery",
         "right_menu_test_ai_generate": "Test AI Generate",
         "right_menu_send_lora_to_slot": "Send LoRA to Slot",
+        "right_menu_bcrypt_hash": "Hash Password",
+        "right_menu_bcrypt_hash_text": "Enter the HTTPS Login Password you want:",
 
         "save_settings_title": "Save Settings file\nPlease enter the name of the file to be saved.",
         "save_settings_success": "{0} Saved!",
@@ -312,6 +314,8 @@
         "right_menu_clear_gallery": "清空画廊",
         "right_menu_test_ai_generate": "测试AI题词",
         "right_menu_send_lora_to_slot": "将LoRA读入插槽",
+        "right_menu_bcrypt_hash": "计算密码哈希",
+        "right_menu_bcrypt_hash_text": "输入你要计算的HTTPS登陆密码：",
 
         "save_settings_title": "保存配置文件\n请输入要保存的文件名称：",
         "save_settings_success": "配置文件 {0} 保存成功",

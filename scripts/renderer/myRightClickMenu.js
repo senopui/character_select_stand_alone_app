@@ -1,4 +1,5 @@
 import { getAiPrompt } from './remoteAI.js';
+import { showDialog } from './myDialog.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 const CAT = '[RightClickMenu]';
@@ -424,6 +425,7 @@ function updateRightClickMenu(){
     window.rightClick.setTitle('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata);
     
     window.rightClick.setTitle('clear_gallery', LANG.right_menu_clear_gallery);
+    window.rightClick.setTitle('bcryptHash', LANG.right_menu_bcrypt_hash);
 
     window.rightClick.setTitle('lora_common_to_slot', LANG.right_menu_send_lora_to_slot);
     window.rightClick.setTitle('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot);
@@ -491,6 +493,24 @@ function registerDefaultMenuItems() {
     window.rightClick.append('clear_gallery', LANG.right_menu_clear_gallery, () => {
         window.mainGallery.clearGallery();
     });
+
+    if(!window.inBrowser) {
+        window.rightClick.append('bcryptHash', LANG.right_menu_bcrypt_hash, async () => {
+            const SETTINGS = window.globalSettings;
+            const FILES = window.cachedFiles;
+            const LANG = FILES.language[SETTINGS.language];
+            const password = await showDialog('input', { 
+                message: LANG.right_menu_bcrypt_hash_text,
+                placeholder: 'Password', 
+                defaultValue: '',
+                showCancel: false,
+                buttonText: LANG.setup_ok
+            });
+
+            const hashedPassword = await window.api.bcryptHash(password);
+            window.overlay.custom.createCustomOverlay('none', `\n\nRAW:\n${password}\n\nHASH:\n${hashedPassword}`);
+        });
+    }
 }
 
 function menu_copyImage(element) {
