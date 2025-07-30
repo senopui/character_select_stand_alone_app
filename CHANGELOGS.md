@@ -1,3 +1,8 @@
+2025.07.30 v1.10.0     
+Add metadata decode for Jpeg and Webp     
+Minor bug fixes     
+
+
 2025.07.25 v1.9.8          
 Enable SandBox     
 Remove dompurify     

@@ -101,34 +101,81 @@ function loadFile(relativePath, prefix='', filePath='') {
 }
 
 function processMetadata(buffer, offset, length) {
-  let metadataFound = '';
-  const chunkData = buffer.slice(offset, length);
-        
-  const nullPos = chunkData.indexOf(0);
-  if (nullPos !== -1) {
-    const keyword = chunkData.toString('ascii', 0, nullPos);
-    const textData = chunkData.toString('ascii', nullPos + 1);
-    
-    if (keyword === 'parameters' || keyword === 'prompt' || 
-        keyword === 'Comment' || keyword === 'Description' || 
-        keyword === 'Software' || keyword === 'AI-metadata') {
+  try {
+    const chunkData = buffer.slice(offset, length);
+    const nullPos = chunkData.indexOf(0);
+    let metadataFound = {};
+
+    if (nullPos !== -1) {
+      const keyword = chunkData.toString('utf8', 0, nullPos);
+      let textData;
+      try {
+        textData = chunkData.toString('utf8', nullPos + 1);
+      } catch {
+        // Fallback to latin1 for non-UTF-8 encodings
+        textData = chunkData.toString('latin1', nullPos + 1);
+      }
+
+      if (keyword === 'parameters' || keyword === 'prompt' || 
+          keyword === 'Comment' || keyword === 'Description' || 
+          keyword === 'Software' || keyword === 'AI-metadata') {
+        try {
+          metadataFound = JSON.parse(textData);
+        } catch {
+          metadataFound[keyword] = textData;
+        }
+        return metadataFound;
+      } else {
+        metadataFound[keyword] = textData;
+        return metadataFound;
+      }
+    } else {
+      // No null separator, try decoding entire chunk
+      let textData;
+      try {
+        textData = chunkData.toString('utf8');
+      } catch {
+        textData = chunkData.toString('latin1');
+      }
       
       try {
-        metadataFound = JSON.parse(textData);
+        return JSON.parse(textData);
       } catch {
-        metadataFound = textData;
+        return { data: textData };
       }
-              
-      return metadataFound;
     }
-    
-    if (!metadataFound) {
-      if (!metadataFound) metadataFound = {};
-      metadataFound[keyword] = textData;
-    }
+  } catch (error) {
+    console.warn(CAT, `Error processing metadata: ${error.message}`);
+    return null;
   }
-  
-  return null;
+}
+
+function decodeUnicodeData(buffer, startOffset) {
+  try {
+    // Try UTF-16BE
+    try {
+      return buffer.slice(startOffset).toString('utf16le');
+    } catch {
+      // Try UTF-16LE
+      try {
+        return buffer.slice(startOffset).toString('utf16be');
+      } catch {
+        // Try UTF-8 with BOM handling
+        if (buffer.length >= 3 && buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+          startOffset = 3; // Skip UTF-8 BOM
+        }
+        try {
+          return buffer.slice(startOffset).toString('utf8');
+        } catch {
+          // Fallback to Latin1
+          return buffer.toString('latin1');
+        }
+      }
+    }
+  } catch (error) {
+    console.warn(CAT, `Error decoding Unicode data: ${error.message}`);
+    return buffer.toString('latin1');
+  }
 }
 
 function extractPngMetadata(buffer) {
@@ -150,19 +197,156 @@ function extractPngMetadata(buffer) {
       
       if (type === 'tEXt') {
         metadataFound = processMetadata(buffer, offset, offset + length);
-        if(metadataFound){
+        if (metadataFound) {
           break;
         }
-        
       }
-      // For simplicity, we're only focusing on tEXt chunks now      
-      // Skip chunk data and CRC
       offset += length + 4;
     }
     
     return metadataFound;
   } catch (error) {
     console.error(CAT, 'Error in PNG metadata extraction:', error);
+    return null;
+  }
+}
+
+function extractJpegMetadata(buffer) {
+  try {
+    let offset = 2; // Skip JPEG SOI marker (0xFFD8)
+    let metadataFound = null;
+
+    while (offset < buffer.length - 4) {
+      if (buffer[offset] !== 0xFF) {
+        console.warn(CAT, 'Invalid JPEG segment marker', offset);
+        break;
+      }
+
+      const segmentType = buffer[offset + 1];
+      offset += 2;
+
+      const length = buffer.readUInt16BE(offset);
+      offset += 2;
+
+      if (offset + length - 2 > buffer.length) {
+        console.warn(CAT, 'Incomplete JPEG segment detected');
+        break;
+      }
+
+      if (segmentType === 0xE1) { // EXIF segment
+        const segmentData = buffer.slice(offset, offset + length - 2);
+        const textData = segmentData.toString('latin1'); // Use Latin1 to avoid decoding errors initially
+
+        let aiImageWithMetadata = false;
+
+        const marker = 'L>UNICODE'; //try comfyui first
+        const markerIndex = textData.indexOf(marker);
+        let decodedData;
+        if (markerIndex !== -1) {
+          const unicodeData = segmentData.slice(markerIndex + marker.length);
+          decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
+          aiImageWithMetadata = true;
+        } else {
+          const a1111_marker = '(UNICODE';  // try a1111
+          const a1111_markerIndex = textData.indexOf(a1111_marker);
+          if(a1111_markerIndex !== -1) {
+            const unicodeData = segmentData.slice(a1111_markerIndex + a1111_marker.length);
+            decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
+            aiImageWithMetadata = true;
+          }          
+        } // discard any other types
+
+        if(aiImageWithMetadata === true) {
+          try {
+            metadataFound = JSON.parse(decodedData);
+          } catch {
+            metadataFound = { data: decodedData };
+          }
+          break;
+        }
+      } else if (segmentType === 0xFE) { // COM segment
+        const segmentData = buffer.slice(offset, offset + length - 2);
+        const textData = decodeUnicodeData(segmentData);
+
+        if (textData.includes('parameters') || textData.includes('prompt') ||
+            textData.includes('Comment') || textData.includes('Description') ||
+            textData.includes('Software') || textData.includes('AI-metadata')) {
+          try {
+            metadataFound = JSON.parse(textData);
+          } catch {
+            metadataFound = { data: textData };
+          }
+          break;
+        }
+      }
+
+      offset += length - 2;
+    }
+
+    return metadataFound;
+  } catch (error) {
+    console.error(CAT, 'Error in JPEG metadata extraction:', error);
+    return null;
+  }
+}
+
+function extractWebpMetadata(buffer) {
+  try {
+    let offset = 12; // Skip RIFF header and WEBP identifier
+    let metadataFound = null;
+
+    while (offset < buffer.length - 8) {
+      const chunkType = buffer.toString('ascii', offset, offset + 4);
+      offset += 4;
+
+      const chunkSize = buffer.readUInt32LE(offset);
+      offset += 4;
+
+      if (offset + chunkSize > buffer.length) {
+        console.warn(CAT, 'Incomplete WebP chunk detected');
+        break;
+      }
+
+      if (chunkType === 'EXIF' || chunkType === 'XMP ') {
+        const chunkData = buffer.slice(offset, offset + chunkSize);
+        const textData = chunkData.toString('latin1'); // Use Latin1 to avoid decoding errors initially
+
+        let aiImageWithMetadata = false;
+
+        const marker = 'L^UNICODE'; //try comfyui first
+        const markerIndex = textData.indexOf(marker);
+        let decodedData;
+        if (markerIndex !== -1) {
+          const unicodeData = chunkData.slice(markerIndex + marker.length);
+          decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
+          aiImageWithMetadata = true;
+        } else {
+          const a1111_marker = '(UNICODE';  // try a1111
+          const a1111_markerIndex = textData.indexOf(a1111_marker);
+          if(a1111_markerIndex !== -1) {
+            const unicodeData = chunkData.slice(a1111_markerIndex + a1111_marker.length);
+            decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
+            aiImageWithMetadata = true;
+          }          
+        } // discard any other types
+
+        if(aiImageWithMetadata === true) {
+          try {
+            metadataFound = JSON.parse(decodedData);
+          } catch {
+            metadataFound = { data: decodedData };
+          }
+          break;
+        }
+      }
+
+      // Adjust offset for odd-sized chunks (WebP requires padding byte for odd sizes)
+      offset += chunkSize + (chunkSize % 2);
+    }
+
+    return metadataFound;
+  } catch (error) {
+    console.error(CAT, 'Error in WebP metadata extraction:', error);
     return null;
   }
 }
@@ -185,7 +369,7 @@ function setupFileHandlers() {
   });
 }
 
-function readImage(buffer, fileName, fileType){
+function readImage(buffer, fileName, fileType) {
   try {
     const imageBuffer = Buffer.from(buffer);
     const metadata = {
@@ -194,26 +378,40 @@ function readImage(buffer, fileName, fileType){
       metadata: null
     };
     
-    if (fileType.includes('png')) {         
+    if (fileType.includes('png')) {
       const pngMetadata = extractPngMetadata(imageBuffer);
       if (pngMetadata) {
         metadata.metadata = pngMetadata;
       }
+    } else if (fileType.includes('jpeg') || fileType.includes('jpg')) {
+      const jpegMetadata = extractJpegMetadata(imageBuffer);
+      if (jpegMetadata) {
+        metadata.metadata = jpegMetadata;
+      }
+    } else if (fileType.includes('webp')) {
+      const webpMetadata = extractWebpMetadata(imageBuffer);
+      if (webpMetadata) {
+        metadata.metadata = webpMetadata;
+      }
     } else {
-      console.warn(CAT, `Not a PNG file: ${fileType}`);
-      throw new Error(`Only PNG format is supported, received: ${fileType}`);
+      console.warn(CAT, `Unsupported file format: ${fileType}`);
+      throw new Error(`Only PNG, JPEG, and WebP formats are supported, received: ${fileType}`);
     }
     
     if (!metadata.metadata) {
       metadata.metadata = {
         dimensions: `${metadata.width}x${metadata.height}`,
-        format: 'png',
+        // Extracted ternary operation into a variable
+        format: (() => {
+          if (fileType.includes('png')) return 'png';
+          if (fileType.includes('webp')) return 'webp';
+          return 'jpeg';
+        })(),
         note: 'No AI generation metadata found'
       };
     }
     
     return metadata;
-    
   } catch (processingError) {
     console.error(CAT, `Image processing error: ${processingError.message}`);
     return {
@@ -255,64 +453,85 @@ function readSafetensors(modelPath, prefix, filePath) {
   }
 }
 
-function readBase64Image(dataUrl){
+function readBase64Image(dataUrl) {
   try {
     if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
-        console.error('Invalid data URL: Must start with "data:"');
-        return null;
+      console.error(CAT, 'Invalid data URL: Must start with "data:"');
+      return null;
     }
 
     const parts = dataUrl.split(',');
     if (parts.length !== 2) {
-        console.error('Invalid data URL: Missing comma separator');
-        return null;
+      console.error(CAT, 'Invalid data URL: Missing comma separator');
+      return null;
     }
 
     const mimePart = parts[0];
     const dataPart = parts[1];
 
     if (!mimePart.includes(';base64')) {
-        console.error('Invalid data URL: Only base64 encoding is supported');
-        return null;
+      console.error(CAT, 'Invalid data URL: Only base64 encoding is supported');
+      return null;
     }
 
-    if (typeof Buffer === 'undefined') {
-        console.error('Buffer class not available in this environment');
-        return null;
+    const mimeType = mimePart.split(':')[1].split(';')[0];
+    if (!mimeType.includes('image/png') && !mimeType.includes('image/jpeg') && 
+        !mimeType.includes('image/jpg') && !mimeType.includes('image/webp')) {
+      console.error(CAT, `Unsupported image format: ${mimeType}`);
+      return {
+        error: `Only PNG, JPEG, and WebP formats are supported, received: ${mimeType}`,
+        metadata: { note: 'Unsupported image format' }
+      };
     }
 
     let uint8Array;
     if (typeof atob !== 'undefined') {
-        const binaryString = atob(dataPart);
-        const len = binaryString.length;
-        uint8Array = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-            uint8Array[i] = binaryString.charCodeAt(i);
-        }
+      const binaryString = atob(dataPart);
+      const len = binaryString.length;
+      uint8Array = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        uint8Array[i] = binaryString.charCodeAt(i);
+      }
     } else {
-        uint8Array = Buffer.from(dataPart, 'base64');
+      uint8Array = Buffer.from(dataPart, 'base64');
     }
 
     const imageBuffer = Buffer.from(uint8Array);
     const metadata = {
       metadata: null
     };
-    
-    const pngMetadata = extractPngMetadata(imageBuffer);
-    if (pngMetadata) {
-      metadata.metadata = pngMetadata;
+
+    if (mimeType.includes('image/png')) {
+      const pngMetadata = extractPngMetadata(imageBuffer);
+      if (pngMetadata) {
+        metadata.metadata = pngMetadata;
+      }
+    } else if (mimeType.includes('image/jpeg') || mimeType.includes('image/jpg')) {
+      const jpegMetadata = extractJpegMetadata(imageBuffer);
+      if (jpegMetadata) {
+        metadata.metadata = jpegMetadata;
+      }
+    } else if (mimeType.includes('image/webp')) {
+      const webpMetadata = extractWebpMetadata(imageBuffer);
+      if (webpMetadata) {
+        metadata.metadata = webpMetadata;
+      }
     }
-    
+
     if (!metadata.metadata) {
       console.log(CAT, `No special metadata found`);
       metadata.metadata = {
         dimensions: `${metadata.width}x${metadata.height}`,
-        format: 'png',
+        // Extracted ternary operation into a variable
+        format: (() => {
+          if (mimeType.includes('image/png')) return 'png';
+          if (mimeType.includes('image/webp')) return 'webp';
+          return 'jpeg';
+        })(),
         note: 'No AI generation metadata found'
       };
-    }      
+    }
     return metadata;
-    
   } catch (processingError) {
     console.error(CAT, `Image processing error: ${processingError.message}`);
     return {

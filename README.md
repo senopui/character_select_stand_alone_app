@@ -2,7 +2,7 @@
 For more information check [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
 
 # Character Select SAA
-*If you find a character that isn't on the list but can be generated correctly, please don't hesitate to let me know.*    
+### If you find a character that isn't show on the list but can be generated correctly, please don't hesitate to let me know.
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.    
 Now supports 5326 (includes multiple costumes) Characters in list.   
@@ -93,8 +93,8 @@ Use `mouse` to select the prompt word, but you can also use the `keyboard up and
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tagAutoComplete.png" width=45%>   
 
 ## Image info
-Just drag your image into SAA window, only support PNG for now.     
-Works both for WebUI(A1111) and ComfyUI(with image save node).      
+Drag and drop your image into SAA window, supports Png/Jpeg/Webp.     
+Works both for WebUI(A1111) and ComfyUI(with image save node from ComfyUI_Mira).      
 Double click the image to close.     
 The `Send` button will override `Common Prompt`, `Negative Prompt`, `Width & Height`, `CFG`, `Setp` and `Seed`.    
 LoRA in `Common Prompt` also works if you have the same one. If you don't like LoRA in prompts, try `Send LoRA to Slot`.      
@@ -121,7 +121,8 @@ Once got result from Remote/Local AI, an information overlay will show in screen
 **Copy Image/Metadata**     
 Right click on `Gallery` to copy current image or copy the metadata to clipboard.     
 ComfyUI with Image Saver node will output an a1111 like metadata.      
-Copy image based on convert base64 data back to png, so I didn't put metadata back, ~because most social software will trim it again.~ The truth is metadata trimed by chromium core, it's impossible to put them back with chromium API, a C based lib could solve that problem, but it's not worth to do. If you do need the original image, try dragging and dropping or getting it from the relevant (ComfyUI/WebUI) output folder.      
+Copy image based on convert base64 data back to png, but metadata trimed by chromium core, it's impossible to put them back with chromium API, a C based lib could solve that problem, but it's not worth to do. If you do need the original image, check from the relevant (ComfyUI/WebUI) output folder.      
+For SAAC: Drag and drop image from browser to local folder or `save as` from browser right click.        
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/copyImage.png" width=35%>
 
 **Send LoRA to Slot**     

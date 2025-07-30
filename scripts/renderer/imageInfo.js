@@ -184,7 +184,7 @@ export function setupImageUploadOverlay() {
             if(files[0].type.startsWith('image/')) {
                 const file = files[0];
                 try {
-                    const metadata = await extractImageMetadata(file);
+                    const metadata = await extractImageMetadata(file);                    
                     showImagePreview(file);
                     displayFormattedMetadata(metadata);
                 } catch (err) {
@@ -403,7 +403,7 @@ export function setupImageUploadOverlay() {
           return result;
         }
       
-        const { positivePrompt, negativePrompt, otherParams } = parsePrompts(metadata.generationParameters);
+        const { positivePrompt, negativePrompt, otherParams } = parsePrompts(metadata);        
         return assignResults(result, positivePrompt, negativePrompt, otherParams);
     }
       
@@ -417,10 +417,27 @@ export function setupImageUploadOverlay() {
     }
 
     function isValidGenerationParameters(metadata) {
-        return metadata.generationParameters && typeof metadata.generationParameters === 'string';
+        if (metadata.fileType === 'image/jpeg' || metadata.fileType === 'image/webp')
+        {
+            return metadata.generationParameters.data && typeof metadata.generationParameters.data === 'string';
+        }
+        else if (metadata.fileType === 'image/png') {
+            return metadata.generationParameters.parameters && typeof metadata.generationParameters.parameters === 'string';
+        }
+
+        return false;
     }
 
-    function parsePrompts(paramString) {
+    function parsePrompts(metadata) {
+        let paramString = '';
+        if (metadata.fileType === 'image/jpeg' || metadata.fileType === 'image/webp')
+        {
+            paramString = metadata.generationParameters.data;
+        }
+        else if (metadata.fileType === 'image/png') {
+            paramString = metadata.generationParameters.parameters;
+        }        
+        
         const lines = paramString.split('\n').map(line => line.trim()).filter(line => line);
         let positivePrompt = [];
         let negativePrompt = '';
