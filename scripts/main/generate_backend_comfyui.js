@@ -336,15 +336,34 @@ class ComfyUI {
         if (!hifix.enable) {
             // Image Save set to 1st VAE Decode
             workflow["29"].inputs.images = ["6", 0];
-        }else {
-            // Set Hires fix parameters
-            workflow["17"].inputs.HiResMultiplier = hifix.scale;
+        }else {           
             // Set Hires fix seed and denoise
             workflow["20"].inputs.seed = hifix.seed;
             workflow["20"].inputs.denoise = hifix.denoise;
             workflow["20"].inputs.steps = hifix.steps;
-            // Set Hires fix model name
-            workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+
+            // Latent or Model hifix
+            if (hifix?.model.includes('Latent')) {
+                const match = hifix.model.match(/\(([^)]+)\)/);
+                const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
+
+                workflow["46"].inputs.upscale_method = latentMethod;
+                workflow["46"].inputs.scale_by = hifix.scale;
+
+                // Check if refiner enabled
+                if (refiner.enable){
+                  workflow["46"].inputs.samples = ["37", 0];
+                }
+
+                // Connect to 2nd KSampler
+                workflow["20"].inputs.latent_image = ["46", 0];        
+            } else {
+              // Set Hires fix parameters
+              workflow["17"].inputs.HiResMultiplier = hifix.scale;
+
+              // Set Hires fix model name
+              workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+            }
 
             if(hifix.colorTransfer === 'None'){
                 // Image Save set to 2nd VAE Decode (Tiled)
@@ -460,14 +479,33 @@ class ComfyUI {
           // Image Save set to 1st VAE Decode
           workflow["29"].inputs.images = ["6", 0];
       }else {
-          // Set Hires fix parameters
-          workflow["17"].inputs.HiResMultiplier = hifix.scale;
           // Set Hires fix seed and denoise
           workflow["20"].inputs.seed = hifix.seed;
           workflow["20"].inputs.denoise = hifix.denoise;
           workflow["20"].inputs.steps = hifix.steps;
-          // Set Hires fix model name
-          workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+
+          // Latent or Model hifix
+          if (hifix?.model.includes('Latent')) {
+              const match = hifix.model.match(/\(([^)]+)\)/);
+              const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
+
+              workflow["58"].inputs.upscale_method = latentMethod;
+              workflow["58"].inputs.scale_by = hifix.scale;
+
+              // Check if refiner enabled
+              if (refiner.enable){
+                workflow["58"].inputs.samples = ["37", 0];
+              }
+
+              // Connect to 2nd KSampler
+              workflow["20"].inputs.latent_image = ["58", 0];        
+          } else {
+            // Set Hires fix parameters
+            workflow["17"].inputs.HiResMultiplier = hifix.scale;
+
+            // Set Hires fix model name
+            workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+          }
 
           if(hifix.colorTransfer === 'None'){
               // Image Save set to 2nd VAE Decode (Tiled)
@@ -475,7 +513,7 @@ class ComfyUI {
           } else {
               // Default to Image Color Transfer
               workflow["28"].inputs.method = hifix.colorTransfer;
-          }            
+          }  
       }
       
       return workflow;
@@ -1091,6 +1129,20 @@ const WORKFLOW = {
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
       "title": "Load Checkpoint"
+    }
+  },
+  "46": {
+    "inputs": {
+      "samples": [
+        "36",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "scale_by": 1.5
+    },
+    "class_type": "LatentUpscaleBy",
+    "_meta": {
+      "title": "Upscale Latent By"
     }
   }
 };
@@ -1768,6 +1820,20 @@ const WORKFLOW_REGIONAL = {
     "class_type": "ConditioningCombine",
     "_meta": {
       "title": "Conditioning (Combine)"
+    }
+  },
+  "58": {
+    "inputs": {
+      "samples": [
+        "36",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "scale_by": 1.5
+    },
+    "class_type": "LatentUpscaleBy",
+    "_meta": {
+      "title": "Upscale Latent By"
     }
   }
 };

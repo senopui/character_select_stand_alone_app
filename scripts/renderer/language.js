@@ -248,6 +248,9 @@ export function updateSettings() {
 
     window.generate.refiner.setValue(SETTINGS.api_refiner_enable);
     window.generate.refiner_dummy.setValue(SETTINGS.api_refiner_enable);
+
+    window.hifix.model.setOptions(SETTINGS.api_hf_upscaler_list, null, LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_selected);
+
     window.refiner.addnoise.setValue(SETTINGS.api_refiner_add_noise);    
     window.refiner.model.updateDefaults(SETTINGS.api_refiner_model);
     window.refiner.vpred.updateDefaults(SETTINGS.api_refiner_model_vpred);
