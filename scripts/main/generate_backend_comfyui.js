@@ -117,6 +117,7 @@ class ComfyUI {
                           resolve(`Error: ${err.message}`);
                       }
                     } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {
+                      Main.setMutexBackendBusy(false, this.uuid);  // Release the mutex after getting the image
                       console.log(CAT, 'Running same promot? message =', message);
                       resolve(null);
                     }
