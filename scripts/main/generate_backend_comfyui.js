@@ -455,65 +455,99 @@ class ComfyUI {
         }
     }
 
-    async getUrl() {
-        return new Promise((resolve, reject) => {
-            const apiUrl = `http://${this.addr}/${this.urlPrefix}`;
-    
-            let request = net.request({
-                url: apiUrl,
-                timeout: this.timeout
-            });
-    
-            const chunks = [];
-    
-            request.on('response', (response) => {
-                response.on('data', (chunk) => {
-                    chunks.push(Buffer.from(chunk));
-                });
-                
-                response.on('end', () => {
-                    if (response.statusCode !== 200) {
-                        console.error(`${CAT} HTTP error: ${response.statusCode}`);
-                        resolve(`Error: HTTP error ${response.statusCode}`);
-                        return;
-                    }
-                    
-                    const buffer = Buffer.concat(chunks);
-                    
-                    if (this.urlPrefix.startsWith('history')) {
-                        try {
-                            resolve(buffer.toString('utf8'));
-                        } catch (e) {
-                            console.error(`${CAT} Failed to parse JSON:`, e);
-                            resolve(`Error: Failed to parse response`);
-                        }
-                    } else {
-                        resolve(buffer);
-                    }
-                });
-            });
-            
-            request.on('error', (error) => {
-                let ret = '';
-                if (error.code === 'ECONNABORTED') {
-                    console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                    ret = `Error: Request timed out after ${this.timeout}ms`;
-                } else {
-                    console.error(CAT, 'Request failed:', error.message);
-                    ret = `Error: Request failed:, ${error.message}`;
-                }
-                resolve(ret);
-            });
-    
-            request.on('timeout', () => {
-                request.destroy();
-                console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                resolve(`Error: Request timed out after ${this.timeout}ms`);
-            });
-    
-            request.end();
-        });
+  // Invalid addr blocklist
+  static addrBlockList = {};
+  static blockDuration = 5 * 60 * 1000; // 5min
+
+  // urlPrefix whitelist
+  static allowedPrefixes = [
+    'history/',
+    'view?filename=',
+    'interrupt',
+    'prompt',
+    'ws',
+  ];
+
+  async getUrl() {
+    // check addr blocklist
+    const now = Date.now();
+    if (ComfyUI.addrBlockList[this.addr] && ComfyUI.addrBlockList[this.addr] > now) {
+      return `Error: This address is temporarily blocked due to previous failures.`;
     }
+
+    // verify urlPrefix whitelist
+    const isAllowedPrefix = ComfyUI.allowedPrefixes.some(prefix => this.urlPrefix.startsWith(prefix));
+    if (!isAllowedPrefix) {
+      return `Error: urlPrefix not allowed.`;
+    }
+
+    let apiUrl = '';
+    if (/^https?:\/\//i.test(this.addr)) {
+      apiUrl = `${this.addr}/${this.urlPrefix}`;
+    } else {
+      apiUrl = `http://${this.addr}/${this.urlPrefix}`;
+    }
+
+    return new Promise((resolve, reject) => {
+      let request = net.request({
+        url: apiUrl,
+        timeout: this.timeout
+      });
+
+      const chunks = [];
+
+      request.on('response', (response) => {
+        response.on('data', (chunk) => {
+          chunks.push(Buffer.from(chunk));
+        });
+
+        response.on('end', () => {
+          if (response.statusCode !== 200) {
+            console.error(`${CAT} HTTP error: ${response.statusCode}`);
+            // blocklist for failed access
+            ComfyUI.addrBlockList[this.addr] = Date.now() + ComfyUI.blockDuration;
+            resolve(`Error: HTTP error ${response.statusCode}`);
+            return;
+          }
+
+          const buffer = Buffer.concat(chunks);
+
+          if (this.urlPrefix.startsWith('history')) {
+            try {
+              resolve(buffer.toString('utf8'));
+            } catch (e) {
+              console.error(`${CAT} Failed to parse JSON:`, e);
+              resolve(`Error: Failed to parse response`);
+            }
+          } else {
+            resolve(buffer);
+          }
+        });
+      });
+
+      request.on('error', (error) => {
+        let ret = '';
+        ComfyUI.addrBlockList[this.addr] = Date.now() + ComfyUI.blockDuration;
+        if (error.code === 'ECONNABORTED') {
+          console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+          ret = `Error: Request timed out after ${this.timeout}ms`;
+        } else {
+          console.error(CAT, 'Request failed:', error.message);
+          ret = `Error: Request failed:, ${error.message}`;
+        }
+        resolve(ret);
+      });
+
+      request.on('timeout', () => {
+        request.destroy();
+        ComfyUI.addrBlockList[this.addr] = Date.now() + ComfyUI.blockDuration;
+        console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+        resolve(`Error: Request timed out after ${this.timeout}ms`);
+      });
+
+      request.end();
+    });
+  }
 
     createWorkflow(generateData) {
         const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
