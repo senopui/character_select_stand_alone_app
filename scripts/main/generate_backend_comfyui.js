@@ -46,6 +46,267 @@ function processImage(imageData) {
     }
 }
 
+function applyControlnet(workflow, controlnet, workflowInfo){
+  let {startIndex, now_pos, now_neg, refiner, ref_pos, ref_neg, hiresfix} = workflowInfo;
+
+  if (Array.isArray(controlnet)) {
+    let index = startIndex + 1;
+
+    controlnet.forEach((slot, idx) => {
+      // skip missing
+      if(slot.postModel === 'none') {
+        console.log(CAT,"[applyControlnet] Skip", idx, slot);
+        return;
+      }
+
+      if(slot.image) {  // need pre process and post process
+        workflow[`${index}`] = {
+          "inputs": {
+            "base64text": slot.image
+          },
+          "class_type": "GzippedBase64ToImage",
+          "_meta": {
+            "title": "Gzipped Base64 To Image"
+          }
+        };
+
+        workflow[`${index+1}`] = {
+          "inputs": {
+            "preprocessor": slot.preModel,
+            "resolution": slot.preRes,
+            "image": [
+              `${index}`,
+              0
+            ]
+          },
+          "class_type": "AIO_Preprocessor",
+          "_meta": {
+            "title": "AIO Aux Preprocessor"
+          }
+        };
+
+        workflow[`${index+2}`] = {
+          "inputs": {
+            "control_net_name": slot.postModel
+          },
+          "class_type": "ControlNetLoader",
+          "_meta": {
+            "title": "Load ControlNet Model"
+          }
+        };
+
+        workflow[`${index+3}`] = {
+          "inputs": {
+            "strength": slot.postStr,
+            "start_percent": slot.postStart,
+            "end_percent": slot.postEnd,
+            "positive": [
+              `${now_pos}`,
+              0
+            ],
+            "negative": [
+              `${now_neg}`,
+              0
+            ],
+            "control_net": [
+              `${index+2}`,
+              0
+            ],
+            "image": [
+              `${index+1}`,
+              0
+            ],
+            "vae": [
+              "45",
+              2
+            ]
+          },
+          "class_type": "ControlNetApplyAdvanced",
+          "_meta": {
+            "title": "Apply ControlNet"
+          }
+        };
+
+        // update condition point
+        now_pos = index+3;
+        now_neg = now_pos;
+
+        workflow["36"]["inputs"]["positive"] = [`${now_pos}`, 0];
+        workflow["36"]["inputs"]["negative"] = [`${now_neg}`, 1];
+
+        // move to next
+        index = index + 4;
+
+        if(refiner) {
+          workflow[`${index}`] = {
+            "inputs": {
+              "strength": slot.postStr,
+              "start_percent": slot.postStart,
+              "end_percent": slot.postEnd,
+              "positive": [
+                `${ref_pos}`,
+                0
+              ],
+              "negative": [
+                `${ref_neg}`,
+                0
+              ],
+              "control_net": [
+                `${index-4+1}`,
+                0
+              ],
+              "image": [
+                `${index-4}`,
+                0
+              ],
+              "vae": [
+                "43",
+                2
+              ]
+            },
+            "class_type": "ControlNetApplyAdvanced",
+            "_meta": {
+              "title": "Apply ControlNet"
+            }
+          };
+
+          ref_pos = index;
+          ref_neg = ref_pos;
+          workflow["37"]["inputs"]["positive"] = [`${ref_pos}`, 0];
+          workflow["37"]["inputs"]["negative"] = [`${ref_neg}`, 1];
+
+          // move to next
+          index = index + 1;
+        }
+        
+        if(hiresfix && refiner) {
+          workflow["20"]["inputs"]["positive"] = [`${ref_pos}`, 0];
+          workflow["20"]["inputs"]["negative"] = [`${ref_neg}`, 1];
+        } else if(hiresfix) {
+          workflow["20"]["inputs"]["positive"] = [`${now_pos}`, 0];
+          workflow["20"]["inputs"]["negative"] = [`${now_neg}`, 1];
+        }
+      } else if(slot.imageAfter) {  // only need post process
+        workflow[`${index}`] = {
+          "inputs": {
+            "base64text": slot.imageAfter
+          },
+          "class_type": "GzippedBase64ToImage",
+          "_meta": {
+            "title": "Gzipped Base64 To Image"
+          }
+        };
+
+        workflow[`${index+1}`] = {
+          "inputs": {
+            "control_net_name": slot.postModel
+          },
+          "class_type": "ControlNetLoader",
+          "_meta": {
+            "title": "Load ControlNet Model"
+          }
+        };
+
+        workflow[`${index+2}`] = {
+          "inputs": {
+            "strength": slot.postStr,
+            "start_percent": slot.postStart,
+            "end_percent": slot.postEnd,
+            "positive": [
+              `${now_pos}`,
+              0
+            ],
+            "negative": [
+              `${now_neg}`,
+              0
+            ],
+            "control_net": [
+              `${index+1}`,
+              0
+            ],
+            "image": [
+              `${index}`,
+              0
+            ],
+            "vae": [
+              "45",
+              2
+            ]
+          },
+          "class_type": "ControlNetApplyAdvanced",
+          "_meta": {
+            "title": "Apply ControlNet"
+          }
+        };
+
+        // update condition point
+        now_pos = index+2;
+        now_neg = now_pos;
+
+        workflow["36"]["inputs"]["positive"] = [`${now_pos}`, 0];
+        workflow["36"]["inputs"]["negative"] = [`${now_neg}`, 1];
+
+        // move to next
+        index = index + 3;
+
+        if(refiner) {
+          workflow[`${index}`] = {
+            "inputs": {
+              "strength": slot.postStr,
+              "start_percent": slot.postStart,
+              "end_percent": slot.postEnd,
+              "positive": [
+                `${ref_pos}`,
+                0
+              ],
+              "negative": [
+                `${ref_neg}`,
+                0
+              ],
+              "control_net": [
+                `${index-3+1}`,
+                0
+              ],
+              "image": [
+                `${index-3}`,
+                0
+              ],
+              "vae": [
+                "43",
+                2
+              ]
+            },
+            "class_type": "ControlNetApplyAdvanced",
+            "_meta": {
+              "title": "Apply ControlNet"
+            }
+          };
+
+          ref_pos = index;
+          ref_neg = ref_pos;
+          workflow["37"]["inputs"]["positive"] = [`${ref_pos}`, 0];
+          workflow["37"]["inputs"]["negative"] = [`${ref_neg}`, 1];
+
+          // move to next
+          index = index + 1;
+        }
+
+        if(hiresfix && refiner) {
+          workflow["20"]["inputs"]["positive"] = [`${ref_pos}`, 0];
+          workflow["20"]["inputs"]["negative"] = [`${ref_neg}`, 1];
+        } else if(hiresfix) {
+          workflow["20"]["inputs"]["positive"] = [`${now_pos}`, 0];
+          workflow["20"]["inputs"]["negative"] = [`${now_neg}`, 1];
+        }
+      } else {  // should not here
+        return;
+      }
+    });
+  }
+
+  return workflow;
+}
+
 class ComfyUI {
     constructor(clientID) {
         this.clientID = clientID;
@@ -85,12 +346,12 @@ class ComfyUI {
       request.end();
     }
 
-    async openWS(prompt_id){
+    async openWS(prompt_id, skipFirst = true, index='29'){
         return new Promise((resolve) => {
           this.prompt_id = prompt_id;
           this.preview = 0;
           this.step = 0;
-          this.firstValidPreview = false;
+          this.firstValidPreview = !skipFirst;
 
           const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
           this.webSocket = new WebSocket(wsUrl);            
@@ -101,7 +362,7 @@ class ComfyUI {
                     const msgData = message.data;
                     if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
                       try {
-                          const image = await this.getImage();
+                          const image = await this.getImage(index);
                           Main.setMutexBackendBusy(false, this.uuid);  // Release the mutex after getting the image
                           if (image && Buffer.isBuffer(image)) {
                               const base64Image = processImage(image);
@@ -165,7 +426,7 @@ class ComfyUI {
         this.webSocke = null;        
     }
 
-    async getImage() {
+    async getImage(index='29') {
         try {
             this.urlPrefix = `history/${this.prompt_id}`;
             const historyResponse = await this.getUrl();            
@@ -175,11 +436,11 @@ class ComfyUI {
             }
             
             const jsonData = JSON.parse(historyResponse);
-            if (!jsonData[this.prompt_id]?.outputs['29']?.images) {
+            if (!jsonData[this.prompt_id]?.outputs[index]?.images) {
                 return null;
             }
             
-            const imageInfo = jsonData[this.prompt_id].outputs['29'].images[0];            
+            const imageInfo = jsonData[this.prompt_id].outputs[index].images[0];            
             this.urlPrefix = `view?filename=${imageInfo.filename}&subfolder=${imageInfo.subfolder}&type=${imageInfo.type}`;            
             const imageData = await this.getUrl();
             if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
@@ -255,7 +516,7 @@ class ComfyUI {
     }
 
     createWorkflow(generateData) {
-        const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
+        const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
         this.addr = addr;
         this.refresh = refresh;
         this.auth = auth;
@@ -375,11 +636,22 @@ class ComfyUI {
             }            
         }
 
+        // default pos and neg to ksampler
+        const workflowInfo = {
+          startIndex: 46,
+          now_pos:    2,
+          now_neg:    3,
+          refiner:    refiner.enable,
+          ref_pos:    41,
+          ref_neg:    40,
+          hiresfix:   hifix.enable
+        };
+        workflow = applyControlnet(workflow, controlnet, workflowInfo);
         return workflow;
     }
 
     createWorkflowRegional(generateData) {      
-      const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional} = generateData;
+      const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional, controlnet} = generateData;
       this.addr = addr;
       this.refresh = refresh;
       this.auth = auth;
@@ -516,13 +788,36 @@ class ComfyUI {
               workflow["28"].inputs.method = hifix.colorTransfer;
           }  
       }
-      
+
+      // default pos and neg to ksampler
+      const workflowInfo = {
+        startIndex: 58,
+        now_pos:    53,
+        now_neg:    3,
+        refiner:    refiner.enable,
+        ref_pos:    57,
+        ref_neg:    40,
+        hiresfix:   hifix.enable
+      };
+      workflow = applyControlnet(workflow, controlnet, workflowInfo);                                         
+      return workflow;
+    }
+
+    createWorkflowControlnet(generateData){
+      const {addr, auth, uuid, imageData, controlNet, outputResolution} = generateData;
+      this.addr = addr;
+      this.auth = auth;
+      this.uuid = uuid;
+
+      let workflow = JSON.parse(JSON.stringify(WORKFLOW_CONTROLNET));
+      workflow["1"].inputs.base64text = imageData;
+      workflow["2"].inputs.preprocessor = controlNet;
+      workflow["2"].inputs.resolution = outputResolution;
       return workflow;
     }
 
     run(workflow) {
       return new Promise((resolve, reject) => {
-
         const requestBody = {
           prompt: workflow,
           client_id: this.clientID
@@ -590,6 +885,10 @@ async function setupGenerateBackendComfyUI() {
         return await runComfyUI_Regional(generateData);
     });
 
+    ipcMain.handle('generate-backend-comfyui-run-controlnet', async (event, generateData) => {
+        return await runComfyUI_ControlNet(generateData);
+    });
+
     ipcMain.handle('generate-backend-comfyui-open-ws', async (event, prompt_id) => {
         return await backendComfyUI.openWS(prompt_id);
     });
@@ -631,8 +930,40 @@ async function runComfyUI_Regional(generateData) {
   return result;
 }
 
-async function openWsComfyUI(prompt_id) {
-  return await backendComfyUI.openWS(prompt_id);
+async function runComfyUI_ControlNet(generateData){
+  const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+  if (isBusy) {
+    console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
+    return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
+  }
+  Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
+
+  const workflow = backendComfyUI.createWorkflowControlnet(generateData)
+  console.log(CAT, 'Running ComfyUI ControlNet with uuid:', backendComfyUI.uuid);
+  const result = await backendComfyUI.run(workflow);
+
+  if(!result.startsWith('Error')){
+    const parsedResult = JSON.parse(result);
+    let newImage;
+    if (parsedResult.prompt_id) {
+      try {                
+        newImage = await openWsComfyUI(parsedResult.prompt_id, false, '3');
+      } catch (error){
+        console.log("Error with ControlNet:", error);
+      } finally {
+        closeWsComfyUI();
+      }
+      return newImage;
+    } 
+  } else {
+    console.log("Error with ControlNet:", result);
+  }
+
+  return result;
+}
+
+async function openWsComfyUI(prompt_id, skipFirst=true, index='29') {
+  return await backendComfyUI.openWS(prompt_id, skipFirst,index);
 }
 
 function closeWsComfyUI() {
@@ -649,6 +980,7 @@ module.exports = {
   setupGenerateBackendComfyUI,
   runComfyUI,
   runComfyUI_Regional,
+  runComfyUI_ControlNet,
   openWsComfyUI,
   closeWsComfyUI,
   cancelComfyUI
@@ -1835,6 +2167,44 @@ const WORKFLOW_REGIONAL = {
     "class_type": "LatentUpscaleBy",
     "_meta": {
       "title": "Upscale Latent By"
+    }
+  }
+};
+
+const WORKFLOW_CONTROLNET = {
+  "1": {
+    "inputs": {
+      "base64text": ""
+    },
+    "class_type": "GzippedBase64ToImage",
+    "_meta": {
+      "title": "Gzipped Base64 To Image"
+    }
+  },
+  "2": {
+    "inputs": {
+      "preprocessor": "Manga2Anime_LineArt_Preprocessor",
+      "resolution": 512,
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "AIO_Preprocessor",
+    "_meta": {
+      "title": "AIO Aux Preprocessor"
+    }
+  },
+  "3": {
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
     }
   }
 };

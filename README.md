@@ -19,12 +19,15 @@ Now supports 5326 (includes multiple costumes) Characters in list.
 | Image Color Transfer | Yes | No | No |
 | Image Info to Prompt | Yes | Yes | Yes |
 | Regional Condition | Yes | No | No |
+| ControlNet | Yes | No | No |
 | API authentication| No | Yes | Yes |
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
 
 ## Install and run
 Setup your [API Call](https://github.com/mirabarukaso/character_select_stand_alone_app#api-call-for-local-image-generator) before you start SAA.     
+
+Important: For ComfyUI, you need [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) for SAA.     
 
 Clone this repo into your local folder     
 ```
@@ -57,6 +60,20 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
      
 ------
 # Highlights
+## ControlNet (ComfyUI only)
+ControlNet currently only supports ComfyUI and requires [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version `0.4.9.6 or above` AND [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) must be installed.       
+
+1. Drag and drop your Image(or openPose image) to SAA/SAAC `Image Info`, select `Pre-processor`, `Resolution`, `Post-processor` and then click `Add ControlNet`. After it says `Added` the previre image will swap to your `Pre-processed` image, close `Image info` window, check `ControlNet` tab for more settings. **Hover your mouse over a dropdown/text item to view its feature.**                 
+2. In `ControlNet` tab, you can change `Pre-processor` by select the a one and click `Refresh` to generate it and update preview. (Or set `Method` to `On` but SAA preview will not update).      
+3. Because images are too big to save in settings file, so `ControlNet` settings will not save when SAA close, but also select another settings will not override current `ControlNet` settings.      
+4. `ControlNet` works on normal and regional conditon.       
+5. If you are new to `ControlNet`, try `Canny` or `OpenPose` first.      
+
+All `Pre-processor` models are managed by  [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) and most of them will download from Hugging Face.      
+All `Post-processor` models, aka the `Apply ControlNet Model` you need download by yourself from `ComfyUI Model Manager` or Hugging Face.      
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/controlnet.png" width=35%>   
+
 ## Wildcards    
 Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wildcards`      
 By default, wildcards are randomly selected using the current seed. If `wildcard random seed` is `Checked`, a new random seed will be generated for every selection every time.      
@@ -65,8 +82,6 @@ By default, wildcards are randomly selected using the current seed. If `wildcard
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
 
 ## Regional Condition (ComfyUI only)
-**'Cause WebUI(A1111) dosn't provide any regional API, sorry...**  
-
 Get tired of [complex workflow](https://github.com/mirabarukaso/ComfyUI_Mira/issues/12#issuecomment-2727190727)?      
 Try SAA Regional Condition with only 3 steps:     
 1. Click the `Regional Condition` Checkbox     
@@ -217,3 +232,6 @@ A Browser based SAA?
 1. YES    
 2. Check `Advanced security settings (API authentication)` for more information.    
 
+Error HTTP 400 ...... Cannot xecute because node StepAndCfg does not exist ......       
+1. Install `ComfyUI_Mira`     
+2. Restart your ComfyUI      

@@ -461,6 +461,144 @@ export function checkVpred(){
     return vPred;
 }
 
+export function convertBase64ImageToUint8Array(image) {
+    if (!image?.startsWith('data:image/png;base64,'))
+        return null;
+
+    try {
+        const base64Data = image.replace('data:image/png;base64,', '');            
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        /*
+        In case of any other types...
+
+        const blob = new Blob([bytes], { type: 'image/png' });
+        const file = new File([blob], `${name}.png`, { type: 'image/png' });
+        */
+        return bytes;
+        
+    } catch (error) {
+        console.error('Error converting base64 to image object:', error);
+        return null;
+    }
+}
+
+export async function createControlNet() {
+    if(!window.generate.controlnet.getValue())
+        return 'none';
+
+    let controlnetToBackend = [];
+    let controlNetList = window.controlnet.getValues(true);
+    controlNetList.forEach((
+        [preProcessModel, preProcessResolution, 
+        slot_enable, postProcessModel, postProcessStrength, postProcessStart, postProcessEnd,
+        pre_image, pre_image_after]) => {
+
+        if(slot_enable === 'Off')
+            return;
+
+        const cnData = {
+            preModel:   preProcessModel,
+            preRes:     preProcessResolution,
+            postModel:  postProcessModel,
+            postStr:    postProcessStrength,
+            postStart:  postProcessStart,
+            postEnd:    postProcessEnd,
+            image:      (slot_enable === 'On')? pre_image:null,
+            imageAfter: (slot_enable === 'Post')? pre_image_after:null
+        };
+
+        controlnetToBackend.push(cnData);
+    });
+
+    return controlnetToBackend;
+}
+
+export async function generateControlnetImage(imageData, controlNetSelect, controlNetResolution, skipGzip=false){
+    let ret = 'success';
+    let retCopy = '';
+    const SETTINGS = window.globalSettings;
+    const FILES = window.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
+    window.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+
+    let res = Number(controlNetResolution) || 512;
+    res = Math.round(res / 64) * 64;
+    if (res < 512) res = 512;
+    if (res > 2048) res = 2048;
+    controlNetResolution = res;
+
+    let imageGzipped = imageData;
+    if(!skipGzip) {
+        const buffer = await imageData.arrayBuffer();
+        const uint8Array = new Uint8Array(buffer);
+        
+        if (!window.inBrowser) {
+            imageGzipped = await window.api.compressGzip(uint8Array);
+        } else {
+            imageGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(uint8Array)] });
+        }
+    }
+
+    let browserUUID = 'none';
+    if(window.inBrowser) {
+        browserUUID = window.clientUUID;
+    }
+    const apiInterface = window.generate.api_interface.getValue();
+    const generateData = {
+        addr: extractHostPort(window.generate.api_address.getValue()),
+        auth: extractAPISecure(apiInterface),
+        uuid: browserUUID,
+        imageData: imageGzipped,
+        controlNet: controlNetSelect,
+        outputResolution: controlNetResolution
+    };
+    
+    let newImage;
+    if(apiInterface === 'None') {
+        console.warn('apiInterface', apiInterface);
+    } else if(apiInterface === 'ComfyUI') {        
+        if (!window.inBrowser) {
+            newImage = await window.api.runComfyUI_ControlNet(generateData);
+        } else {
+            newImage = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI_ControlNet', params: [generateData] });
+        }     
+
+        if(!newImage) {
+            ret = 'No Image return from ComfyUI Backend';
+        } else if(newImage.startsWith('Error')) {
+            ret = newImage;
+            newImage = ret;
+        } 
+        retCopy = ret;
+    } else if(apiInterface === 'WebUI') {
+        console.log('Error: not support WebUI');
+        ret = LANG.message_controlnet_not_support_webui;
+        retCopy = ret;
+        newImage = ret;
+    }
+
+    const preImageAft = convertBase64ImageToUint8Array(newImage);
+    let preImageAftGzipped;
+    if (!window.inBrowser) {
+        preImageAftGzipped = await window.api.compressGzip(preImageAft);
+    } else {
+        preImageAftGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(preImageAft)] });
+    }
+    window.mainGallery.hideLoading(ret, retCopy);
+
+    return {
+        preImage: imageGzipped, 
+        preImageAfter: preImageAftGzipped,
+        preImageAfterBase64: newImage
+    };
+}
+
 export async function generateImage(loops, runSame){
     let ret = 'success';
     let retCopy = '';
@@ -522,7 +660,8 @@ export async function generateImage(loops, runSame){
             scheduler: window.generate.scheduler.getValue(),
             refresh:window.generate.api_preview_refresh_time.getValue(),
             hifix: hifix,
-            refiner: refiner,            
+            refiner: refiner,
+            controlnet: await createControlNet(),
         }
 
         let finalInfo = `${createPromptResult.finalInfo}\n`;

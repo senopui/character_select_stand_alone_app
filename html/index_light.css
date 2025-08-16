@@ -20,41 +20,6 @@ body {
     align-items: center;
 }
 
-#settings-save-icon, #image-info-icon {
-    -webkit-mask: url('../scripts/svg/save.svg') no-repeat center;
-    mask: url('../scripts/svg/save.svg') no-repeat center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-}
-
-#model-refresh-icon {
-    -webkit-mask: url('../scripts/svg/reload.svg') no-repeat center;
-    mask: url('../scripts/svg/reload.svg') no-repeat center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-}
-
-#global-refresh-icon {
-    -webkit-mask: url('../scripts/svg/refresh.svg') no-repeat center;
-    mask: url('../scripts/svg/refresh.svg') no-repeat center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-}
-
-#global-settings-swap-layout-icon {
-    -webkit-mask: url('../scripts/svg/swap.svg') no-repeat center;
-    mask: url('../scripts/svg/swap.svg') no-repeat center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-}
-
-#global-settings-theme-icon {
-    -webkit-mask: url('../scripts/svg/moon.svg') no-repeat center;
-    mask: url('../scripts/svg/moon.svg') no-repeat center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-}
-
 #settings-save-icon, #model-refresh-icon,
 #global-refresh-icon, #global-settings-swap-layout-icon, #global-settings-theme-icon {
     width: 20px;
@@ -284,7 +249,7 @@ body {
 
 /* collapsed style */
 .image-infobox-header, 
-.gallery-thumb-header, .add-lora-header, .highres-fix-header, .refiner-header, .regional-condition-header {
+.gallery-thumb-header, .add-lora-header, .highres-fix-header, .refiner-header, .controlnet-header, .regional-condition-header {
     padding-right: 2px;
     display: flex;
     align-items: anchor-center;
@@ -308,27 +273,27 @@ body {
     padding-left: 10px;
 }
 
-.highres-fix-header, .refiner-header, .regional-condition-header  {
+.highres-fix-header, .refiner-header, .controlnet-header, .regional-condition-header  {
     display: grid;
     grid-template-columns: 2fr 2fr 1fr;
     padding-left: 10px;
 }
 
-.highres-fix-header-span, .refiner-header-span, .regional-condition-header-span, .system-settings-header-span, .gallery-main-header-span {
+.highres-fix-header-span, .refiner-header-span, .controlnet-header-span, .regional-condition-header-span, .system-settings-header-span, .gallery-main-header-span {
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
 }
 
 #image-infobox-span, #gallery-main-span,
-#gallery-thumb-span, #highres-fix-span, #refiner-span, #regional-condition-span, #add-lora-span, #system-settings-span {
+#gallery-thumb-span, #highres-fix-span, #refiner-span, #controlnet-span, #regional-condition-span, #add-lora-span, #system-settings-span {
     order: 1;
     color: #4A403A; /* Dark gray-brown */
     padding-right: 2px;
 }
 
 #image-infobox-toggle, #gallery-main-toggle,
-#gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #regional-condition-toggle, #add-lora-toggle, #system-settings-toggle {
+#gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #controlnet-toggle, #regional-condition-toggle, #add-lora-toggle, #system-settings-toggle {
     margin-top: 2px;
     width: 12px;
     height: 12px;
@@ -343,13 +308,13 @@ body {
 }
 
 #image-infobox-toggle:hover, #gallery-main-toggle:hover,
-#gallery-thumb-toggle:hover, #highres-fix-toggle:hover, #refiner-toggle:hover, #regional-condition-toggle:hover, #add-lora-toggle:hover,
+#gallery-thumb-toggle:hover, #highres-fix-toggle:hover, #refiner-toggle:hover, #controlnet-toggle:hover, #regional-condition-toggle:hover, #add-lora-toggle:hover,
 #system-settings-toggle:hover {
     opacity: 0.9;
 }
 
 #image-infobox-toggle.collapsed, #gallery-main-toggle.collapsed,
-#gallery-thumb-toggle.collapsed, #highres-fix-toggle.collapsed, #refiner-toggle.collapsed, #regional-condition-toggle.collapsed, #add-lora-toggle.collapsed,
+#gallery-thumb-toggle.collapsed, #highres-fix-toggle.collapsed, #refiner-toggle.collapsed, #controlnet-toggle.collapsed, #regional-condition-toggle.collapsed, #add-lora-toggle.collapsed,
 #system-settings-toggle.collapsed {
     transform: rotate(90deg);
 }
@@ -482,8 +447,8 @@ body {
 .image-infobox-container,
 .image-infobox-main,
 #prompt-text-container,
-.highres-fix-container, .refiner-container, .regional-condition-container, .add-lora-container, .system-settings-container,
-.highres-fix-main, .refiner-main, .regional-condition-main, .add-lora-main, .system-settings-main {
+.highres-fix-container, .refiner-container, .controlnet-container, .regional-condition-container, .add-lora-container, .system-settings-container,
+.highres-fix-main, .refiner-main, .controlnet-main, .regional-condition-main, .add-lora-main, .system-settings-main {
     padding: 1px;
     box-sizing: border-box;
     background: rgb(230, 227, 210); /* Warm off-white */
@@ -600,7 +565,7 @@ body {
     position: relative;
 }
 
-.generate-landscape, .generate-hires-fix, .generate-refiner, .generate-tag-assist {
+.generate-landscape, .generate-hires-fix, .generate-refiner, .generate-controlnet, .generate-tag-assist {
     position: relative;
     margin-top: 1px;
     margin-right: 20px;
@@ -655,7 +620,7 @@ body {
 }
 
 .image-infobox-main,
-.highres-fix-main, .refiner-main, .regional-condition-main, .add-lora-main, .system-settings-main {
+.highres-fix-main, .refiner-main, .controlnet-main, .regional-condition-main, .add-lora-main, .system-settings-main {
     transition: max-height 0.3s ease, opacity 0.3s ease;
     overflow: hidden;
     height: auto;
@@ -666,7 +631,7 @@ body {
 }
 
 .image-infobox-main.collapsed,
-.highres-fix-main.collapsed, .refiner-main.collapsed, .regional-condition-main.collapsed, .add-lora-main.collapsed, .system-settings-main.collapsed {
+.highres-fix-main.collapsed, .refiner-main.collapsed, .controlnet-main.collapsed, .regional-condition-main.collapsed, .add-lora-main.collapsed, .system-settings-main.collapsed {
     margin: 0;
     padding: 0;
     max-height: 0;
@@ -676,7 +641,7 @@ body {
 }
 
 #image-infobox-toggle,
-#highres-fix-toggle, #refiner-toggle, #regional-condition-toggle, #add-lora-toggle, #system-settings-toggle {
+#highres-fix-toggle, #refiner-toggle, #controlnet-toggle, #regional-condition-toggle, #add-lora-toggle, #system-settings-toggle {
     margin-right: 5px;
 }
 

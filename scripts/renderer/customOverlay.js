@@ -779,10 +779,19 @@ export function customCommonOverlay() {
         return overlay;
     }
 
-    // Update the createCustomOverlay function to add proper styling to the resize handle
-    function createCustomOverlay(image, message) {
+    function createCustomOverlay(image, message, imageWidth=384, imageAlign='center', textAlign='left') {
         const displayMessage = (typeof message === 'string' && message.trim()) ? message : '\nNo content provided';
-        const hasImage = image && image !== 'none' && typeof image === 'string';
+        
+        let images = [];
+        if (image && image !== 'none') {
+            if (typeof image === 'string') {
+                images = [image];
+            } else if (Array.isArray(image)) {
+                images = image.filter(img => img && typeof img === 'string');
+            }
+        }
+        
+        const hasImages = images.length > 0;
 
         const processedMessage = parseTaggedContent(displayMessage)
             .replace(/\n/g, '<br>')
@@ -817,16 +826,53 @@ export function customCommonOverlay() {
 
         const fragment = document.createDocumentFragment();
 
-        if (hasImage) {
-            const img = document.createElement('img');
-            img.src = `data:image/webp;base64,${image}`;
-            img.alt = 'Overlay Image';
-            img.style.maxWidth = '384px';
-            img.style.maxHeight = '384px';
-            img.style.objectFit = 'contain';
-            img.style.display = 'block';
-            img.style.margin = '0 auto 10px';
-            fragment.appendChild(img);
+        if (hasImages) {
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'cg-image-container';
+            imageContainer.style.display = 'flex';
+            imageContainer.style.gap = '10px';
+            imageContainer.style.marginTop = '25px';
+            imageContainer.style.marginBottom = '15px';
+            imageContainer.style.width = `${imageWidth}px`;
+            imageContainer.style.flexDirection = 'row';
+            if (images.length > 1) {
+                imageContainer.style.width = `${imageWidth*0.75}px`;
+            }
+
+            images.forEach((imageData, index) => {
+                const imgWrapper = document.createElement('div');
+                imgWrapper.className = 'cg-image-wrapper';
+                imgWrapper.style.display = 'inline-flex';                
+                imgWrapper.style.marginBottom = '5px';
+                imgWrapper.style.flex = '0 0 auto'; 
+
+                const img = document.createElement('img');
+                img.src = imageData.startsWith('data:') ? imageData : `data:image/webp;base64,${imageData}`;
+                img.alt = `Overlay Image ${index + 1}`;
+                img.style.minWidth = '64px';
+                img.style.maineight = '64px';
+                img.style.maxWidth = '384px';
+                img.style.maxHeight = '384px';
+                img.style.objectFit = 'contain';
+                img.style.display = 'block';
+                img.style.borderRadius = '4px';
+                img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                
+                if (images.length > 1) {
+                    img.style.maxWidth = '300px';
+                    img.style.maxHeight = '300px';
+                }
+
+                img.onerror = () => {
+                    console.warn(`Failed to load image ${index + 1}, removing from overlay`);
+                    imgWrapper.remove();
+                };
+
+                imgWrapper.appendChild(img);
+                imageContainer.appendChild(imgWrapper);
+            });
+
+            fragment.appendChild(imageContainer);
         }
 
         const textDiv = document.createElement('div');
@@ -835,7 +881,7 @@ export function customCommonOverlay() {
         textDiv.style.whiteSpace = 'pre-wrap'; 
         textDiv.style.wordBreak = 'break-word';
         textDiv.style.width = '100%';
-        textDiv.style.textAlign = 'left';
+        textDiv.style.textAlign = textAlign;
         fragment.appendChild(textDiv);
 
         textbox.appendChild(fragment);
@@ -862,8 +908,18 @@ export function customCommonOverlay() {
         overlay.style.pointerEvents = 'auto';
         overlay.style.position = 'relative'; 
 
-        const defaultWidth = 600;
-        const defaultHeight = 800;
+        let defaultWidth = 600;
+        let defaultHeight = 800;
+        
+        if (hasImages) {
+            if (images.length > 1) {
+                defaultWidth = Math.min(1200, Math.max(800, images.length * 320));
+            }
+            defaultHeight = Math.max(600, defaultHeight);
+        }
+
+        const defaultSize = { width: defaultWidth, height: defaultHeight };
+
         let savedSize;
         try {
             savedSize = localStorage.getItem('customOverlaySize') ? JSON.parse(localStorage.getItem('customOverlaySize')) : null;
@@ -871,8 +927,8 @@ export function customCommonOverlay() {
             console.error('Failed to parse customOverlaySize:', err);
             localStorage.removeItem('customOverlaySize');
         }
-        let initialWidth = defaultWidth;
-        let initialHeight = defaultHeight;
+        let initialWidth = defaultSize.width;
+        let initialHeight = defaultSize.height;
 
         if (savedSize && savedSize.width >= 200 && savedSize.width <= 1600 && savedSize.height >= 150 && savedSize.height <= 1600) {
             initialWidth = savedSize.width;
@@ -945,14 +1001,6 @@ export function customCommonOverlay() {
                 delete overlay.dataset.timerInterval;
             }
         };
-
-        if (hasImage) {
-            const imgElement = textbox.querySelector('img');
-            imgElement.onerror = () => {
-                console.warn('Failed to load image, removing from overlay');
-                imgElement.remove();
-            };
-        }
 
         return overlay;
     }

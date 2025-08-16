@@ -93,6 +93,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     window.generate.hifix_dummy.setTitle(LANG.api_hf_enable);
     window.generate.refiner.setTitle(LANG.api_refiner_enable);
     window.generate.refiner_dummy.setTitle(LANG.api_refiner_enable);
+    window.generate.controlnet.setTitle(LANG.api_controlnet_enable);
     window.generate.landscape.setTitle(LANG.api_image_landscape);
     window.generate.tag_assist.setTitle(LANG.tag_assist);
     window.generate.wildcard_random.setTitle(LANG.wildcard_random);
@@ -160,6 +161,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
 
     if(!skipLoRA) {
         window.lora.reload();
+        window.controlnet.reload();
     }
 
     if(!skipRightClick)

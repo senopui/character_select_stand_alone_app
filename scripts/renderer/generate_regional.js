@@ -1,7 +1,8 @@
 import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
 import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
-    getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred, extractAPISecure } from './generate.js';
+    getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred, extractAPISecure,
+    createControlNet } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None'){    
@@ -252,7 +253,7 @@ function createRegional() {
     return {info, ratio, str_left, str_right, option_left, option_right};
 }
 
-function createGenerateData(createPromptResult, apiInterface){    
+async function createGenerateData(createPromptResult, apiInterface){    
     const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
 
     const landscape = window.generate.landscape.getValue();
@@ -289,7 +290,8 @@ function createGenerateData(createPromptResult, apiInterface){
             refresh:window.generate.api_preview_refresh_time.getValue(),
             hifix: hifix,
             refiner: refiner,
-            regional: regional
+            regional: regional,
+            controlnet: await createControlNet(),            
         }
 
     return generateData;
@@ -335,7 +337,7 @@ export async function generateRegionalImage(loops, runSame){
         window.generate.lastPosRColored = createPromptResult.positivePromptRightColored;
         window.generate.lastNeg = createPromptResult.negativePrompt;
 
-        const generateData = createGenerateData(createPromptResult, apiInterface);
+        const generateData = await createGenerateData(createPromptResult, apiInterface);
 
         let finalInfo = `${createPromptResult.finalInfo}\n`;
         finalInfo += `Positive Left: ${createPromptResult.positivePromptLeftColored}\n`;

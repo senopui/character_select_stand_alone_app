@@ -28,6 +28,10 @@ export function from_main_updatePreview(base64){
 }
 
 export function from_main_customOverlayProgress(progress, totalProgress){
-    const loadingMessage = window.generate.loadingMessage.split('(')[0];
-    window.generate.loadingMessage = `${loadingMessage}(${progress}/${totalProgress})`;
+    try {
+        const loadingMessage = window.generate.loadingMessage.split('(')[0];
+        window.generate.loadingMessage = `${loadingMessage}(${progress}/${totalProgress})`;
+    } catch {
+        // by pass
+    }
 }

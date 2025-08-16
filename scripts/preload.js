@@ -93,19 +93,23 @@ contextBridge.exposeInMainWorld('api', {
   getModelList: async (args) => ipcRenderer.invoke('get-model-list', args),
   getModelListAll: async (args) => ipcRenderer.invoke('get-model-list-all', args),
   getLoRAList: async (args) => ipcRenderer.invoke('get-lora-list-all', args),
+  getControlNetList: async (args) => ipcRenderer.invoke('get-controlnet-list', args),
   // Tag Auto Complete
   tagReload: async () => ipcRenderer.invoke('tag-reload'),
   tagGet: async (text) => ipcRenderer.invoke('tag-get-suggestions', text),
   // AI
   remoteAI: async (options) => ipcRenderer.invoke('request-ai-remote', options),
   localAI: async (options) => ipcRenderer.invoke('request-ai-local', options),
+  
   // generate_backend ComfyUI
   runComfyUI: async (generateData) => ipcRenderer.invoke('generate-backend-comfyui-run', generateData),
   runComfyUI_Regional: async (generateData) => ipcRenderer.invoke('generate-backend-comfyui-run-regional', generateData),
+  runComfyUI_ControlNet: async (generateData) => ipcRenderer.invoke('generate-backend-comfyui-run-controlnet', generateData),
   getImageComfyUI: async () => ipcRenderer.invoke('generate-backend-comfyui-get-image'),
   openWsComfyUI: async (prompt_id) => ipcRenderer.invoke('generate-backend-comfyui-open-ws', prompt_id),
   closeWsComfyUI: async () => ipcRenderer.invoke('generate-backend-comfyui-close-ws'),
   cancelComfyUI: async () => ipcRenderer.invoke('generate-backend-comfyui-cancel'),
+
   // generate_backend WebUI
   runWebUI: async (generateData) => ipcRenderer.invoke('generate-backend-webui-run', generateData),
   cancelWebUI: async () => ipcRenderer.invoke('generate-backend-webui-cancel'),
@@ -123,6 +127,7 @@ contextBridge.exposeInMainWorld('api', {
   // function from Main
   md5Hash: async (input) => ipcRenderer.invoke('md5-hash', input),
   decompressGzip: async (base64Data) => ipcRenderer.invoke('decompress-gzip', base64Data),
+  compressGzip: async (byteArray) => ipcRenderer.invoke('compress-gzip', byteArray),
   bcryptHash: async (pass) => ipcRenderer.invoke('bcrypt-hash', pass),
 });
 

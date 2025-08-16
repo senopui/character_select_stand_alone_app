@@ -16,6 +16,7 @@ import { setupCollapsed, setupSaveSettingsToggle, setupModelReloadToggle,
 import { setupTextbox, setupInfoBox } from './renderer/myTextbox.js';
 import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from './renderer/generate_backend.js';
 import { setupLoRA } from './renderer/myLoRASlot.js';
+import { setupControlNet } from './renderer/myControlNetSlot.js';
 import { setBlur, setNormal, showDialog } from './renderer/myDialog.js';
 import { setupImageUploadOverlay } from './renderer/imageInfo.js';
 import { setupThemeToggle } from './renderer/mytheme.js';
@@ -82,9 +83,10 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
     window.collapsedTabs = {
         infoBox: setupCollapsed('image-infobox', false),
         gallery: setupCollapsed('gallery-main', false),
-        thumb: setupCollapsed('gallery-thumb', false),
+        thumb: setupCollapsed('gallery-thumb', true),
         hires: setupCollapsed('highres-fix', true),
         refiner: setupCollapsed('refiner', true),
+        controlnet: setupCollapsed('controlnet', true),
         lora: setupCollapsed('add-lora', true),
         settings: setupCollapsed('system-settings', true),
         regional: setupCollapsed('regional-condition', true),
@@ -117,6 +119,7 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { window.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix-dummy'); }),
         refiner: setupCheckbox('generate-refiner', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner'); }),
         refiner_dummy: setupCheckbox('generate-refiner-dummy', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner-dummy'); }),
+        controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, (value) => { window.globalSettings.api_controlnet_enable = value; if(value) window.overlay.custom.createErrorOverlay(LANG.message_controlnet , 'https://github.com/Fannovel16/comfyui_controlnet_aux'); }),
         landscape: setupCheckbox('generate-landscape', LANG.api_image_landscape, SETTINGS.api_image_landscape, true, (value) =>{window.globalSettings.api_image_landscape = value;}),
         tag_assist: setupCheckbox('generate-tag-assist', LANG.tag_assist, SETTINGS.tag_assist, true, (value) =>{ window.globalSettings.tag_assist = value; }),
         wildcard_random: setupCheckbox('generate-wildcard-random', LANG.wildcard_random, SETTINGS.wildcard_random, true, (value) =>{ window.globalSettings.wildcard_random = value; }),
@@ -385,6 +388,7 @@ async function init(){
         window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
         window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
         window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
+        window.cachedFiles.controlnetList = await window.api.getControlNetList(SETTINGS.api_interface);
         window.cachedFiles.characterListArray = Object.entries(FILES.characterList);
         window.cachedFiles.ocListArray = Object.entries(FILES.ocList);
 
@@ -404,6 +408,9 @@ async function init(){
         // LoRA
         window.lora = setupLoRA('add-lora-main');
         
+        // Control Net
+        window.controlnet = setupControlNet('controlnet-main');
+
         // Setup Overlay
         window.overlay = {
             buttons: setupButtonOverlay(),

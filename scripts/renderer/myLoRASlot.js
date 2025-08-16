@@ -138,8 +138,8 @@ function createSlotsFromValues(slotManager, slotValues, options = {}) {
         if (!slot) return;
 
         requestAnimationFrame(() => {
-            // Initialize select1 (LoRA dropdown)
-            const select1 = mySimpleList(
+            // Initialize select1 (LoRA dropdown)            
+            const select1Component = mySimpleList(
                 slot.itemClasses.select1,
                 'LoRA',
                 FILES.loraList,
@@ -148,50 +148,39 @@ function createSlotsFromValues(slotManager, slotValues, options = {}) {
                 true,
                 false
             );
-            select1.updateDefaults(loraName);
-            const select1Generator = () => select1;
-            slot.items.set(slot.itemClasses.select1, select1Generator);
-            const select1Component = select1Generator();
-            if (select1Component) {
-                slotManager.componentInstances.set(`${className}-${slot.itemClasses.select1}`, select1Component);
-            }
+            select1Component.updateDefaults(loraName);
+            slot.items.set(slot.itemClasses.select1, () => select1Component);
+            slotManager.componentInstances.set(`${className}-${slot.itemClasses.select1}`, select1Component);
 
             // Initialize text1 (Model Strength)
-            const text1Generator = () =>
-                setupTextbox(
-                    slot.itemClasses.text1,
-                    LANG.lora_model_strength,
-                    { value: modelStrength, defaultTextColor: 'rgb(179,157,219)', maxLines: 1 },
-                    false,
-                    null,
-                    false,
-                    true
-                );
-            slot.items.set(slot.itemClasses.text1, text1Generator);
-            const text1Component = text1Generator();
-            if (text1Component) {
-                slotManager.componentInstances.set(`${className}-${slot.itemClasses.text1}`, text1Component);
-            }
+            const text1Component = setupTextbox(
+                slot.itemClasses.text1,
+                LANG.lora_model_strength,
+                { value: modelStrength, defaultTextColor: 'rgb(179,157,219)', maxLines: 1 },
+                false,
+                null,
+                false,
+                true
+            ); 
+            slot.items.set(slot.itemClasses.text1, () => text1Component);
+            slotManager.componentInstances.set(`${className}-${slot.itemClasses.text1}`, text1Component);
 
             // Initialize text2 (Clip Strength)
-            const text2Generator = () =>
-                setupTextbox(
-                    slot.itemClasses.text2,
-                    LANG.lora_clip_strength,
-                    { value: clipStrength, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
-                    false,
-                    null,
-                    window.generate.api_interface.getValue() !== 'ComfyUI',
-                    true
-                );
-            slot.items.set(slot.itemClasses.text2, text2Generator);
-            const text2Component = text2Generator();
-            if (text2Component) {
-                slotManager.componentInstances.set(`${className}-${slot.itemClasses.text2}`, text2Component);
-            }
+            const text2Component = setupTextbox(
+                slot.itemClasses.text2,
+                LANG.lora_clip_strength,
+                { value: clipStrength, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
+                false,
+                null,
+                window.generate.api_interface.getValue() !== 'ComfyUI',
+                true
+            );
+            slot.items.set(slot.itemClasses.text2, () => text2Component);
+            slotManager.componentInstances.set(`${className}-${slot.itemClasses.text2}`, text2Component);
+
 
             // Initialize select2 (Enable dropdown)
-            const select2 = mySimpleList(
+            const select2Component = mySimpleList(
                 slot.itemClasses.select2,
                 LANG.lora_enable_title,
                 ["ALL", "Base", "HiFix", "OFF"],
@@ -200,13 +189,9 @@ function createSlotsFromValues(slotManager, slotValues, options = {}) {
                 false,
                 false
             );
-            select2.updateDefaults(enableValue);
-            const select2Generator = () => select2;
-            slot.items.set(slot.itemClasses.select2, select2Generator);
-            const select2Component = select2Generator();
-            if (select2Component) {
-                slotManager.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
-            }
+            select2Component.updateDefaults(enableValue);
+            slot.items.set(slot.itemClasses.select2, () => select2Component);
+            slotManager.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
         });
     });
 }
@@ -388,28 +373,16 @@ class SlotManager {
             <div class="slot-action slot-action-add ${itemClasses.add}" data-action="add" data-slot="${className}">
                 <img class="slot-action-add-toggle" src="scripts/svg/add.svg" alt="+">
             </div>
-            <div class="${itemClasses.select1}"></div>
-            <div class="${itemClasses.text1}"></div>
-            <div class="${itemClasses.text2}"></div>
-            <div class="${itemClasses.select2}"></div>
-        `;
-        return row;
-    }
+            <div class="controlnet-slot-image">
+                <img class="filter-controlnet-icon" id="global-portrait-icon" src="scripts/svg/portrait.svg" max-width="48px" height="48px">
+                <img class="filter-controlnet-icon" id="global-sliders-icon" src="scripts/svg/sliders.svg" max-width="48px" height="48px">                
+                <img class="filter-controlnet-icon" id="global-painting-icon" src="scripts/svg/painting.svg" max-width="48px" height="48px">
+            </div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
 
-    renderContentRow(className, itemClasses) {
-        const row = document.createElement('div');
-        row.className = `slot-row content-row ${className}`;
-        row.innerHTML = `
-            <div class="slot-action slot-action-del ${itemClasses.delete}" data-action="delete" data-slot="${className}">
-                <img class="slot-action-del-toggle" src="scripts/svg/del.svg" alt="-">
-            </div>
-            <div class="${itemClasses.select1}"></div>
-            <div class="${itemClasses.text1}"></div>
-            <div class="${itemClasses.text2}"></div>
-            <div class="${itemClasses.select2}"></div>
-            <div class="slot-action slot-action-info ${itemClasses.info}" data-action="info" data-slot="${className}">
-                <img class="slot-action-info-toggle" src="scripts/svg/info.svg" alt="?">
-            </div>
         `;
         return row;
     }
@@ -682,37 +655,6 @@ class SlotManager {
             skipInvalid: true
         });
     }
-
-    render() {
-        const currentValues = new Map();
-        
-        for (const [componentKey, component] of this.componentInstances.entries()) {
-            if (component?.getValue) {
-                currentValues.set(componentKey, component.getValue());
-            }
-        }
-        
-        this.container.innerHTML = '';
-        this.componentInstances.clear();
-
-        const sortedSlots = Array.from(this.slotIndex.entries()).sort((a, b) => {
-            if (a[1].isCandidate && !b[1].isCandidate) return 1;
-            if (!a[1].isCandidate && b[1].isCandidate) return -1;
-            return 0;
-        });
-
-        for (const [className, slot] of sortedSlots) {
-            const row = slot.isCandidate
-                ? this.renderAddRow(className, slot.itemClasses)
-                : this.renderContentRow(className, slot.itemClasses);
-            this.container.appendChild(row);
-            
-            if (!slot.isCandidate && slot.items.size > 0) {
-                this.initializeSlotComponents(className, slot, currentValues);
-            }
-        }
-    }
-    
 
     initializeSlotComponents(className, slot, currentValues = null) {
         requestAnimationFrame(() => {

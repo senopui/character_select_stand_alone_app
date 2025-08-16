@@ -8,3 +8,4 @@ settings/*.json
 data/wildcards/wildcardPoses.txt
 data/wildcards/wildcardMyFurries.txt
 *.pem
+*.log

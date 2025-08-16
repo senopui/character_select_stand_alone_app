@@ -388,7 +388,7 @@
 }
 
 .slot-row.add-row, .slot-row.content-row {
-    grid-template-columns: 0.5fr 8fr 1fr 1fr 1fr 0.5fr;
+    grid-template-columns: 0.5fr 7fr 1fr 1fr 1fr 0.5fr;
 }
 
 [class^="myTextbox-slot-row-text1-"] {
@@ -678,20 +678,22 @@
     flex-wrap: wrap;
 }
 
-.metadata-buttons {
-    display: flex;
-    justify-content: flex-end;
+.metadata-buttons, .controlnet-buttons {
+    display: grid;
+    grid-template-columns: 4fr 1fr; 
+    justify-items: end;
     gap: 10px;
     margin-bottom: 12px;
+    padding: 8px;
 }
 
-.copy-all-metadata,
+.copy-all-metadata, .controlnet-postprocess,
 .send-metadata {
     padding: 8px 12px;
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.2s ease;
-    width: 80px;
+    width: 120px;
     text-align: center;
 }
 
@@ -705,14 +707,32 @@
     background-color: #F0D4B8; /* Soft warm peach */
 }
 
-.send-metadata {
+.send-metadata, .controlnet-postprocess {
     background-color: #E8C050; /* Soft gold */
     color: #4A403A; /* Dark gray-brown */
     border: none;
 }
 
-.send-metadata:hover {
+.send-metadata:hover, .controlnet-postprocess:hover {
     background-color: #F0D4B8; /* Soft warm peach */
+}
+
+.controlnet-select {
+    overflow-wrap: break-word;
+    background-color: rgba(245, 242, 230, 0.8); /* Semi-transparent creamy background */
+    color: #4A403A; /* Dark gray-brown */
+    border: 1px solid rgba(24, 24, 23, 0.5); /* Light creamy background */
+    border-radius: 8px;
+    max-width: 576px;
+    width: 100%;
+    height: 32px;
+}
+
+.controlnet-slot-image {
+    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .myTextbox-prompt-common-textarea {

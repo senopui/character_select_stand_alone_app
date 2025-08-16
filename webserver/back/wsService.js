@@ -1,5 +1,5 @@
 const { createHash } = require('crypto');
-const { gunzipSync } = require('zlib');
+const zlib = require('zlib');
 const path = require('node:path');
 const fs = require('fs');
 const { appendFileSync, existsSync, mkdirSync } = require('fs');
@@ -12,10 +12,11 @@ const bcrypt = require('bcrypt');
 const { WebSocketServer } = require('ws');
 const { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } = require('../../scripts/main/globalSettings');
 const { getCachedFilesWithoutThumb, getCharacterThumb } = require('../../scripts/main/cachedFiles');
-const { getModelList, getModelListAll, getLoRAList, updateModelAndLoRAList } = require('../../scripts/main/modelList');
+const { getModelList, getModelListAll, getLoRAList, updateModelAndLoRAList, getControlNetList } = require('../../scripts/main/modelList');
 const { updateWildcards, loadWildcard } = require('../../scripts/main/wildCards');
 const { tagReload, tagGet } = require('../../scripts/main/tagAutoComplete_backend');
-const { runComfyUI, runComfyUI_Regional, openWsComfyUI, closeWsComfyUI, cancelComfyUI } = require('../../scripts/main/generate_backend_comfyui');
+const { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, 
+    openWsComfyUI, closeWsComfyUI, cancelComfyUI } = require('../../scripts/main/generate_backend_comfyui');
 const { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI } = require('../../scripts/main/generate_backend_webui');
 const { remoteAI, localAI } = require('../../scripts/main/remoteAI_backend');
 const { loadFile, readImage, readSafetensors, readBase64Image } = require('../../scripts/main/fileHandlers');
@@ -388,6 +389,7 @@ const methodHandlers = {
   'getModelList': (params)=> getModelList(...params),
   'getModelListAll': (params)=> getModelListAll(...params),
   'getLoRAList': (params)=> getLoRAList(...params),
+  'getControlNetList': (params)=> getControlNetList(...params),
   'updateModelList': (params)=> updateModelAndLoRAList(...params),
 
   // wildcards
@@ -414,11 +416,17 @@ const methodHandlers = {
   },
 
   // decompressGzip
-  'decompressGzip': (params) => {
+  'decompressGzip': (params) => {    
     const base64Data = params[0];
     const compressedData = Buffer.from(base64Data, 'base64');
-    const decompressedData = gunzipSync(compressedData);
+    const decompressedData = zlib.gunzipSync(compressedData);
     return decompressedData;
+  },
+
+  // compressGzip
+  'compressGzip': (params) => {
+    const base64Data = params[0];
+    return Main.compressGzipThenBase64(Buffer.from(base64Data, 'base64'));
   },
 
   // create password
@@ -430,6 +438,7 @@ const methodHandlers = {
   // comfyui
   'runComfyUI': (params)=> runComfyUI(...params),
   'runComfyUI_Regional': (params)=> runComfyUI_Regional(...params),
+  'runComfyUI_ControlNet': (params)=> runComfyUI_ControlNet(...params),
   'openWsComfyUI': (params)=> openWsComfyUI(...params),
   'closeWsComfyUI': ()=> closeWsComfyUI(),
   'cancelComfyUI': ()=> cancelComfyUI(),

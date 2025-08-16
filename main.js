@@ -6,7 +6,7 @@ app.enableSandbox();
 const path = require('node:path')
 const { Mutex } = require('async-mutex');
 const { createHash } = require('crypto');
-const { gunzipSync } = require('zlib');
+const zlib = require('zlib');
 const bcrypt = require('bcrypt');
 
 // WebSocket server
@@ -50,9 +50,21 @@ async function getAppVersion() {
   return version;
 }
 
+async function compressGzipThenBase64(byteArray){
+  try {
+      const buffer = Buffer.from(byteArray);
+      const gzipped = zlib.gzipSync(buffer,);
+      return gzipped.toString('base64');
+    } catch (error) {
+      console.error('[compressGzip]: Error on compressing', error);
+      return null;
+    }
+}
+
 exports.getMutexBackendBusy = getMutexBackendBusy;
 exports.setMutexBackendBusy = setMutexBackendBusy;
 exports.getAppVersion = getAppVersion;
+exports.compressGzipThenBase64 = compressGzipThenBase64;
 
 let mainWindow; // Main browser window instance
 
@@ -153,13 +165,17 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('decompress-gzip', async (event, base64Data) => {
     try {
-      const compressedData = Buffer.from(base64Data, 'base64');
-      const decompressedData = gunzipSync(compressedData);
-      return decompressedData.toString();
+      const compressedData = Buffer.from(base64Data, 'base64');      
+      const decompressedData = zlib.gunzipSync(compressedData);      
+      return decompressedData;
     } catch (error) {
       console.error('[decompressGzip]: Error decompressing data', error);
       return null;
     }
+  });
+
+  ipcMain.handle('compress-gzip', async (event, byteArray) => {
+    return await compressGzipThenBase64(byteArray);
   });
 
   ipcMain.handle('bcrypt-hash', async (event, pass) => {

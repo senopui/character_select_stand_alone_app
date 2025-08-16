@@ -64,8 +64,8 @@ html, body {
 
 .gallery-main-container,.image-infobox-container,
 .gallery-thumb-container, #prompt-text-container, 
-.highres-fix-container, .refiner-container, .add-lora-container,
-.system-settings-container, .regional-condition-container
+.highres-fix-container, .refiner-container, .controlnet-container,
+.add-lora-container, .system-settings-container, .regional-condition-container
 {
     margin-top: 10px;
 }
@@ -85,4 +85,78 @@ html, body {
 
 .cg-main-image{
     -webkit-user-drag: auto;   
+}
+
+#settings-save-icon {
+    -webkit-mask: url('../scripts/svg/save.svg') no-repeat center;
+    mask: url('../scripts/svg/save.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#model-refresh-icon {
+    -webkit-mask: url('../scripts/svg/reload.svg') no-repeat center;
+    mask: url('../scripts/svg/reload.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-refresh-icon {
+    -webkit-mask: url('../scripts/svg/refresh.svg') no-repeat center;
+    mask: url('../scripts/svg/refresh.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-settings-swap-layout-icon {
+    -webkit-mask: url('../scripts/svg/swap.svg') no-repeat center;
+    mask: url('../scripts/svg/swap.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-settings-theme-icon {
+    -webkit-mask: url('../scripts/svg/sun.svg') no-repeat center;
+    mask: url('../scripts/svg/sun.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-pose-icon {
+    -webkit-mask: url('../scripts/svg/pose.svg') no-repeat center;
+    mask: url('../scripts/svg/pose.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-sliders-icon {
+    -webkit-mask: url('../scripts/svg/sliders.svg') no-repeat center;
+    mask: url('../scripts/svg/sliders.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-image-upload-icon {
+    -webkit-mask: url('../scripts/svg/image-upload.svg') no-repeat center;
+    mask: url('../scripts/svg/image-upload.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-portrait-icon {
+    -webkit-mask: url('../scripts/svg/portrait.svg') no-repeat center;
+    mask: url('../scripts/svg/portrait.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-painting-icon {
+    -webkit-mask: url('../scripts/svg/painting.svg') no-repeat center;
+    mask: url('../scripts/svg/painting.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+.filter-controlnet-icon {
+    filter: invert(55%) sepia(0%) saturate(0%) hue-rotate(288deg) brightness(91%) contrast(80%);
 }

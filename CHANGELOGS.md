@@ -1,3 +1,8 @@
+2025.08.16 v1.11.0
+Add ControlNet support for ComfyUI      
+Bugfix error on load thumb image in SAA     
+
+
 2025.08.06 v1.10.1      
 Add Latent hires-fix for both backend      
   - Latent Upscale need at least 0.5 or higher denoise       

@@ -1,4 +1,66 @@
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+import { generateControlnetImage } from './generate.js';
+
+const controlNetValues = [
+    "none",
+    "AnimeFace_SemSegPreprocessor",
+    "AnyLineArtPreprocessor_aux",
+    "BinaryPreprocessor",
+    "CannyEdgePreprocessor",
+    "ColorPreprocessor",
+    "DensePosePreprocessor",
+    "DepthAnythingPreprocessor",
+    "Zoe_DepthAnythingPreprocessor",
+    "DepthAnythingV2Preprocessor",
+    "DSINE-NormalMapPreprocessor",
+    "DWPreprocessor",
+    "AnimalPosePreprocessor",
+    "HEDPreprocessor",
+    "FakeScribblePreprocessor",
+    "LeReS-DepthMapPreprocessor",
+    "LineArtPreprocessor",
+    "AnimeLineArtPreprocessor",
+    "LineartStandardPreprocessor",
+    "Manga2Anime_LineArt_Preprocessor",
+    "MediaPipe-FaceMeshPreprocessor",
+    "MeshGraphormer-DepthMapPreprocessor",
+    "Metric3D-DepthMapPreprocessor",
+    "Metric3D-NormalMapPreprocessor",
+    "MiDaS-NormalMapPreprocessor",
+    "MiDaS-DepthMapPreprocessor",
+    "M-LSDPreprocessor",
+    "BAE-NormalMapPreprocessor",
+    "OneFormer-COCO-SemSegPreprocessor",
+    "OneFormer-ADE20K-SemSegPreprocessor",
+    "OpenposePreprocessor",
+    "PiDiNetPreprocessor",
+    "PyraCannyPreprocessor",
+    "ImageLuminanceDetector",
+    "ImageIntensityDetector",
+    "ScribblePreprocessor",
+    "Scribble_XDoG_Preprocessor",
+    "Scribble_PiDiNet_Preprocessor",
+    "SAMPreprocessor",
+    "ShufflePreprocessor",
+    "TEEDPreprocessor",
+    "TilePreprocessor",
+    "TTPlanet_TileGF_Preprocessor",
+    "TTPlanet_TileSimple_Preprocessor",
+    "UniFormer-SemSegPreprocessor",
+    "SemSegPreprocessor",
+    "Zoe-DepthMapPreprocessor"
+];
+
+let cachedImage = '';
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
 
 export function setupImageUploadOverlay() {
     const fullBody = document.querySelector('#full-body');
@@ -50,7 +112,7 @@ export function setupImageUploadOverlay() {
     const svgIcon = document.createElement('div');
     svgIcon.id = 'upload-svg-icon';
     svgIcon.innerHTML = `
-        <img id="image-info-icon" src="scripts/svg/save.svg" alt="Upload" fill="currentColor">
+        <img class="filter-controlnet-icon" id="global-image-upload-icon" src="scripts/svg/image-upload.svg" alt="Upload" fill="currentColor">
     `;
     uploadOverlay.appendChild(svgIcon);
 
@@ -118,7 +180,7 @@ export function setupImageUploadOverlay() {
 
     window.currentImageMetadata = null;
     function showOverlay() {
-        uploadOverlay.style.display = 'flex';        
+        uploadOverlay.style.display = 'flex';
         requestAnimationFrame(updateDynamicHeights);
         isShowing = true;
     }
@@ -183,6 +245,7 @@ export function setupImageUploadOverlay() {
         if (files.length > 0) {
             if(files[0].type.startsWith('image/')) {
                 const file = files[0];
+                cachedImage = file;
                 try {
                     const metadata = await extractImageMetadata(file);                    
                     showImagePreview(file);
@@ -196,7 +259,7 @@ export function setupImageUploadOverlay() {
                         lastModified: file.lastModified,
                         error: 'Metadata extraction failed'
                     };
-                    showImagePreview(file);
+                    showImagePreview(file);                    
                     displayFormattedMetadata(fallbackMetadata);
                 }
             //} else if (files[0].type === `application/json`) {
@@ -223,13 +286,136 @@ export function setupImageUploadOverlay() {
         reader.readAsDataURL(file);
     }
 
+    function createControlNetButtons() {
+        function createHtmlOptions(itemList) {
+            let options = [];
+            itemList.forEach((item) => {
+                options.push(`<option value="${item}">${item}</option>`);
+            });
+            return options.join();
+        }
+
+        const SETTINGS = window.globalSettings;
+        const FILES = window.cachedFiles;
+        const LANG = FILES.language[SETTINGS.language];
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'controlnet-buttons';
+
+        const controlNetSelect = document.createElement('select');
+        controlNetSelect.className = 'controlnet-select';
+        controlNetSelect.innerHTML = createHtmlOptions(controlNetValues);
+
+        const controlNetResolution = document.createElement('select');
+        controlNetResolution.className = 'controlnet-select';
+        controlNetResolution.innerHTML = createHtmlOptions([512,640,768,1024,1280,1536,2048]);
+
+        const controlNetPostSelect = document.createElement('select');
+        controlNetPostSelect.className = 'controlnet-select';
+        controlNetPostSelect.innerHTML = createHtmlOptions(window.cachedFiles.controlnetList);
+        
+        const postProcessButton = document.createElement('button');
+        postProcessButton.className = 'controlnet-postprocess';
+        postProcessButton.textContent = LANG.image_info_add_controlnet;
+
+        postProcessButton.addEventListener('click', async (e) => {
+            if(!postProcessButton.disabled) {
+                postProcessButton.textContent = LANG.image_info_add_controlnet_processing;
+                postProcessButton.style.cursor = 'not-allowed';
+                postProcessButton.disabled = true;
+
+                const preImageBase64 = await fileToBase64(cachedImage);
+                if(controlNetSelect.value !== 'none') {
+                    const {preImage, preImageAfter, preImageAfterBase64} = await generateControlnetImage(cachedImage, controlNetSelect.value, controlNetResolution.value);
+                    
+                    if(preImageAfterBase64?.startsWith('data:image/png;base64,')) {
+                        const slotValues = [[
+                            controlNetSelect.value,          // preProcessModel
+                            controlNetResolution.value,      // preProcessResolution
+                            'Post',                          // slot_enable
+                            controlNetPostSelect.value,      // postModel
+                            0.6,                             // postProcessStrength
+                            0,                               // postProcessStart
+                            0.5,                             // postProcessEnd
+                            preImage,                        // pre_image
+                            preImageAfter,                   // pre_image_after
+                            preImageBase64,                  // pre_image_base64
+                            preImageAfterBase64,             // pre_image_after_base64
+                        ]];
+                        window.controlnet.AddControlNetSlot(slotValues);
+
+                        previewImg.src = preImageAfterBase64;
+                        setTimeout(() => {
+                            postProcessButton.textContent = LANG.image_info_add_controlnet_added;
+                            window.collapsedTabs.controlnet.setCollapsed(false);
+                        }, 200);                        
+                    } else {
+                        postProcessButton.textContent = LANG.image_info_add_controlnet_failed;
+                        setTimeout(() => {                            
+                            postProcessButton.textContent = LANG.image_info_add_controlnet;
+                            postProcessButton.style.cursor = 'pointer';
+                            postProcessButton.disabled = false;
+                        }, 5000);
+                    }
+                } else {
+                    const apiInterface = window.generate.api_interface.getValue();
+                    if(apiInterface === 'ComfyUI') {
+                        const buffer = await cachedImage.arrayBuffer();
+                        let preImageGzipped;
+                        if (!window.inBrowser) {
+                            preImageGzipped = await window.api.compressGzip(buffer);
+                        } else {
+                            const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                            preImageGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [base64String] });
+                        }
+
+                        const slotValues = [[
+                            controlNetSelect.value,          // preProcessModel
+                            controlNetResolution.value,      // preProcessResolution
+                            'Post',                          // slot_enable
+                            controlNetPostSelect.value,      // postModel
+                            0.8,                             // postProcessStrength
+                            0,                               // postProcessStart
+                            0.8,                             // postProcessEnd
+                            null,                            // pre_image
+                            preImageGzipped,                 // pre_image_after
+                            null,                            // pre_image_base64
+                            preImageBase64,                  // pre_image_after_base64 
+                        ]];
+                        window.controlnet.AddControlNetSlot(slotValues);
+
+                        setTimeout(() => {
+                            postProcessButton.textContent = LANG.image_info_add_controlnet_added;
+                            window.collapsedTabs.controlnet.setCollapsed(false);
+                        }, 200);
+                    } else {
+                        postProcessButton.textContent = LANG.image_info_add_controlnet_failed;
+
+                        const ret = LANG.message_controlnet_not_support_webui;
+                        window.mainGallery.hideLoading(ret, ret);                        
+                    }
+                }
+            }
+        });
+
+        buttonContainer.appendChild(controlNetSelect);
+        buttonContainer.appendChild(controlNetResolution);
+        buttonContainer.appendChild(controlNetPostSelect);        
+        buttonContainer.appendChild(postProcessButton);
+        return buttonContainer;
+    }
+
     function createActionButtons() {
+        const SETTINGS = window.globalSettings;
+        const FILES = window.cachedFiles;
+        const LANG = FILES.language[SETTINGS.language];
+
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'metadata-buttons';
         
         const copyButton = document.createElement('button');
         copyButton.className = 'copy-all-metadata';
-        copyButton.textContent = 'Copy All';
+        copyButton.textContent = LANG.image_info_copy_metadata;
 
         copyButton.addEventListener('click', async () => {
             let fullText = '';
@@ -254,15 +440,15 @@ export function setupImageUploadOverlay() {
                 const LANG = FILES.language[SETTINGS.language];
                 window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', fullText));
             }
-            copyButton.textContent = 'Copied!';
+            copyButton.textContent = LANG.image_info_copy_metadata_copied;
             setTimeout(() => {
-                copyButton.textContent = 'Copy All';
+                copyButton.textContent = LANG.image_info_copy_metadata;
             }, 2000);
         });
         
         const sendButton = document.createElement('button');
         sendButton.className = 'send-metadata';
-        sendButton.textContent = 'Send';
+        sendButton.textContent = LANG.image_info_send_tags;
         
         sendButton.addEventListener('click', () => {
             const parsedMetadata = window.currentImageMetadata;
@@ -271,14 +457,14 @@ export function setupImageUploadOverlay() {
             window.generate.landscape.setValue(false);
             window.ai.ai_select.setValue(0);
             
-            sendButton.textContent = 'Sent!';
+            sendButton.textContent = LANG.image_info_send_tags_sent;
             setTimeout(() => {
-                sendButton.textContent = 'Send';
+                sendButton.textContent = LANG.image_info_send_tags;
             }, 2000);
         });
         
-        buttonContainer.appendChild(copyButton);
         buttonContainer.appendChild(sendButton);
+        buttonContainer.appendChild(copyButton);        
         
         return buttonContainer;
     }
@@ -359,10 +545,14 @@ export function setupImageUploadOverlay() {
                            parsedMetadata.negativePrompt || 
                            parsedMetadata.otherParams;
         
+        if(window.generate.api_interface.getValue() === 'ComfyUI') {
+            metadataContainer.appendChild(createControlNetButtons());        
+        }
+
         if (hasMetadata) {
             const buttonContainer = createActionButtons();
             metadataContainer.appendChild(buttonContainer);
-        }
+        }        
 
         const metadataDisplay = document.createElement('div');
         metadataDisplay.className = `metadata-custom-textbox-data`;

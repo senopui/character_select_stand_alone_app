@@ -10,6 +10,8 @@ let MODELLIST_ALL_COMFYUI = MODELLIST_COMFYUI;
 let MODELLIST_ALL_WEBUI = MODELLIST_WEBUI;
 let LORALIST_COMFYUI = ['None'];
 let LORALIST_WEBUI = ['None'];
+let CONTROLNET_COMFYUI = ['None'];
+let CONTROLNET_WEBUI = ['None'];
 
 function readDirectory(directory, basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0) {
     let files = [];
@@ -32,6 +34,31 @@ function readDirectory(directory, basePath = '', search_subfolder = false, maxDe
         }
     }
     return result;
+}
+
+function updateControlNetList(model_path_comfyui, model_path_webui, search_subfolder) {
+    const cnPathComfyUI = path.join(path.dirname(model_path_comfyui), 'controlnet');
+    const cnPathWebUI = path.join(path.dirname(model_path_webui), 'ControlNet');
+
+    if (fs.existsSync(cnPathComfyUI)) {
+        CONTROLNET_COMFYUI = readDirectory(cnPathComfyUI, '', search_subfolder);
+    } 
+    
+    if (fs.existsSync(cnPathWebUI)) {
+        CONTROLNET_WEBUI = readDirectory(cnPathWebUI, '', search_subfolder);
+    }
+
+    if (CONTROLNET_COMFYUI.length > 0) {
+        CONTROLNET_COMFYUI.unshift('none');
+    } else {
+        CONTROLNET_COMFYUI = ['none'];
+    }
+
+    if (CONTROLNET_WEBUI.length > 0) {
+        CONTROLNET_WEBUI.unshift('none');
+    } else {
+        CONTROLNET_WEBUI = ['none'];
+    }
 }
 
 function updateLoRAList(model_path_comfyui, model_path_webui, search_subfolder) {
@@ -99,6 +126,10 @@ function setupModelList(settings) {
         return getLoRAList(args);
     });
 
+    ipcMain.handle('get-controlnet-list', async (event, args) => {
+        return getControlNetList(args);
+    });
+
     updateModelList(
         settings.model_path_comfyui,
         settings.model_path_webui,
@@ -108,6 +139,12 @@ function setupModelList(settings) {
     );
 
     updateLoRAList(
+        settings.model_path_comfyui,
+        settings.model_path_webui,
+        settings.search_modelinsubfolder
+    );
+
+    updateControlNetList(
         settings.model_path_comfyui,
         settings.model_path_webui,
         settings.search_modelinsubfolder
@@ -144,6 +181,17 @@ function getLoRAList(apiInterface) {
     }
 }
 
+function getControlNetList(apiInterface) {
+    if (apiInterface === 'ComfyUI') {
+        return CONTROLNET_COMFYUI;
+    } else if (apiInterface === 'WebUI') {
+        return CONTROLNET_WEBUI;
+    } else {
+        return ['None'];
+    }
+}
+
+
 function updateModelAndLoRAList(args) {
     // model_path, model_path_2nd, model_filter, enable_filter, search_subfolder
     console.log(CAT, 'Update model/lora list with following args: ', args);
@@ -161,6 +209,7 @@ module.exports = {
     getModelList,
     getModelListAll,
     getLoRAList,
+    getControlNetList,
     updateModelAndLoRAList
 };
 
