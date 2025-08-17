@@ -135,7 +135,13 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { window.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix-dummy'); }),
         refiner: setupCheckbox('generate-refiner', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner'); }),
         refiner_dummy: setupCheckbox('generate-refiner-dummy', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { window.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner-dummy'); }),
-        controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, (value) => { window.globalSettings.api_controlnet_enable = value; if(value) window.overlay.custom.createErrorOverlay(LANG.message_controlnet , 'https://github.com/Fannovel16/comfyui_controlnet_aux'); }),
+        controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, (value) => { 
+                window.globalSettings.api_controlnet_enable = value; 
+                if(value && window.generate.api_interface.getValue() === 'ComfyUI') 
+                    window.overlay.custom.createErrorOverlay(LANG.message_controlnet_comfyui , 'https://github.com/Fannovel16/comfyui_controlnet_aux'); 
+                if(value && window.generate.api_interface.getValue() === 'WebUI') 
+                    window.overlay.custom.createErrorOverlay(LANG.message_controlnet_webui , 'https://github.com/Mikubill/sd-webui-controlnet'); 
+            }),
         landscape: setupCheckbox('generate-landscape', LANG.api_image_landscape, SETTINGS.api_image_landscape, true, (value) =>{window.globalSettings.api_image_landscape = value;}),
         tag_assist: setupCheckbox('generate-tag-assist', LANG.tag_assist, SETTINGS.tag_assist, true, (value) =>{ window.globalSettings.tag_assist = value; }),
         wildcard_random: setupCheckbox('generate-wildcard-random', LANG.wildcard_random, SETTINGS.wildcard_random, true, (value) =>{ window.globalSettings.wildcard_random = value; }),

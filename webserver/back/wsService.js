@@ -17,7 +17,7 @@ const { updateWildcards, loadWildcard } = require('../../scripts/main/wildCards'
 const { tagReload, tagGet } = require('../../scripts/main/tagAutoComplete_backend');
 const { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, 
     openWsComfyUI, closeWsComfyUI, cancelComfyUI } = require('../../scripts/main/generate_backend_comfyui');
-const { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI } = require('../../scripts/main/generate_backend_webui');
+const { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet } = require('../../scripts/main/generate_backend_webui');
 const { remoteAI, localAI } = require('../../scripts/main/remoteAI_backend');
 const { loadFile, readImage, readSafetensors, readBase64Image } = require('../../scripts/main/fileHandlers');
 const Main = require('../../main');
@@ -445,6 +445,7 @@ const methodHandlers = {
 
   // webui
   'runWebUI': (params)=> runWebUI(...params),
+  'runWebUI_ControlNet': (params)=> runWebUI_ControlNet(...params),
   'cancelWebUI': ()=> cancelWebUI(),
   'startPollingWebUI': ()=> startPollingWebUI(),
   'stopPollingWebUI': ()=> stopPollingWebUI(),
