@@ -46,11 +46,11 @@ function applyControlnet(payload, controlnet){
                 return;
             
             }            
-            controlNetArg["processor_res"] = slot.preRes;
+            controlNetArg["processor_res"] = parseInt(slot.preRes);
             controlNetArg["model"] = findControlNetModelByName(slot.postModel);
-            controlNetArg["weight"] = slot.postStr;
-            controlNetArg["guidance_start"] = slot.postStart;
-            controlNetArg["guidance_end"] = slot.postEnd;
+            controlNetArg["weight"] = parseFloat(slot.postStr);
+            controlNetArg["guidance_start"] = parseFloat(slot.postStart);
+            controlNetArg["guidance_end"] = parseFloat(slot.postEnd);
 
             newPayload["alwayson_scripts"]["controlnet"]["args"].push(controlNetArg);
         });                

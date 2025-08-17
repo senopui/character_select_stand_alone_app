@@ -64,7 +64,7 @@ Put your ControlNet models in `ComfyUI\\models\\controlnet`
 For A1111(WebUI) requires [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet).      
 Put your ControlNet models in `stable-diffusion-webui\\extensions\\sd-webui-controlnet\\models`, the extension plugin path.       
 
-Forge is not supported. I have to treat Forge and A1111 as two different backends. :(      
+Forge will not be supported. Tired to treat Forge and A1111 as two different backends, but API doesn't work well, and no documents at all... :(      
 
 1. Drag and drop your Image(or openPose image) to SAA/SAAC `Image Info`, select `Pre-processor`, `Resolution`, `Post-processor` and then click `Add ControlNet`. After it says `Added` the previre image will swap to your `Pre-processed` image, close `Image info` window, check `ControlNet` tab for more settings. **Hover your mouse over a dropdown/text item to view its feature.**                 
 2. In `ControlNet` tab, you can change `Pre-processor` by select the a one and click `Refresh` to generate it and update preview. (Or set `Method` to `On` but SAA preview will not update).      
