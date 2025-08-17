@@ -1,3 +1,8 @@
+2025.08.17 v1.11.2
+Bugfix WebUI Mutex Lock      
+Bugfix corrupted ControlNet preview image when WebUI  is Busy      
+
+
 2025.08.17 v1.11.1     
 Add ControlNet support for A1111(WebUI)      
 Bugfix ControlNet List not update with Refresh     

@@ -27,7 +27,7 @@ const version = app.getVersion();
 
 let backendBusy = false;
 const mutex = new Mutex();
-async function getMutexBackendBusy(uuid) {
+async function getMutexBackendBusy() {
   const release = await mutex.acquire();
   try {
     return backendBusy; 
@@ -36,7 +36,7 @@ async function getMutexBackendBusy(uuid) {
   }
 }
 
-async function setMutexBackendBusy(newValue, uuid) {
+async function setMutexBackendBusy(newValue) {
   const release = await mutex.acquire();
   try {
     backendBusy = newValue;

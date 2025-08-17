@@ -9,7 +9,7 @@ Now supports 5326 (includes multiple costumes) Characters in list.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%>   
 
-| Item Support | ComfyUI| A1111(WebUI)) | Forge|
+| Item Support | ComfyUI| A1111(WebUI) | Forge|
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |

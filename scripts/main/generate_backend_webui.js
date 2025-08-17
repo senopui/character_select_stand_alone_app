@@ -238,12 +238,14 @@ class WebUI {
                     console.error(CAT, 'Request failed:', error.message);
                     ret = `Error: Request failed:, ${error.message}`;
                 }
+                Main.setMutexBackendBusy(false); // Release the mutex lock
                 resolve(ret);
             });
     
             request.on('timeout', () => {
                 request.destroy();
                 console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                Main.setMutexBackendBusy(false); // Release the mutex lock
                 resolve(`Error: Request timed out after ${this.timeout}ms`);
             });
 
@@ -522,29 +524,47 @@ async function setupGenerateBackendWebUI() {
     });
 }
 
+async function updateControlNetHashList(generateData) {
+     // update contronNe tModel Hash List first
+    // that's really annoying, why they did not use prefix with model name?!
+    contronNetModelHashList = await backendWebUI.makeHttpRequestControlnet(
+        `http://${generateData.addr}/controlnet/model_list`,
+        generateData.auth,
+        'GET',
+        null,
+        null,
+        backendWebUI.timeout
+    );
+
+    if (typeof contronNetModelHashList === 'string' && contronNetModelHashList.startsWith('Error:')) {
+        console.error(CAT, 'GET request failed:', contronNetModelHashList);
+        contronNetModelHashList = 'none';
+    }
+    if (!Array.isArray(contronNetModelHashList)) {
+        console.error(CAT, 'Invalid model list from GET');
+        contronNetModelHashList = 'none';
+    }
+
+    return contronNetModelHashList;
+}
+
 async function runWebUI(generateData){
-    const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+    const isBusy = await Main.getMutexBackendBusy();
     if (isBusy) {
-        console.warn(CAT, 'WebUI is busy, cannot run new generation, please try again later.');
+        console.warn(CAT, '[runWebUI] WebUI is busy, cannot run new generation, please try again later.');
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
-    
+    Main.setMutexBackendBusy(true); // Acquire the mutex lock
+
     if (contronNetModelHashList === 'none') {
         console.log(CAT, "Refresh controlNet model hash list:");
-        const requestData = {
-            addr: generateData.addr,
-            auth: generateData.auth,
-            controlNet: 'none'
-        };
-        const result = await runWebUI_ControlNet(requestData);
+        const result = await updateControlNetHashList(generateData);
         console.log(result);
     }
-
-    Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock    
-    try {
-        const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
-
-        if(result === '200') {
+    
+    const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
+    if(result === '200') {
+        try {
             console.log(CAT, 'Running A1111 with uuid:', generateData.uuid);
             const imageData = await backendWebUI.run(generateData);
 
@@ -556,55 +576,28 @@ async function runWebUI(generateData){
             const jsonData =  JSON.parse(imageData);
             sendToRenderer(backendWebUI.uuid, `updateProgress`, `100`, '100%');
             const image = jsonData.images[0];
-
+            Main.setMutexBackendBusy(false); // Release the mutex lock
             // parameters info
             return `data:image/png;base64,${image}`;
+        } catch (error) {
+            console.error(CAT, 'Image not found or invalid:', error);
+            return `Error: Image not found or invalid: ${error}`;
         }
+    }
 
-        return result;
-    } catch (error) {
-        console.error(CAT, 'Image not found or invalid:', error);
-        return `Error: Image not found or invalid: ${error}`;
-    } finally {
-        Main.setMutexBackendBusy(false, generateData.uuid); // Release lock after everything (success or error)
-    }    
+    return result;
 } 
 
 async function runWebUI_ControlNet(generateData) {
-    const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+    const isBusy = await Main.getMutexBackendBusy();
     if (isBusy) {
-        console.warn(CAT, 'WebUI is busy, cannot run new generation, please try again later.');
+        console.warn(CAT, '[runWebUI_ControlNet] WebUI is busy, cannot run new generation, please try again later.');
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
+    Main.setMutexBackendBusy(true); // Acquire lock for the entire operation
 
-    Main.setMutexBackendBusy(true, generateData.uuid); // Acquire lock for the entire operation
     try {
-        // update contronNe tModel Hash List first
-        // that's really annoying, why they did not use prefix with model name?!
-        contronNetModelHashList = await backendWebUI.makeHttpRequestControlnet(
-            `http://${generateData.addr}/controlnet/model_list`,
-            generateData.auth,
-            'GET',
-            null,
-            null,
-            backendWebUI.timeout
-        );
-
-        if (typeof contronNetModelHashList === 'string' && contronNetModelHashList.startsWith('Error:')) {
-            console.error(CAT, 'GET request failed:', contronNetModelHashList);
-            contronNetModelHashList = [];
-        }
-        if (!Array.isArray(contronNetModelHashList)) {
-            console.error(CAT, 'Invalid model list from GET');
-            contronNetModelHashList = [];
-        }
-
-        // just get model hash list
-        if(generateData.controlNet === 'none')
-            return contronNetModelHashList;
-
-        // 200ms delay for breathing room
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await updateControlNetHashList(generateData);
 
         const controlNetDetect = {
             "controlnet_module": generateData.controlNet,
@@ -635,7 +628,7 @@ async function runWebUI_ControlNet(generateData) {
         console.error(CAT, 'Unexpected error in ControlNet run:', error);
         return `Error: Unexpected failure - ${error.message}`;
     } finally {
-        Main.setMutexBackendBusy(false, generateData.uuid); // Release lock after everything (success or error)
+        Main.setMutexBackendBusy(false); // Release lock after everything (success or error)
     }
 }
 

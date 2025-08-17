@@ -363,7 +363,7 @@ class ComfyUI {
                     if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
                       try {
                           const image = await this.getImage(index);
-                          Main.setMutexBackendBusy(false, this.uuid);  // Release the mutex after getting the image
+                          Main.setMutexBackendBusy(false);  // Release the mutex after getting the image
                           if (image && Buffer.isBuffer(image)) {
                               const base64Image = processImage(image);
                               if (base64Image) {
@@ -378,7 +378,7 @@ class ComfyUI {
                           resolve(`Error: ${err.message}`);
                       }
                     } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {
-                      Main.setMutexBackendBusy(false, this.uuid);  // Release the mutex after getting the image
+                      Main.setMutexBackendBusy(false);  // Release the mutex after getting the image
                       console.log(CAT, 'Running same promot? message =', message);
                       resolve(null);
                     }
@@ -891,14 +891,14 @@ class ComfyUI {
             console.error(CAT, 'Request failed:', error.message);
             ret = `Error: Request failed:, ${error.message}`;
           }
-          Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
+          Main.setMutexBackendBusy(false); // Release the mutex lock
           resolve(ret);
         });
 
         request.on('timeout', () => {
           req.destroy();
           console.error(`${CAT} Request timed out after ${timeout}ms`);
-          Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
+          Main.setMutexBackendBusy(false); // Release the mutex lock
           resolve(`Error: Request timed out after ${timeout}ms`);
         });
 
@@ -937,12 +937,12 @@ async function setupGenerateBackendComfyUI() {
 }
 
 async function runComfyUI(generateData) {
-  const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+  const isBusy = await Main.getMutexBackendBusy();
   if (isBusy) {
     console.warn(CAT, 'ComfyUI is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
+  Main.setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflow(generateData)
   console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
@@ -951,12 +951,12 @@ async function runComfyUI(generateData) {
 }
 
 async function runComfyUI_Regional(generateData) {
-  const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+  const isBusy = await Main.getMutexBackendBusy();
   if (isBusy) {
     console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
+  Main.setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowRegional(generateData)
   console.log(CAT, 'Running ComfyUI Regional with uuid:', backendComfyUI.uuid);
@@ -965,12 +965,12 @@ async function runComfyUI_Regional(generateData) {
 }
 
 async function runComfyUI_ControlNet(generateData){
-  const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+  const isBusy = await Main.getMutexBackendBusy();
   if (isBusy) {
     console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
+  Main.setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowControlnet(generateData)
   console.log(CAT, 'Running ComfyUI ControlNet with uuid:', backendComfyUI.uuid);

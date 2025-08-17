@@ -630,7 +630,7 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
         return {
             preImage: await fileToBase64(imageGzipped), 
             preImageAfter: newImage,
-            preImageAfterBase64: 'data:image/png;base64,' + newImage
+            preImageAfterBase64: (!newImage.startsWith('Error'))?'data:image/png;base64,' + newImage:newImage
         };
     } 
 
