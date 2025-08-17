@@ -1,3 +1,9 @@
+2025.08.17 v1.11.1     
+Add ControlNet support for A1111(WebUI)      
+Bugfix ControlNet List not update with Refresh     
+Minor bug fixes     
+
+
 2025.08.16 v1.11.0
 Add ControlNet support for ComfyUI      
 Bugfix error on load thumb image in SAA     

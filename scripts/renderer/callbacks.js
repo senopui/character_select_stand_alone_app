@@ -10,8 +10,10 @@ import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 export async function callback_mySettingList(index, selectedValue) {    
     if(!window.initialized)
         return;
+
     console.log('Loading settings file:', selectedValue);
-    
+    const lastApiInterface = window.globalSettings.api_interface;
+
     const value = selectedValue[0];
     const old_css = window.globalSettings.css_style;
     setBlur();
@@ -31,6 +33,12 @@ export async function callback_mySettingList(index, selectedValue) {
     
     window.lora.flush();
     window.initialized = true;
+
+    // The interface has changed!
+    if(window.globalSettings.api_interface != lastApiInterface) {
+        console.log("Reload UI and update cache due to interface changed.");
+        await callback_api_interface(0, [window.globalSettings.api_interface]);
+    }
     setNormal();
 }
 
@@ -52,6 +60,7 @@ export async function callback_api_interface(index, selectedValue){
         window.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
     }
     window.lora.reload();
+    window.controlnet.reload();
 
     if(window.generate.api_interface.getValue() !== 'ComfyUI'){
         window.hifix.colorTransfer.setValue(LANG.api_hf_colortransfer, ['None']);

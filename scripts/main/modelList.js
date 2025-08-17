@@ -38,7 +38,7 @@ function readDirectory(directory, basePath = '', search_subfolder = false, maxDe
 
 function updateControlNetList(model_path_comfyui, model_path_webui, search_subfolder) {
     const cnPathComfyUI = path.join(path.dirname(model_path_comfyui), 'controlnet');
-    const cnPathWebUI = path.join(path.dirname(model_path_webui), 'ControlNet');
+    const cnPathWebUI = path.join(path.dirname(model_path_webui), '..', 'extensions', 'sd-webui-controlnet', 'models');
 
     if (fs.existsSync(cnPathComfyUI)) {
         CONTROLNET_COMFYUI = readDirectory(cnPathComfyUI, '', search_subfolder);
@@ -197,6 +197,7 @@ function updateModelAndLoRAList(args) {
     console.log(CAT, 'Update model/lora list with following args: ', args);
     updateModelList(args[0], args[1], args[2], args[3], args[4]);
     updateLoRAList(args[0], args[1], args[4]);
+    updateControlNetList(args[0], args[1], args[4]);
 
     // This is the Skeleton Key to unlock the Mutex Lock
     // In case ...

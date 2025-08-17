@@ -9,17 +9,14 @@ Now supports 5326 (includes multiple costumes) Characters in list.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%>   
 
-| Item Support | ComfyUI| WebUI(A1111) | Forge|
+| Item Support | ComfyUI| A1111(WebUI)) | Forge|
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |
-| vPred | Yes | Yes | Yes |
 | Refiner | Yes | Yes | Yes |
-| Preview | Yes | Yes | Yes |
 | Image Color Transfer | Yes | No | No |
-| Image Info to Prompt | Yes | Yes | Yes |
 | Regional Condition | Yes | No | No |
-| ControlNet | Yes | No | No |
+| ControlNet | Yes | Yes | No |
 | API authentication| No | Yes | Yes |
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
@@ -60,14 +57,21 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
      
 ------
 # Highlights
-## ControlNet (ComfyUI only)
-ControlNet currently only supports ComfyUI and requires [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version `0.4.9.6 or above` AND [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) must be installed.       
+## ControlNet (ComfyUI & A1111)
+For ComfyUI and requires [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version `0.4.9.6 or above` AND [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) must be installed.      
+Put your ControlNet models in `ComfyUI\\models\\controlnet`      
+
+For A1111(WebUI) requires [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet).      
+Put your ControlNet models in `stable-diffusion-webui\\extensions\\sd-webui-controlnet\\models`, the extension plugin path.       
+
+Forge is not supported. I have to treat Forge and A1111 as two different backends. :(      
 
 1. Drag and drop your Image(or openPose image) to SAA/SAAC `Image Info`, select `Pre-processor`, `Resolution`, `Post-processor` and then click `Add ControlNet`. After it says `Added` the previre image will swap to your `Pre-processed` image, close `Image info` window, check `ControlNet` tab for more settings. **Hover your mouse over a dropdown/text item to view its feature.**                 
 2. In `ControlNet` tab, you can change `Pre-processor` by select the a one and click `Refresh` to generate it and update preview. (Or set `Method` to `On` but SAA preview will not update).      
 3. Because images are too big to save in settings file, so `ControlNet` settings will not save when SAA close, but also select another settings will not override current `ControlNet` settings.      
 4. `ControlNet` works on normal and regional conditon.       
 5. If you are new to `ControlNet`, try `Canny` or `OpenPose` first.      
+6. ComfyUI *D-O-E-S N-O-T* like submitting the same data, you may receive an `Empty response error` when submit same data.       
 
 All `Pre-processor` models are managed by  [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) and most of them will download from Hugging Face.      
 All `Post-processor` models, aka the `Apply ControlNet Model` you need download by yourself from `ComfyUI Model Manager` or Hugging Face.      

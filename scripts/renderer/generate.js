@@ -2,6 +2,18 @@ import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
+export function fileToBase64(file) {
+    if(typeof file === 'string')
+        return file;
+
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 export function extractHostPort(input) {
     input = input.trim();
 
@@ -462,7 +474,7 @@ export function checkVpred(){
 }
 
 export function convertBase64ImageToUint8Array(image) {
-    if (!image?.startsWith('data:image/png;base64,'))
+    if (!image?.startsWith('data:image/png;base64,')) 
         return null;
 
     try {
@@ -501,6 +513,14 @@ export async function createControlNet() {
 
         if(slot_enable === 'Off')
             return;
+
+        if(postProcessStart > 1 || postProcessStart < 0) postProcessStart = 0;
+        if(postProcessEnd > 1 || postProcessEnd < 0) postProcessEnd = 1;
+
+        if(postProcessStart > postProcessEnd || postProcessModel === 'none') {
+            console.warn("Skip controlNet", postProcessModel, postProcessStart, postProcessEnd);
+            return;
+        }
 
         const cnData = {
             preModel:   preProcessModel,
@@ -554,11 +574,12 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
         addr: extractHostPort(window.generate.api_address.getValue()),
         auth: extractAPISecure(apiInterface),
         uuid: browserUUID,
-        imageData: imageGzipped,
+        imageData: (apiInterface === 'ComfyUI' && !skipGzip)?imageGzipped:(await fileToBase64(imageGzipped)).replace('data:image/png;base64,', ''),
         controlNet: controlNetSelect,
         outputResolution: controlNetResolution
     };
     
+    // ControlNet Start
     let newImage;
     if(apiInterface === 'None') {
         console.warn('apiInterface', apiInterface);
@@ -577,20 +598,41 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
         } 
         retCopy = ret;
     } else if(apiInterface === 'WebUI') {
-        console.log('Error: not support WebUI');
-        ret = LANG.message_controlnet_not_support_webui;
+        if (!window.inBrowser) {
+            newImage = await window.api.runWebUI_ControlNet(generateData);
+        } else {
+            newImage = await sendWebSocketMessage({ type: 'API', method: 'runWebUI_ControlNet', params: [generateData] });
+        }     
+
+        if(!newImage) {
+            ret = 'No Image return from WebUI Backend';
+        } else if(newImage.startsWith('Error')) {
+            ret = newImage;
+            newImage = ret;
+        } else {
+            // got image
+        }
         retCopy = ret;
-        newImage = ret;
     }
 
-    const preImageAft = convertBase64ImageToUint8Array(newImage);
     let preImageAftGzipped;
-    if (!window.inBrowser) {
-        preImageAftGzipped = await window.api.compressGzip(preImageAft);
-    } else {
-        preImageAftGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(preImageAft)] });
-    }
+    if(apiInterface === 'ComfyUI') {
+        const preImageAft = convertBase64ImageToUint8Array(newImage);
+        if (!window.inBrowser) {            
+            preImageAftGzipped = await window.api.compressGzip(preImageAft);
+        } else {
+            preImageAftGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(preImageAft)] });
+        }        
+    } 
     window.mainGallery.hideLoading(ret, retCopy);
+
+    if (apiInterface === 'WebUI') {
+        return {
+            preImage: await fileToBase64(imageGzipped), 
+            preImageAfter: newImage,
+            preImageAfterBase64: 'data:image/png;base64,' + newImage
+        };
+    } 
 
     return {
         preImage: imageGzipped, 

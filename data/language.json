@@ -109,7 +109,7 @@
         "api_refiner_ratio":"Ratio",
         "api_refiner_add_noise":"Refiner Add Noise(ComfyUI)",
 
-        "api_controlnet_enable": "Enable ControlNet (ComfyUI)",
+        "api_controlnet_enable": "Enable ControlNet",
         "api_controlnet_pre_process_model": "Pre-Process",
         "api_controlnet_pre_process_resolution": "Pre-Process Output Resolution (N*64)",
         "api_controlnet_slot_enable": "Method:Pre-to-Post,Post-Only,OFF",
@@ -117,8 +117,8 @@
         "api_controlnet_post_process_strength": "Model Strength (0~10)",
         "api_controlnet_post_process_start": "Start percent (0~1)",
         "api_controlnet_post_process_end": "End percent (0~1)",
-        "message_controlnet": "Note: ControlNet currently only supports ComfyUI and requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color] must be installed. Click to copy the Node download link.\n\n注意：ControlNet目前仅支持ComryUI，需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]",
-        "message_controlnet_not_support_webui": "Error: ControlNet currently only supports ComfyUI\n\n错误：ControlNet目前仅支持ComfyUI",
+        "message_controlnet_comfyui": "Note: ControlNet for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]",
+        "message_controlnet_webui": "Note: ControlNet for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
         
         "run_button": "Create Prompt",
         "run_random_button": "Batch (Random)",
@@ -303,7 +303,7 @@
         "api_refiner_ratio":"比例",
         "api_refiner_add_noise":"切换降噪添加噪点(ComfyUI)",
 
-        "api_controlnet_enable": "启用 ControlNet (ComfyUI)",
+        "api_controlnet_enable": "启用 ControlNet",
         "api_controlnet_pre_process": "启用预处理",
         "api_controlnet_pre_process_model": "预处理模型",
         "api_controlnet_pre_process_resolution": "预处理分辨率(N*64)",
@@ -312,8 +312,8 @@
         "api_controlnet_post_process_strength": "强度(0~10)",
         "api_controlnet_post_process_start": "起始（步数）比例(0~1)",
         "api_controlnet_post_process_end": "停止（步数）比例(0~1)",
-        "message_controlnet": "Note: ControlNet currently only supports ComfyUI and requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color] must be installed. Click to copy the Node download link.\n\n注意：ControlNet目前仅支持ComryUI，需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]",
-        "message_controlnet_not_support_webui": "Error: ControlNet currently only supports ComfyUI\n\n错误：ControlNet目前仅支持ComfyUI",
+        "message_controlnet_comfyui": "Note: ControlNet for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]",
+        "message_controlnet_webui": "Note: ControlNet for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
         
         "run_button": "单图生成",
         "run_random_button": "批量（随机）",

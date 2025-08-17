@@ -1,10 +1,10 @@
 import { mySimpleList } from './myDropdown.js';
 import { setupTextbox } from './myTextbox.js';
 import { generateGUID } from './myLoRASlot.js'
-import { generateControlnetImage } from './generate.js';
+import { generateControlnetImage, fileToBase64 } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
-const controlNetPreprocessor = [
+const controlNetValuesComfyUI = [
     "none",
     "AnimeFace_SemSegPreprocessor",
     "AnyLineArtPreprocessor_aux",
@@ -54,6 +54,81 @@ const controlNetPreprocessor = [
     "Zoe-DepthMapPreprocessor"
 ];
 
+const controlNetValuesWebUI = [
+    "none",
+    "ip-adapter-auto",
+    "tile_resample",
+    "pidinet",
+    "oneformer_ade20k",
+    "pidinet_scribble",
+    "revision_clipvision",
+    "reference_only",
+    "recolor_luminance",
+    "openpose_full",
+    "normal_bae",
+    "mlsd",
+    "lineart_standard",
+    "ip-adapter_clip_sd15",
+    "inpaint_only",
+    "depth",
+    "canny",
+    "invert",
+    "tile_colorfix+sharp",
+    "tile_colorfix",
+    "threshold",
+    "clip_vision",
+    "pidinet_sketch",
+    "color",
+    "softedge_teed",
+    "pidinet_safe",
+    "hed_safe",
+    "hed",
+    "softedge_anyline",
+    "shuffle",
+    "segmentation",
+    "oneformer_coco",
+    "anime_face_segment",
+    "scribble_xdog",
+    "scribble_hed",
+    "revision_ignore_prompt",
+    "reference_adain+attn",
+    "reference_adain",
+    "recolor_intensity",
+    "openpose_hand",
+    "openpose_faceonly",
+    "openpose_face",
+    "openpose",
+    "normal_map",
+    "normal_dsine",
+    "mobile_sam",
+    "mediapipe_face",
+    "lineart",
+    "lineart_coarse",
+    "lineart_anime_denoise",
+    "lineart_anime",
+    "ip-adapter_pulid",
+    "ip-adapter_face_id_plus",
+    "ip-adapter_face_id",
+    "ip-adapter_clip_sdxl_plus_vith",
+    "ip-adapter_clip_sdxl",
+    "instant_id_face_keypoints",
+    "instant_id_face_embedding",
+    "inpaint_only+lama",
+    "inpaint",
+    "facexlib",
+    "dw_openpose_full",
+    "depth_zoe",
+    "depth_leres++",
+    "depth_leres",
+    "depth_hand_refiner",
+    "depth_anything_v2",
+    "depth_anything",
+    "densepose_parula",
+    "densepose",
+    "blur_gaussian",
+    "animal_openpose"
+];
+
 let instanceControlNetSlotManager = null;
 
 function createControlNetSlotsFromValues(slotManager, slotValues, options = {}) {
@@ -76,12 +151,12 @@ function createControlNetSlotsFromValues(slotManager, slotValues, options = {}) 
         pre_image, pre_image_after, pre_image_base64, pre_image_after_base64
     ]) => {
         if (validateControlNet) {
-            if (!controlNetPreprocessor.includes(preProcessModel)) {
+            if (!getControlNetLiet().includes(preProcessModel)) {
                 if (options.skipInvalid) {
                     console.warn(`Pre-Process Model "${preProcessModel}" not found, skipping`);
                     return;
                 }
-                preProcessModel = controlNetPreprocessor[0] || 'none';
+                preProcessModel = getControlNetLiet()[0] || 'none';
             }
             if (!FILES.controlnetList.includes(postModel)) {
                 if (options.skipInvalid) {
@@ -107,7 +182,7 @@ function createControlNetSlotsFromValues(slotManager, slotValues, options = {}) 
             const preProcessModelComponent = mySimpleList(
                 slot.itemClasses.pre_process_model,
                 LANG.api_controlnet_pre_process_model,
-                controlNetPreprocessor,
+                getControlNetLiet(),
                 null,
                 15,
                 true,
@@ -212,16 +287,32 @@ class ControlNetSlotManager {
             const action = target.dataset.action;
             const slotClass = target.dataset.slot;
             const slot = this.slotIndex.get(slotClass);
+            const apiInterface = window.generate.api_interface.getValue();
+
             if (action === 'add') {
                 /*
                 We use add for refresh controlnet result
                 this.handleAdd();
                 */
-                if(slot.pre_image) {
-                    const rowValues = this.getValue(slotClass, slot, true);
-                    const preProcessModel = rowValues[0];   
-                    const preProcessResolution = rowValues[1];
-                    
+                const rowValues = this.getValue(slotClass, slot, true);
+                const preProcessModel = rowValues[0];   
+                const preProcessResolution = rowValues[1];
+
+                if(!slot.pre_image && slot.pre_image_after && preProcessModel !== 'none') {
+                    let tmpImage;
+                    if(apiInterface === 'ComfyUI'){
+                        if (!window.inBrowser) {
+                            tmpImage = await window.api.decompressGzip(slot.pre_image_after);
+                        } else {
+                            tmpImage = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [slot.preImageAfter] });                        
+                        }     
+                        slot.pre_image = tmpImage;
+                    } else {
+                        slot.pre_image = slot.pre_image_after.replace('data:image/png;base64,', '');
+                    }
+                }
+
+                if(slot.pre_image) {                    
                     const {preImage, preImageAfter, preImageAfterBase64} = 
                         await generateControlnetImage(slot.pre_image, preProcessModel, preProcessResolution, true);
                     if(preImageAfterBase64?.startsWith('data:image/png;base64,') && preImage) {
@@ -383,11 +474,6 @@ class ControlNetSlotManager {
     }
 
     addSlot(pre_image_base64 = null, pre_image_after_base64 = null) {
-        if(window.generate.api_interface.getValue() !== 'ComfyUI') {
-            console.error('Only support ComfyUI for now');
-            return null;
-        }
-
         if (!this.candidateClassName) {
             console.error('No candidate row available');
             return null;
@@ -594,7 +680,7 @@ class ControlNetSlotManager {
             const preProcessModelComponent = mySimpleList(
                 slot.itemClasses.pre_process_model,
                 LANG.api_controlnet_pre_process_model,
-                controlNetPreprocessor,
+                getControlNetLiet(),
                 null,
                 15,
                 true,
@@ -693,6 +779,20 @@ class ControlNetSlotManager {
     AddControlNetSlot(slotValues) {
         createControlNetSlotsFromValues(this, slotValues, { validateControlNet: true, clearSlots: false });
     }
+}
+
+export function getControlNetLiet() {
+    let controlNetPreprocessor = [];
+
+    if(window.globalSettings.api_interface === 'ComfyUI') {
+        controlNetPreprocessor = controlNetValuesComfyUI;
+    } else if(window.globalSettings.api_interface === 'WebUI') {
+        controlNetPreprocessor = controlNetValuesWebUI;
+    } else {
+        controlNetPreprocessor = [];
+    }
+
+    return controlNetPreprocessor;
 }
 
 export function setupControlNet(containerID) {

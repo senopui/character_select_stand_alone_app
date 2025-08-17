@@ -1,65 +1,15 @@
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
-import { generateControlnetImage } from './generate.js';
-
-const controlNetValues = [
-    "none",
-    "AnimeFace_SemSegPreprocessor",
-    "AnyLineArtPreprocessor_aux",
-    "BinaryPreprocessor",
-    "CannyEdgePreprocessor",
-    "ColorPreprocessor",
-    "DensePosePreprocessor",
-    "DepthAnythingPreprocessor",
-    "Zoe_DepthAnythingPreprocessor",
-    "DepthAnythingV2Preprocessor",
-    "DSINE-NormalMapPreprocessor",
-    "DWPreprocessor",
-    "AnimalPosePreprocessor",
-    "HEDPreprocessor",
-    "FakeScribblePreprocessor",
-    "LeReS-DepthMapPreprocessor",
-    "LineArtPreprocessor",
-    "AnimeLineArtPreprocessor",
-    "LineartStandardPreprocessor",
-    "Manga2Anime_LineArt_Preprocessor",
-    "MediaPipe-FaceMeshPreprocessor",
-    "MeshGraphormer-DepthMapPreprocessor",
-    "Metric3D-DepthMapPreprocessor",
-    "Metric3D-NormalMapPreprocessor",
-    "MiDaS-NormalMapPreprocessor",
-    "MiDaS-DepthMapPreprocessor",
-    "M-LSDPreprocessor",
-    "BAE-NormalMapPreprocessor",
-    "OneFormer-COCO-SemSegPreprocessor",
-    "OneFormer-ADE20K-SemSegPreprocessor",
-    "OpenposePreprocessor",
-    "PiDiNetPreprocessor",
-    "PyraCannyPreprocessor",
-    "ImageLuminanceDetector",
-    "ImageIntensityDetector",
-    "ScribblePreprocessor",
-    "Scribble_XDoG_Preprocessor",
-    "Scribble_PiDiNet_Preprocessor",
-    "SAMPreprocessor",
-    "ShufflePreprocessor",
-    "TEEDPreprocessor",
-    "TilePreprocessor",
-    "TTPlanet_TileGF_Preprocessor",
-    "TTPlanet_TileSimple_Preprocessor",
-    "UniFormer-SemSegPreprocessor",
-    "SemSegPreprocessor",
-    "Zoe-DepthMapPreprocessor"
-];
+import { generateControlnetImage, fileToBase64 } from './generate.js';
+import { getControlNetLiet } from "./myControlNetSlot.js"
 
 let cachedImage = '';
 
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+function createHtmlOptions(itemList) {
+    let options = [];
+    itemList.forEach((item) => {
+        options.push(`<option value="${item}">${item}</option>`);
     });
+    return options.join();
 }
 
 export function setupImageUploadOverlay() {
@@ -286,15 +236,7 @@ export function setupImageUploadOverlay() {
         reader.readAsDataURL(file);
     }
 
-    function createControlNetButtons() {
-        function createHtmlOptions(itemList) {
-            let options = [];
-            itemList.forEach((item) => {
-                options.push(`<option value="${item}">${item}</option>`);
-            });
-            return options.join();
-        }
-
+    function createControlNetButtons(apiInterface) {
         const SETTINGS = window.globalSettings;
         const FILES = window.cachedFiles;
         const LANG = FILES.language[SETTINGS.language];
@@ -304,7 +246,7 @@ export function setupImageUploadOverlay() {
 
         const controlNetSelect = document.createElement('select');
         controlNetSelect.className = 'controlnet-select';
-        controlNetSelect.innerHTML = createHtmlOptions(controlNetValues);
+        controlNetSelect.innerHTML = createHtmlOptions(getControlNetLiet());
 
         const controlNetResolution = document.createElement('select');
         controlNetResolution.className = 'controlnet-select';
@@ -325,8 +267,11 @@ export function setupImageUploadOverlay() {
                 postProcessButton.disabled = true;
 
                 const preImageBase64 = await fileToBase64(cachedImage);
-                if(controlNetSelect.value !== 'none') {
-                    const {preImage, preImageAfter, preImageAfterBase64} = await generateControlnetImage(cachedImage, controlNetSelect.value, controlNetResolution.value);
+                if(controlNetSelect.value !== 'none' && !controlNetSelect.value.startsWith('ip-adapter')) {
+                    const {preImage, preImageAfter, preImageAfterBase64} = 
+                        await generateControlnetImage(
+                            cachedImage, controlNetSelect.value, controlNetResolution.value, 
+                            apiInterface !== 'ComfyUI');    //WebUI skip gzip
                     
                     if(preImageAfterBase64?.startsWith('data:image/png;base64,')) {
                         const slotValues = [[
@@ -357,43 +302,39 @@ export function setupImageUploadOverlay() {
                             postProcessButton.disabled = false;
                         }, 5000);
                     }
-                } else {
-                    const apiInterface = window.generate.api_interface.getValue();
+                } else {                    
+                    const buffer = await cachedImage.arrayBuffer();
+                    let preImageGzipped;
                     if(apiInterface === 'ComfyUI') {
-                        const buffer = await cachedImage.arrayBuffer();
-                        let preImageGzipped;
                         if (!window.inBrowser) {
                             preImageGzipped = await window.api.compressGzip(buffer);
                         } else {
                             const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
                             preImageGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [base64String] });
                         }
-
-                        const slotValues = [[
-                            controlNetSelect.value,          // preProcessModel
-                            controlNetResolution.value,      // preProcessResolution
-                            'Post',                          // slot_enable
-                            controlNetPostSelect.value,      // postModel
-                            0.8,                             // postProcessStrength
-                            0,                               // postProcessStart
-                            0.8,                             // postProcessEnd
-                            null,                            // pre_image
-                            preImageGzipped,                 // pre_image_after
-                            null,                            // pre_image_base64
-                            preImageBase64,                  // pre_image_after_base64 
-                        ]];
-                        window.controlnet.AddControlNetSlot(slotValues);
-
-                        setTimeout(() => {
-                            postProcessButton.textContent = LANG.image_info_add_controlnet_added;
-                            window.collapsedTabs.controlnet.setCollapsed(false);
-                        }, 200);
-                    } else {
-                        postProcessButton.textContent = LANG.image_info_add_controlnet_failed;
-
-                        const ret = LANG.message_controlnet_not_support_webui;
-                        window.mainGallery.hideLoading(ret, ret);                        
+                    } else {    // WebUI
+                        preImageGzipped = preImageBase64;
                     }
+                    const slotValues = [[
+                        controlNetSelect.value,          // preProcessModel
+                        controlNetResolution.value,      // preProcessResolution
+                        controlNetSelect.value.startsWith('ip-adapter')?
+                        'On':'Post',                     // slot_enable
+                        controlNetPostSelect.value,      // postModel
+                        0.8,                             // postProcessStrength
+                        0,                               // postProcessStart
+                        0.8,                             // postProcessEnd
+                        null,                            // pre_image
+                        preImageGzipped,                 // pre_image_after
+                        null,                            // pre_image_base64
+                        preImageBase64,                  // pre_image_after_base64 
+                    ]];
+                    window.controlnet.AddControlNetSlot(slotValues);
+
+                    setTimeout(() => {
+                        postProcessButton.textContent = LANG.image_info_add_controlnet_added;
+                        window.collapsedTabs.controlnet.setCollapsed(false);
+                    }, 200);                    
                 }
             }
         });
@@ -537,6 +478,7 @@ export function setupImageUploadOverlay() {
     }
 
     function displayFormattedMetadata(metadata) {
+        const apiInterface = window.generate.api_interface.getValue();
         const parsedMetadata = parseGenerationParameters(metadata);
         window.currentImageMetadata = parsedMetadata;
         metadataContainer.innerHTML = '';
@@ -545,8 +487,8 @@ export function setupImageUploadOverlay() {
                            parsedMetadata.negativePrompt || 
                            parsedMetadata.otherParams;
         
-        if(window.generate.api_interface.getValue() === 'ComfyUI') {
-            metadataContainer.appendChild(createControlNetButtons());        
+        if(apiInterface !== 'None') {
+            metadataContainer.appendChild(createControlNetButtons(apiInterface));        
         }
 
         if (hasMetadata) {

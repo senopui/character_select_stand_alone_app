@@ -1,10 +1,63 @@
 const { ipcMain } = require('electron')
 const { net } = require('electron');
+const path = require('node:path')
 const { sendToRenderer } = require('./generate_backend_comfyui'); 
 const Main = require('../../main');
 
 const CAT = '[WebUI]';
 let backendWebUI = null;
+let contronNetModelHashList = 'none';
+
+function findControlNetModelByName(name) {
+  const cleanName = path.basename(name, '.safetensors');
+  
+  const matchedModel = contronNetModelHashList.find(model => {
+    const modelName = model.split(' [')[0];
+    return modelName === cleanName;
+  });
+
+  return matchedModel || 'none';
+}
+
+function applyControlnet(payload, controlnet){
+    let newPayload = payload;
+    if (Array.isArray(controlnet)) {
+        payload["alwayson_scripts"] = {};
+        payload["alwayson_scripts"]["controlnet"] = {};
+        payload["alwayson_scripts"]["controlnet"]["args"]  = [];
+
+        controlnet.forEach((slot, idx) => {
+            const controlNetArg = {};
+            // skip empty
+            if(slot.postModel === 'none') {
+                console.log(CAT,"[applyControlnet] Skip", idx, slot);
+                return;
+            }
+            
+            controlNetArg["enabled"] = true;
+            if(slot.image) {
+                controlNetArg["module"] = slot.preModel;
+                controlNetArg["image"] = slot.image;
+
+            } else if(slot.imageAfter) {
+                controlNetArg["module"] = 'none';   // skip pre
+                controlNetArg["image"] = slot.imageAfter;
+            } else {  // should not here
+                return;
+            
+            }            
+            controlNetArg["processor_res"] = slot.preRes;
+            controlNetArg["model"] = findControlNetModelByName(slot.postModel);
+            controlNetArg["weight"] = slot.postStr;
+            controlNetArg["guidance_start"] = slot.postStart;
+            controlNetArg["guidance_end"] = slot.postEnd;
+
+            newPayload["alwayson_scripts"]["controlnet"]["args"].push(controlNetArg);
+        });                
+    }
+
+    return newPayload;
+}
 
 class WebUI {
     constructor() {
@@ -86,7 +139,7 @@ class WebUI {
 
     async run (generateData) {
         return new Promise((resolve, reject) => {
-            const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner} = generateData;
+            const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
@@ -136,6 +189,9 @@ class WebUI {
                 }
             }
 
+            // ControlNet
+            payload = applyControlnet(payload, controlnet);
+            
             const body = JSON.stringify(payload);
             const apiUrl = `http://${this.addr}/sdapi/v1/txt2img`;
             
@@ -182,14 +238,12 @@ class WebUI {
                     console.error(CAT, 'Request failed:', error.message);
                     ret = `Error: Request failed:, ${error.message}`;
                 }
-                Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
                 resolve(ret);
             });
     
             request.on('timeout', () => {
                 request.destroy();
                 console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                Main.setMutexBackendBusy(false, this.uuid); // Release the mutex lock
                 resolve(`Error: Request timed out after ${this.timeout}ms`);
             });
 
@@ -302,6 +356,146 @@ class WebUI {
             this.pollingInterval = null;
         }        
     }
+
+    async makeHttpRequestControlnet(
+        apiUrl,
+        auth,
+        method = 'GET',
+        headers = null,
+        data = null,
+        timeout = 5000
+    ) {
+        return new Promise((resolve, reject) => {
+            try {
+                // Default headers if none provided
+                let defaultHeaders = headers || { 'Content-Type': 'application/json' };
+                if (auth?.includes(':')) {
+                    const encoded = Buffer.from(auth).toString('base64');
+                    defaultHeaders['Authorization'] = `Basic ${encoded}`;
+                }
+
+                const chunks = [];
+                let request;
+
+                if (method.toUpperCase() === 'GET') {
+                    request = net.request({
+                        method: 'GET',
+                        url: apiUrl,
+                        headers: defaultHeaders,
+                        timeout: timeout,
+                    });
+                    
+                    request.on('response', (response) => {
+                        response.on('data', (chunk) => {
+                            chunks.push(Buffer.from(chunk));
+                        });
+
+                        response.on('end', () => {
+                            if (response.statusCode !== 200) {
+                                console.error(`${CAT} HTTP error: ${response.statusCode}`);
+                                console.log(response);
+                                resolve(`Error: HTTP error ${response.statusCode}`);
+                            }
+                            
+                            try {
+                                const buffer = Buffer.concat(chunks);
+                                const jsonData = JSON.parse(buffer.toString());
+                                const modelList = jsonData.model_list;
+                                resolve(modelList);
+                            } catch(error) {
+                                console.error(`${CAT} modelList Decode error: ${error}`);
+                                resolve(`Error: modelList Decode error ${error}`);
+                            }
+                        });
+                    });
+                    
+                    request.on('error', (error) => {
+                        let ret = '';
+                        if (error.code === 'ECONNABORTED') {
+                            console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                            ret = `Error: Request timed out after ${this.timeout}ms`;
+                        } else {
+                            console.error(CAT, 'Request failed:', error.message);
+                            ret = `Error: Request failed:, ${error.message}`;
+                        }
+                        request.destroy(); // Explicitly destroy to close any lingering connection
+                        resolve(ret);
+                    });
+            
+                    request.on('timeout', () => {
+                        request.destroy();
+                        console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                        resolve(`Error: Request timed out after ${this.timeout}ms`);
+                    });
+
+                    request.end();
+                } else if (method.toUpperCase() === 'POST') {
+                    request = net.request({
+                        method: 'POST',
+                        url: apiUrl,
+                        headers: defaultHeaders,
+                        timeout: timeout,
+                    });
+
+                    request.on('response', (response) => {
+                        response.on('data', (chunk) => {
+                            chunks.push(Buffer.from(chunk));
+                        });
+
+                        response.on('end', () => {
+                            if (response.statusCode !== 200) {
+                                console.error(`${CAT} HTTP error: ${response.statusCode}`);
+                                console.log(response);
+                                resolve(`Error: HTTP error ${response.statusCode}`);
+                            }
+                            
+                            try {
+                                const buffer = Buffer.concat(chunks);
+                                const jsonData = JSON.parse(buffer.toString());
+                                if(jsonData?.info === 'Success') {
+                                    resolve(jsonData.images[0]);
+                                } else {
+                                    console.error(CAT, 'Error: No image from backend');
+                                    resolve('Error: No image from backend');
+                                }
+                            } catch(error) {
+                                console.error(`${CAT} Decode error: ${error}`);
+                                resolve(`Error: Decode error ${error}`);
+                            }
+                        });
+                    });
+                    
+                    request.on('error', (error) => {
+                        let ret = '';
+                        if (error.code === 'ECONNABORTED') {
+                            console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                            ret = `Error: Request timed out after ${this.timeout}ms`;
+                        } else {
+                            console.error(CAT, 'Request failed:', error.message);
+                            ret = `Error: Request failed:, ${error.message}`;
+                        }
+                        request.destroy(); // Explicitly destroy to close any lingering connection
+                        resolve(ret);
+                    });
+            
+                    request.on('timeout', () => {
+                        request.destroy();
+                        console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                        resolve(`Error: Request timed out after ${this.timeout}ms`);
+                    });
+
+                    const body = JSON.stringify(data);
+                    request.write(body);
+                    request.end(); 
+                } else {
+                    throw new Error('Method must be either "GET" or "POST"');
+                }
+            } catch (error) {
+                console.log('Error:', error);
+                resolve(`Error: ${error.message}`);
+            }
+        });
+    }
 }
 
 async function setupGenerateBackendWebUI() {
@@ -309,6 +503,10 @@ async function setupGenerateBackendWebUI() {
 
     ipcMain.handle('generate-backend-webui-run', async (event, generateData) => {
         return await runWebUI(generateData);
+    });
+
+    ipcMain.handle('generate-backend-webui-run-controlnet', async (event, generateData) => {
+        return await runWebUI_ControlNet(generateData);
     });
 
     ipcMain.handle('generate-backend-webui-start-polling', async (event) => {
@@ -330,11 +528,23 @@ async function runWebUI(generateData){
         console.warn(CAT, 'WebUI is busy, cannot run new generation, please try again later.');
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
+    
+    if (contronNetModelHashList === 'none') {
+        console.log(CAT, "Refresh controlNet model hash list:");
+        const requestData = {
+            addr: generateData.addr,
+            auth: generateData.auth,
+            controlNet: 'none'
+        };
+        const result = await runWebUI_ControlNet(requestData);
+        console.log(result);
+    }
 
-    Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock
-    const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
-    if(result === '200') {
-        try {
+    Main.setMutexBackendBusy(true, generateData.uuid); // Acquire the mutex lock    
+    try {
+        const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
+
+        if(result === '200') {
             console.log(CAT, 'Running A1111 with uuid:', generateData.uuid);
             const imageData = await backendWebUI.run(generateData);
 
@@ -346,17 +556,88 @@ async function runWebUI(generateData){
             const jsonData =  JSON.parse(imageData);
             sendToRenderer(backendWebUI.uuid, `updateProgress`, `100`, '100%');
             const image = jsonData.images[0];
-            Main.setMutexBackendBusy(false, backendWebUI.uuid); // Release the mutex lock
+
             // parameters info
             return `data:image/png;base64,${image}`;
-        } catch (error) {
-            console.error(CAT, 'Image not found or invalid:', error);
-            return `Error: Image not found or invalid: ${error}`;
         }
+
+        return result;
+    } catch (error) {
+        console.error(CAT, 'Image not found or invalid:', error);
+        return `Error: Image not found or invalid: ${error}`;
+    } finally {
+        Main.setMutexBackendBusy(false, generateData.uuid); // Release lock after everything (success or error)
+    }    
+} 
+
+async function runWebUI_ControlNet(generateData) {
+    const isBusy = await Main.getMutexBackendBusy(generateData.uuid);
+    if (isBusy) {
+        console.warn(CAT, 'WebUI is busy, cannot run new generation, please try again later.');
+        return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
 
-    return result;
-} 
+    Main.setMutexBackendBusy(true, generateData.uuid); // Acquire lock for the entire operation
+    try {
+        // update contronNe tModel Hash List first
+        // that's really annoying, why they did not use prefix with model name?!
+        contronNetModelHashList = await backendWebUI.makeHttpRequestControlnet(
+            `http://${generateData.addr}/controlnet/model_list`,
+            generateData.auth,
+            'GET',
+            null,
+            null,
+            backendWebUI.timeout
+        );
+
+        if (typeof contronNetModelHashList === 'string' && contronNetModelHashList.startsWith('Error:')) {
+            console.error(CAT, 'GET request failed:', contronNetModelHashList);
+            contronNetModelHashList = [];
+        }
+        if (!Array.isArray(contronNetModelHashList)) {
+            console.error(CAT, 'Invalid model list from GET');
+            contronNetModelHashList = [];
+        }
+
+        // just get model hash list
+        if(generateData.controlNet === 'none')
+            return contronNetModelHashList;
+
+        // 200ms delay for breathing room
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        const controlNetDetect = {
+            "controlnet_module": generateData.controlNet,
+            "controlnet_input_images": [generateData.imageData],
+            "controlnet_processor_res": generateData.outputResolution,
+            "controlnet_threshold_a": -1,
+            "controlnet_threshold_b": -1,
+            "controlnet_masks": [],
+            "low_vram": false
+        };
+
+        const result = await backendWebUI.makeHttpRequestControlnet(
+            `http://${generateData.addr}/controlnet/detect`,
+            generateData.auth,
+            'POST',
+            null,
+            controlNetDetect,
+            backendWebUI.timeout
+        );
+
+        if (typeof result === 'string' && result.startsWith('Error:')) {
+            console.error(CAT, 'POST request failed:', result);
+            return result;
+        }
+
+        return result;
+    } catch (error) {
+        console.error(CAT, 'Unexpected error in ControlNet run:', error);
+        return `Error: Unexpected failure - ${error.message}`;
+    } finally {
+        Main.setMutexBackendBusy(false, generateData.uuid); // Release lock after everything (success or error)
+    }
+}
 
 function cancelWebUI() {
     backendWebUI.cancelGenerate();
@@ -374,6 +655,7 @@ function stopPollingWebUI() {
 module.exports = {
     setupGenerateBackendWebUI,
     runWebUI,
+    runWebUI_ControlNet,
     cancelWebUI,
     startPollingWebUI,
     stopPollingWebUI
