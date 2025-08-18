@@ -68,6 +68,16 @@ exports.compressGzipThenBase64 = compressGzipThenBase64;
 
 let mainWindow; // Main browser window instance
 
+function replaceMisspelling(word) {
+  mainWindow.webContents.replaceMisspelling(word);
+  return true;
+}
+
+function addToDictionary(word) {
+  mainWindow.webContents.session.addWordToSpellCheckerDictionary(word);
+  return true;
+}
+
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
