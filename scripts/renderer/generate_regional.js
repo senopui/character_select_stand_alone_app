@@ -5,6 +5,89 @@ import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getR
     createControlNet } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
+function getCustomJSON(){
+    let BeforeOfPromptsL = '';
+    let BeforeOfCharacterL = '';
+    let EndOfCharacterL = '';
+    let EndOfPromptsL = '';
+
+    let BeforeOfPromptsR = '';
+    let BeforeOfCharacterR = '';
+    let EndOfCharacterR = '';
+    let EndOfPromptsR = '';
+    
+    const jsonSlots = window.jsonlist.getValues();
+
+    jsonSlots.forEach(([prompt, strength, regional, method]) => {
+        if(method === 'Off')
+            return;
+
+        const trimmedPrompt = prompt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/:/g, ' ');
+        let finalPrompt;
+        if (parseFloat(strength) === 1.0)
+            finalPrompt = `${trimmedPrompt}, `;
+        else
+            finalPrompt = `(${trimmedPrompt}:${strength}), `;
+
+
+        if(regional == 'Both') {
+            if(method === 'BOP') {
+                BeforeOfPromptsL = BeforeOfPromptsL + finalPrompt;
+                BeforeOfPromptsR = BeforeOfPromptsR + finalPrompt;
+            }
+            else if(method === 'EOP') {
+                EndOfPromptsL = EndOfPromptsL + finalPrompt;
+                EndOfPromptsR = EndOfPromptsR + finalPrompt;
+            }
+            if(method === 'BOC') {
+                BeforeOfCharacterL = BeforeOfCharacterL + finalPrompt;
+                BeforeOfCharacterR = BeforeOfCharacterR + finalPrompt;
+            }
+            else if(method === 'EOC') {
+                EndOfCharacterL = EndOfCharacterL + finalPrompt;
+                EndOfCharacterR = EndOfCharacterR + finalPrompt;
+            }
+        } else if(regional == 'Left') {
+            if(method === 'BOP') {
+                BeforeOfPromptsL = BeforeOfPromptsL + finalPrompt;
+            }
+            else if(method === 'EOP') {
+                EndOfPromptsL = EndOfPromptsL + finalPrompt;
+            }
+            if(method === 'BOC') {
+                BeforeOfCharacterL = BeforeOfCharacterL + finalPrompt;
+            }
+            else if(method === 'EOC') {
+                EndOfCharacterL = EndOfCharacterL + finalPrompt;
+            }
+        } else if(regional == 'Right') {
+            if(method === 'BOP') {
+                BeforeOfPromptsR = BeforeOfPromptsR + finalPrompt;
+            }
+            else if(method === 'EOP') {
+                EndOfPromptsR = EndOfPromptsR + finalPrompt;
+            }
+            if(method === 'BOC') {
+                BeforeOfCharacterR = BeforeOfCharacterR + finalPrompt;
+            }
+            else if(method === 'EOC') {
+                EndOfCharacterR = EndOfCharacterR + finalPrompt;
+            }
+        } 
+    });
+
+    return {
+        BOPL: BeforeOfPromptsL,
+        BOCL: BeforeOfCharacterL,
+        EOCL: EndOfCharacterL,
+        EOPL: EndOfPromptsL,
+        BOPR: BeforeOfPromptsR,
+        BOCR: BeforeOfCharacterR,
+        EOCR: EndOfCharacterR,
+        EOPR: EndOfPromptsR
+    }
+}
+
 function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None'){    
     const commonColor = (window.globalSettings.css_style==='dark')?'darkorange':'Sienna';
     const viewColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
@@ -26,10 +109,13 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
     if(aiPrompt !== '' && !aiPrompt.endsWith(','))
         aiPrompt += ', ';
 
-    let positivePromptLeft = `${common}${views}${aiPrompt}${character_left}${positive}`.replace(/\n+/g, ''); 
-    let positivePromptRight = `${common}${views}${aiPrompt}${character_right}${positiveR}`.replace(/\n+/g, ''); 
-    let positivePromptLeftColored = `[color=${commonColor}]${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${character_left}[/color][color=${positiveColor}]${positive}[/color]`.replace(/\n+/g, ''); 
-    let positivePromptRightColored = `[color=${commonColor}]${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${character_right}[/color][color=${positiveRColor}]${positiveR}[/color]`.replace(/\n+/g, ''); 
+    const {BOPL, BOCL, EOCL, EOPL, BOPR, BOCR, EOCR, EOPR} = getCustomJSON();
+
+    let positivePromptLeft = `${BOPL}${common}${views}${aiPrompt}${BOCL}${character_left}${EOCL}${positive}${EOPL}`.replace(/\n+/g, ''); 
+    let positivePromptRight = `${BOPR}${common}${views}${aiPrompt}${BOCR}${character_right}${EOCR}${positiveR}${EOPR}`.replace(/\n+/g, ''); 
+
+    let positivePromptLeftColored = `[color=${commonColor}]${BOPL}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCL}${character_left}${EOCL}[/color][color=${positiveColor}]${positive}${EOPL}[/color]`.replace(/\n+/g, ''); 
+    let positivePromptRightColored = `[color=${commonColor}]${BOPR}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCR}${character_right}${EOCR}[/color][color=${positiveRColor}]${positiveR}${EOPR}[/color]`.replace(/\n+/g, ''); 
 
     const excludeKeywords = exclude.split(',')
         .map(keyword => keyword.trim())
@@ -121,7 +207,6 @@ function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
     const weight = window.characterListRegional.getTextValue(index);
     return { tag, thumb: null, info, weight };
 }
-
 
 async function getCharacters(){    
     function parseCharacter(weight, tag){

@@ -456,6 +456,11 @@ function registerDefaultMenuItems() {
         selector: '.cg-fullscreen-overlay',
         func: async (element) => await menu_copyImageMetadata(element)
     });
+    // Custom overlay image
+    window.rightClick.append('copy_image_preview', LANG.right_menu_copy_image, {
+        selector: '.cg-image-wrapper',
+        func: (element) => menu_copyImage(element)
+    });    
 
     // Common
     window.rightClick.append('lora_common_to_slot', LANG.right_menu_send_lora_to_slot, {

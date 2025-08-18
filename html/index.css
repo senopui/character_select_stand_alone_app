@@ -65,7 +65,8 @@ html, body {
 .gallery-main-container,.image-infobox-container,
 .gallery-thumb-container, #prompt-text-container, 
 .highres-fix-container, .refiner-container, .controlnet-container,
-.add-lora-container, .system-settings-container, .regional-condition-container
+.add-lora-container, .system-settings-container, .regional-condition-container,
+.jsonlist-container
 {
     margin-top: 10px;
 }
@@ -83,7 +84,7 @@ html, body {
     text-decoration: underline;
 }
 
-.cg-main-image{
+.cg-main-image {
     -webkit-user-drag: auto;   
 }
 
@@ -139,6 +140,13 @@ html, body {
 #global-image-upload-icon {
     -webkit-mask: url('../scripts/svg/image-upload.svg') no-repeat center;
     mask: url('../scripts/svg/image-upload.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#global-file-upload-icon {
+    -webkit-mask: url('../scripts/svg/file-upload.svg') no-repeat center;
+    mask: url('../scripts/svg/file-upload.svg') no-repeat center;
     -webkit-mask-size: contain;
     mask-size: contain;
 }

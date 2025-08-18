@@ -78,6 +78,11 @@ All `Post-processor` models, aka the `Apply ControlNet Model` you need download 
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/controlnet.png" width=35%>   
 
+## JSON/CSV List
+Support `*.json` and `*.csv` files, just drag and drop those file info `Image Info` window. File format please refer to `wai_characters.csv` and `wai_tag_assist.json`, try drag them into SAA.     
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/json-csv.png" width=35%>   
+
 ## Wildcards    
 Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wildcards`      
 By default, wildcards are randomly selected using the current seed. If `wildcard random seed` is `Checked`, a new random seed will be generated for every selection every time.      

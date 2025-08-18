@@ -1,3 +1,9 @@
+2025.08.17 v1.12.0      
+Add custom `JSON/CSV` list       
+Add `Copy Image` for ControlNet Preview      
+Change ComfyUI Refiner `return_with_leftover_noise` to `enable` when `Add Noise Disable`         
+
+
 2025.08.17 v1.11.2
 Bugfix WebUI Mutex Lock      
 Bugfix corrupted ControlNet preview image when WebUI  is Busy      

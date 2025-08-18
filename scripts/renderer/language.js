@@ -162,6 +162,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     if(!skipLoRA) {
         window.lora.reload();
         window.controlnet.reload();
+        window.jsonlist.reload();
     }
 
     if(!skipRightClick)

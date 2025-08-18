@@ -203,6 +203,43 @@ export function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
     return { tas, info };
 }
 
+function getCustomJSON(){
+    let BeforeOfPrompts = '';
+    let BeforeOfCharacter = '';
+    let EndOfCharacter = '';
+    let EndOfPrompts = '';
+
+    const jsonSlots = window.jsonlist.getValues();
+
+    jsonSlots.forEach(([prompt, strength, regional, method]) => {
+        if(method === 'Off')
+            return;
+
+        const trimmedPrompt = prompt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/:/g, ' ');
+        let finalPrompt;
+        if (parseFloat(strength) === 1.0)
+            finalPrompt = `${trimmedPrompt}, `;
+        else
+            finalPrompt = `(${trimmedPrompt}:${strength}), `;
+
+        if(method === 'BOP')
+            BeforeOfPrompts = BeforeOfPrompts + finalPrompt;
+        else if(method === 'BOC')
+            BeforeOfCharacter = BeforeOfCharacter + finalPrompt;
+        else if(method === 'EOC')
+            EndOfCharacter = EndOfCharacter + finalPrompt;
+        else if(method === 'EOP')
+            EndOfPrompts = EndOfPrompts + finalPrompt;
+    });
+
+    return {
+        BOP: BeforeOfPrompts,
+        BOC: BeforeOfCharacter,
+        EOC: EndOfCharacter,
+        EOP: EndOfPrompts
+    }
+}
+
 async function getCharacters(){
     const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     let random_seed = window.generate.seed.getValue();
@@ -258,8 +295,10 @@ function getPrompts(characters, views, ai='', apiInterface = 'None'){
     if(aiPrompt !== '' && !aiPrompt.endsWith(','))
         aiPrompt += ', ';
 
-    let positivePrompt = `${common}${views}${aiPrompt}${characters}${positive}`.replace(/\n+/g, ''); 
-    let positivePromptColored = `[color=${commonColor}]${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${characters}[/color][color=${positiveColor}]${positive}[/color]`.replace(/\n+/g, ''); 
+    const {BOP, BOC, EOC, EOP} = getCustomJSON();
+
+    let positivePrompt = `${BOP}${common}${views}${aiPrompt}${BOC}${characters}${EOC}${positive}${EOP}`.replace(/\n+/g, ''); 
+    let positivePromptColored = `[color=${commonColor}]${BOP}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOC}${characters}${EOC}[/color][color=${positiveColor}]${positive}${EOP}[/color]`.replace(/\n+/g, ''); 
 
     const excludeKeywords = exclude.split(',')
         .map(keyword => keyword.trim())

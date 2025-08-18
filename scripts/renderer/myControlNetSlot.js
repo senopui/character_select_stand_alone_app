@@ -474,6 +474,20 @@ class ControlNetSlotManager {
     }
 
     addSlot(pre_image_base64 = null, pre_image_after_base64 = null) {
+        function addEvent(candidateRow, subClassName){
+            const SETTINGS = window.globalSettings;
+            const FILES = window.cachedFiles;
+            const LANG = FILES.language[SETTINGS.language];
+
+            const imageClass = candidateRow.querySelector(`.${subClassName}`);
+            if(imageClass){
+                imageClass.addEventListener('click', () => {
+                    console.log('clicked', imageClass);
+                    window.overlay.custom.createCustomOverlay(imageClass.src, LANG.message_controlnet_custom_overlay, 512, 'left', 'left');
+                });
+            }
+        }
+
         if (!this.candidateClassName) {
             console.error('No candidate row available');
             return null;
@@ -529,6 +543,10 @@ class ControlNetSlotManager {
                     <div></div>
                     <div></div>
                 `;
+
+                addEvent(candidateRow, `${className}-image`);
+                addEvent(candidateRow, `${className}-image-after`);
+                
             } else if(!pre_image_base64 && pre_image_after_base64) {
                 candidateRow.innerHTML += `
                     <div></div>
@@ -538,6 +556,7 @@ class ControlNetSlotManager {
                     <div></div>
                     <div></div>
                 `;
+                addEvent(candidateRow, `${className}-image-after`);
             }
             
         }
@@ -556,6 +575,11 @@ class ControlNetSlotManager {
         if (this.slotIndex.has(className) && !this.slotIndex.get(className).isCandidate) {
             const slot = this.slotIndex.get(className);
             if (slot) {
+                slot.pre_image = null;
+                slot.pre_image_after = null;
+                slot.pre_image_base64 = null;
+                slot.pre_image_after_base64 = null;                
+                
                 for (const itemClass of Object.values(slot.itemClasses)) {
                     const componentKey = `${className}-${itemClass}`;
                     if (this.componentInstances.has(componentKey)) {
@@ -659,110 +683,6 @@ class ControlNetSlotManager {
                     }
                 }
             }
-        });
-    }
-
-    handleAdd() {
-        const SETTINGS = window.globalSettings;
-        const FILES = window.cachedFiles;
-        const LANG = FILES.language[SETTINGS.language];
-
-        const className = this.addSlot();
-        if (!className) return;
-
-        const slot = this.slotIndex.get(className);
-        if (!slot) return;
-
-        slot.pre_image = '';
-        slot.pre_image_after = '';
-
-        requestAnimationFrame(() => {
-            const preProcessModelComponent = mySimpleList(
-                slot.itemClasses.pre_process_model,
-                LANG.api_controlnet_pre_process_model,
-                getControlNetLiet(),
-                null,
-                15,
-                true,
-                false
-            );
-            preProcessModelComponent.updateDefaults('none');
-            slot.items.set(slot.itemClasses.pre_process_model, () => preProcessModelComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.pre_process_model}`, preProcessModelComponent);
-
-            const preProcessResolutionComponent = setupTextbox(
-                slot.itemClasses.pre_process_resolution,
-                LANG.api_controlnet_pre_process_resolution,
-                { value: '512', defaultTextColor: 'rgb(179,157,219)', maxLines: 1 },
-                false,
-                null,
-                false,
-                true
-            );
-            slot.items.set(slot.itemClasses.pre_process_resolution, () => preProcessResolutionComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.pre_process_resolution}`, preProcessResolutionComponent);
-
-            const postProcessComponent = mySimpleList(
-                slot.itemClasses.slot_enable,
-                LANG.api_controlnet_slot_enable,
-                ['On', 'Post', 'Off'],
-                null,
-                5,
-                false,
-                false
-            );
-            postProcessComponent.updateDefaults('Off');
-            slot.items.set(slot.itemClasses.slot_enable, () => postProcessComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.slot_enable}`, postProcessComponent);
-
-            const postModelComponent = mySimpleList(
-                slot.itemClasses.post_model,
-                LANG.api_controlnet_post_process_model,
-                FILES.controlnetList,
-                null,
-                15,
-                true,
-                false
-            );
-            postModelComponent.updateDefaults(FILES.controlnetList[0] || 'Default ControlNet');
-            slot.items.set(slot.itemClasses.post_model, () => postModelComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.post_model}`, postModelComponent);
-
-            const postProcessStrengthComponent = setupTextbox(
-                slot.itemClasses.post_process_strength,
-                LANG.api_controlnet_post_process_strength,
-                { value: '1.0', defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
-                false,
-                null,
-                false,
-                true
-            );
-            slot.items.set(slot.itemClasses.post_process_strength, () => postProcessStrengthComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.post_process_strength}`, postProcessStrengthComponent);
-
-            const postProcessStartComponent = setupTextbox(
-                slot.itemClasses.post_process_start,
-                LANG.api_controlnet_post_process_start,
-                { value: '0.0', defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
-                false,
-                null,
-                false,
-                true
-            );
-            slot.items.set(slot.itemClasses.post_process_start, () => postProcessStartComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.post_process_start}`, postProcessStartComponent);
-
-            const postProcessEndComponent = setupTextbox(
-                slot.itemClasses.post_process_end,
-                LANG.api_controlnet_post_process_end,
-                { value: '1.0', defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
-                false,
-                null,
-                false,
-                true
-            );
-            slot.items.set(slot.itemClasses.post_process_end, () => postProcessEndComponent);
-            this.componentInstances.set(`${className}-${slot.itemClasses.post_process_end}`, postProcessEndComponent);
         });
     }
 

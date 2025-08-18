@@ -63,6 +63,7 @@ export function setupImageUploadOverlay() {
     svgIcon.id = 'upload-svg-icon';
     svgIcon.innerHTML = `
         <img class="filter-controlnet-icon" id="global-image-upload-icon" src="scripts/svg/image-upload.svg" alt="Upload" fill="currentColor">
+        <img class="filter-controlnet-icon" id="global-file-upload-icon" src="scripts/svg/file-upload.svg" alt="Upload" fill="currentColor">
     `;
     uploadOverlay.appendChild(svgIcon);
 
@@ -212,11 +213,15 @@ export function setupImageUploadOverlay() {
                     showImagePreview(file);                    
                     displayFormattedMetadata(fallbackMetadata);
                 }
-            //} else if (files[0].type === `application/json`) {
-            //    console.log('Dropped JSON file:', files[0].name);
+            } else if (files[0].type === `application/json` 
+                    || files[0].type === `text/csv`) {
+                console.log('Dropped JSON file:', files[0].name);
+                await window.jsonlist.addJsonSlotFromFile(files[0], files[0].type);
+                window.collapsedTabs.jsonlist.setCollapsed(false);
+                hideOverlay();
             } else {
                 console.warn('Dropped file ', files[0].name, ' is not support. File type: ', files[0].type);
-                hideOverlay();                
+                hideOverlay();
             }
         }
     });

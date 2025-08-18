@@ -851,16 +851,16 @@ export function customCommonOverlay() {
                 img.alt = `Overlay Image ${index + 1}`;
                 img.style.minWidth = '64px';
                 img.style.maineight = '64px';
-                img.style.maxWidth = '384px';
-                img.style.maxHeight = '384px';
+                img.style.maxWidth = `${imageWidth}px`;
+                img.style.maxHeight = `${imageWidth}px`;
                 img.style.objectFit = 'contain';
                 img.style.display = 'block';
                 img.style.borderRadius = '4px';
                 img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                 
                 if (images.length > 1) {
-                    img.style.maxWidth = '300px';
-                    img.style.maxHeight = '300px';
+                    img.style.maxWidth = `${imageWidth*0.75}px`;
+                    img.style.maxHeight = `${imageWidth*0.75}px`;
                 }
 
                 img.onerror = () => {

@@ -17,6 +17,7 @@ import { setupTextbox, setupInfoBox } from '../scripts/renderer/myTextbox.js';
 import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from '../scripts/renderer/generate_backend.js';
 import { setupLoRA } from '../scripts/renderer/myLoRASlot.js';
 import { setupControlNet } from '../scripts/renderer/myControlNetSlot.js';
+import { setupJsonSlot } from '../scripts/renderer/myJsonSlot.js';
 import { setBlur, setNormal, showDialog } from '../scripts/renderer/myDialog.js';
 import { setupImageUploadOverlay } from '../scripts/renderer/imageInfo.js';
 import { setupThemeToggle } from '../scripts/renderer/mytheme.js';
@@ -106,6 +107,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         lora: setupCollapsed('add-lora', true),
         settings: setupCollapsed('system-settings', true),
         regional: setupCollapsed('regional-condition', true),
+        jsonlist: setupCollapsed('jsonlist', true),
     }
 }
 
@@ -454,6 +456,9 @@ async function init() {
                 
         // Control Net
         window.controlnet = setupControlNet('controlnet-main');
+
+        // Custom JSON
+        window.jsonlist = setupJsonSlot('jsonlist-main');
         
         // Setup Overlay
         window.overlay = {

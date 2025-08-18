@@ -61,6 +61,7 @@ export async function callback_api_interface(index, selectedValue){
     }
     window.lora.reload();
     window.controlnet.reload();
+    window.jsonlist.reload();
 
     if(window.generate.api_interface.getValue() !== 'ComfyUI'){
         window.hifix.colorTransfer.setValue(LANG.api_hf_colortransfer, ['None']);

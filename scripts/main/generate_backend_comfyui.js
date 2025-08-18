@@ -585,8 +585,12 @@ class ComfyUI {
             workflow["37"].inputs.start_at_step = refiner_start_step;
             
             if (refiner.addnoise) {
-                // Set refiner add noise
-                workflow["37"].inputs.add_noise = "enable";
+              // Set refiner add noise
+              workflow["36"].inputs.return_with_leftover_noise = "disable";
+              workflow["37"].inputs.add_noise = "enable";
+            } else {
+              workflow["36"].inputs.return_with_leftover_noise = "enable";
+              workflow["37"].inputs.add_noise = "disable";
             }
         } else {
             // Reconnect nodes
@@ -720,8 +724,12 @@ class ComfyUI {
           workflow["37"].inputs.start_at_step = refiner_start_step;
           
           if (refiner.addnoise) {
-              // Set refiner add noise
-              workflow["37"].inputs.add_noise = "enable";
+            // Set refiner add noise
+            workflow["36"].inputs.return_with_leftover_noise = "disable";
+            workflow["37"].inputs.add_noise = "enable";
+          } else {
+            workflow["36"].inputs.return_with_leftover_noise = "enable";
+            workflow["37"].inputs.add_noise = "disable";
           }
       } else {
           // Reconnect nodes

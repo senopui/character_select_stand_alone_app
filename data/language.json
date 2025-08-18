@@ -117,6 +117,7 @@
         "api_controlnet_post_process_strength": "Model Strength (0~10)",
         "api_controlnet_post_process_start": "Start percent (0~1)",
         "api_controlnet_post_process_end": "End percent (0~1)",
+        "message_controlnet_custom_overlay": "Right click to copy image",
         "message_controlnet_comfyui": "Note: ControlNet for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]",
         "message_controlnet_webui": "Note: ControlNet for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
         
@@ -145,6 +146,11 @@
         "lora_model_strength": "Model strength",
         "lora_clip_strength": "CLIP strength",
         "lora_enable_title": "Method:ALL,Base,HiFix,OFF",
+
+        "jsonlist_name": "Name",
+        "jsonlist_strength": "Strength",
+        "json_regional": "Position-for-Regional-Condition",
+        "jsonlist_position": "Insert-Position:Begin-Of-Prompts;Begin-Of-Character;End-Of-Character;End-Of-Prompts;Off",
 
         "image_info_add_controlnet": "Add ControlNet",
         "image_info_add_controlnet_processing": "Processing...",
@@ -312,6 +318,7 @@
         "api_controlnet_post_process_strength": "强度(0~10)",
         "api_controlnet_post_process_start": "起始（步数）比例(0~1)",
         "api_controlnet_post_process_end": "停止（步数）比例(0~1)",
+        "message_controlnet_custom_overlay": "右键点击图片复制",
         "message_controlnet_comfyui": "Note: ControlNet for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]",
         "message_controlnet_webui": "Note: ControlNet for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
         
@@ -340,6 +347,11 @@
         "lora_model_strength": "Model强度",
         "lora_clip_strength": "CLIP强度",
         "lora_enable_title": "使用方法：开启ALL,基础Base,高修HiFix,关闭OFF",
+
+        "jsonlist_name": "名称",
+        "jsonlist_strength": "强度",
+        "json_regional": "分区逻辑：Both：双侧；Left：左侧；Right：右侧",
+        "jsonlist_position": "词条插入逻辑：BOP：最开头；BOC：角色前；EOC：角色后；EOP：最末尾；OFF：关闭",
 
         "image_info_add_controlnet": "添加ControlNet",
         "image_info_add_controlnet_processing": "处理中……",
