@@ -1,3 +1,7 @@
+2025.08.18 v1.12.1      
+Add `Paste (Ctrl+V)` Image/Json/Csv/Text for `Image Info Upload` window     
+
+
 2025.08.17 v1.12.0      
 Add custom `JSON/CSV` list       
 Add `Copy Image` for ControlNet Preview      

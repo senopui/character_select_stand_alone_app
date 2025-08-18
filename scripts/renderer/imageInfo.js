@@ -64,6 +64,7 @@ export function setupImageUploadOverlay() {
     svgIcon.innerHTML = `
         <img class="filter-controlnet-icon" id="global-image-upload-icon" src="scripts/svg/image-upload.svg" alt="Upload" fill="currentColor">
         <img class="filter-controlnet-icon" id="global-file-upload-icon" src="scripts/svg/file-upload.svg" alt="Upload" fill="currentColor">
+        <img class="filter-controlnet-icon" id="global-clipboard-paste-icon" src="scripts/svg/paste.svg" alt="Upload" fill="currentColor">
     `;
     uploadOverlay.appendChild(svgIcon);
 
@@ -130,16 +131,89 @@ export function setupImageUploadOverlay() {
     requestAnimationFrame(updateDynamicHeights);
 
     window.currentImageMetadata = null;
+
+    const handlePaste = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const items = e.clipboardData.items;
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                    cachedImage = file;
+                    try {
+                        const metadata = await extractImageMetadata(file);
+                        showImagePreview(file);
+                        displayFormattedMetadata(metadata);
+                    } catch (err) {
+                        console.error('Failed to process pasted image metadata:', err);
+                        const fallbackMetadata = {
+                            fileName: file.name || 'pasted_image.png',
+                            fileSize: file.size,
+                            fileType: file.type,
+                            lastModified: file.lastModified || Date.now(),
+                            error: 'Metadata extraction failed'
+                        };
+                        showImagePreview(file);
+                        displayFormattedMetadata(fallbackMetadata);
+                    }
+                    break; // Process only the first image
+                }
+            } else if (item.type === 'application/json' || item.type === 'text/csv') {
+                const file = item.getAsFile();
+                if (file) {
+                    console.log('Pasted file:', file.name);
+                    await window.jsonlist.addJsonSlotFromFile(file, file.type);
+                    window.collapsedTabs.jsonlist.setCollapsed(false);
+                    hideOverlay();
+                    break; // Process only the first JSON/CSV file
+                }                
+            } else if (item.type === 'text/plain') {
+                item.getAsString(async (text) => {
+                    try {
+                        // Try parsing as JSON
+                        JSON.parse(text);
+                        const file = new File([text], 'pasted_data.json', { type: 'application/json', lastModified: Date.now() });
+                        console.log('Pasted JSON text:', file.name);
+                        await window.jsonlist.addJsonSlotFromFile(file, 'application/json');
+                        window.collapsedTabs.jsonlist.setCollapsed(false);
+                        hideOverlay();
+                    } catch (jsonErr) {
+                        // If not JSON, treat as CSV (basic validation: check for comma-separated values)
+                        if (text.includes(',')) {
+                            const file = new File([text], 'pasted_data.csv', { type: 'text/csv', lastModified: Date.now() });
+                            console.log('Pasted CSV text:', file.name);
+                            await window.jsonlist.addJsonSlotFromFile(file, 'text/csv');
+                            window.collapsedTabs.jsonlist.setCollapsed(false);
+                            hideOverlay();
+                        } else {
+                            console.warn('Pasted text is not valid JSON or CSV:', text.slice(0, 50));
+                            hideOverlay();
+                        }
+                    }
+                });
+                break; // Process only the first text/plain item
+            }else {
+                console.log("Unknown type:", item.type);
+            }
+        }
+    };
+
     function showOverlay() {
         uploadOverlay.style.display = 'flex';
         requestAnimationFrame(updateDynamicHeights);
         isShowing = true;
+        // Add Ctrl+V
+        document.addEventListener('paste', handlePaste);
     }
 
     function hideOverlay() {
         uploadOverlay.style.display = 'none';
         clearImageAndMetadata();
         isShowing = false;
+        // Disable Ctrl+V
+        document.removeEventListener('paste', handlePaste);
     }
 
     function clearImageAndMetadata() {

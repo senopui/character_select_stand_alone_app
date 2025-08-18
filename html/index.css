@@ -151,6 +151,13 @@ html, body {
     mask-size: contain;
 }
 
+#global-clipboard-paste-icon {
+    -webkit-mask: url('../scripts/svg/paste.svg') no-repeat center;
+    mask: url('../scripts/svg/paste.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
 #global-portrait-icon {
     -webkit-mask: url('../scripts/svg/portrait.svg') no-repeat center;
     mask: url('../scripts/svg/portrait.svg') no-repeat center;

@@ -462,6 +462,7 @@ class ControlNetSlotManager {
             <div></div>
             <div class="controlnet-slot-image">
                 <img class="filter-controlnet-icon" id="global-image-upload-icon" src="scripts/svg/image-upload.svg" max-width="48px" height="48px">
+                <img class="filter-controlnet-icon" id="global-clipboard-paste-icon" src="scripts/svg/paste.svg" max-width="48px" height="48px">
                 <img class="filter-controlnet-icon" id="global-sliders-icon" src="scripts/svg/sliders.svg" max-width="48px" height="48px">                
                 <img class="filter-controlnet-icon" id="global-pose-icon" src="scripts/svg/pose.svg" max-width="48px" height="48px">
             </div>

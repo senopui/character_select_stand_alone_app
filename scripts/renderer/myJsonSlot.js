@@ -236,6 +236,7 @@ class JsonSlotManager {
             <div></div>
             <div class="controlnet-slot-image">
                 <img class="filter-controlnet-icon" id="global-file-upload-icon" src="scripts/svg/file-upload.svg" max-width="48px" height="48px">
+                <img class="filter-controlnet-icon" id="global-clipboard-paste-icon" src="scripts/svg/paste.svg" max-width="48px" height="48px">
             </div>
         `;
         return row;
