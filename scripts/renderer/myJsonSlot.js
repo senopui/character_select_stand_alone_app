@@ -227,17 +227,14 @@ class JsonSlotManager {
             <div class="slot-action slot-action-add" data-action="add" data-slot="${className}">
                 <img class="slot-action-add-toggle" src="scripts/svg/add.svg" alt="+">
             </div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-
-            <div></div>
             <div class="controlnet-slot-image">
                 <img class="filter-controlnet-icon" id="global-file-upload-icon" src="scripts/svg/file-upload.svg" max-width="48px" height="48px">
                 <img class="filter-controlnet-icon" id="global-clipboard-paste-icon" src="scripts/svg/paste.svg" max-width="48px" height="48px">
             </div>
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
         `;
         return row;
     }
