@@ -55,12 +55,15 @@ function applyControlnet(workflow, controlnet, workflowInfo){
 
     controlnet.forEach((slot, idx) => {
       // skip missing
-      if(slot.postModel === 'none' || ipaActived) {
+      if(slot.postModel === 'none') {
         console.log(CAT,"[applyControlnet] Skip", idx, slot);
         return;
       }
 
-      if(slot.preModel.startsWith('ip-adapter->') && !ipaActived) {
+      if(slot.preModel.startsWith('ip-adapter->')) {
+        if(ipaActived)
+          return;
+        
         // Only accept the first IPA slot
         ipaActived = true;
 
