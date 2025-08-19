@@ -38,10 +38,28 @@ function readDirectory(directory, basePath = '', search_subfolder = false, maxDe
 
 function updateControlNetList(model_path_comfyui, model_path_webui, search_subfolder) {
     const cnPathComfyUI = path.join(path.dirname(model_path_comfyui), 'controlnet');
+    const clipVisionPathComfyUI = path.join(path.dirname(model_path_comfyui), 'clip_vision');
+    const ipadapterPathComfyUI = path.join(path.dirname(model_path_comfyui), 'ipadapter');
     const cnPathWebUI = path.join(path.dirname(model_path_webui), '..', 'extensions', 'sd-webui-controlnet', 'models');
 
     if (fs.existsSync(cnPathComfyUI)) {
         CONTROLNET_COMFYUI = readDirectory(cnPathComfyUI, '', search_subfolder);
+        if(fs.existsSync(clipVisionPathComfyUI) && fs.existsSync(ipadapterPathComfyUI)) {
+            let clipList = readDirectory(clipVisionPathComfyUI, '', search_subfolder);
+            let ipaList = readDirectory(ipadapterPathComfyUI, '', search_subfolder);
+
+            let clipVisionListWithPrefix = [];
+            clipList.forEach((item) => {
+                clipVisionListWithPrefix.push('CV->' + item);
+            });
+
+            let ipaListWithPrefix = [];
+            ipaList.forEach((item) => {
+                ipaListWithPrefix.push('IPA->' + item);
+            });
+
+            CONTROLNET_COMFYUI = CONTROLNET_COMFYUI.concat(clipVisionListWithPrefix, ipaListWithPrefix);
+        }
     } 
     
     if (fs.existsSync(cnPathWebUI)) {

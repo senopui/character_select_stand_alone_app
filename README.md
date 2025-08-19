@@ -16,7 +16,7 @@ Now supports 5326 (includes multiple costumes) Characters in list.
 | Refiner | Yes | Yes | Yes |
 | Image Color Transfer | Yes | No | No |
 | Regional Condition | Yes | No | No |
-| ControlNet | Yes | Yes | No |
+| ControlNet/IPA | Yes | Yes | No |
 | API authentication| No | Yes | Yes |
 
 Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
@@ -57,12 +57,22 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
      
 ------
 # Highlights
-## ControlNet (ComfyUI & A1111)
-For ComfyUI and requires [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version `0.4.9.6 or above` AND [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux) must be installed.      
-Put your ControlNet models in `ComfyUI\\models\\controlnet`      
+## ControlNet / IP Adapter (ComfyUI & A1111)
+*For ComfyUI*     
+Upgrade your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version to `0.4.9.6 or above`      
 
-For A1111(WebUI) requires [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet).      
-Put your ControlNet models in `stable-diffusion-webui\\extensions\\sd-webui-controlnet\\models`, the extension plugin path.       
+`ControlNet` requires [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux)       
+Put your `ControlNet` models in `ComfyUI\\models\\controlnet`      
+
+`IP Adapter` requires [comfyui-art-venture](https://github.com/sipherxyz/comfyui-art-venture)       
+Put your `Clip Vision` models in `ComfyUI\\models\\clip_vision`      
+Put your `IP Adapter` models in `ComfyUI\\models\\ipadapter`      
+I didn't test too much on IPA, but for `SDXL/ilXL/NoobXL` recommends `CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors` with `ipa_styleIpadapterFor_NoobAI-XL_v10.safetensors`. You may also need `CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors`           
+Only the first `IP Adapter` slot will accept by ComfyUI, others set to `On` will ignore.     
+
+*For A1111(WebUI)*      
+Requires [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet).      
+Put your `ControlNet` and `IP Adapter` models in `stable-diffusion-webui\\extensions\\sd-webui-controlnet\\models`, the extension plugin path.       
 
 Forge will not be supported. Tired to treat Forge and A1111 as two different backends, but API doesn't work well, and no documents at all... :(      
 
@@ -72,6 +82,9 @@ Forge will not be supported. Tired to treat Forge and A1111 as two different bac
 4. `ControlNet` works on normal and regional conditon.       
 5. If you are new to `ControlNet`, try `Canny` or `OpenPose` first.      
 6. ComfyUI *D-O-E-S N-O-T* like submitting the same data, you may receive an `Empty response error` when submit same data.       
+7. ComfyUI [comfyui-art-venture](https://github.com/sipherxyz/comfyui-art-venture) requires a `square image`, you may get warnings with NOT square image input.      
+8. In case of your IPA image is too big, the `Resolution` selection for `IP Adapter` will resize your input image to target size, `1024` is enough for most case.      
+9. The `Info` button is not working when `Pre-Process Model` select to  `IP Adapter`      
 
 All `Pre-processor` models are managed by  [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux)(ComfyUI) and [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet)(A1111),  most models will download from Hugging Face.      
 All `Post-processor` models, aka the `Apply ControlNet Model` you need download by yourself from `ComfyUI Model Manager` or Hugging Face.      

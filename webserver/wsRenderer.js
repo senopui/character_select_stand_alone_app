@@ -140,7 +140,7 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, (value) => { 
                 window.globalSettings.api_controlnet_enable = value; 
                 if(value && window.generate.api_interface.getValue() === 'ComfyUI') 
-                    window.overlay.custom.createErrorOverlay(LANG.message_controlnet_comfyui , 'https://github.com/Fannovel16/comfyui_controlnet_aux'); 
+                    window.overlay.custom.createErrorOverlay(LANG.message_controlnet_comfyui , 'Links:\nhttps://github.com/Fannovel16/comfyui_controlnet_aux\nhttps://github.com/sipherxyz/comfyui-art-venture'); 
                 if(value && window.generate.api_interface.getValue() === 'WebUI') 
                     window.overlay.custom.createErrorOverlay(LANG.message_controlnet_webui , 'https://github.com/Mikubill/sd-webui-controlnet'); 
             }),

@@ -50,12 +50,93 @@ function applyControlnet(workflow, controlnet, workflowInfo){
   let {startIndex, now_pos, now_neg, refiner, ref_pos, ref_neg, hiresfix} = workflowInfo;
 
   if (Array.isArray(controlnet)) {
+    let ipaActived = false;
     let index = startIndex + 1;
 
     controlnet.forEach((slot, idx) => {
       // skip missing
-      if(slot.postModel === 'none') {
+      if(slot.postModel === 'none' || ipaActived) {
         console.log(CAT,"[applyControlnet] Skip", idx, slot);
+        return;
+      }
+
+      if(slot.preModel.startsWith('ip-adapter->') && !ipaActived) {
+        // Only accept the first IPA slot
+        ipaActived = true;
+
+        workflow[`${index}`] = {
+          "inputs": {
+            "base64text": slot.image
+          },
+          "class_type": "GzippedBase64ToImage",
+          "_meta": {
+            "title": "Gzipped Base64 To Image"
+          }
+        };
+
+        workflow[`${index + 1}`] = {
+          "inputs": {
+            "ip_adapter_name": slot.postModel.replace('IPA->', ''),
+            "clip_name": slot.preModel.replace('ip-adapter->', ''),
+            "weight": slot.postStr,
+            "start_at": slot.postStart,
+            "end_at": slot.postEnd,
+            "weight_type": "standard",
+            "enabled": true,
+            "model": [
+              "44",
+              0
+            ],
+            "image": [
+              `${index}`,
+              0
+            ]
+          },
+          "class_type": "AV_IPAdapter",
+          "_meta": {
+            "title": "IP Adapter Apply"
+          }
+        };
+
+        // Change model to IPA output
+        workflow["34"]["inputs"]["model"] = [`${index + 1}`, 0];
+        workflow["20"]["inputs"]["model"] = [`${index + 1}`, 0];
+
+        // move to next
+        index = index + 2;
+
+        if(refiner){
+          workflow[`${index}`] = {
+            "inputs": {
+              "ip_adapter_name": slot.postModel.replace('IPA->', ''),
+              "clip_name": slot.preModel.replace('ip-adapter->', ''),
+              "weight": slot.postStr,
+              "start_at": slot.postStart,
+              "end_at": slot.postEnd,
+              "weight_type": "standard",
+              "enabled": true,
+              "model": [
+                "44",
+                0
+              ],
+              "image": [
+                `${index - 2}`,
+                0
+              ]
+            },
+            "class_type": "AV_IPAdapter",
+            "_meta": {
+              "title": "IP Adapter Apply"
+            }
+          };
+
+          // Change model refiner to IPA output
+          workflow["39"]["inputs"]["model"] = [`${index}`, 0];
+          workflow["20"]["inputs"]["model"] = [`${index}`, 0];
+          
+          // move to next
+          index = index + 1;
+        }
         return;
       }
 

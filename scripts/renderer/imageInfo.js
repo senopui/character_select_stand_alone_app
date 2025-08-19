@@ -6,9 +6,18 @@ let cachedImage = '';
 
 function createHtmlOptions(itemList) {
     let options = [];
-    itemList.forEach((item) => {
-        options.push(`<option value="${item}">${item}</option>`);
-    });
+    if(window.globalSettings.api_interface === 'ComfyUI') {
+        itemList.forEach((item) => {
+            if(String(item).startsWith('CV->'))
+                return;
+            options.push(`<option value="${item}">${item}</option>`);
+        });
+    } else {
+        // 'WebUI'
+        itemList.forEach((item) => {
+            options.push(`<option value="${item}">${item}</option>`);
+        });
+    }
     return options.join();
 }
 
@@ -382,29 +391,33 @@ export function setupImageUploadOverlay() {
                         }, 5000);
                     }
                 } else {                    
-                    const buffer = await cachedImage.arrayBuffer();
+                    let buffer = await cachedImage.arrayBuffer();
+                    const onTrigger = controlNetSelect.value.startsWith('ip-adapter');
+                    if(onTrigger) {
+                        buffer = await resizeImageToControlNetResolution(buffer, controlNetResolution.value);
+                    }
+
                     let preImageGzipped;
                     if(apiInterface === 'ComfyUI') {
                         if (!window.inBrowser) {
                             preImageGzipped = await window.api.compressGzip(buffer);
                         } else {
-                            const base64String = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-                            preImageGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [base64String] });
+                            const base64String = await blobOrFileToBase64(cachedImage);
+                            preImageGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [base64String.replace('data:image/png;base64,', '')] });
                         }
                     } else {    // WebUI
                         preImageGzipped = preImageBase64;
-                    }
+                    }                    
                     const slotValues = [[
                         controlNetSelect.value,          // preProcessModel
                         controlNetResolution.value,      // preProcessResolution
-                        controlNetSelect.value.startsWith('ip-adapter')?
-                        'On':'Post',                     // slot_enable
+                        onTrigger?'On':'Post',           // slot_enable
                         controlNetPostSelect.value,      // postModel
                         0.8,                             // postProcessStrength
                         0,                               // postProcessStart
                         0.8,                             // postProcessEnd
-                        null,                            // pre_image
-                        preImageGzipped,                 // pre_image_after
+                        onTrigger?preImageGzipped:null,  // pre_image
+                        !onTrigger?preImageGzipped:null, // pre_image_after
                         null,                            // pre_image_base64
                         preImageBase64,                  // pre_image_after_base64 
                     ]];
@@ -768,4 +781,105 @@ export function setupImageUploadOverlay() {
 
     window.imageUploadOverlay = uploadOverlay;
     return uploadOverlay;
+}
+
+async function blobOrFileToBase64(blobOrFile) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            resolve(e.target.result);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blobOrFile);
+    });
+}
+
+async function resizeImageToControlNetResolution(input, resolution) {
+    function toBlob(data) {
+        if (data instanceof File || data instanceof Blob) {
+            return data;
+        }
+        if (typeof data === 'string') {
+            const arr = data.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], { type: mime });
+        }
+        if (data instanceof ArrayBuffer) {
+            return new Blob([data]);
+        }
+        if (data instanceof Uint8Array) {
+            return new Blob([data.buffer]);
+        }
+        throw new Error('Unsupported image data type');
+    }
+
+    function getImageSizeFromBlob(blob) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = function () {
+                resolve({ width: img.width, height: img.height });
+            };
+            img.onerror = reject;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    function resizeImageBlob(blob, maxRes) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = function () {
+                let scale = Math.min(maxRes / img.width, maxRes / img.height, 1);
+                let newWidth = Math.round(img.width * scale);
+                let newHeight = Math.round(img.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                canvas.toBlob((resizedBlob) => {
+                    if (resizedBlob) {
+                        if (input instanceof File) {
+                            const file = new File([resizedBlob], input.name, { type: input.type });
+                            resolve(file);
+                        } else {
+                            resolve(resizedBlob);
+                        }
+                    } else {
+                        reject(new Error('Resize failed'));
+                    }
+                }, blob.type || 'image/png');
+            };
+            img.onerror = reject;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    let processed = input;
+    try {
+        const blob = toBlob(input);
+        const size = await getImageSizeFromBlob(blob);
+        if (size.width > resolution || size.height > resolution) {
+            console.log(`Resizing image from ${size.width}x${size.height} to max ${resolution}x${resolution}`);
+            processed = await resizeImageBlob(blob, resolution);
+            processed = processed.arrayBuffer();
+        }
+    } catch (err) {
+        console.warn('Resize image failed, use original size', err);
+    } finally {
+        return processed;
+    }
 }

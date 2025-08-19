@@ -1,7 +1,7 @@
 import { mySimpleList } from './myDropdown.js';
 import { setupTextbox } from './myTextbox.js';
 import { generateGUID } from './myLoRASlot.js'
-import { generateControlnetImage, fileToBase64 } from './generate.js';
+import { generateControlnetImage } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 const controlNetValuesComfyUI = [
@@ -217,10 +217,16 @@ function createControlNetSlotsFromValues(slotManager, slotValues, options = {}) 
             slot.items.set(slot.itemClasses.slot_enable, () => postProcessComponent);
             slotManager.componentInstances.set(`${className}-${slot.itemClasses.slot_enable}`, postProcessComponent);
 
+            let controlnetList = [];
+            FILES.controlnetList.forEach((controlnet) => {
+                if(controlnet.startsWith('CV->'))
+                    return;
+                controlnetList.push(controlnet);
+            });
             const postModelComponent = mySimpleList(
                 slot.itemClasses.post_model,
                 LANG.api_controlnet_post_process_model,
-                FILES.controlnetList,
+                controlnetList,
                 null,
                 15,
                 true,
@@ -294,45 +300,50 @@ class ControlNetSlotManager {
                 We use add for refresh controlnet result
                 this.handleAdd();
                 */
-                const rowValues = this.getValue(slotClass, slot, true);
-                const preProcessModel = rowValues[0];   
-                const preProcessResolution = rowValues[1];
+                const slotValues = this.getValue(slotClass, slot);
+                if(slotValues[0].startsWith('ip-adapter')) {
+                    window.overlay.custom.createCustomOverlay(slot.pre_image_after_base64, slotValues.toString(), 512, 'center', 'center');
+                } else {
+                    const rowValues = this.getValue(slotClass, slot, true);
+                    const preProcessModel = rowValues[0];   
+                    const preProcessResolution = rowValues[1];
 
-                if(!slot.pre_image && slot.pre_image_after && preProcessModel !== 'none') {
-                    let tmpImage;
-                    if(apiInterface === 'ComfyUI'){
-                        if (!window.inBrowser) {
-                            tmpImage = await window.api.decompressGzip(slot.pre_image_after);
+                    if(!slot.pre_image && slot.pre_image_after && preProcessModel !== 'none') {
+                        let tmpImage;
+                        if(apiInterface === 'ComfyUI'){
+                            if (!window.inBrowser) {
+                                tmpImage = await window.api.decompressGzip(slot.pre_image_after);
+                            } else {
+                                tmpImage = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [slot.preImageAfter] });                        
+                            }     
+                            slot.pre_image = tmpImage;
                         } else {
-                            tmpImage = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [slot.preImageAfter] });                        
-                        }     
-                        slot.pre_image = tmpImage;
-                    } else {
-                        slot.pre_image = slot.pre_image_after.replace('data:image/png;base64,', '');
-                    }
-                }
-
-                if(slot.pre_image) {                    
-                    const {preImage, preImageAfter, preImageAfterBase64} = 
-                        await generateControlnetImage(slot.pre_image, preProcessModel, preProcessResolution, true);
-                    if(preImageAfterBase64?.startsWith('data:image/png;base64,') && preImage) {
-                        slot.pre_image_after = preImageAfter;
-                        slot.pre_image_after_base64 = preImageAfterBase64;
-                    }
-                    
-                    const image_base64_after = this.container.querySelector(`.${slotClass}-image-after`);
-                    if(image_base64_after){
-                        image_base64_after.src = slot.pre_image_after_base64;
+                            slot.pre_image = slot.pre_image_after.replace('data:image/png;base64,', '');
+                        }
                     }
 
-                    window.overlay.custom.createCustomOverlay([slot.pre_image_base64, slot.pre_image_after_base64], this.getValue(slotClass, slot).toString(), 512, 'center', 'center');
+                    if(slot.pre_image) {                    
+                        const {preImage, preImageAfter, preImageAfterBase64} = 
+                            await generateControlnetImage(slot.pre_image, preProcessModel, preProcessResolution, true);
+                        if(preImageAfterBase64?.startsWith('data:image/png;base64,') && preImage) {
+                            slot.pre_image_after = preImageAfter;
+                            slot.pre_image_after_base64 = preImageAfterBase64;
+                        }
+                        
+                        const image_base64_after = this.container.querySelector(`.${slotClass}-image-after`);
+                        if(image_base64_after){
+                            image_base64_after.src = slot.pre_image_after_base64;
+                        }
+
+                        window.overlay.custom.createCustomOverlay([slot.pre_image_base64, slot.pre_image_after_base64], slotValues.toString(), 512, 'center', 'center');
+                    }
                 }
             } else if (action === 'delete') {
                 this.delSlot(slotClass);
             } else if (action === 'info') {
                 /*
                 Since slot already show images, info button are now hide by default
-                */
+                */               
                 if(slot.pre_image && slot.pre_image_after) {
                     window.overlay.custom.createCustomOverlay([slot.pre_image_base64, slot.pre_image_after_base64], this.getValue(slotClass, slot).toString(), 512, 'center', 'center');
                 } else if(!slot.pre_image && slot.pre_image_after) {
@@ -483,7 +494,6 @@ class ControlNetSlotManager {
             const imageClass = candidateRow.querySelector(`.${subClassName}`);
             if(imageClass){
                 imageClass.addEventListener('click', () => {
-                    console.log('clicked', imageClass);
                     window.overlay.custom.createCustomOverlay(imageClass.src, LANG.message_controlnet_custom_overlay, 512, 'left', 'left');
                 });
             }
@@ -707,6 +717,15 @@ export function getControlNetLiet() {
 
     if(window.globalSettings.api_interface === 'ComfyUI') {
         controlNetPreprocessor = controlNetValuesComfyUI;
+
+        let clipVisionList = [];
+        window.cachedFiles.controlnetList.forEach((clipVision) => {
+            if(!clipVision.startsWith('CV->'))
+                return;
+            clipVisionList.push(clipVision.replace('CV->', 'ip-adapter->'));
+        });
+
+        controlNetPreprocessor = controlNetPreprocessor.concat(clipVisionList);
     } else if(window.globalSettings.api_interface === 'WebUI') {
         controlNetPreprocessor = controlNetValuesWebUI;
     } else {

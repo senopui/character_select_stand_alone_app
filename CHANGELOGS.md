@@ -1,3 +1,10 @@
+2025.08.18 v1.12.2      
+Add `IP Adapter` models for ComfyUI       
+ - IPA required https://github.com/sipherxyz/comfyui-art-venture         
+Add `Resize by select` for `IP Adapter`      
+Bugfix `A1111 ip-adapter` not working      
+
+
 2025.08.18 v1.12.1      
 Add `Paste (Ctrl+V)` Image/Json/Csv/Text for `Image Info Upload` window     
 
