@@ -588,7 +588,7 @@ async function menu_copyImageMetadata(element) {
                 return ;
             }
             try {
-                await navigator.clipboard.writeText(result.metadata);
+                await navigator.clipboard.writeText(result.metadata?.parameters || result.metadata?.data);
             } catch (err){
                 console.warn('Failed to copy PNG image metadata to clipboard:', err);
                 const SETTINGS = window.globalSettings;
