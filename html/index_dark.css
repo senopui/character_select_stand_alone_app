@@ -696,3 +696,10 @@ body {
 *::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(45deg, #777, #aaa);
 }
+
+#global-settings-theme-icon {
+    -webkit-mask: url('../scripts/svg/sun.svg') no-repeat center;
+    mask: url('../scripts/svg/sun.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}

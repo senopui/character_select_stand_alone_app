@@ -116,13 +116,6 @@ html, body {
     mask-size: contain;
 }
 
-#global-settings-theme-icon {
-    -webkit-mask: url('../scripts/svg/sun.svg') no-repeat center;
-    mask: url('../scripts/svg/sun.svg') no-repeat center;
-    -webkit-mask-size: contain;
-    mask-size: contain;
-}
-
 #global-pose-icon {
     -webkit-mask: url('../scripts/svg/pose.svg') no-repeat center;
     mask: url('../scripts/svg/pose.svg') no-repeat center;

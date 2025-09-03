@@ -741,3 +741,10 @@ body {
 *::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(45deg, #D98C7C, #F0D4B8); /* Muted coral-red to soft warm peach */
 }
+
+#global-settings-theme-icon {
+    -webkit-mask: url('../scripts/svg/moon.svg') no-repeat center;
+    mask: url('../scripts/svg/moon.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
