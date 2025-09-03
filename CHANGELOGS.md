@@ -1,3 +1,12 @@
+2025.09.03 v1.12.4       
+Bugfix remove quotation marks `"` from csv data item          
+
+
+2025.08.24 v1.12.3       
+Bugfix copy metadata return `[object]`      
+Bugfix SAA hangs when using ComfyUI convert single preview controlNet image with new pre-processor       
+
+
 2025.08.18 v1.12.2      
 Add `IP Adapter` models for ComfyUI       
  - IPA required https://github.com/sipherxyz/comfyui-art-venture         

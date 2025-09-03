@@ -414,7 +414,13 @@ class JsonSlotManager {
                     jsonObj = {};
                     const lines = fileContent.trim().split('\n');
                     for (const line of lines) {
-                        const columns = line.split(',').map(item => item.trim());
+                        const columns = line.split(',').map(item => {
+                            let trimmed = item.trim();
+                            if (trimmed.includes('"')) {
+                                trimmed = trimmed.replace(/"/g, '');
+                            }
+                            return trimmed;
+                        });
                         if (columns.length < 1) continue;
                         const key = columns[0];
                         const values = columns.slice(1).join(', ');

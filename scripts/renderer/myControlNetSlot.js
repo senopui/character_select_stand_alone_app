@@ -313,16 +313,18 @@ class ControlNetSlotManager {
                         if(apiInterface === 'ComfyUI'){
                             if (!window.inBrowser) {
                                 tmpImage = await window.api.decompressGzip(slot.pre_image_after);
+                                slot.pre_image = await window.api.compressGzip(tmpImage);
                             } else {
-                                tmpImage = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [slot.preImageAfter] });                        
-                            }     
-                            slot.pre_image = tmpImage;
+                                tmpImage = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [slot.preImageAfter] });
+                                slot.pre_image = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(tmpImage)] });
+                            }
                         } else {
                             slot.pre_image = slot.pre_image_after.replace('data:image/png;base64,', '');
                         }
                     }
 
-                    if(slot.pre_image) {                    
+                    if(slot.pre_image) {
+                        console.log(slot.pre_image);
                         const {preImage, preImageAfter, preImageAfterBase64} = 
                             await generateControlnetImage(slot.pre_image, preProcessModel, preProcessResolution, true);
                         if(preImageAfterBase64?.startsWith('data:image/png;base64,') && preImage) {
