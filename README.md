@@ -64,7 +64,7 @@ Upgrade your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) versio
 `ControlNet` requires [comfyui_controlnet_aux](https://github.com/Fannovel16/comfyui_controlnet_aux)       
 Put your `ControlNet` models in `ComfyUI\\models\\controlnet`      
 
-`IP Adapter` requires [comfyui-art-venture](https://github.com/sipherxyz/comfyui-art-venture)       
+`IP Adapter` requires [comfyui-art-venture](https://github.com/sipherxyz/comfyui-art-venture) and [ComfyUI_IPAdapter_plus](https://github.com/cubiq/ComfyUI_IPAdapter_plus)       
 Put your `Clip Vision` models in `ComfyUI\\models\\clip_vision`      
 Put your `IP Adapter` models in `ComfyUI\\models\\ipadapter`      
 I didn't test too much on IPA, but for `SDXL/ilXL/NoobXL` recommends `CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors` with `ipa_styleIpadapterFor_NoobAI-XL_v10.safetensors`. You may also need `CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors`           
