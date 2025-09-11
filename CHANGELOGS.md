@@ -1,3 +1,7 @@
+2025.09.11 v1.12.5       
+Change Character List search input will not reset by click      
+
+
 2025.09.03 v1.12.4       
 Bugfix remove quotation marks `"` from csv data item          
 

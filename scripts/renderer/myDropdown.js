@@ -725,25 +725,65 @@ function createDropdown({
     document.addEventListener('scroll', dropdown._scrollHandler, true);
 
     if (enableSearch) {        
+        let inputHistory = Array(dropdownCount).fill('');
+
         inputs.forEach((input, index) => {
             input.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation(); 
-        
+
                 activeDropdownsRegistry.setActive(uniqueId);                
                 activeInput = input;
                 isEditing[index] = true;
-                input.value = ''; 
-                filteredOptions[index] = [...options[index]];
-                dropdown._updateOptionsList(index);
+
+                // Remove input by None or blank or selected item
+                const searchText = (input.value || '').toLowerCase();
+                if (searchText === 'none' || searchText === 'random' || filteredOptions[index].length === options[index].length) {
+                    input.value = '';
+                    inputHistory[index] = '';
+                } 
+                
+                if (inputHistory[index] !== '') {
+                    // Reuse search input history
+                    input.value = inputHistory[index];
+                }
+
+                dropdown._updateOptionsList(index, input.value ? input.value.toLowerCase() : null);
                 dropdown._updateOptionsPosition(index);
                 optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
                 input.focus();
             });
-        
+
             input.addEventListener('input', debounce(() => {
-                const searchText = input.value.toLowerCase();            
-                dropdown._updateOptionsList(index, searchText);
+                const searchText = (input.value || '').toLowerCase();
+                inputHistory[index] = input.value || ''; // Save Search history
+
+                if (!searchText) {
+                    if (filteredOptions[index].length === 1) {
+                        filteredOptions[index] = [...options[index]];
+                        dropdown._updateOptionsList(index, null);
+
+                        setTimeout(() => {
+                            const selectedKey = selectedKeys[index];
+                            const items = optionsList.querySelectorAll('.mydropdown-item');
+                            for (const item of items) {
+                                if (item.dataset.key === selectedKey) {
+                                    item.scrollIntoView({ block: 'nearest' });
+                                    break;
+                                }
+                            }
+                        }, 0);
+                    } else {
+                        filteredOptions[index] = [...options[index]];
+                        dropdown._updateOptionsList(index, null);
+                    }
+                } else {
+                    filteredOptions[index] = options[index].filter(option =>
+                        option.key.toLowerCase().includes(searchText) ||
+                        option.value.toLowerCase().includes(searchText)
+                    );
+                    dropdown._updateOptionsList(index, searchText);
+                }
             }, 100));
         });
     } else {
