@@ -256,4 +256,7 @@ A Browser based SAA?
 
 Error HTTP 400 ...... Cannot xecute because node StepAndCfg does not exist ......       
 1. Install `ComfyUI_Mira`     
-2. Restart your ComfyUI      
+2. Restart your ComfyUI
+
+ComfyUI/WebUI is busy, cannot run new generation, please try again later.       
+Refer to 5, 6 in [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
