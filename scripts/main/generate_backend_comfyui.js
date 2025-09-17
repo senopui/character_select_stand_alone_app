@@ -653,14 +653,14 @@ class ComfyUI {
         }
 
         // vPred
-        if((vpred === 0 && model.includes('vPred')) || vpred === 1) {
+        if((vpred === 0 && (model.includes('vPred') || model.includes('VPR'))) || vpred === 1) {            
             workflow["35"].inputs.sampling = "v_prediction";
         }
 
         if (refiner.enable && model !== refiner.model) {
             // Set refiner model name
             workflow["43"].inputs.ckpt_name = refiner.model;
-            if((refiner.vpred === 0 && refiner.model.includes('vPred')) || refiner.vpred === 1) {
+            if((refiner.vpred === 0 && (refiner.model.includes('vPred') || refiner.model.includes('VPR'))) || refiner.vpred === 1) {
                 workflow["44"].inputs.sampling = "v_prediction";
             }
             refiner_start_step = Math.floor(step * refiner.ratio);
@@ -792,14 +792,14 @@ class ComfyUI {
       }
 
       // vPred
-      if((vpred === 0 && model.includes('vPred')) || vpred === 1) {
+      if((vpred === 0 && (model.includes('vPred') || model.includes('VPR'))) || vpred === 1) {
           workflow["35"].inputs.sampling = "v_prediction";
       }
 
       if (refiner.enable && model !== refiner.model) {
           // Set refiner model name
           workflow["43"].inputs.ckpt_name = refiner.model;
-          if((refiner.vpred === 0 && refiner.model.includes('vPred')) || refiner.vpred === 1) {
+          if((refiner.vpred === 0 && (refiner.model.includes('vPred') || refiner.model.includes('VPR'))) || refiner.vpred === 1) {
               workflow["44"].inputs.sampling = "v_prediction";
           }
           refiner_start_step = Math.floor(step * refiner.ratio);

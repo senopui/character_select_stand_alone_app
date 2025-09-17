@@ -1,5 +1,9 @@
+2025.09.18 v1.12.6       
+Add more Vpred auto detect for ComfyUI      
+
+
 2025.09.11 v1.12.5       
-Change Character List search input will not reset by click      
+Change Character List search input will not reset by click [#35]      
 
 
 2025.09.03 v1.12.4       
