@@ -246,10 +246,7 @@ function setupModelList(settings) {
         return getControlNetList(args);
     });
 
-    EXTRA_MODELS.exist = false;
-    if (settings.api_interface === 'ComfyUI') {
-        EXTRA_MODELS.exist = readExtraModelPaths(settings.model_path_comfyui);
-    }
+    EXTRA_MODELS.exist = readExtraModelPaths(settings.model_path_comfyui);
 
     updateModelList(
         settings.model_path_comfyui,
@@ -317,10 +314,7 @@ function updateModelAndLoRAList(args) {
     // model_path, model_path_2nd, model_filter, enable_filter, search_subfolder
     console.log(CAT, 'Update model/lora list with following args: ', args);
 
-    EXTRA_MODELS.exist = false;
-    if (settings.api_interface === 'ComfyUI') {
-        EXTRA_MODELS.exist = readExtraModelPaths(settings.model_path_comfyui);
-    }
+    EXTRA_MODELS.exist = readExtraModelPaths(args[0]);
 
     updateModelList(args[0], args[1], args[2], args[3], args[4]);
     updateLoRAList(args[0], args[1], args[4]);
