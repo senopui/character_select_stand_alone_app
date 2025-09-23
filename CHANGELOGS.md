@@ -1,3 +1,8 @@
+2025.09.24 v1.13.0       
+Add test function for ComfyUI backend #39      
+  Load `extra_model_paths.yaml` from ComfyUI root folder to add more Models/LoRAs/ControlNets from A1111       
+
+
 2025.09.18 v1.12.6       
 Add more Vpred auto detect for ComfyUI      
 

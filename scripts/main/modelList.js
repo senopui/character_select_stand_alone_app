@@ -12,6 +12,13 @@ let LORALIST_COMFYUI = ['None'];
 let LORALIST_WEBUI = ['None'];
 let CONTROLNET_COMFYUI = ['None'];
 let CONTROLNET_WEBUI = ['None'];
+let EXTRA_MODELS = {
+    exist: false,
+    yamlContent: null,
+    checkpoints: [],
+    loras: [],
+    controlnet: []
+};
 
 function readDirectory(directory, basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0) {
     let files = [];
@@ -59,6 +66,11 @@ function updateControlNetList(model_path_comfyui, model_path_webui, search_subfo
             });
 
             CONTROLNET_COMFYUI = CONTROLNET_COMFYUI.concat(clipVisionListWithPrefix, ipaListWithPrefix);
+
+            if (EXTRA_MODELS.exist && Array.isArray(EXTRA_MODELS.controlnet) && EXTRA_MODELS.controlnet.length > 0) {
+                const baseList = Array.isArray(CONTROLNET_COMFYUI) ? CONTROLNET_COMFYUI : [];
+                CONTROLNET_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.controlnet]));
+            }
         }
     } 
     
@@ -85,6 +97,11 @@ function updateLoRAList(model_path_comfyui, model_path_webui, search_subfolder) 
 
     if (fs.existsSync(loraPathComfyUI)) {
         LORALIST_COMFYUI = readDirectory(loraPathComfyUI, '', search_subfolder);
+
+        if (EXTRA_MODELS.exist && Array.isArray(EXTRA_MODELS.loras) && EXTRA_MODELS.loras.length > 0) {
+            const baseList = Array.isArray(LORALIST_COMFYUI) ? LORALIST_COMFYUI : [];
+            LORALIST_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.loras]));
+        }
     } 
     
     if (fs.existsSync(loraPathWebUI)) {
@@ -95,6 +112,11 @@ function updateLoRAList(model_path_comfyui, model_path_webui, search_subfolder) 
 function updateModelList(model_path_comfyui, model_path_webui, model_filter, enable_filter, search_subfolder) {
     if (fs.existsSync(model_path_comfyui)) {
         MODELLIST_ALL_COMFYUI = readDirectory(model_path_comfyui, '', search_subfolder);
+
+        if (EXTRA_MODELS.exist && Array.isArray(EXTRA_MODELS.checkpoints) && EXTRA_MODELS.checkpoints.length > 0) {
+            const baseList = Array.isArray(MODELLIST_ALL_COMFYUI) ? MODELLIST_ALL_COMFYUI : [];
+            MODELLIST_ALL_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.checkpoints]));
+        }
     }
     
     if (fs.existsSync(model_path_webui)) {
@@ -114,7 +136,7 @@ function updateModelList(model_path_comfyui, model_path_webui, model_filter, ena
         MODELLIST_WEBUI = [...MODELLIST_ALL_WEBUI];
     }
 
-    if (MODELLIST_COMFYUI.length > 0) {
+    if (MODELLIST_COMFYUI.length > 0) {        
         MODELLIST_COMFYUI.unshift('Default');
     } else {
         MODELLIST_COMFYUI = ['Default'];
@@ -125,6 +147,82 @@ function updateModelList(model_path_comfyui, model_path_webui, model_filter, ena
     } else {
         MODELLIST_WEBUI = ['Default'];
     }
+}
+
+function collectRelativePaths(fieldName) {
+    const raw = EXTRA_MODELS.yamlContent.a111[fieldName];
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+        return raw.map(r => String(r).trim()).filter(r => r);
+    } else {
+        return String(raw).split(/\r?\n/).map(s => s.trim()).filter(s => s);
+    }
+}
+
+function readExtraModelPaths(model_path_comfyui) {    
+    const basePath = path.dirname(path.dirname(model_path_comfyui));
+    const extraModelPathsFile = path.join(basePath, 'extra_model_paths.yaml');
+
+    if (!fs.existsSync(extraModelPathsFile)) {
+        console.log(CAT, 'readExtraModelPaths: extra_model_paths.yaml not found at', extraModelPathsFile);
+        return false;
+    }
+
+    console.log(CAT, 'readExtraModelPaths: reading from', extraModelPathsFile);
+
+    try {
+        const raw = fs.readFileSync(extraModelPathsFile, 'utf8');
+        const yaml = require('js-yaml');
+        EXTRA_MODELS.yamlContent = yaml.load(raw);
+    } catch (err) {
+        console.log(CAT, 'readExtraModelPaths: failed to read/parse yaml', err);
+        return false;
+    }
+
+    if (!EXTRA_MODELS.yamlContent?.a111?.base_path) {
+        return false;
+    }
+
+    const a111Base = EXTRA_MODELS.yamlContent.a111.base_path;
+    if (!fs.existsSync(a111Base)) {
+        console.log(CAT, 'readExtraModelPaths: a111 base_path does not exist:', a111Base);
+        return false;
+    }
+
+    function collectFromRelativeList(relList, targetArray) {
+        for (const rel of relList) {
+            const absPath = path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
+            if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
+                try {
+                    const items = readDirectory(absPath, '', true);
+                    if (items?.length) {
+                        targetArray.push(...items);
+                    }
+                } catch (e) {
+                    console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
+                }
+            }
+        }
+    }
+
+    // checkpoints
+    collectFromRelativeList(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints);
+    // loras
+    collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras);
+    // controlnet
+    collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet);
+
+    EXTRA_MODELS.checkpoints = Array.from(new Set(EXTRA_MODELS.checkpoints));
+    EXTRA_MODELS.loras = Array.from(new Set(EXTRA_MODELS.loras));
+    EXTRA_MODELS.controlnet = Array.from(new Set(EXTRA_MODELS.controlnet));
+
+    console.log(CAT, 'readExtraModelPaths: found extra models:', {
+        checkpoints: EXTRA_MODELS.checkpoints.length,
+        loras: EXTRA_MODELS.loras.length,
+        controlnet: EXTRA_MODELS.controlnet.length
+    });
+
+    return true;
 }
 
 function setupModelList(settings) {
@@ -147,6 +245,11 @@ function setupModelList(settings) {
     ipcMain.handle('get-controlnet-list', async (event, args) => {
         return getControlNetList(args);
     });
+
+    EXTRA_MODELS.exist = false;
+    if (settings.api_interface === 'ComfyUI') {
+        EXTRA_MODELS.exist = readExtraModelPaths(settings.model_path_comfyui);
+    }
 
     updateModelList(
         settings.model_path_comfyui,
@@ -213,6 +316,12 @@ function getControlNetList(apiInterface) {
 function updateModelAndLoRAList(args) {
     // model_path, model_path_2nd, model_filter, enable_filter, search_subfolder
     console.log(CAT, 'Update model/lora list with following args: ', args);
+
+    EXTRA_MODELS.exist = false;
+    if (settings.api_interface === 'ComfyUI') {
+        EXTRA_MODELS.exist = readExtraModelPaths(settings.model_path_comfyui);
+    }
+
     updateModelList(args[0], args[1], args[2], args[3], args[4]);
     updateLoRAList(args[0], args[1], args[4]);
     updateControlNetList(args[0], args[1], args[4]);
@@ -229,6 +338,8 @@ module.exports = {
     getModelListAll,
     getLoRAList,
     getControlNetList,
-    updateModelAndLoRAList
+    updateModelAndLoRAList,
+    collectRelativePaths,
+    getExtraModels: () => EXTRA_MODELS    
 };
 

@@ -4,7 +4,7 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.12.6",
+  "version": "1.13.0",
   "author": "oOkami",
   "scripts": {
     "start": "electron . --trace-warnings",
@@ -21,6 +21,7 @@
     "express-rate-limit": "^8.0.1",
     "helmet": "^8.1.0",
     "https": "^1.0.0",
+    "js-yaml": "^4.1.0",
     "ws": "^8.18.3"
   }
 }

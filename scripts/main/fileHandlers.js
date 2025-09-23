@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('node:path');
 const { app, ipcMain } = require('electron');
 
+const { collectRelativePaths, getExtraModels } = require('./modelList');
+
 const CAT = '[FileHandlers]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 
@@ -423,9 +425,8 @@ function readImage(buffer, fileName, fileType) {
   }
 }
 
-function readSafetensors(modelPath, prefix, filePath) {
-  try {
-    const fullPath = path.join(path.dirname(modelPath), prefix, filePath);
+function readFileMetadata(fullPath) {
+  try {    
     const buffer = fs.readFileSync(fullPath);
     const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 
@@ -451,6 +452,28 @@ function readSafetensors(modelPath, prefix, filePath) {
     console.error(CAT, `Reading metadata failed: ${error.message}`);
     return `Error: Reading metadata failed: ${error.message}`;
   }
+}
+
+function readSafetensors(modelPath, prefix, filePath) {
+  let fullPath = path.join(path.dirname(modelPath), prefix, filePath);
+  const extraModels = getExtraModels();
+
+  if (extraModels?.exist && extraModels?.yamlContent) {
+    if (fs.existsSync(fullPath) === false) {
+      for (const relPath of collectRelativePaths('loras')) {
+        const testPath = path.join(extraModels.yamlContent.a111.base_path, relPath, filePath);
+        if (fs.existsSync(testPath)) {
+          fullPath = testPath;
+          console.log(CAT, 'readSafetensors: found LoRA at', fullPath);
+          break;
+        }
+      }
+    }
+  } else if (fs.existsSync(fullPath) === false) {
+    return `Error: File not found: ${fullPath}`;
+  }
+
+  return readFileMetadata(fullPath);
 }
 
 function readBase64Image(dataUrl) {
