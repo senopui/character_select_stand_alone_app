@@ -1,3 +1,10 @@
+2025.09.24 v1.13.1       
+Add `Enumerate` for `JSON/CSV`         
+  Iterate through all the elements of the list in a sequential order     
+  Only work in `Batch (Random)` mode      
+  Single model `Create Prompt` will `Enumerate` run as `Random`      
+
+
 2025.09.24 v1.13.0       
 Add test function for ComfyUI backend #39      
   Load `extra_model_paths.yaml` from ComfyUI root folder to add more Models/LoRAs/ControlNets from A1111       

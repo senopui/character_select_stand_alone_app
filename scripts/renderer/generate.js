@@ -203,13 +203,13 @@ export function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
     return { tas, info };
 }
 
-function getCustomJSON(){
+function getCustomJSON(loop=-1){
     let BeforeOfPrompts = '';
     let BeforeOfCharacter = '';
     let EndOfCharacter = '';
     let EndOfPrompts = '';
 
-    const jsonSlots = window.jsonlist.getValues();
+    const jsonSlots = window.jsonlist.getValues(loop);
 
     jsonSlots.forEach(([prompt, strength, regional, method]) => {
         if(method === 'Off')
@@ -276,7 +276,7 @@ async function getCharacters(){
     }
 }
 
-function getPrompts(characters, views, ai='', apiInterface = 'None'){    
+function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {    
     const commonColor = (window.globalSettings.css_style==='dark')?'darkorange':'Sienna';
     const viewColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     const aiColor = (window.globalSettings.css_style==='dark')?'hotpink':'Purple';
@@ -295,7 +295,7 @@ function getPrompts(characters, views, ai='', apiInterface = 'None'){
     if(aiPrompt !== '' && !aiPrompt.endsWith(','))
         aiPrompt += ', ';
 
-    const {BOP, BOC, EOC, EOP} = getCustomJSON();
+    const {BOP, BOC, EOC, EOP} = getCustomJSON(loop);
 
     let positivePrompt = `${BOP}${common}${views}${aiPrompt}${BOC}${characters}${EOC}${positive}${EOP}`.replace(/\n+/g, ''); 
     let positivePromptColored = `[color=${commonColor}]${BOP}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOC}${characters}${EOC}[/color][color=${positiveColor}]${positive}${EOP}[/color]`.replace(/\n+/g, ''); 
@@ -393,7 +393,7 @@ export async function replaceWildcardsAsync(pos, seed) {
     return pos;
 }
 
-async function createPrompt(runSame, aiPromot, apiInterface){
+async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let finalInfo = ''
     let randomSeed = -1;
     let positivePrompt = '';
@@ -415,7 +415,7 @@ async function createPrompt(runSame, aiPromot, apiInterface){
         finalInfo = information;
 
         const views = getViewTags(seed);
-        let {pos, posc, lora} = getPrompts(characters_tag, views, aiPromot, apiInterface);
+        let {pos, posc, lora} = getPrompts(characters_tag, views, aiPromot, apiInterface, loop);
                 
         pos = await replaceWildcardsAsync(pos, randomSeed);
         posc = await replaceWildcardsAsync(posc, randomSeed);
@@ -706,7 +706,7 @@ export async function generateImage(loops, runSame){
 
         window.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface);                
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
         const landscape = window.generate.landscape.getValue();
         const width = landscape?window.generate.height.getValue():window.generate.width.getValue();
         const height = landscape?window.generate.width.getValue():window.generate.height.getValue();

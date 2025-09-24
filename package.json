@@ -4,7 +4,7 @@
   "description": "API",
   "keywords": [],
   "main": "./main.js",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "author": "oOkami",
   "scripts": {
     "start": "electron . --trace-warnings",

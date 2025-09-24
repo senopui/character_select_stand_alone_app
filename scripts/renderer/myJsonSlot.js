@@ -5,6 +5,7 @@ import { setupTextbox } from './myTextbox.js';
 const regionalPositions = ['Both', 'Left', 'Right'];
 const promptPositions = ["BOP", "BOC", "EOC", "EOP", "Off"];
 const randomKey = '___Random___';
+const enumKey = '___Enumerate___';
 
 function encodeJsonToBase64(jsonObj) {
     return btoa(encodeURIComponent(JSON.stringify(jsonObj)));
@@ -39,7 +40,8 @@ function createJsonSlotFromValues(slotManager, jsonObj,
 
     slot.jsonObj = jsonObj;
     const keys = Object.keys(slot.jsonObj);
-    //Add random key
+    //Add enumKey and random key
+    keys.unshift(enumKey);
     keys.unshift(randomKey);
 
     const SETTINGS = window.globalSettings;
@@ -131,7 +133,7 @@ class JsonSlotManager {
                 const jsonNameComponent = this.componentInstances.get(`${slotClass}-${slot.itemClasses.json_name}`);
                 const selectedName = jsonNameComponent?.getValue() || randomKey;
 
-                if(selectedName === randomKey)
+                if(selectedName === randomKey || selectedName === enumKey)
                     return;
 
                 const jsonStrComponent = this.componentInstances.get(`${slotClass}-${slot.itemClasses.json_strength}`);
@@ -354,17 +356,21 @@ class JsonSlotManager {
         return result;
     }
 
-    getValue(className, slot) {
+    getValue(className, slot, loop=-1) {
         const rowValues = [];
         const { json_name, json_strength, json_regional, json_position } = slot.itemClasses;
 
         try {
             const jsonNameComponent = this.componentInstances.get(`${className}-${json_name}`);
             const selectedName = jsonNameComponent.getValue();
-            if(selectedName === randomKey) {
-                const keys = Object.keys(slot.jsonObj);
+            const keys = Object.keys(slot.jsonObj);
+            if(selectedName === randomKey || (selectedName === enumKey && loop === -1)) {                
                 const rnd = keys[Math.floor(keys.length*Math.random())];
                 rowValues.push(slot.jsonObj[rnd]);
+            } else if(selectedName === enumKey) {
+                const idx = loop % keys.length;
+                const key = keys[idx];
+                rowValues.push(slot.jsonObj[key]);
             } else {
                 rowValues.push(slot.jsonObj[selectedName]);
             }            
@@ -383,7 +389,7 @@ class JsonSlotManager {
         return rowValues;
     }
 
-    getValues() {
+    getValues(loop=-1) {
         const result = [];
         const contentSlots = this.getSlots();
 
@@ -391,7 +397,7 @@ class JsonSlotManager {
             const slot = this.slotIndex.get(className);
             if (!slot) continue;
 
-            result.push(this.getValue(className, slot));
+            result.push(this.getValue(className, slot, loop));
         }
         return result;
     }

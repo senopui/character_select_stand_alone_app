@@ -5,7 +5,7 @@ import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getR
     createControlNet } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
-function getCustomJSON(){
+function getCustomJSON(loop=-1){
     let BeforeOfPromptsL = '';
     let BeforeOfCharacterL = '';
     let EndOfCharacterL = '';
@@ -16,7 +16,7 @@ function getCustomJSON(){
     let EndOfCharacterR = '';
     let EndOfPromptsR = '';
     
-    const jsonSlots = window.jsonlist.getValues();
+    const jsonSlots = window.jsonlist.getValues(loop);
 
     jsonSlots.forEach(([prompt, strength, regional, method]) => {
         if(method === 'Off')
@@ -88,7 +88,7 @@ function getCustomJSON(){
     }
 }
 
-function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None'){    
+function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None', loop = -1){
     const commonColor = (window.globalSettings.css_style==='dark')?'darkorange':'Sienna';
     const viewColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     const aiColor = (window.globalSettings.css_style==='dark')?'hotpink':'Purple';
@@ -109,7 +109,7 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
     if(aiPrompt !== '' && !aiPrompt.endsWith(','))
         aiPrompt += ', ';
 
-    const {BOPL, BOCL, EOCL, EOPL, BOPR, BOCR, EOCR, EOPR} = getCustomJSON();
+    const {BOPL, BOCL, EOCL, EOPL, BOPR, BOCR, EOCR, EOPR} = getCustomJSON(loop);
 
     let positivePromptLeft = `${BOPL}${common}${views}${aiPrompt}${BOCL}${character_left}${EOCL}${positive}${EOPL}`.replace(/\n+/g, ''); 
     let positivePromptRight = `${BOPR}${common}${views}${aiPrompt}${BOCR}${character_right}${EOCR}${positiveR}${EOPR}`.replace(/\n+/g, ''); 
@@ -261,7 +261,7 @@ async function getCharacters(){
     }
 }
 
-async function createPrompt(runSame, aiPromot, apiInterface){
+async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let finalInfo = ''
     let randomSeed = -1;
     let randomSeedr = -1;
@@ -289,7 +289,7 @@ async function createPrompt(runSame, aiPromot, apiInterface){
         finalInfo = information;
 
         const views = getViewTags(seed);
-        let {posL, posLc, posR, posRc, lora} = getPrompts(character_left, character_right, views, aiPromot, apiInterface);
+        let {posL, posLc, posR, posRc, lora} = getPrompts(character_left, character_right, views, aiPromot, apiInterface, loop);
 
         posL = await replaceWildcardsAsync(posL, randomSeed);
         posLc = await replaceWildcardsAsync(posLc, randomSeed);
@@ -415,7 +415,7 @@ export async function generateRegionalImage(loops, runSame){
 
         window.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface);
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
         window.generate.lastPos = createPromptResult.positivePromptLeft;
         window.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
         window.generate.lastPosR = createPromptResult.positivePromptRight;
