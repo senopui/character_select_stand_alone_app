@@ -1,3 +1,7 @@
+2025.09.26 v1.13.2       
+Rename `Create Prompt` to `Create Single Image` [#41]       
+
+
 2025.09.24 v1.13.1       
 Add `Enumerate` for `JSON/CSV`         
   Iterate through all the elements of the list in a sequential order     

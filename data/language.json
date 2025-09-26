@@ -121,7 +121,7 @@
         "message_controlnet_comfyui": "Note: ControlNet/IP Adapter for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color], [color=CornflowerBlue]comfyui-art-venture[/color] and [color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]和[color=CornflowerBlue]comfyui-art-venture[/color]和[color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]\n[color=CornflowerBlue]https://github.com/sipherxyz/comfyui-art-venture[/color]\n[color=CornflowerBlue]https://github.com/cubiq/ComfyUI_IPAdapter_plus[/color]",
         "message_controlnet_webui": "Note: ControlNet/IP Adapter for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
         
-        "run_button": "Create Prompt",
+        "run_button": "Create Single Image",
         "run_random_button": "Batch (Random)",
         "run_same_button": "Batch (Last)",
         "run_skip_button": "Skip follow-up",
