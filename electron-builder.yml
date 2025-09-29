@@ -1,6 +1,8 @@
 appId: com.saa.characterselect
 productName: Character Select SAA
-asar: true
+publish: 'never'
+asar: false
+
 files:
   - main.js
   - index_electron.html
@@ -8,10 +10,11 @@ files:
   - html/**
   - webserver/**
   - scripts/**
+  - settings/**         # <-- important
   - data/**
   - package.json
-extraResources:
-  - from: data
-    to: data
+
 win:
-  target: [nsis, zip]
+  target: [zip]         # or [nsis, zip] if you also want an installer
+  executableName: "saa" # optional: to get saa.exe like the author’s zip
+artifactName: "SAA-${version}-win.${ext}"  # tweak to taste
