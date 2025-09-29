@@ -1,0 +1,17 @@
+appId: com.saa.characterselect
+productName: Character Select SAA
+asar: true
+files:
+  - main.js
+  - index_electron.html
+  - index.html
+  - html/**
+  - webserver/**
+  - scripts/**
+  - data/**
+  - package.json
+extraResources:
+  - from: data
+    to: data
+win:
+  target: [nsis, zip]
