@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths-ignore: [ "**.md" ]
+
 jobs:
   build-win:
     runs-on: windows-latest
@@ -14,14 +15,15 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - run: |
+      - name: Ensure electron-builder present
+        run: |
           if (-not (Test-Path "node_modules\electron-builder")) {
             npm i -D electron electron-builder
           }
-      - run: npx electron-builder -w --x64 -c electron-builder.yml --publish=always
- 	 env:
-  	  GH_TOKEN: ''
-    	  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Package (NSIS + ZIP)
+        run: npx electron-builder -w --x64 -c electron-builder.yml --publish=never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - uses: actions/upload-artifact@v4
         with:
           name: saa-win-artifacts
