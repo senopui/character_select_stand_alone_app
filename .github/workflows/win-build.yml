@@ -1,0 +1,33 @@
+name: Windows build
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+    paths-ignore: [ "**.md" ]
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Ensure electron-builder present
+        run: |
+          if (-not (Test-Path "node_modules\electron-builder")) {
+            npm i -D electron electron-builder
+          }
+      - name: Package (ZIP only)
+        run: npx electron-builder -w --x64 -c electron-builder.yml --publish=never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: saa-win-zip
+          path: |
+            dist\*.zip
+            dist\win-unpacked\
