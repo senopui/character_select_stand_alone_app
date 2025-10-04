@@ -59,9 +59,9 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
 ------
 # Highlights
 ## Image Tagger (WD14 and CL)
-Supports both [WD14](https://huggingface.co/SmilingWolf) tagger and [CL](https://huggingface.co/cella110n/cl_tagger) tagger models in ONNX format.             
+Supports both [WD14@SmilingWolf](https://huggingface.co/SmilingWolf) tagger and [CL@cella110n](https://huggingface.co/cella110n/cl_tagger) tagger models in ONNX format.             
 
-Download models with tags and place them in "models/tagger" folder:      
+Download models with tags from [HF](https://huggingface.co), manually rename them according to the following rules, then copy them into `models/tagger` folder:      
   - cl_tagger_v2.onnx + cl_tagger_v2_tag_mapping.json    
   - wd-eva02-large-tagger-v3.onnx + wd-eva02-large-tagger-v3_selected_tags.csv    
   - wd-v1-4-convnext-tagger.onnx + wd-v1-4-convnext-tagger_selected_tags.csv    
