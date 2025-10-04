@@ -94,6 +94,7 @@ contextBridge.exposeInMainWorld('api', {
   getModelListAll: async (args) => ipcRenderer.invoke('get-model-list-all', args),
   getLoRAList: async (args) => ipcRenderer.invoke('get-lora-list-all', args),
   getControlNetList: async (args) => ipcRenderer.invoke('get-controlnet-list', args),
+  getImageTaggerModels: async () => ipcRenderer.invoke('get-image-tagger-models'),
   // Tag Auto Complete
   tagReload: async () => ipcRenderer.invoke('tag-reload'),
   tagGet: async (text) => ipcRenderer.invoke('tag-get-suggestions', text),
@@ -130,6 +131,9 @@ contextBridge.exposeInMainWorld('api', {
   decompressGzip: async (base64Data) => ipcRenderer.invoke('decompress-gzip', base64Data),
   compressGzip: async (byteArray) => ipcRenderer.invoke('compress-gzip', byteArray),
   bcryptHash: async (pass) => ipcRenderer.invoke('bcrypt-hash', pass),
+
+  // Image Tagger
+  runImageTagger: async (args) => ipcRenderer.invoke('run-image-tagger', args),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

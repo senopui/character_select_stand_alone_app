@@ -1,3 +1,8 @@
+2025.10.05 v1.14.0      
+Add `Image Tagger`      
+  Native feature, not backend API call       
+
+
 2025.09.26 v1.13.2       
 Rename `Create Prompt` to `Create Single Image` [#41]       
 

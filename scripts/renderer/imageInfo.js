@@ -569,6 +569,118 @@ export function setupImageUploadOverlay() {
         window.generate.height.setValue(extractedData.height);    
     }
 
+    function createImageTagger() {
+        const SETTINGS = window.globalSettings;
+        const FILES = window.cachedFiles;
+        const LANG = FILES.language[SETTINGS.language];
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'image-tagger-buttons';
+
+        const imageTaggerModels = document.createElement('select');
+        imageTaggerModels.className = 'controlnet-select';
+        imageTaggerModels.innerHTML = createHtmlOptions(FILES.imageTaggerModels);
+        buttonContainer.appendChild(imageTaggerModels);
+
+        const genThreshold = document.createElement('select');
+        genThreshold.className = 'controlnet-select';
+        genThreshold.innerHTML = createHtmlOptions([0.55, 0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,1.00]);
+        buttonContainer.appendChild(genThreshold);
+
+        const charThreshold = document.createElement('select');
+        charThreshold.className = 'controlnet-select';
+        charThreshold.innerHTML = createHtmlOptions([0.60, 0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.800,0.85,0.90,0.95,1.00]);
+        buttonContainer.appendChild(charThreshold);
+
+        const useMcut = document.createElement('select');
+        useMcut.className = 'controlnet-select';
+        useMcut.innerHTML = createHtmlOptions(['mCut:OFF', 'General', 'Character', 'Both']);
+        buttonContainer.appendChild(useMcut);
+
+        const imageTaggerButton = document.createElement('button');
+        imageTaggerButton.className = 'image-tagger-process';
+        imageTaggerButton.textContent = LANG.image_tagger_run;
+        imageTaggerButton.addEventListener('click', async () => {            
+            if(!imageTaggerButton.disabled) {
+                if(imageTaggerModels.value === 'none') {
+                imageTaggerButton.textContent = 'Select Model';
+                imageTaggerButton.style.cursor = 'not-allowed';
+                imageTaggerButton.disabled = true;
+                
+                setTimeout(() => {
+                    imageTaggerButton.textContent = LANG.image_tagger_run;
+                    imageTaggerButton.style.cursor = 'pointer';
+                    imageTaggerButton.disabled = false;
+                }, 500);
+                return;
+            }
+
+                imageTaggerButton.textContent = LANG.image_tagger_run_processing;
+                imageTaggerButton.style.cursor = 'not-allowed';
+                imageTaggerButton.disabled = true;
+                try {                    
+                    let imageBase64 = await fileToBase64(cachedImage);
+                    if (typeof imageBase64 === 'string' && imageBase64.startsWith('data:')) {
+                        imageBase64 = imageBase64.split(',')[1];
+                    }
+
+                    let result = '';
+                    let mCutGeneral = false;
+                    let mCutCharacter = false;
+
+                    if(useMcut.value === 'General' || useMcut.value === 'Both') {   
+                        mCutGeneral = true;
+                    }
+                    if(useMcut.value === 'Character' || useMcut.value === 'Both') {   
+                        mCutCharacter = true;
+                    }
+
+                    if (!window.inBrowser) {
+                        result = await window.api.runImageTagger({
+                            image_input: imageBase64,
+                            model_choice: imageTaggerModels.value,
+                            gen_threshold: genThreshold.value,
+                            char_threshold: charThreshold.value,
+                            general_mcut_enabled: mCutGeneral,
+                            character_mcut_enabled: mCutCharacter,
+                        });
+                    } else {
+                        result = await sendWebSocketMessage({ 
+                            type: 'API', 
+                            method: 'runImageTagger', 
+                            params: [
+                                imageBase64,
+                                imageTaggerModels.value,
+                                genThreshold.value,
+                                charThreshold.value,
+                                mCutGeneral,
+                                mCutCharacter
+                            ]});
+                    } 
+
+                    if(result) {
+                        imageTaggerButton.textContent = LANG.image_tagger_run_tagged;
+                        console.log(result.join(', '));
+                        window.overlay.custom.createCustomOverlay('none', "\n\n" + result.join(', '));
+                    } else {
+                        imageTaggerButton.textContent = LANG.image_tagger_run_no_tag;
+                    }   
+                } catch (err) {
+                    console.error('Image Tagger error:', err);
+                    imageTaggerButton.textContent = LANG.image_tagger_run_error;
+                }
+                setTimeout(() => {
+                    imageTaggerButton.textContent = LANG.image_tagger_run;
+                    imageTaggerButton.style.cursor = 'pointer';
+                    imageTaggerButton.disabled = false;
+                }, 2000);
+            }
+        });
+        buttonContainer.appendChild(imageTaggerButton);
+        
+        metadataContainer.appendChild(buttonContainer);
+    }
+
     function displayFormattedMetadata(metadata) {
         const apiInterface = window.generate.api_interface.getValue();
         const parsedMetadata = parseGenerationParameters(metadata);
@@ -579,6 +691,8 @@ export function setupImageUploadOverlay() {
                            parsedMetadata.negativePrompt || 
                            parsedMetadata.otherParams;
         
+        createImageTagger();
+
         if(apiInterface !== 'None') {
             metadataContainer.appendChild(createControlNetButtons(apiInterface));        
         }
@@ -586,7 +700,7 @@ export function setupImageUploadOverlay() {
         if (hasMetadata) {
             const buttonContainer = createActionButtons();
             metadataContainer.appendChild(buttonContainer);
-        }        
+        }
 
         const metadataDisplay = document.createElement('div');
         metadataDisplay.className = `metadata-custom-textbox-data`;

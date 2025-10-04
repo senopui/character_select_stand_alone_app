@@ -117,6 +117,7 @@ export async function reloadFiles(){
         window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
         window.cachedFiles.controlnetList = await window.api.getControlNetList(SETTINGS.api_interface);
         window.cachedFiles.settingList = await window.api.updateSettingFiles();
+        window.cachedFiles.imageTaggerModels = await window.api.getImageTaggerModels();
     } else {
         await sendWebSocketMessage({ type: 'API', method: 'updateModelList', params: [args] });
         await sendWebSocketMessage({ type: 'API', method: 'updateWildcards'});
@@ -127,6 +128,7 @@ export async function reloadFiles(){
         window.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
         window.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
         window.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
+        window.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
     }
     window.dropdownList.model.setValue(LANG.api_model_file_select, window.cachedFiles.modelList);
     window.dropdownList.settings.setValue('', window.cachedFiles.settingList);

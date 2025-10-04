@@ -1,5 +1,9 @@
 // Modules to control application life and create native browser window
 const { app, BrowserWindow, ipcMain } = require('electron')
+
+app.commandLine.appendSwitch('enable-gpu');
+app.commandLine.appendSwitch('ignore-gpu-blacklist');  
+
 // Force enable sandbox
 app.enableSandbox();
 
@@ -22,6 +26,7 @@ const { setupGenerateBackendComfyUI, sendToRenderer } = require('./scripts/main/
 const { setupGenerateBackendWebUI } = require('./scripts/main/generate_backend_webui');
 const { setupCachedFiles } = require('./scripts/main/cachedFiles'); 
 const { setupWildcardsHandlers } = require('./scripts/main/wildCards');
+const { setupTagger } = require('./scripts/main/imageTagger');
 
 const version = app.getVersion();
 
@@ -93,6 +98,7 @@ function createWindow () {
       spellcheck: true, // Enable spellcheck
       sandbox: true, // Enable sandbox
       webSecurity: true, //Enable web security
+      hardwareAcceleration: true, // Enable hardware acceleration
     }
   });
 
@@ -110,6 +116,11 @@ function createWindow () {
   // and load the index_electron.html of the app.
   mainWindow.loadFile('index_electron.html');
 }
+
+app.on('gpu-process-crashed', (event, killed) => {
+  console.log('GPU process crashed', killed);
+  console.log('Attempting to restart window...');
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -130,6 +141,7 @@ app.whenReady().then(async () => {
   setupModelApi();
   setupGenerateBackendComfyUI();
   setupGenerateBackendWebUI();  
+  setupTagger();
 
   if (downloadSuccess && cacheSuccess && tacSuccess) {   
     createWindow();

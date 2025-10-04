@@ -57,6 +57,41 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
      
 ------
 # Highlights
+## Image Tagger (WD14 and CL)
+Supports both [WD14](https://huggingface.co/SmilingWolf) tagger and [CL](https://huggingface.co/cella110n/cl_tagger) tagger models in ONNX format.             
+
+Download models with tags and place them in "models/tagger" folder:      
+  - cl_tagger_v2.onnx + cl_tagger_v2_tag_mapping.json    
+  - wd-eva02-large-tagger-v3.onnx + wd-eva02-large-tagger-v3_selected_tags.csv    
+  - wd-v1-4-convnext-tagger.onnx + wd-v1-4-convnext-tagger_selected_tags.csv    
+
+'''
+SAA
+|---models
+|   |---tagger
+|       |---cl_tagger_1_02.onnx
+|       |---cl_tagger_1_02_tag_mapping.json
+|       |---wd-eva02-large-tagger-v3.onnx
+|       |---wd-eva02-large-tagger-v3_selected_tags.csv
+|       |---wd-vit-large-tagger-v3.onnx
+|       |---wd-vit-large-tagger-v3_selected_tags.csv
+
+Model Name  >>>  General Threshold  >>>  Character Threshold  >>> mCut for WD14(test)      
+'''
+
+The Image Tagger running on Node.JS with `onnxruntime-node`. *It DOES NOT require any backend support*             
+But, GPU acceleration seems not working, triggers are there, but not working....      
+The `Generate Speed` is about 3 times slower than `Python` with `onnxruntime` in CPU mode, and 12 times slower than `onnxruntime-gpu`         
+
+In other words with my i9-9960x with Titan RTX    
+| Device | Generate Time | Platform |
+| --- | --- | --- |
+| onnxruntime | 1.053s | Python |
+| onnxruntime-gpu | 0.297s | Python |
+| onnxruntime-node | 3.503s | Electron(NodeJS) |
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageTagger.png" width=35%>   
+
 ## ControlNet / IP Adapter (ComfyUI & A1111)
 *For ComfyUI*     
 Upgrade your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version to `0.4.9.6 or above`      
