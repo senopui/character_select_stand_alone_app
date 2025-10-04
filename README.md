@@ -42,6 +42,7 @@ The `One-Click package` may not the latest version. If you need to update, pleas
 ```
 git fetch
 git pull
+npm install
 ```
 **REMINDER:Updating version from github will not update the database files `danbooru_e621_merged.csv` and `wai_character_thumbs.json`.**    
 Update to the latest version, then manually delete the `danbooru_e621_merged.csv` and `wai_character_thumbs.json` file. Restart the app to automatically download the latest thumbnail database from HF.      
@@ -65,7 +66,7 @@ Download models with tags and place them in "models/tagger" folder:
   - wd-eva02-large-tagger-v3.onnx + wd-eva02-large-tagger-v3_selected_tags.csv    
   - wd-v1-4-convnext-tagger.onnx + wd-v1-4-convnext-tagger_selected_tags.csv    
 
-'''
+```
 SAA
 |---models
 |   |---tagger
@@ -77,7 +78,7 @@ SAA
 |       |---wd-vit-large-tagger-v3_selected_tags.csv
 
 Model Name  >>>  General Threshold  >>>  Character Threshold  >>> mCut for WD14(test)      
-'''
+```
 
 The Image Tagger running on Node.JS with `onnxruntime-node`. *It DOES NOT require any backend support*             
 But, GPU acceleration seems not working, triggers are there, but not working....      
