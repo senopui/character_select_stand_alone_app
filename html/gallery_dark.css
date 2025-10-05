@@ -659,6 +659,15 @@
     flex-wrap: wrap;
 }
 
+.image-tagger-buttons {
+    display: grid;
+    grid-template-columns: 4fr 0.7fr 0.7fr 1.2fr 1fr; 
+    justify-items: end;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 8px;
+}
+
 .metadata-buttons, .controlnet-buttons {
     display: grid;
     grid-template-columns: 4fr 1fr; 
@@ -668,7 +677,7 @@
     padding: 8px;
 }
 
-.copy-all-metadata, .controlnet-postprocess,
+.copy-all-metadata, .controlnet-postprocess, .image-tagger-process,
 .send-metadata {
     padding: 8px 12px;
     cursor: pointer;
@@ -678,13 +687,13 @@
     text-align: center;
 }
 
-.copy-all-metadata {
+.copy-all-metadata, .image-tagger-process {
     background-color: rgb(61,154,215);
     color: white;
     border: none;
 }
 
-.copy-all-metadata:hover {
+.copy-all-metadata:hover, .image-tagger-process:hover {
     background-color: rgb(49,130,182);
 }
 
