@@ -1,3 +1,9 @@
+2025.10.05 v1.14.1     
+Improve `Image Tagger` image process             
+  Change Subprocess timeout 5s to 10s     
+  Bug fix      
+
+
 2025.10.05 v1.14.0      
 Add `Image Tagger`      
   Native feature, not backend API call       

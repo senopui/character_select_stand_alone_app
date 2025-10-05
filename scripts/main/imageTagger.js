@@ -66,7 +66,7 @@ async function runModelInSubprocess(args) {
       subprocess.removeListener('message', handler);
       subprocess.kill();
       reject(new Error(CAT, 'Subprocess timeout'));
-    }, 5000);
+    }, 10000);
 
     const originalResolve = resolve;
     resolve = (value) => {

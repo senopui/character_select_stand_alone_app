@@ -22,22 +22,28 @@ async function preprocessImageWD(base64Str, targetSize=448) {
     throw new Error(`${CAT}Unexpected raw image shape: ${info.width}x${info.height}x${info.channels}`);
   }
 
-  const imgArray = new Float32Array(targetSize * targetSize * 3);  // NHWC flat: H*W*3, BGR per pixel  
-  for (let h = 0; h < targetSize; h++) {
-    for (let w = 0; w < targetSize; w++) {
-      const idx = (h * targetSize + w) * 3;  // RGB: idx+0=R, +1=G, +2=B
-      let r = rawBuffer[idx + 0];
-      let g = rawBuffer[idx + 1];
-      let b = rawBuffer[idx + 2];
-
-      // BGR order in NHWC: pixel offset *3: B, G, R
-      imgArray[(h * targetSize + w) * 3 + 0] = b;  // B first
-      imgArray[(h * targetSize + w) * 3 + 1] = g;
-      imgArray[(h * targetSize + w) * 3 + 2] = r;
-    }
+  const N = targetSize * targetSize;
+  const src = rawBuffer; // Buffer / Uint8Array
+  const out = new Float32Array(N * 3); // NHWC BGR
+  // rawBuffer layout: [R,G,B,(A), R,G,B,...] per pixel
+  // channels may be >=3; assume R=0,G=1,B=2
+  const stride = info.channels;
+  let srcIdx = 0;
+  let dstIdx = 0;
+  for (let p = 0; p < N; p++) {
+    // read rgb
+    const r = src[srcIdx];
+    const g = src[srcIdx + 1];
+    const b = src[srcIdx + 2];
+    // write b,g,r order
+    out[dstIdx    ] = b;
+    out[dstIdx + 1] = g;
+    out[dstIdx + 2] = r;
+    srcIdx += stride;
+    dstIdx += 3;
   }
 
-  return imgArray;  // flat NHWC BGR
+  return out;  // flat NHWC BGR
 }
 
 async function preprocessImageCL(base64Str, targetSize=448) {
@@ -79,25 +85,29 @@ async function preprocessImageCL(base64Str, targetSize=448) {
   }
 
   // normalize to [0,1], then (x - mean) / std
-  // HWC -> CHW, produce channels in RGB order (R,G,B) 
+  // HWC -> CHW, produce channels in BGR order
   const channels = info.channels || 3;
-  const chwArray = new Float32Array(3 * targetSize * targetSize);
-  const mean = [0.5, 0.5, 0.5];
-  const std = [0.5, 0.5, 0.5];
+  const N = targetSize * targetSize;
+  const src = rawBuffer; // Buffer / Uint8Array
+  const chwArray = new Float32Array(3 * N);
+  const meanR = 0.5, meanG = 0.5, meanB = 0.5;
+  const invStdR = 1.0 / 0.5, invStdG = 1.0 / 0.5, invStdB = 1.0 / 0.5;
+  let srcIdx = 0;
+  // Precompute plane offsets
+  const planeR = 0 * N;
+  const planeG = 1 * N;
+  const planeB = 2 * N;
 
-  for (let h = 0; h < targetSize; h++) {
-    for (let w = 0; w < targetSize; w++) {
-      const srcIdx = (h * targetSize + w) * channels; // rawBuffer stride
-      const r = rawBuffer[srcIdx + 0] / 255.0;
-      const g = rawBuffer[srcIdx + 1] / 255.0;
-      const b = rawBuffer[srcIdx + 2] / 255.0;
+  for (let p = 0; p < N; p++) {
+    const r = src[srcIdx    ] / 255.0;
+    const g = src[srcIdx + 1] / 255.0;
+    const b = src[srcIdx + 2] / 255.0;
 
-      const p = h * targetSize + w;
-      // CHW: channel 0 = R, 1 = G, 2 = B
-      chwArray[0 * targetSize * targetSize + p] = (r - mean[0]) / std[0];
-      chwArray[1 * targetSize * targetSize + p] = (g - mean[1]) / std[1];
-      chwArray[2 * targetSize * targetSize + p] = (b - mean[2]) / std[2];
-    }
+    chwArray[planeR + p] = (b - meanB) * invStdB;
+    chwArray[planeG + p] = (g - meanG) * invStdG;
+    chwArray[planeB + p] = (r - meanR) * invStdR;
+
+    srcIdx += channels;
   }
 
   // return CHW float32 array ready for new ort.Tensor("float32", chwArray, [1,3,targetSize,targetSize])
@@ -323,7 +333,7 @@ async function runModel({ image_input, model_choice, gen_threshold, char_thresho
     const modelPath = path.join(modelsDir, model_choice);
     if (!fs.existsSync(modelPath)) throw new Error(`${CAT}Model not found: ${modelPath}`);
 
-    const runStart = Date.now();
+    const runStart = Date.now();   
     let result = "";
     console.log(CAT, `Loading model: ${model_choice}`);
 
@@ -331,6 +341,7 @@ async function runModel({ image_input, model_choice, gen_threshold, char_thresho
     if (model_choice.startsWith('cl_')) {
       const imgArray = await preprocessImageCL(image_input, spatialSize);
       const inputTensorCl = new ort.Tensor("float32", imgArray, [1, 3, spatialSize, spatialSize]);
+
       result = await runClTagger(modelPath, inputTensorCl, gen_threshold, char_threshold);
     } else if (model_choice.startsWith('wd-')) {
       const imgArray = await preprocessImageWD(image_input, spatialSize);
