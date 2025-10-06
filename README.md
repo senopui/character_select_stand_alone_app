@@ -80,12 +80,12 @@ SAA
 Model Name  >>>  General Threshold  >>>  Character Threshold  >>> mCut for WD14(test)      
 ```
 
-The Image Tagger running on Node.JS with `onnxruntime-node`. *It DOES NOT require any backend support*             
-But, GPU acceleration seems not working, triggers are there, but not working....      
+The Image Tagger running on Node.JS with `onnxruntime-node`. *It DOES NOT require any backend support* But, GPU acceleration seems not working      
 The `Generate Speed` is about 3 times slower than `Python` with `onnxruntime` in CPU mode, and 12 times slower than `onnxruntime-gpu`         
 
 In other words with my i9-9960x with Titan RTX    
-| Device | Generate Time | Platform |
+The good news is, you can run `Image tagger` during gegenerate       
+| Device | 1st Tagging Time | Platform |
 | --- | --- | --- |
 | onnxruntime | 1.053s | Python |
 | onnxruntime-gpu | 0.297s | Python |

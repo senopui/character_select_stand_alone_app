@@ -1,3 +1,7 @@
+2025.10.05 v1.14.2     
+Remove uselesss hardware acceleration code     
+
+
 2025.10.05 v1.14.1     
 Improve `Image Tagger` image process             
   Change Subprocess timeout 5s to 10s     

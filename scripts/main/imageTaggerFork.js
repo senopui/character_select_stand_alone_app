@@ -341,7 +341,6 @@ async function runModel({ image_input, model_choice, gen_threshold, char_thresho
     if (model_choice.startsWith('cl_')) {
       const imgArray = await preprocessImageCL(image_input, spatialSize);
       const inputTensorCl = new ort.Tensor("float32", imgArray, [1, 3, spatialSize, spatialSize]);
-
       result = await runClTagger(modelPath, inputTensorCl, gen_threshold, char_threshold);
     } else if (model_choice.startsWith('wd-')) {
       const imgArray = await preprocessImageWD(image_input, spatialSize);
