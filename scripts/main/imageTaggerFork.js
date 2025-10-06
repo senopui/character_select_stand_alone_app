@@ -90,8 +90,8 @@ process.on('message', async (args) => {
   } catch (err) {
     process.send({ type: 'error', data: err.message });
   } finally {
-    // Optional: exit after one task
-    // process.exit(0);
+    // exit after one task
+    process.exit(0);
   }
 });
 
