@@ -661,7 +661,7 @@
 
 .image-tagger-buttons {
     display: grid;
-    grid-template-columns: 4fr 0.7fr 0.7fr 1.2fr 1fr; 
+    grid-template-columns: 4fr 0.7fr 0.7fr 1.4fr 1fr; 
     justify-items: end;
     gap: 10px;
     margin-bottom: 12px;

@@ -1,4 +1,8 @@
-2025.10.05 v1.14.2     
+2025.10.05 v1.14.3      
+Add Category support for `Image Tagger`     
+  Add `Camie` tagger support    
+
+v1.14.2     
 Remove uselesss hardware acceleration code     
 
 
@@ -11,6 +15,7 @@ Improve `Image Tagger` image process
 2025.10.05 v1.14.0      
 Add `Image Tagger`      
   Native feature, not backend API call       
+  Supports `CL` and `WD` tagger       
 
 
 2025.09.26 v1.13.2       

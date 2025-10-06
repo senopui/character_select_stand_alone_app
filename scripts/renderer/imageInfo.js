@@ -3,6 +3,7 @@ import { generateControlnetImage, fileToBase64 } from './generate.js';
 import { getControlNetLiet } from "./myControlNetSlot.js"
 
 let cachedImage = '';
+let lastTaggerOptions = null;
 
 function createHtmlOptions(itemList) {
     let options = [];
@@ -570,6 +571,18 @@ export function setupImageUploadOverlay() {
     }
 
     function createImageTagger() {
+        function modelOptionsOptions(modelChoice) {
+            if(modelChoice.startsWith('wd-')) {
+                return ['mCut:OFF', 'General', 'Character', 'Both'];            
+            } else if(modelChoice.startsWith('cl_')) {
+                return ['All', 'General/Character/Artist/CopyRight', 'General', 'Character', 'Artist', 'Copyright', 'Meta', 'Model', 'Rating', 'Quality'];
+            } else if(modelChoice.startsWith('camie-')) {
+                return ['without Year', 'All', 'without Year/Rating', 'General/Character/Artist/CopyRight', 'general', 'rating', 'meta', 'character', 'artist', 'copyright', 'year'];
+            } else {
+                return ['N/A']
+            }
+        }
+
         const SETTINGS = window.globalSettings;
         const FILES = window.cachedFiles;
         const LANG = FILES.language[SETTINGS.language];
@@ -577,25 +590,32 @@ export function setupImageUploadOverlay() {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'image-tagger-buttons';
 
+        const modelOptions = document.createElement('select');
+        const genThreshold = document.createElement('select');
+        const charThreshold = document.createElement('select');
+
         const imageTaggerModels = document.createElement('select');
         imageTaggerModels.className = 'controlnet-select';
         imageTaggerModels.innerHTML = createHtmlOptions(FILES.imageTaggerModels);
+        imageTaggerModels.value = lastTaggerOptions?.model_choice || FILES.imageTaggerModels[0];
+        imageTaggerModels.addEventListener('change', () => {
+            modelOptions.innerHTML = createHtmlOptions(modelOptionsOptions(imageTaggerModels.value));
+        });
         buttonContainer.appendChild(imageTaggerModels);
-
-        const genThreshold = document.createElement('select');
+        
         genThreshold.className = 'controlnet-select';
-        genThreshold.innerHTML = createHtmlOptions([0.55, 0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,1.00]);
+        genThreshold.innerHTML = createHtmlOptions([0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,1.00]);
+        genThreshold.value = lastTaggerOptions?.gen_threshold || 0.55;
         buttonContainer.appendChild(genThreshold);
-
-        const charThreshold = document.createElement('select');
+        
         charThreshold.className = 'controlnet-select';
-        charThreshold.innerHTML = createHtmlOptions([0.60, 0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.800,0.85,0.90,0.95,1.00]);
+        charThreshold.innerHTML = createHtmlOptions([0.25,0.30,0.35,0.40,0.45,0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,1.00]);
+        charThreshold.value = lastTaggerOptions?.char_threshold || 0.60;
         buttonContainer.appendChild(charThreshold);
 
-        const useMcut = document.createElement('select');
-        useMcut.className = 'controlnet-select';
-        useMcut.innerHTML = createHtmlOptions(['mCut:OFF', 'General', 'Character', 'Both']);
-        buttonContainer.appendChild(useMcut);
+        modelOptions.className = 'controlnet-select';
+        modelOptions.innerHTML = createHtmlOptions(modelOptionsOptions(lastTaggerOptions?.model_choice || FILES.imageTaggerModels[0]));
+        buttonContainer.appendChild(modelOptions);
 
         const imageTaggerButton = document.createElement('button');
         imageTaggerButton.className = 'image-tagger-process';
@@ -625,24 +645,13 @@ export function setupImageUploadOverlay() {
                     }
 
                     let result = '';
-                    let mCutGeneral = false;
-                    let mCutCharacter = false;
-
-                    if(useMcut.value === 'General' || useMcut.value === 'Both') {   
-                        mCutGeneral = true;
-                    }
-                    if(useMcut.value === 'Character' || useMcut.value === 'Both') {   
-                        mCutCharacter = true;
-                    }
-
                     if (!window.inBrowser) {
                         result = await window.api.runImageTagger({
                             image_input: imageBase64,
                             model_choice: imageTaggerModels.value,
                             gen_threshold: genThreshold.value,
                             char_threshold: charThreshold.value,
-                            general_mcut_enabled: mCutGeneral,
-                            character_mcut_enabled: mCutCharacter,
+                            model_options: modelOptions.value
                         });
                     } else {
                         result = await sendWebSocketMessage({ 
@@ -653,10 +662,15 @@ export function setupImageUploadOverlay() {
                                 imageTaggerModels.value,
                                 genThreshold.value,
                                 charThreshold.value,
-                                mCutGeneral,
-                                mCutCharacter
+                                modelOptions.value
                             ]});
                     } 
+
+                    lastTaggerOptions = {
+                        model_choice: imageTaggerModels.value,
+                        gen_threshold: genThreshold.value,
+                        char_threshold: charThreshold.value
+                    };
 
                     if(result) {
                         imageTaggerButton.textContent = LANG.image_tagger_run_tagged;
