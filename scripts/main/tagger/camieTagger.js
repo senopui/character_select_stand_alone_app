@@ -36,20 +36,6 @@ async function preprocessCamieImage(base64Str, targetSize = 512) {
   const compositePipeline = canvas.composite(compositeOptions);
   const composite = await compositePipeline.clone().raw().toBuffer({ resolveWithObject: true });
 
-  // TEST
-  /*  
-  try {
-    const pngBuf = await compositePipeline.clone().png().toBuffer();
-    const debugDir = path.join(__dirname, "debug_images");
-    fs.mkdirSync(debugDir, { recursive: true });
-    const outPath = path.join(debugDir, `camie_${Date.now()}.png`);
-    fs.writeFileSync(outPath, pngBuf);
-    console.log(CAT, `Saved debug image to ${outPath}`);
-  } catch (err) {
-    console.warn(CAT, "Failed to save debug image:", err);
-  }
-  */
-
   const { data: src, info } = composite;
   const channels = info.channels || 3;
   const N = targetSize * targetSize;    

@@ -190,6 +190,7 @@ export function setupImageUploadOverlay() {
                         window.collapsedTabs.jsonlist.setCollapsed(false);
                         hideOverlay();
                     } catch (jsonErr) {
+                        console.error('Failed to parse pasted text as JSON:', jsonErr);
                         // If not JSON, treat as CSV (basic validation: check for comma-separated values)
                         if (text.includes(',')) {
                             const file = new File([text], 'pasted_data.csv', { type: 'text/csv', lastModified: Date.now() });
@@ -929,7 +930,8 @@ async function resizeImageToControlNetResolution(input, resolution) {
         }
         if (typeof data === 'string') {
             const arr = data.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
+            const mimeMatch = /:(.*?);/.exec(arr[0]);
+            const mime = mimeMatch ? mimeMatch[1] : '';
             const bstr = atob(arr[1]);
             let n = bstr.length;
             const u8arr = new Uint8Array(n);
@@ -1003,11 +1005,10 @@ async function resizeImageToControlNetResolution(input, resolution) {
         if (size.width > resolution || size.height > resolution) {
             console.log(`Resizing image from ${size.width}x${size.height} to max ${resolution}x${resolution}`);
             processed = await resizeImageBlob(blob, resolution);
-            processed = processed.arrayBuffer();
+            processed = await processed.arrayBuffer();
         }
     } catch (err) {
         console.warn('Resize image failed, use original size', err);
-    } finally {
-        return processed;
     }
+    return processed;
 }

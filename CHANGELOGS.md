@@ -1,4 +1,7 @@
-2025.10.05 v1.14.3      
+2025.10.06 v1.14.4     
+Bug fix      
+
+v1.14.3      
 Add Category support for `Image Tagger`     
   Add `Camie` tagger support    
 

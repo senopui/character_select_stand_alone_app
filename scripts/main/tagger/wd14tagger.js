@@ -155,7 +155,6 @@ async function runWd14Tagger(modelPath, inputTensor, gen_threshold=0.35, char_th
 
     // Category 9: Rating tags
     if (tag.category === "9") {
-      //console.log(CAT, `Rating tag: ${tag.name} (${(p * 100).toFixed(2)}%)`);
       ratingTags.push({ name: tag.name, prob: p });
     }
     // Category 0: General tags - collect probs
