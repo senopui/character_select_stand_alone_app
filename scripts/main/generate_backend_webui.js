@@ -565,7 +565,8 @@ async function runWebUI(generateData){
     const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
     if(result === '200') {
         try {
-            console.log(CAT, 'Running A1111 with uuid:', generateData.uuid);
+            if(backendWebUI.uuid !== 'none')
+                console.log(CAT, 'Running A1111 with uuid:', generateData.uuid);
             const imageData = await backendWebUI.run(generateData);
 
             if (typeof imageData === 'string' && imageData.startsWith('Error:')) {

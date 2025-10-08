@@ -568,7 +568,8 @@ export async function createControlNet() {
             postStr:    postProcessStrength,
             postStart:  postProcessStart,
             postEnd:    postProcessEnd,
-            image:      (slot_enable === 'On')? pre_image:null,
+            // fix if slot_enable is Post but using IP-Adapter
+            image:      (slot_enable === 'On' || preProcessModel.startsWith('ip-adapter'))? pre_image:null,
             imageAfter: (slot_enable === 'Post')? pre_image_after:null
         };
 
@@ -823,9 +824,9 @@ async function runComfyUI(apiInterface, generateData){
             result = await window.api.runComfyUI(generateData);
         } else {
             result = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI', params: [generateData] });
-        }        
+        }
 
-        if(result.startsWith('Error')){                    
+        if(result.startsWith('Error')){
             ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface);
             retCopy = result;
             breakNow = true;
@@ -840,9 +841,13 @@ async function runComfyUI(apiInterface, generateData){
                         image = await sendWebSocketMessage({ type: 'API', method: 'openWsComfyUI', params: [parsedResult.prompt_id] });
                     }
 
-                    if(window.generate.cancelClicked) {
+                    if (window.generate.cancelClicked) {
                         breakNow = true;
-                    } else {                    
+                    } else if(image.startsWith('Error')) {
+                        ret = LANG.gr_error_creating_image.replace('{0}',image).replace('{1}', apiInterface);
+                        retCopy = image;
+                        breakNow = true;                    
+                    } else {
                         sendToGallery(image, generateData);
                     }
                 } catch (error){
