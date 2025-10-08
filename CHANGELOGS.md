@@ -1,3 +1,26 @@
+2025.10.06 v1.14.4     
+Bug fix      
+
+v1.14.3      
+Add Category support for `Image Tagger`     
+  Add `Camie` tagger support    
+
+v1.14.2     
+Remove uselesss hardware acceleration code     
+
+
+2025.10.05 v1.14.1     
+Improve `Image Tagger` image process             
+  Change Subprocess timeout 5s to 10s     
+  Bug fix      
+
+
+2025.10.05 v1.14.0      
+Add `Image Tagger`      
+  Native feature, not backend API call       
+  Supports `CL` and `WD` tagger       
+
+
 2025.09.26 v1.13.2       
 Rename `Create Prompt` to `Create Single Image` [#41]       
 

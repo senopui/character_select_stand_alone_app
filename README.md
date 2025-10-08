@@ -34,7 +34,7 @@ npm install
 npm start
 ```
 
-*One-Click package v1.12.4*    
+*One-Click package v1.14.1*    
 In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)      
 
 ## Update
@@ -42,6 +42,7 @@ The `One-Click package` may not the latest version. If you need to update, pleas
 ```
 git fetch
 git pull
+npm install
 ```
 **REMINDER:Updating version from github will not update the database files `danbooru_e621_merged.csv` and `wai_character_thumbs.json`.**    
 Update to the latest version, then manually delete the `danbooru_e621_merged.csv` and `wai_character_thumbs.json` file. Restart the app to automatically download the latest thumbnail database from HF.      
@@ -57,6 +58,46 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
      
 ------
 # Highlights
+## Image Tagger (WD14 and CL)
+Supports [WD14@SmilingWolf](https://huggingface.co/SmilingWolf), [CL@cella110n](https://huggingface.co/cella110n/cl_tagger) and [Camie@Camais03](https://huggingface.co/spaces/Camais03/camie-tagger-v2-app) models in ONNX format.             
+
+Download models with tags from [HF](https://huggingface.co), manually rename them according to the following rules, then copy them into `models/tagger` folder:      
+  - cl_tagger_v2.onnx + cl_tagger_v2_tag_mapping.json    
+  - wd-eva02-large-tagger-v3.onnx + wd-eva02-large-tagger-v3_selected_tags.csv    
+  - wd-v1-4-convnext-tagger.onnx + wd-v1-4-convnext-tagger_selected_tags.csv    
+
+```
+SAA
+|---models
+|   |---tagger
+|       |---cl_tagger_1_02.onnx
+|       |---cl_tagger_1_02_tag_mapping.json
+|       |---wd-eva02-large-tagger-v3.onnx
+|       |---wd-eva02-large-tagger-v3_selected_tags.csv
+|       |---wd-vit-large-tagger-v3.onnx
+|       |---wd-vit-large-tagger-v3_selected_tags.csv
+|       |---camie-tagger-v2.onnx
+|       |---camie-tagger-v2-metadata.json
+
+Options:
+Model Name  >>>  General Threshold(CL/WD/Camie)  >>>  Character Threshold(CL/WD)  >>> Categories(CL/Camie) or mCut(WD)      
+```
+
+The Image Tagger running on Node.JS with `onnxruntime-node`. *It DOES NOT require any backend support* But, GPU acceleration seems not working      
+The `Generate Speed` is about 3 times slower than `Python` with `onnxruntime` in CPU mode, and 12 times slower than `onnxruntime-gpu`         
+
+In other words with my i9-9960x with Titan RTX    
+The good news is, you can run `Image tagger` during gegenerate       
+| Device | Avg Tagging Time | Model | Platform | Resolution | Recommend Value |
+| --- | --- | --- | --- | --- | --- | 
+| onnxruntime | 1.053s | cl_tagger_1_02 | Python | 448 | 0.55/0.60 |
+| onnxruntime-gpu | 0.297s | cl_tagger_1_02 | Python | 448 | 0.55/0.60 |
+| onnxruntime-node | 3.185s | cl_tagger_1_02 | Electron(NodeJS@CPU) | 448 | 0.55/0.60 |
+| onnxruntime-node | 2.917s | wd-eva02-large-tagger-v3 | Electron(NodeJS@CPU) | 448 | 0.35/0.85 |
+| onnxruntime-node | 2.113s | camie-tagger-v2 | Electron(NodeJS@CPU) | 512 |  0.50/(NOT USE) |
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageTagger.png" width=35%>   
+
 ## ControlNet / IP Adapter (ComfyUI & A1111)
 *For ComfyUI*     
 Upgrade your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version to `0.4.9.6 or above`      

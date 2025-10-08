@@ -437,6 +437,7 @@ async function init() {
         window.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
         window.cachedFiles.characterListArray = Object.entries(FILES.characterList);
         window.cachedFiles.ocListArray = Object.entries(FILES.ocList);
+        window.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
 
         // Init Header
         await setupHeader(SETTINGS, FILES, LANG);

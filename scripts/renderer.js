@@ -399,6 +399,7 @@ async function init(){
         window.cachedFiles.controlnetList = await window.api.getControlNetList(SETTINGS.api_interface);
         window.cachedFiles.characterListArray = Object.entries(FILES.characterList);
         window.cachedFiles.ocListArray = Object.entries(FILES.ocList);
+        window.cachedFiles.imageTaggerModels = await window.api.getImageTaggerModels();
 
         // Init Header
         await setupHeader(SETTINGS, FILES, LANG);

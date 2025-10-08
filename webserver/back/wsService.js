@@ -12,7 +12,7 @@ const bcrypt = require('bcrypt');
 const { WebSocketServer } = require('ws');
 const { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } = require('../../scripts/main/globalSettings');
 const { getCachedFilesWithoutThumb, getCharacterThumb } = require('../../scripts/main/cachedFiles');
-const { getModelList, getModelListAll, getLoRAList, updateModelAndLoRAList, getControlNetList } = require('../../scripts/main/modelList');
+const { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList } = require('../../scripts/main/modelList');
 const { updateWildcards, loadWildcard } = require('../../scripts/main/wildCards');
 const { tagReload, tagGet } = require('../../scripts/main/tagAutoComplete_backend');
 const { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, 
@@ -20,6 +20,7 @@ const { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet,
 const { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet } = require('../../scripts/main/generate_backend_webui');
 const { remoteAI, localAI } = require('../../scripts/main/remoteAI_backend');
 const { loadFile, readImage, readSafetensors, readBase64Image } = require('../../scripts/main/fileHandlers');
+const { runImageTagger } = require('../../scripts/main/imageTagger');
 const Main = require('../../main');
 
 const CAT = '[WSS]';
@@ -390,6 +391,7 @@ const methodHandlers = {
   'getModelListAll': (params)=> getModelListAll(...params),
   'getLoRAList': (params)=> getLoRAList(...params),
   'getControlNetList': (params)=> getControlNetList(...params),
+  'getImageTaggerModels': ()=> getImageTaggerModels(),
   'updateModelList': (params)=> updateModelAndLoRAList(...params),
 
   // wildcards
@@ -449,6 +451,18 @@ const methodHandlers = {
   'cancelWebUI': ()=> cancelWebUI(),
   'startPollingWebUI': ()=> startPollingWebUI(),
   'stopPollingWebUI': ()=> stopPollingWebUI(),
+
+  // Image Tagger
+  'runImageTagger': (params)=> {
+    const packedArgs = {
+        image_input: params[0],
+        model_choice: params[1],
+        gen_threshold: params[2], 
+        char_threshold: params[3],
+        model_options: params[4]
+    }
+    return runImageTagger(packedArgs);
+  },
 };
 
 async function handleApiRequest(ws, method, params, id) {

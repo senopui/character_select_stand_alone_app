@@ -22,6 +22,7 @@ const { setupGenerateBackendComfyUI, sendToRenderer } = require('./scripts/main/
 const { setupGenerateBackendWebUI } = require('./scripts/main/generate_backend_webui');
 const { setupCachedFiles } = require('./scripts/main/cachedFiles'); 
 const { setupWildcardsHandlers } = require('./scripts/main/wildCards');
+const { setupTagger } = require('./scripts/main/imageTagger');
 
 const version = app.getVersion();
 
@@ -130,6 +131,7 @@ app.whenReady().then(async () => {
   setupModelApi();
   setupGenerateBackendComfyUI();
   setupGenerateBackendWebUI();  
+  setupTagger();
 
   if (downloadSuccess && cacheSuccess && tacSuccess) {   
     createWindow();

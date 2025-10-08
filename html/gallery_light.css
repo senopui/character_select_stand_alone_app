@@ -678,7 +678,16 @@
     flex-wrap: wrap;
 }
 
-.metadata-buttons, .controlnet-buttons {
+.image-tagger-buttons {
+    display: grid;
+    grid-template-columns: 4fr 0.7fr 0.7fr 1.4fr 1fr; 
+    justify-items: end;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 8px;
+}
+
+.metadata-buttons, .controlnet-buttons{
     display: grid;
     grid-template-columns: 4fr 1fr; 
     justify-items: end;
@@ -687,7 +696,7 @@
     padding: 8px;
 }
 
-.copy-all-metadata, .controlnet-postprocess,
+.copy-all-metadata, .controlnet-postprocess, .image-tagger-process,
 .send-metadata {
     padding: 8px 12px;
     cursor: pointer;
@@ -697,13 +706,13 @@
     text-align: center;
 }
 
-.copy-all-metadata {
+.copy-all-metadata, .image-tagger-process {
     background-color: #E8B090; /* Soft coral */
     color: #4A403A; /* Dark gray-brown */
     border: none;
 }
 
-.copy-all-metadata:hover {
+.copy-all-metadata:hover, .image-tagger-process:hover {
     background-color: #F0D4B8; /* Soft warm peach */
 }
 

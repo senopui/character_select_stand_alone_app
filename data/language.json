@@ -161,6 +161,13 @@
         "image_info_copy_metadata": "Copy metadata",
         "image_info_copy_metadata_copied": "Copied",
 
+        "image_tagger_run": "Run Tagger",
+        "image_tagger_run_no_model": "No Model",
+        "image_tagger_run_tagged": "Tagged",
+        "image_tagger_run_no_tag": "No Tag",
+        "image_tagger_run_error": "Error",
+        "image_tagger_run_processing": "Processing...",
+
         "right_menu_copy_image": "Copy Image",
         "right_menu_copy_image_metadata": "Copy Metadata",
         "right_menu_clear_gallery": "Clear Gallery",
@@ -361,6 +368,13 @@
         "image_info_send_tags_sent": "已发送",
         "image_info_copy_metadata": "复制元数据",
         "image_info_copy_metadata_copied": "已复制",
+
+        "image_tagger_run": "反推标签",
+        "image_tagger_run_no_model": "没有模型",
+        "image_tagger_run_no_tag": "没找到标签",
+        "image_tagger_run_error": "错误",
+        "image_tagger_run_tagged": "已反推",
+        "image_tagger_run_processing": "反推中……",
 
         "right_menu_copy_image": "复制图像",
         "right_menu_copy_image_metadata": "复制图像元数据",
