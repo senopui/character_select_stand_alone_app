@@ -3,6 +3,7 @@ import { setupTextbox } from './myTextbox.js';
 import { generateGUID } from './myLoRASlot.js'
 import { generateControlnetImage } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+import { resizeImageToControlNetResolution } from './imageInfo.js';
 
 const controlNetValuesComfyUI = [
     "none",
@@ -285,6 +286,14 @@ class ControlNetSlotManager {
         this.bindEvents();
     }
 
+    updateAfterImage(slotClass){
+        const slot = this.slotIndex.get(slotClass);        
+        const image_base64_after = this.container.querySelector(`.${slotClass}-image-after`);
+        if(image_base64_after){
+            image_base64_after.src = slot.pre_image_after_base64;
+        }
+    }
+
     bindEvents() {
         this.container.addEventListener('click', async (e) => {
             const target = e.target.closest('.slot-action');
@@ -299,15 +308,24 @@ class ControlNetSlotManager {
                 /*
                 We use add for refresh controlnet result
                 this.handleAdd();
-                */
-                const slotValues = this.getValue(slotClass, slot);
-                if(slotValues[0].startsWith('ip-adapter')) {
-                    window.overlay.custom.createCustomOverlay(slot.pre_image_after_base64, slotValues.toString(), 512, 'center', 'center');
-                } else {
-                    const rowValues = this.getValue(slotClass, slot, true);
-                    const preProcessModel = rowValues[0];   
-                    const preProcessResolution = rowValues[1];
+                */        
+                const rowValues = this.getValue(slotClass, slot, true);
+                const preProcessModel = rowValues[0];   
+                let preProcessResolution = rowValues[1];
+                preProcessResolution = Math.round(preProcessResolution / 64) * 64;
+                if (preProcessResolution<512)
+                    preProcessResolution = 512;
+                else if (preProcessResolution > 2048)
+                    preProcessResolution = 2048;
 
+                const slotValues = this.getValue(slotClass, slot);
+                if(slotValues[0].startsWith('ip-adapter')) {            
+                    const imageB64 = await resizeImageToControlNetResolution(slot.pre_image_base64, preProcessResolution, true, true);
+                    slot.pre_image_after_base64 = `data:image/png;base64,${imageB64}`;
+                    window.overlay.custom.createCustomOverlay(slot.pre_image_after_base64, slotValues.toString(), preProcessResolution, 'center', 'center');
+
+                    this.updateAfterImage(slotClass);
+                } else {
                     if(!slot.pre_image && slot.pre_image_after && preProcessModel !== 'none') {
                         let tmpImage;
                         if(apiInterface === 'ComfyUI'){
@@ -324,7 +342,6 @@ class ControlNetSlotManager {
                     }
 
                     if(slot.pre_image) {
-                        console.log(slot.pre_image);
                         const {preImage, preImageAfter, preImageAfterBase64} = 
                             await generateControlnetImage(slot.pre_image, preProcessModel, preProcessResolution, true);
                         if(preImageAfterBase64?.startsWith('data:image/png;base64,') && preImage) {
@@ -332,11 +349,7 @@ class ControlNetSlotManager {
                             slot.pre_image_after_base64 = preImageAfterBase64;
                         }
                         
-                        const image_base64_after = this.container.querySelector(`.${slotClass}-image-after`);
-                        if(image_base64_after){
-                            image_base64_after.src = slot.pre_image_after_base64;
-                        }
-
+                        this.updateAfterImage(slotClass);
                         window.overlay.custom.createCustomOverlay([slot.pre_image_base64, slot.pre_image_after_base64], slotValues.toString(), 512, 'center', 'center');
                     }
                 }

@@ -438,8 +438,112 @@ class ComfyUI {
           this.firstValidPreview = !skipFirst;
 
           const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
-          this.webSocket = new WebSocket(wsUrl);            
+          this.webSocket = new WebSocket(wsUrl);
+
+          let settled = false;
+          let timeoutTimer = null;
+          let sockTimeoutAttached = false;
+
+          function cleanupTimers() {
+            if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+          }
+
+          function finalize(ret) {
+            if (settled) return;            
+            settled = true;
+            cleanupTimers();
+            Main.setMutexBackendBusy(false);  // Release the mutex after getting image or error
+            try { if (this.webSocket) { this.webSocket.terminate(); } } catch(_) {}
+            resolve(ret);
+          }
+
+          // HTTP quick health check: return true if HTTP responds
+          const checkHttpAlive = () => {
+            return new Promise((res) => {
+              try {
+                const apiUrl = /^https?:\/\//i.test(this.addr) ? `${this.addr}/` : `http://${this.addr}/`;
+                const req = net.request({ method: 'GET', url: apiUrl, timeout: Math.min(2000, this.timeout) });
+                let answered = false;
+                req.on('response', (response) => {
+                  answered = true;
+                  // treat any HTTP response as alive (200 or non-200); errors will be caught on 'error'
+                  res(true);
+                  // consume data to let response finish
+                  response.on('data', () => {});
+                  response.on('end', () => {});
+                });
+                req.on('error', () => {
+                  if (!answered) res(false);
+                });
+                req.on('timeout', () => {
+                  try { req.destroy(); } catch(_) {}
+                  if (!answered) res(false);
+                });
+                req.end();
+              } catch (e) {
+                res(false);
+              }
+            });
+          };
+
+          // schedule connection timeout with HTTP check fallback
+          const scheduleConnTimeout = () => {
+            cleanupTimers();
+            timeoutTimer = setTimeout(async () => {
+              if (settled) return;
+              //console.warn(CAT, `WebSocket connection timeout fired after ${this.timeout}ms -> performing HTTP check`);
+              const alive = await checkHttpAlive();
+              if (alive) {
+                //console.log(CAT, 'HTTP is alive; ignore this WS timeout and reschedule next timeout.');
+                // reschedule next timeout; do not terminate
+                if (!settled) scheduleConnTimeout();
+              } else {
+                console.error(CAT, `WebSocket connection timed out and HTTP unreachable after ${this.timeout}ms`);
+                try { this.webSocket && this.webSocket.terminate(); } catch(_) {}
+                finalize(`Error: WebSocket connection timed out after ${this.timeout}ms and HTTP unreachable`);
+              }
+            }, this.timeout);
+          };
+
+          // start initial timeout watcher
+          scheduleConnTimeout();
+
+          this.webSocket.on('open', () => {
+            if (settled) return;
+            cleanupTimers();
+            // attach underlying socket timeout to detect idle socket; reuse same HTTP-check logic
+            try {
+              const sock = this.webSocket._socket;
+              if (sock && typeof sock.setTimeout === 'function' && !sockTimeoutAttached) {
+                sockTimeoutAttached = true;
+                sock.setTimeout(this.timeout);
+                sock.on('timeout', async () => {
+                  if (settled) return;
+                  console.warn(CAT, `WebSocket underlying socket timeout after ${this.timeout}ms -> performing HTTP check`);
+                  const alive = await checkHttpAlive();
+                  if (alive) {
+                    console.log(CAT, 'HTTP is alive; ignore underlying socket timeout and continue monitoring.');
+                    // keep socket open and continue monitoring by scheduling next conn timeout
+                    scheduleConnTimeout();
+                  } else {
+                    console.error(CAT, `Underlying socket timeout and HTTP unreachable after ${this.timeout}ms`);
+                    try { this.webSocket && this.webSocket.terminate(); } catch(_) {}
+                    finalize(`Error: WebSocket underlying socket timed out after ${this.timeout}ms and HTTP unreachable`);
+                  }
+                });
+              }
+            } catch (e) {
+              console.error(CAT, 'WebSocket open error:', e.message ?? e);
+              finalize(`Error:${e.message ?? e}`);
+            }
+          });
+
           this.webSocket.on('message', async (data) => {
+              if (settled) return;
+              // any incoming message -> reset timeout watcher
+              cleanupTimers();
+              scheduleConnTimeout();
+
               try {
                   const message = JSON.parse(data.toString('utf8'));
                   if (message.type === 'executing' || message.type === 'status') {
@@ -447,24 +551,27 @@ class ComfyUI {
                     if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
                       try {
                           const image = await this.getImage(index);
-                          Main.setMutexBackendBusy(false);  // Release the mutex after getting the image
                           if (image && Buffer.isBuffer(image)) {
                               const base64Image = processImage(image);
                               if (base64Image) {
-                                  resolve(`data:image/png;base64,${base64Image}`);
+                                  finalize(`data:image/png;base64,${base64Image}`);
+                                  return;
                               } else {
-                                  resolve('Error: Failed to convert image to base64');
+                                  finalize('Error: Failed to convert image to base64');
+                                  return;
                               }
                           } 
-                          resolve('Error: Image not found or invalid');
+                          finalize('Error: Image not found or invalid');
+                          return;
                       } catch (err) {
                           console.error(CAT, 'Error getting image:', err);
-                          resolve(`Error: ${err.message}`);
+                          finalize(`Error: ${err.message ?? err}`);
+                          return;
                       }
-                    } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {
-                      Main.setMutexBackendBusy(false);  // Release the mutex after getting the image
+                    } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {                      
                       console.log(CAT, 'Running same promot? message =', message);
-                      resolve(null);
+                      finalize(null);
+                      return;
                     }
                   } else if(message.type === 'progress'){
                     this.step += 1;
@@ -499,8 +606,18 @@ class ComfyUI {
           });
 
           this.webSocket.on('error', (error) => {
-              console.error(CAT, 'WebSocket error:', error.message);
-              resolve(`Error:${error.message}`);
+              if (settled) return;
+              cleanupTimers();
+              console.error(CAT, 'WebSocket error:', error?.message ?? error);
+              finalize(`Error:${error?.message ?? error}`);
+          });
+
+          this.webSocket.on('close', (code, reason) => {
+            cleanupTimers();
+            if (!settled) {
+              // if closed before settle, return an error indicating close
+              finalize(`Error: WebSocket closed (${code}) ${reason?.toString() ?? ''}`);
+            }
           });
         });
     }
@@ -1037,7 +1154,8 @@ async function runComfyUI(generateData) {
   Main.setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflow(generateData)
-  console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
+  if(backendComfyUI.uuid !== 'none')
+    console.log(CAT, 'Running ComfyUI with uuid:', backendComfyUI.uuid);
   const result = await backendComfyUI.run(workflow);            
   return result;
 }
@@ -1051,7 +1169,8 @@ async function runComfyUI_Regional(generateData) {
   Main.setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowRegional(generateData)
-  console.log(CAT, 'Running ComfyUI Regional with uuid:', backendComfyUI.uuid);
+  if(backendComfyUI.uuid !== 'none')
+    console.log(CAT, 'Running ComfyUI Regional with uuid:', backendComfyUI.uuid);
   const result = await backendComfyUI.run(workflow);
   return result;
 }
