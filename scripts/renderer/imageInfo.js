@@ -431,20 +431,22 @@ export function setupImageUploadOverlay() {
             }
 
             let buffer = await cachedImage.arrayBuffer();
+            let preImageGzipped = buffer;
             let refImage = null;
             let aftImageB64 = null;
             const onTrigger = controlNetSelect.value.startsWith('ip-adapter');
             if (onTrigger) {
-                refImage = `data:image/png;base64,${arrayBufferToBase64(buffer)}`;
-                const afterBuffer = await resizeImageToControlNetResolution(buffer, controlNetResolution.value, false, true);
+                refImage = `data:image/png;base64,${arrayBufferToBase64(buffer)}`;                
+                const afterBuffer = await resizeImageToControlNetResolution(buffer, controlNetResolution.value, false, apiInterface === 'ComfyUI');   // not sure A1111 requires a square image or not
                 aftImageB64 = `data:image/png;base64,${arrayBufferToBase64(afterBuffer)}`;
+                preImageGzipped = afterBuffer;
             }
 
-            let preImageGzipped;
             if (apiInterface === 'ComfyUI') {
-                preImageGzipped = await compressForComfy(buffer);
-            } else { // WebUI
-                preImageGzipped = preImageBase64;
+                preImageGzipped = await compressForComfy(preImageGzipped);
+            } else { 
+                // WebUI
+                preImageGzipped = arrayBufferToBase64(preImageGzipped);
             }            
 
             const slotValues = [[

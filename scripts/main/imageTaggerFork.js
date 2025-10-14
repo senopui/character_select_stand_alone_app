@@ -69,7 +69,8 @@ async function runModel({ image_input, model_choice, gen_threshold, char_thresho
       const inputTensor = new ort.Tensor("float32", imgArray, [1, 3, spatialSize, spatialSize]);
       result = await runCamieTagger(modelPath, inputTensor, {
         overall: gen_threshold,
-        categories: cat
+        min_confidence: 0.1,
+        categories: cat    
       });
     } else {
       result = `${CAT}Unsupported model choice: ${model_choice}`;
