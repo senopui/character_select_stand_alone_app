@@ -1,3 +1,7 @@
+2025.10.15 v1.14.6      
+Bug fix       
+
+
 2025.10.08 v1.14.5      
 Add WS health check for ComfyUI Backend             
 Change ComfyUI IPAdapter reference image to square           

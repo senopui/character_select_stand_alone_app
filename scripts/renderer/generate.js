@@ -561,17 +561,22 @@ export async function createControlNet() {
             return;
         }
 
-        const cnData = {
+        let cnData = {
             preModel:   preProcessModel,
             preRes:     preProcessResolution,
             postModel:  postProcessModel,
             postStr:    postProcessStrength,
             postStart:  postProcessStart,
-            postEnd:    postProcessEnd,
-            // fix if slot_enable is Post but using IP-Adapter
-            image:      (slot_enable === 'On' || preProcessModel.startsWith('ip-adapter'))? pre_image:null,
+            postEnd:    postProcessEnd,            
+            image:      (slot_enable === 'On')? pre_image:null,
             imageAfter: (slot_enable === 'Post')? pre_image_after:null
         };
+
+        if(preProcessModel.startsWith('ip-adapter')) {
+            // whatever slot_enable is On or Post
+            // for IPA we treat it as On
+            cnData.image = pre_image; // square image
+        }
 
         controlnetToBackend.push(cnData);
     });

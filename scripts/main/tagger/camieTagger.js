@@ -107,7 +107,7 @@ async function runCamieTagger(modelPath, inputTensor, thresholds) {
   const probs = logits.map((x) => 1 / (1 + Math.exp(-Number(x))));
 
   const { idx_to_tag, tag_to_category } = tagMapping;
-  const threshold = thresholds.overall ?? 0.35;
+  const threshold = thresholds.overall ?? 0.5;
   const categoryThresholds = thresholds.category_thresholds ?? {}; // Per-category thresholds
   const minConfidence = thresholds.min_confidence ?? 0.1; // Minimum confidence
   const categories = thresholds.categories ?? [];
