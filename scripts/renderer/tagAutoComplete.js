@@ -82,10 +82,16 @@ function formatSuggestion(suggestion) {
     }
 
     // otherwise, format the suggestion
+    if (withoutHeat.startsWith(':') || withoutHeat.endsWith(':')) {
+        return withoutHeat;
+    }
+
     let formatted = withoutHeat.replaceAll('_', ' ');
     formatted = formatted.replaceAll(/[\\()]/g, String.raw`\$&`);
-    return formatted.startsWith(':') ? formatted : formatted.replaceAll(':', ' ');
+
+    return formatted;
 }
+
 
 function adjustWeight(isIncrease, textbox) {
     const { value, selectionStart: startPos, selectionEnd: endPos } = textbox;
@@ -299,11 +305,20 @@ export function setupSuggestionSystem() {
         
             if (promptMatch) {
                 formattedText = formatSuggestion(promptMatch[1]);
-            } else if (promptText.startsWith(':')) {
+            } 
+            // :3 or 3:
+            else if (promptText.startsWith(':') || promptText.endsWith(':')) {
                 formattedText = promptText.trim();
-            } else {
+            } 
+            // 1:1, 4:3, 16:9 ....
+            else if (/^\d+:\d+$/.test(promptText.trim())) {
+                formattedText = promptText.trim();
+            } 
+            // Other cases
+            else {
                 formattedText = formatSuggestion(promptText.replace(':', ' '));
             }
+
         
             const value = textbox.value;
             const cursorPosition = textbox.selectionStart;

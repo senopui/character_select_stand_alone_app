@@ -1,3 +1,7 @@
+2025.10.23 v1.15.1     
+More precise handling of tags containing colons        
+
+
 2025.10.22 v1.15.0     
 Code Refactoring      
 
