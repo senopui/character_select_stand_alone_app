@@ -1,27 +1,27 @@
-const { createHash } = require('crypto');
-const zlib = require('zlib');
-const path = require('node:path');
-const fs = require('fs');
-const { appendFileSync, existsSync, mkdirSync } = require('fs');
-const http = require('http'); 
-const https = require('https');
-const express = require('express');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const bcrypt = require('bcrypt');
-const { WebSocketServer } = require('ws');
-const { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } = require('../../scripts/main/globalSettings');
-const { getCachedFilesWithoutThumb, getCharacterThumb } = require('../../scripts/main/cachedFiles');
-const { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList } = require('../../scripts/main/modelList');
-const { updateWildcards, loadWildcard } = require('../../scripts/main/wildCards');
-const { tagReload, tagGet } = require('../../scripts/main/tagAutoComplete_backend');
-const { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, 
-    openWsComfyUI, closeWsComfyUI, cancelComfyUI } = require('../../scripts/main/generate_backend_comfyui');
-const { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet } = require('../../scripts/main/generate_backend_webui');
-const { remoteAI, localAI } = require('../../scripts/main/remoteAI_backend');
-const { loadFile, readImage, readSafetensors, readBase64Image } = require('../../scripts/main/fileHandlers');
-const { runImageTagger } = require('../../scripts/main/imageTagger');
-const Main = require('../../main');
+import { createHash } from 'node:crypto';
+import * as zlib from 'node:zlib';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import * as fs from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
+import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import bcrypt from 'bcrypt';
+import { WebSocketServer } from 'ws';
+import { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } from '../../scripts/main/globalSettings.js';
+import { getCachedFilesWithoutThumb, getCharacterThumb } from '../../scripts/main/cachedFiles.js';
+import { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList } from '../../scripts/main/modelList.js';
+import { updateWildcards, loadWildcard } from '../../scripts/main/wildCards.js';
+import { tagReload, tagGet } from '../../scripts/main/tagAutoComplete_backend.js';
+import { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, openWsComfyUI, closeWsComfyUI, cancelComfyUI } from '../../scripts/main/generate_backend_comfyui.js';
+import { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet } from '../../scripts/main/generate_backend_webui.js';
+import { remoteAI, localAI } from '../../scripts/main/remoteAI_backend.js';
+import { loadFile, readImage, readSafetensors, readBase64Image } from '../../scripts/main/fileHandlers.js';
+import { runImageTagger } from '../../scripts/main/imageTagger.js';
+import { getAppVersion, compressGzipThenBase64 } from '../../main-common.js';
 
 const CAT = '[WSS]';
 
@@ -36,6 +36,8 @@ const LOGIN_TIMEOUT = 30000;    // 30 seconds for test
 let USERS = {};
 
 // Logs
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const LOG_DIR = path.join(__dirname, '../../logs');
 const LOG_FILE = path.join(LOG_DIR, 'auth.log');
 
@@ -353,7 +355,7 @@ function sendToClient(uuid, type, data) {
 // Function to broadcast a message to all connected clients
 function broadcastMessage(type, data) {
     const message = JSON.stringify({ type, value: data });
-    clients.forEach((client, uuid) => {
+    for ( const { uuid, client } of clients ) {
         if (client.ws.readyState === client.ws.OPEN) {
             try {
                 client.ws.send(message);
@@ -362,13 +364,13 @@ function broadcastMessage(type, data) {
                 console.error(CAT, `Failed to broadcast to client ${uuid}:`, error);
             }
         }
-    });
+    }
 }
 
 // API method handler (unchanged)
 const methodHandlers = {
   // version
-  'getAppVersion': ()=> Main.getAppVersion(),
+  'getAppVersion': ()=> getAppVersion(),
 
   // cached files
   'getCachedFiles': ()=> getCachedFilesWithoutThumb(),
@@ -428,7 +430,7 @@ const methodHandlers = {
   // compressGzip
   'compressGzip': (params) => {
     const base64Data = params[0];
-    return Main.compressGzipThenBase64(Buffer.from(base64Data, 'base64'));
+    return compressGzipThenBase64(Buffer.from(base64Data, 'base64'));
   },
 
   // create password
@@ -485,10 +487,9 @@ async function handleApiRequest(ws, method, params, id) {
     }
 }
 
-module.exports = {
+export {
     setupHttpServer,
     closeWebSocketServer,
     broadcastMessage,
+    sendToClient,
 };
-
-exports.sendToClient = sendToClient;

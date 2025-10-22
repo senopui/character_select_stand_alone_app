@@ -9,11 +9,14 @@
   - wd-v1-4-convnext-tagger.onnx + wd-v1-4-convnext-tagger_selected_tags.csv
 */
 
-const { fork } = require('child_process');
-const path = require("path");
-const { app, ipcMain } = require("electron");
+import { fork } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { app, ipcMain } from 'electron';
 
 const CAT = '[imageTaggerMain]';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 let taggerSubprocess = null;  // Global reference to subprocess
 
 function getOrCreateSubprocess() {
@@ -23,7 +26,7 @@ function getOrCreateSubprocess() {
     taggerSubprocess = fork(subprocessPath, [], { silent: false });  // false to see subprocess debug output
 
     taggerSubprocess.on('message', (msg) => {
-      //console.log(CAT, 'Message from subprocess:', msg);
+      // Handle messages from subprocess if needed
     });
 
     taggerSubprocess.on('error', (err) => {
@@ -99,7 +102,7 @@ function setupTagger() {
   });
 }
 
-module.exports = { 
+export {
   setupTagger,
   runImageTagger  
 };

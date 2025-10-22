@@ -46,23 +46,23 @@ function createModeSwitchOverlay(container) {
 
 function ensureSwitchModeButton(container, toggleFunction, id, images_length) {
     let button = document.getElementById(id);
-    if (!button) {
+    if (button) {
+        button.textContent = images_length > 0 ? `<${images_length}>` : '<>';        
+    } else {
         button = document.createElement('button');
         button.id = id;
         button.className = 'cg-button';
         button.textContent = images_length > 0 ? `<${images_length}>` : '<>';
         button.addEventListener('click', () => handleSwitchModeClick(container, toggleFunction));
         container.appendChild(button);
-    } else {
-        button.textContent = images_length > 0 ? `<${images_length}>` : '<>';
     }
 }
 
-async function handleSwitchModeClick(container, toggleFunction) {
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
+async function handleSwitchModeClick(container, toggleFunction) {
     const overlay = createModeSwitchOverlay(container);
     overlay.classList.add('visible');
 
@@ -81,9 +81,44 @@ function hideAndRemoveOverlay(overlay) {
     });
 }
 
+function adjustPreviewContainer(previewContainer) {
+    const previewImages = previewContainer.querySelectorAll('.cg-preview-image');
+    if (previewImages.length > 0) {
+        previewImages[0].onload = () => {
+            const containerWidth = previewContainer.offsetWidth;
+            const firstImageWidth = previewImages[0].offsetWidth || 50;
+            const totalImagesWidth = firstImageWidth * previewImages.length;
+            if (totalImagesWidth < (containerWidth - firstImageWidth)) {
+                previewContainer.style.justifyContent = 'center';
+            } else {
+                previewContainer.style.justifyContent = 'flex-start';
+                if (previewImages.length > 10) {
+                    const minWidth = Math.max(50, containerWidth / previewImages.length);
+                    for (const img of previewImages) {
+                        img.style.maxWidth = `${minWidth}px`;
+                    }
+                }
+            }
+            previewContainer.scrollLeft = 0;
+        };
+    }
+}
+
+function process_oberserver(entries, observer) {
+    for (const entry of entries) {
+        if (entry.isIntersecting) {
+            const imgContainer = entry.target;
+            const img = imgContainer.querySelector('img');
+            img.src = img.dataset.src; 
+            imgContainer.classList.add('visible');
+            observer.unobserve(imgContainer);
+        }
+    }
+}
+
 export function setupGallery(containerId) {
-    if (window.mainGallery.isGallerySetup) return;
-    window.mainGallery.isGallerySetup = true;
+    if (globalThis.mainGallery.isGallerySetup) return;
+    globalThis.mainGallery.isGallerySetup = true;
 
     let isGridMode = false;
     let currentIndex = 0;
@@ -99,7 +134,7 @@ export function setupGallery(containerId) {
         return;
     }
 
-    window.mainGallery.clearGallery = function () {
+    globalThis.mainGallery.clearGallery = function () {
         images = [];
         seeds = [];
         tags = [];
@@ -108,9 +143,9 @@ export function setupGallery(containerId) {
         container.innerHTML = '';
     };
 
-    window.mainGallery.appendImageData = function (base64, seed, tagsString, keep_gallery, switchToLatest = false) {
+    globalThis.mainGallery.appendImageData = function (base64, seed, tagsString, keep_gallery, switchToLatest = false) {
         if ('False' === keep_gallery) {
-            window.mainGallery.clearGallery();
+            globalThis.mainGallery.clearGallery();
         }
 
         images.push(base64); 
@@ -134,7 +169,7 @@ export function setupGallery(containerId) {
         }
     };
 
-    window.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {
+    globalThis.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {
         const loadingOverlay = customCommonOverlay().createLoadingOverlay(loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix);
         const buttonOverlay = document.getElementById('cg-button-overlay');
         const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
@@ -155,7 +190,7 @@ export function setupGallery(containerId) {
         addDragFunctionality(loadingOverlay, buttonOverlay);
     };
 
-    window.mainGallery.hideLoading = function (errorMessage, copyMessage) {
+    globalThis.mainGallery.hideLoading = function (errorMessage, copyMessage) {
         const loadingOverlay = document.getElementById('cg-loading-overlay');
         const buttonOverlay = document.getElementById('cg-button-overlay');
         if (loadingOverlay) {
@@ -212,14 +247,14 @@ export function setupGallery(containerId) {
         ball.style.height = '100px';
 
         // Apply base64 PNG as background image if available
-        if (window.cachedFiles?.privacyBall) {
-            ball.style.backgroundImage = `url(${window.cachedFiles.privacyBall})`;
+        if (globalThis.cachedFiles?.privacyBall) {
+            ball.style.backgroundImage = `url(${globalThis.cachedFiles.privacyBall})`;
             ball.style.backgroundSize = 'cover';
             ball.style.backgroundPosition = 'center';
             ball.style.backgroundRepeat = 'no-repeat';
         } else {
             // Fallback to original styling with SAA text
-            console.warn('Privacy ball image not found in window.cachedFiles.privacyBall');
+            console.warn('Privacy ball image not found in globalThis.cachedFiles.privacyBall');
             ball.innerHTML = 'SAA';
             ball.style.background = 'linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet)';
         }
@@ -229,14 +264,14 @@ export function setupGallery(containerId) {
             if (e.button === 0) { 
                 e.preventDefault();
                 isDragging = true;
-                startX = e.clientX - parseFloat(ball.style.left || 0);
-                startY = e.clientY - parseFloat(ball.style.top || 0);
+                startX = e.clientX - Number.parseFloat(ball.style.left || 0);
+                startY = e.clientY - Number.parseFloat(ball.style.top || 0);
                 ball.style.cursor = 'grabbing'; 
                 document.body.style.userSelect = 'none';
             } else if (e.button === 2) { 
                 e.preventDefault();
                 const startY = e.clientY;
-                const startSize = parseFloat(ball.style.width || 100);
+                const startSize = Number.parseFloat(ball.style.width || 100);
 
                 const onMouseMove = (moveEvent) => {
                     const deltaY = moveEvent.clientY - startY;
@@ -244,7 +279,7 @@ export function setupGallery(containerId) {
                     newSize = Math.min(Math.max(newSize, 20), 300); 
                     ball.style.width = `${newSize}px`;
                     ball.style.height = `${newSize}px`;
-                    if (!window.cachedFiles?.privacyBall) {
+                    if (!globalThis.cachedFiles?.privacyBall) {
                         ball.style.fontSize = `${newSize * 0.2}px`; 
                     }
                 };
@@ -364,7 +399,7 @@ export function setupGallery(containerId) {
         }
 
         function exitFullscreen() {
-            document.body.removeChild(overlay);
+            overlay.remove();
             document.removeEventListener('keydown', handleFullscreenKeyDown);
             
             if (!isGridMode) {
@@ -381,19 +416,7 @@ export function setupGallery(containerId) {
         }
     }
 
-    function gallery_renderGridMode(incremental = false) {
-        function process_oberserver(entries, observer) {
-            entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const imgContainer = entry.target;
-                            const img = imgContainer.querySelector('img');
-                            img.src = img.dataset.src; 
-                            imgContainer.classList.add('visible');
-                            observer.unobserve(imgContainer);
-                        }
-                    });
-        }
-        
+    function gallery_renderGridMode(incremental = false) {        
         if (!images || images.length === 0) {
             container.innerHTML = '';
             renderedImageCount = 0;
@@ -402,11 +425,11 @@ export function setupGallery(containerId) {
         }
             
         let gallery = container.querySelector('.cg-gallery-grid-container');
-        let lastAspectRatio = parseFloat(localStorage.getItem('gridAspectRatio') || '0');
+        let lastAspectRatio = Number.parseFloat(localStorage.getItem('gridAspectRatio') || '0');
     
         const containerWidth = container.offsetWidth;
         const firstImage = new Image();
-        firstImage.src = images[images.length - 1];
+        firstImage.src = images.at(-1);
         firstImage.onload = () => {
             const aspectRatio = firstImage.width / firstImage.height;
             const needsRedraw = !incremental || Math.abs(aspectRatio - lastAspectRatio) > 0.001;
@@ -420,7 +443,7 @@ export function setupGallery(containerId) {
                 gallery.addEventListener('click', (e) => {
                     const imgContainer = e.target.closest('.cg-gallery-item');
                     if (imgContainer) {
-                        const index = parseInt(imgContainer.dataset.index);
+                        const index = Number.parseInt(imgContainer.dataset.index);
                         currentIndex = index; 
                         enterFullscreen(index);
                     }
@@ -500,10 +523,10 @@ export function setupGallery(containerId) {
                 const clickX = e.clientX - rect.left;
                 const isLeft = clickX < rect.width / 2;
                 if (e.target !== mainImage && images.length > 1) {
-                    if (!isLeft) {
-                        currentIndex = (currentIndex - 1 + images.length) % images.length;
-                    } else {
+                    if (isLeft) {
                         currentIndex = (currentIndex + 1) % images.length;
+                    } else {
+                        currentIndex = (currentIndex - 1 + images.length) % images.length;
                     }
                     mainImage.src = images[currentIndex];
                     updatePreviewBorders();
@@ -520,7 +543,7 @@ export function setupGallery(containerId) {
                 const previewImage = e.target.closest('.cg-preview-image');
                 if (previewImage) {
                     e.preventDefault();
-                    const domIndex = parseInt(previewImage.dataset.domIndex);
+                    const domIndex = Number.parseInt(previewImage.dataset.domIndex);
                     currentIndex = images.length - 1 - domIndex;
                     mainImage.src = images[currentIndex];
                     updatePreviewBorders();
@@ -531,14 +554,14 @@ export function setupGallery(containerId) {
 
         const fragment = document.createDocumentFragment();
         const observer = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
+            for (const entry of entries) {
                 if (entry.isIntersecting) {
                     const img = entry.target;
                     img.src = img.dataset.src;
                     img.classList.add('visible');
                     observer.unobserve(img);
                 }
-            });
+            }
         }, { root: previewContainer, threshold: 0.1 });
 
         if (incremental && renderedImageCount < images.length) {
@@ -587,35 +610,14 @@ export function setupGallery(containerId) {
     
     function updatePreviewBorders() {
         const previewImages = container.querySelectorAll('.cg-preview-image');
-        previewImages.forEach((child, domIndex) => {
+        for (const [domIndex, child] of [...previewImages].entries()) {
             const index = images.length - 1 - domIndex;
             child.dataset.domIndex = domIndex;
             child.style.border = index === currentIndex ? '2px solid #3498db' : 'none';
-        });
+        }
         const domIndex = images.length - 1 - currentIndex;
         if (domIndex >= 0 && domIndex < previewImages.length) {
             previewImages[domIndex].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }
-    }
-
-    function adjustPreviewContainer(previewContainer) {
-        const previewImages = previewContainer.querySelectorAll('.cg-preview-image');
-        if (previewImages.length > 0) {
-            previewImages[0].onload = () => {
-                const containerWidth = previewContainer.offsetWidth;
-                const firstImageWidth = previewImages[0].offsetWidth || 50;
-                const totalImagesWidth = firstImageWidth * previewImages.length;
-                if (totalImagesWidth < (containerWidth - firstImageWidth)) {
-                    previewContainer.style.justifyContent = 'center';
-                } else {
-                    previewContainer.style.justifyContent = 'flex-start';
-                    if (previewImages.length > 10) {
-                        const minWidth = Math.max(50, containerWidth / previewImages.length);
-                        previewImages.forEach(img => img.style.maxWidth = `${minWidth}px`);
-                    }
-                }
-                previewContainer.scrollLeft = 0;
-            };
         }
     }
 
@@ -636,10 +638,10 @@ export function setupGallery(containerId) {
                 } catch (err) {
                     seedButton.textContent = 'Copy failed!';
                     console.warn('Failed to copy seed:', err);
-                    const SETTINGS = window.globalSettings;
-                    const FILES = window.cachedFiles;
+                    const SETTINGS = globalThis.globalSettings;
+                    const FILES = globalThis.cachedFiles;
                     const LANG = FILES.language[SETTINGS.language];
-                    window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', seedToCopy));                    
+                    globalThis.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', seedToCopy));                    
                 } finally {                                        
                     setTimeout(() => {
                         seedButton.textContent = 'Seed';
@@ -652,12 +654,12 @@ export function setupGallery(containerId) {
     }
     
     function updateSeedInputs(seedToCopy) {
-        const lastSeed = window.generate.seed.getValue();
-        const newSeed = parseInt(seedToCopy);
-        if(lastSeed !== newSeed) {
-            window.generate.seed.setValue(newSeed);
+        const lastSeed = globalThis.generate.seed.getValue();
+        const newSeed = Number.parseInt(seedToCopy);
+        if(lastSeed === newSeed) {
+            globalThis.generate.seed.setValue(-1);
         } else {
-            window.generate.seed.setValue(-1);
+            globalThis.generate.seed.setValue(newSeed);
         }
     }
 
@@ -678,10 +680,10 @@ export function setupGallery(containerId) {
                 } catch (err) {
                     tagButton.textContent = 'Copy failed!';
                     console.warn('Failed to copy tag:', err);
-                    const SETTINGS = window.globalSettings;
-                    const FILES = window.cachedFiles;
+                    const SETTINGS = globalThis.globalSettings;
+                    const FILES = globalThis.cachedFiles;
                     const LANG = FILES.language[SETTINGS.language];
-                    window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', tagToCopy));
+                    globalThis.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', tagToCopy));
                 } finally {
                     setTimeout(() => {
                         tagButton.textContent = 'Tags';

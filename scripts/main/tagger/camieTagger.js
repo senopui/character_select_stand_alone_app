@@ -1,8 +1,8 @@
-const ort = require("onnxruntime-node");
-const fs = require("fs");
-const path = require("path");
-const sharp = require("sharp");
-const os = require("os");
+import * as ort from 'onnxruntime-node';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import sharp from 'sharp';
+import * as os from 'node:os';
 
 const CAT = "[camieTagger]";
 
@@ -52,9 +52,9 @@ async function preprocessCamieImage(base64Str, targetSize = 512) {
 
   let srcIdx = 0;
   for (let p = 0; p < N; p++) {
-    const r = src[srcIdx] / 255.0;
-    const g = src[srcIdx + 1] / 255.0;
-    const b = src[srcIdx + 2] / 255.0;
+    const r = src[srcIdx] / 255;
+    const g = src[srcIdx + 1] / 255;
+    const b = src[srcIdx + 2] / 255;
 
     chwArray[planeR + p] = (r - mean[0]) / std[0];
     chwArray[planeG + p] = (g - mean[1]) / std[1];
@@ -114,7 +114,7 @@ async function runCamieTagger(modelPath, inputTensor, thresholds) {
 
   const allProbsByCategory = {};  
   for (const [idxStr, tagName] of Object.entries(idx_to_tag)) {
-    const i = parseInt(idxStr, 10);
+    const i = Number.parseInt(idxStr, 10);
     const p = probs[i];
     
     // Filter by min_confidence first
@@ -140,7 +140,7 @@ async function runCamieTagger(modelPath, inputTensor, thresholds) {
     
     filteredTagsByCategory[cat] = tags
       .filter(t => t.prob >= catThreshold)
-      .map(t => ({ tag: t.tag.replace(/_/g, " "), prob: t.prob }));
+      .map(t => ({ tag: t.tag.replaceAll('_', ' '), prob: t.prob }));
   }
 
   // Flatten for backward compatibility
@@ -152,7 +152,7 @@ async function runCamieTagger(modelPath, inputTensor, thresholds) {
   return allTags;
 }
 
-module.exports = {
+export {
   preprocessCamieImage,
   runCamieTagger
 };

@@ -1,6 +1,6 @@
-const fs = require('fs');
-const path = require('path');
-const { app, ipcMain } = require('electron');
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { app, ipcMain } from 'electron';
 
 const CAT = '[Wildcards]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
@@ -21,15 +21,15 @@ function updateWildcardsList() {
     wildcardsList = [];
     try {
         const files = fs.readdirSync(wildcardsDir);
-        files.forEach(file => {
+        for( const file of files ) {
             if (
                 file.endsWith('.txt') &&
-                /^[a-zA-Z0-9_\-]+\.txt$/.test(file)
+                /^[a-zA-Z0-9_-]+\.txt$/.test(file)
             ) {
                 wildcardsList.push(file.slice(0, -4));
                 console.log(CAT, 'Found wildcards file:', file);
             }
-        });
+        }
     } catch (err) {
         console.error(CAT, 'Failed to scan directory:', err);
     }
@@ -84,7 +84,7 @@ async function loadWildcard(fileName, seed) {
     }
 
     // only allow alphanumeric characters, underscores, and hyphens
-    const safeFileName = fileName.replace(/[^a-zA-Z0-9_\-]/g, '');
+    const safeFileName = fileName.replaceAll(/[^a-zA-Z0-9_-]/g, '');
 
     // check if the file is in list
     if (!wildcardsList.includes(safeFileName)) {
@@ -114,7 +114,7 @@ async function loadWildcard(fileName, seed) {
     }
 }
 
-module.exports = {
+export {
     setupWildcardsHandlers,
     getWildcardsList,
     updateWildcards,

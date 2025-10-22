@@ -1,8 +1,7 @@
-const fs = require('fs');
-const path = require('node:path');
-const { app, ipcMain } = require('electron');
-
-const { collectRelativePaths, getExtraModels } = require('./modelList');
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { app, ipcMain } from 'electron';
+import { collectRelativePaths, getExtraModels } from './modelList.js';
 
 const CAT = '[FileHandlers]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
@@ -22,15 +21,15 @@ function loadCSVFile(filePath) {
     }
 
     const csvResult = {};
-    lines.forEach((line, index) => {
+    for (const [index, line] of lines.entries()) {
       const parts = line.split(',').map(item => item.trim());
       if (parts.length !== 2) {
         console.warn(CAT, `Invalid CSV format at line ${index + 1}: ${line}`);
-        return;
+        continue;
       }
       const [key, value] = parts;
       csvResult[key] = value || '';
-    });
+    }
 
     if (Object.keys(csvResult).length === 0) {
       throw new Error('No valid data found in CSV file');
@@ -108,7 +107,21 @@ function processMetadata(buffer, offset, length) {
     const nullPos = chunkData.indexOf(0);
     let metadataFound = {};
 
-    if (nullPos !== -1) {
+    if (nullPos === -1) {      
+      // No null separator, try decoding entire chunk
+      let textData;
+      try {
+        textData = chunkData.toString('utf8');
+      } catch {
+        textData = chunkData.toString('latin1');
+      }
+      
+      try {
+        return JSON.parse(textData);
+      } catch {
+        return { data: textData };
+      }
+    } else {
       const keyword = chunkData.toString('utf8', 0, nullPos);
       let textData;
       try {
@@ -130,20 +143,6 @@ function processMetadata(buffer, offset, length) {
       } else {
         metadataFound[keyword] = textData;
         return metadataFound;
-      }
-    } else {
-      // No null separator, try decoding entire chunk
-      let textData;
-      try {
-        textData = chunkData.toString('utf8');
-      } catch {
-        textData = chunkData.toString('latin1');
-      }
-      
-      try {
-        return JSON.parse(textData);
-      } catch {
-        return { data: textData };
       }
     }
   } catch (error) {
@@ -213,6 +212,7 @@ function extractPngMetadata(buffer) {
   }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function extractJpegMetadata(buffer) {
   try {
     let offset = 2; // Skip JPEG SOI marker (0xFFD8)
@@ -244,11 +244,7 @@ function extractJpegMetadata(buffer) {
         const marker = 'L>UNICODE'; //try comfyui first
         const markerIndex = textData.indexOf(marker);
         let decodedData;
-        if (markerIndex !== -1) {
-          const unicodeData = segmentData.slice(markerIndex + marker.length);
-          decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
-          aiImageWithMetadata = true;
-        } else {
+        if (markerIndex === -1) {          
           const a1111_marker = '(UNICODE';  // try a1111
           const a1111_markerIndex = textData.indexOf(a1111_marker);
           if(a1111_markerIndex !== -1) {
@@ -256,7 +252,11 @@ function extractJpegMetadata(buffer) {
             decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
             aiImageWithMetadata = true;
           }          
-        } // discard any other types
+        } else { 
+          const unicodeData = segmentData.slice(markerIndex + marker.length);
+          decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
+          aiImageWithMetadata = true;
+        } 
 
         if(aiImageWithMetadata === true) {
           try {
@@ -292,6 +292,7 @@ function extractJpegMetadata(buffer) {
   }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function extractWebpMetadata(buffer) {
   try {
     let offset = 12; // Skip RIFF header and WEBP identifier
@@ -318,11 +319,7 @@ function extractWebpMetadata(buffer) {
         const marker = 'L^UNICODE'; //try comfyui first
         const markerIndex = textData.indexOf(marker);
         let decodedData;
-        if (markerIndex !== -1) {
-          const unicodeData = chunkData.slice(markerIndex + marker.length);
-          decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
-          aiImageWithMetadata = true;
-        } else {
+        if (markerIndex === -1) {          
           const a1111_marker = '(UNICODE';  // try a1111
           const a1111_markerIndex = textData.indexOf(a1111_marker);
           if(a1111_markerIndex !== -1) {
@@ -330,7 +327,11 @@ function extractWebpMetadata(buffer) {
             decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
             aiImageWithMetadata = true;
           }          
-        } // discard any other types
+        } else {
+          const unicodeData = chunkData.slice(markerIndex + marker.length);
+          decodedData = unicodeData.slice(2).toString('utf16le'); // trun 00 00
+          aiImageWithMetadata = true;
+        }
 
         if(aiImageWithMetadata === true) {
           try {
@@ -476,6 +477,7 @@ function readSafetensors(modelPath, prefix, filePath) {
   return readFileMetadata(fullPath);
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function readBase64Image(dataUrl) {
   try {
     if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
@@ -507,19 +509,7 @@ function readBase64Image(dataUrl) {
       };
     }
 
-    let uint8Array;
-    if (typeof atob !== 'undefined') {
-      const binaryString = atob(dataPart);
-      const len = binaryString.length;
-      uint8Array = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        uint8Array[i] = binaryString.charCodeAt(i);
-      }
-    } else {
-      uint8Array = Buffer.from(dataPart, 'base64');
-    }
-
-    const imageBuffer = Buffer.from(uint8Array);
+    const imageBuffer = Buffer.from(dataPart, 'base64');
     const metadata = {
       metadata: null
     };
@@ -564,7 +554,7 @@ function readBase64Image(dataUrl) {
   }
 }
 
-module.exports = {
+export {
   loadJSONFile,
   loadCSVFile,
   loadFile,

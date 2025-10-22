@@ -3,10 +3,11 @@ import { getAiPrompt } from './remoteAI.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 export function fileToBase64(file) {
-    if(typeof file === 'string')
-        return file;
-
     return new Promise((resolve, reject) => {
+        if (typeof file === 'string') {
+            resolve(file);
+            return;
+        }
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
@@ -28,8 +29,8 @@ export function extractHostPort(input) {
         }
         const ret = `Invalid input: Expected a URL or host:port format (e.g., 'http://127.0.0.1:58189/' or '127.0.0.1:58188')\n${e}`;
         console.error();        
-        window.generate.cancelClicked = true;
-        window.mainGallery.hideLoading(ret, ret);
+        globalThis.generate.cancelClicked = true;
+        globalThis.mainGallery.hideLoading(ret, ret);
     }
 
     return '127.0.0.1:58188';   // fail safe
@@ -37,8 +38,8 @@ export function extractHostPort(input) {
 
 export function extractAPISecure(apiInterface) {
     if(apiInterface === 'WebUI') {
-        const webui_auth = window.generate.webui_auth.getValue();
-        const webui_auth_enable = window.generate.webui_auth_enable.getValue();
+        const webui_auth = globalThis.generate.webui_auth.getValue();
+        const webui_auth_enable = globalThis.generate.webui_auth_enable.getValue();
 
         if (webui_auth_enable === 'ON' && webui_auth.includes(':')) {
             return webui_auth.trim();
@@ -56,32 +57,32 @@ function createViewTag(view_list, in_tag, seed, weight) {
     let out_tag = '';
 
     if (in_tag.toLowerCase() === 'random') {
-        if (!window.cachedFiles.viewTags[view_list]) {
+        if (!globalThis.cachedFiles.viewTags[view_list]) {
             console.error( `[createViewTag] Invalid view_list: ${view_list}`);
             return '';
         }
-        const tags = window.cachedFiles.viewTags[view_list];
+        const tags = globalThis.cachedFiles.viewTags[view_list];
         const index = seed % tags.length;
         const selectedIndex = (index === 0 || index === 1) ? 2 : index;
         out_tag = `${tags[selectedIndex].toLowerCase()}`;
-    } else if (in_tag.toLowerCase() !== 'none') {
-        out_tag = `${in_tag.toLowerCase()}`;
-    } else {
+    } else if (in_tag.toLowerCase() === 'none') {
         return '';
+    } else {
+        out_tag = `${in_tag.toLowerCase()}`;
     }
 
-    out_tag = out_tag.trim().replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');   
-    if(out_tag !== '' && weight !== 1.0) {
+    out_tag = out_tag.trim().replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`);
+    if(out_tag !== '' && weight !== 1) {
         out_tag = `(${out_tag}:${weight})`;
     }
     return out_tag;
 }
 
 export function getViewTags(seed) {
-    const tag_angle = createViewTag('angle', window.viewList.getValue()[0], seed, window.viewList.getTextValue(0));
-    const tag_camera = createViewTag('camera', window.viewList.getValue()[1], seed, window.viewList.getTextValue(1));
-    const tag_background = createViewTag('background', window.viewList.getValue()[2], seed, window.viewList.getTextValue(2));
-    const tag_style = createViewTag('style', window.viewList.getValue()[3], seed, window.viewList.getTextValue(3));
+    const tag_angle = createViewTag('angle', globalThis.viewList.getValue()[0], seed, globalThis.viewList.getTextValue(0));
+    const tag_camera = createViewTag('camera', globalThis.viewList.getValue()[1], seed, globalThis.viewList.getTextValue(1));
+    const tag_background = createViewTag('background', globalThis.viewList.getValue()[2], seed, globalThis.viewList.getTextValue(2));
+    const tag_style = createViewTag('style', globalThis.viewList.getValue()[3], seed, globalThis.viewList.getTextValue(3));
 
     let combo = '';
     if(tag_angle !== '') 
@@ -100,9 +101,9 @@ export function getViewTags(seed) {
 }
 
 async function createCharacters(index, seeds) {
-    const FILES = window.cachedFiles;
-    const character = window.characterList.getKey()[index];
-    const isValueOnly = window.characterList.isValueOnly();
+    const FILES = globalThis.cachedFiles;
+    const character = globalThis.characterList.getKey()[index];
+    const isValueOnly = globalThis.characterList.isValueOnly();
     const seed = seeds[index];
 
     if (character.toLowerCase() === 'none') {
@@ -114,12 +115,12 @@ async function createCharacters(index, seeds) {
         ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
         : await handleStandardCharacter(character, seed, isValueOnly, index, FILES);
 
-    const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
+    const tagAssist = getTagAssist(tag, globalThis.generate.tag_assist.getValue(), FILES, index, info);
     if (tagAssist.tas !== '')
         tagAssist.tas = `${tagAssist.tas}, `;
 
     return {
-        tag: isOriginalCharacter ? `${tag}` : tag.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'),
+        tag: isOriginalCharacter ? `${tag}` : tag.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`),
         tag_assist: tagAssist.tas,
         thumb,
         info: tagAssist.info,
@@ -142,10 +143,10 @@ async function handleStandardCharacter(character, seed, isValueOnly, index, FILE
         thumb = await decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
-        value: window.characterList.getValue()[index]
+        value: globalThis.characterList.getValue()[index]
         });        
     }
-    const weight = window.characterList.getTextValue(index);
+    const weight = globalThis.characterList.getTextValue(index);
     return { tag, thumb, info, weight };
 }
 
@@ -162,7 +163,7 @@ function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
         tag = FILES.ocList[character];
         info = formatOriginalCharacterInfo({ key: character, value: tag }, isValueOnly);
     }
-    const weight = window.characterList.getTextValue(index);
+    const weight = globalThis.characterList.getTextValue(index);
     return { tag, thumb: null, info, weight };
 }
 
@@ -172,8 +173,8 @@ export function getRandomIndex(seed, listLength) {
 }
 
 export function formatCharacterInfo(index, isValueOnly, { key, value }) {
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-    const blueColor = (window.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const blueColor = (globalThis.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
 
     const comboCharacterInfo = isValueOnly
         ? `[color=${blueColor}]${value}[/color]`
@@ -182,8 +183,8 @@ export function formatCharacterInfo(index, isValueOnly, { key, value }) {
 }
 
 export function formatOriginalCharacterInfo({ key, value }, isValueOnly = false) {
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-    const blueColor = (window.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const blueColor = (globalThis.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
 
     const comboCharacterInfo = isValueOnly
         ? `[color=${blueColor}]${value}[/color]`
@@ -192,7 +193,7 @@ export function formatOriginalCharacterInfo({ key, value }, isValueOnly = false)
 }
 
 export function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
-    const tomatoColor = (window.globalSettings.css_style==='dark')?'Tomato':'Maroon';
+    const tomatoColor = (globalThis.globalSettings.css_style==='dark')?'Tomato':'Maroon';
 
     let tas = '';
     let info = characterInfo;
@@ -203,46 +204,37 @@ export function getTagAssist(tag, useTAS, FILES, index, characterInfo) {
     return { tas, info };
 }
 
-function getCustomJSON(loop=-1){
+function getCustomJSON(loop = -1) {
     let BeforeOfPrompts = '';
     let BeforeOfCharacter = '';
     let EndOfCharacter = '';
     let EndOfPrompts = '';
 
-    const jsonSlots = window.jsonlist.getValues(loop);
+    const jsonSlots = globalThis.jsonlist.getValues(loop);
 
-    jsonSlots.forEach(([prompt, strength, regional, method]) => {
-        if(method === 'Off')
-            return;
+    for (const [prompt, strength, , method] of jsonSlots) {
+        if (method === 'Off') continue;
 
-        const trimmedPrompt = prompt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/:/g, ' ');
-        let finalPrompt;
-        if (parseFloat(strength) === 1.0)
-            finalPrompt = `${trimmedPrompt}, `;
-        else
-            finalPrompt = `(${trimmedPrompt}:${strength}), `;
+        const trimmedPrompt = prompt.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`).replaceAll(':', ' ');
+        let finalPrompt = Number.parseFloat(strength) === 1 ? `${trimmedPrompt}, ` : `(${trimmedPrompt}:${strength}), `;
 
-        if(method === 'BOP')
-            BeforeOfPrompts = BeforeOfPrompts + finalPrompt;
-        else if(method === 'BOC')
-            BeforeOfCharacter = BeforeOfCharacter + finalPrompt;
-        else if(method === 'EOC')
-            EndOfCharacter = EndOfCharacter + finalPrompt;
-        else if(method === 'EOP')
-            EndOfPrompts = EndOfPrompts + finalPrompt;
-    });
+        if (method === 'BOP') BeforeOfPrompts += finalPrompt;
+        else if (method === 'BOC') BeforeOfCharacter += finalPrompt;
+        else if (method === 'EOC') EndOfCharacter += finalPrompt;
+        else if (method === 'EOP') EndOfPrompts += finalPrompt;
+    }
 
     return {
         BOP: BeforeOfPrompts,
         BOC: BeforeOfCharacter,
         EOC: EndOfCharacter,
         EOP: EndOfPrompts
-    }
+    };
 }
 
 async function getCharacters(){
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-    let random_seed = window.generate.seed.getValue();
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    let random_seed = globalThis.generate.seed.getValue();
     if (random_seed === -1){
         random_seed = generateRandomSeed();
     }
@@ -253,10 +245,10 @@ async function getCharacters(){
     let thumbImages = [];
     for(let index=0; index < 4; index++) {
         let {tag, tag_assist, thumb, info, weight} = await createCharacters(index, seeds);
-        if(weight === 1.0){
-            character += (tag !== '')?`${tag}, `:'';
+        if(weight === 1){
+            character += (tag === '')?'':`${tag}, `;
         } else {
-            character += (tag !== '')?`(${tag}:${weight}), `:'';            
+            character += (tag === '')?'':`(${tag}:${weight}), `;            
         }
         character += tag_assist;
 
@@ -277,16 +269,16 @@ async function getCharacters(){
 }
 
 function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {    
-    const commonColor = (window.globalSettings.css_style==='dark')?'darkorange':'Sienna';
-    const viewColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-    const aiColor = (window.globalSettings.css_style==='dark')?'hotpink':'Purple';
-    const characterColor = (window.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
-    const positiveColor = (window.globalSettings.css_style==='dark')?'LawnGreen':'SeaGreen';
+    const commonColor = (globalThis.globalSettings.css_style==='dark')?'darkorange':'Sienna';
+    const viewColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const aiColor = (globalThis.globalSettings.css_style==='dark')?'hotpink':'Purple';
+    const characterColor = (globalThis.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
+    const positiveColor = (globalThis.globalSettings.css_style==='dark')?'LawnGreen':'SeaGreen';
 
-    let common = window.prompt.common.getValue();
-    let positive = window.prompt.positive.getValue().trim();
+    let common = globalThis.prompt.common.getValue();
+    let positive = globalThis.prompt.positive.getValue().trim();
     let aiPrompt = ai.trim();
-    const exclude = window.prompt.exclude.getValue();
+    const exclude = globalThis.prompt.exclude.getValue();
 
     if (common !== '' && !common.endsWith(',')) {
         common += ', ';
@@ -297,29 +289,29 @@ function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {
 
     const {BOP, BOC, EOC, EOP} = getCustomJSON(loop);
 
-    let positivePrompt = `${BOP}${common}${views}${aiPrompt}${BOC}${characters}${EOC}${positive}${EOP}`.replace(/\n+/g, ''); 
-    let positivePromptColored = `[color=${commonColor}]${BOP}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOC}${characters}${EOC}[/color][color=${positiveColor}]${positive}${EOP}[/color]`.replace(/\n+/g, ''); 
+    let positivePrompt = `${BOP}${common}${views}${aiPrompt}${BOC}${characters}${EOC}${positive}${EOP}`.replaceAll(/\n+/g, ''); 
+    let positivePromptColored = `[color=${commonColor}]${BOP}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOC}${characters}${EOC}[/color][color=${positiveColor}]${positive}${EOP}[/color]`.replaceAll(/\n+/g, ''); 
 
     const excludeKeywords = exclude.split(',')
         .map(keyword => keyword.trim())
         .filter(keyword => keyword.length > 0);
 
-        excludeKeywords.forEach(keyword => {
-            const escapedKeyword = keyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'); 
+        for (const keyword of excludeKeywords) {
+            const escapedKeyword = keyword.replaceAll(/[-[\]{}()*+?.,\\^$|#\s]/g, String.raw`\$&`);
             const pattern = new RegExp(
                 `(^|,\\s*|\\n\\s*)${escapedKeyword}(\\s*,\\s*|\\s*$|\\s*\\n)`,
                 'gi'
             );
-            positivePrompt = positivePrompt.replace(pattern, '$1'); 
-            positivePromptColored = positivePromptColored.replace(pattern, '$1'); 
-        });
+            positivePrompt = positivePrompt.replace(pattern, '$1');
+            positivePromptColored = positivePromptColored.replace(pattern, '$1');
+        }
 
     const loraPromot = getLoRAs(apiInterface);
     return {pos:positivePrompt, posc:positivePromptColored, lora:loraPromot}
 }
 
 export function getLoRAs(apiInterface) {
-    const loraData = window.lora.getValues();
+    const loraData = globalThis.lora.getValues();
     if (!Array.isArray(loraData) || loraData.length === 0 || apiInterface === 'None') {
         return '';
     }
@@ -379,16 +371,16 @@ export async function replaceWildcardsAsync(pos, seed) {
     }
     // replace each wildcard with its corresponding value
     for (const wildcardName of matches) {
-        if (window.generate.wildcard_random.getValue()) {
+        if (globalThis.generate.wildcard_random.getValue()) {
             random_seed = generateRandomSeed();
         }
         let replacement;
-        if (!window.inBrowser) {
-            replacement = await window.api.loadWildcard(wildcardName, random_seed);
-        } else {
+        if (globalThis.inBrowser) {
             replacement = await sendWebSocketMessage({ type: 'API', method: 'loadWildcard', params: [wildcardName, random_seed] }); 
+        } else {
+            replacement = await globalThis.api.loadWildcard(wildcardName, random_seed);
         }
-        pos = pos.replace(new RegExp(`__${wildcardName}__`, 'g'), `${replacement}`);
+        pos = pos.replaceAll(new RegExp(`__${wildcardName}__`, 'g'), `${replacement}`);
     }
     return pos;
 }
@@ -401,13 +393,13 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let negativePrompt = '';
 
     if(runSame) {
-        let seed = window.generate.seed.getValue();
+        let seed = globalThis.generate.seed.getValue();
         if (seed === -1){
             randomSeed = generateRandomSeed();
         }
-        positivePrompt = window.generate.lastPos;
-        positivePromptColored = window.generate.lastPosColored;
-        negativePrompt = window.generate.lastNeg;
+        positivePrompt = globalThis.generate.lastPos;
+        positivePromptColored = globalThis.generate.lastPosColored;
+        negativePrompt = globalThis.generate.lastNeg;
 
     } else {            
         const {thumb, characters_tag, information, seed} = await getCharacters();
@@ -424,13 +416,13 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
             positivePrompt = pos;
         }
         else{
-            const loraColor = (window.globalSettings.css_style==='dark')?'AliceBlue':'DarkBlue';
+            const loraColor = (globalThis.globalSettings.css_style==='dark')?'AliceBlue':'DarkBlue';
             positivePrompt = `${pos}\n${lora}`;
             finalInfo += `LoRA: [color=${loraColor}]${lora}[/color]\n`;
         }
         positivePromptColored = posc;            
-        negativePrompt = window.prompt.negative.getValue();
-        window.thumbGallery.append(thumb);            
+        negativePrompt = globalThis.prompt.negative.getValue();
+        globalThis.thumbGallery.append(thumb);            
     }
 
     return {finalInfo, randomSeed, positivePrompt, positivePromptColored, negativePrompt}
@@ -439,30 +431,30 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
 export function createHiFix(randomSeed, apiInterface, brownColor){
     const hfSeed = generateRandomSeed();
     let hifix = {
-        enable: window.generate.hifix.getValue(),
-        model: window.hifix.model.getValue(),
-        colorTransfer: window.hifix.colorTransfer.getValue(),
-        randomSeed: window.hifix.randomSeed.getValue(),
-        seed: window.hifix.randomSeed.getValue()?hfSeed:randomSeed,
-        scale: window.hifix.scale.getFloat(),
-        denoise: window.hifix.denoise.getFloat(),
-        steps: window.hifix.steps.getValue(),
+        enable: globalThis.generate.hifix.getValue(),
+        model: globalThis.hifix.model.getValue(),
+        colorTransfer: globalThis.hifix.colorTransfer.getValue(),
+        randomSeed: globalThis.hifix.randomSeed.getValue(),
+        seed: globalThis.hifix.randomSeed.getValue()?hfSeed:randomSeed,
+        scale: globalThis.hifix.scale.getFloat(),
+        denoise: globalThis.hifix.denoise.getFloat(),
+        steps: globalThis.hifix.steps.getValue(),
         info: ''
     }
     if(hifix.enable) {
         if(apiInterface === 'ComfyUI') {
-            if(!hifix.model.endsWith('(C)')) {
+            if(hifix.model.endsWith('(C)')) {
+                hifix.model = hifix.model.replace('(C)', ''); 
+            } else {
                 console.warn( `Reset ${hifix.model} to 4x-UltraSharp`);
                 hifix.model = '4x-UltraSharp';
-            } else {
-                hifix.model = hifix.model.replace('(C)', ''); 
             }
         } else if(apiInterface === 'WebUI') {
-            if(!hifix.model.endsWith('(W)')) {
+            if(hifix.model.endsWith('(W)')) {
+                hifix.model = hifix.model.replace('(W)', ''); 
+            } else {
                 console.warn( `Reset ${hifix.model} to R-ESRGAN 4x+`);
                 hifix.model = 'R-ESRGAN 4x+';
-            } else {
-                hifix.model = hifix.model.replace('(W)', ''); 
             }
         }
         hifix.info += `Hires Fix: [[color=${brownColor}]${hifix.enable}[/color]]\n`;
@@ -478,24 +470,24 @@ export function createHiFix(randomSeed, apiInterface, brownColor){
 }
 
 export function createRefiner(){
-    const refinerVpred = window.refiner.vpred.getValue();        
+    const refinerVpred = globalThis.refiner.vpred.getValue();        
     let vPred = 0;
-    if(refinerVpred == window.cachedFiles.language[window.globalSettings.language].vpred_on)
+    if(refinerVpred == globalThis.cachedFiles.language[globalThis.globalSettings.language].vpred_on)
         vPred = 1;
-    else if(refinerVpred == window.cachedFiles.language[window.globalSettings.language].vpred_off)
+    else if(refinerVpred == globalThis.cachedFiles.language[globalThis.globalSettings.language].vpred_off)
         vPred = 2;   
 
     const refiner = {
-        enable: window.generate.refiner.getValue(),
-        model: window.refiner.model.getValue(),
+        enable: globalThis.generate.refiner.getValue(),
+        model: globalThis.refiner.model.getValue(),
         vpred: vPred,
-        addnoise: window.refiner.addnoise.getValue(),
-        ratio: window.refiner.ratio.getFloat(),
+        addnoise: globalThis.refiner.addnoise.getValue(),
+        ratio: globalThis.refiner.ratio.getFloat(),
         info: ''
     }
-    if(refiner.enable && refiner.model !== window.dropdownList.model.getValue())
+    if(refiner.enable && refiner.model !== globalThis.dropdownList.model.getValue())
     {
-        const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+        const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
         refiner.info = `Refiner Model: [[color=${brownColor}]${refiner.model}[/color]]\n`;
     }
      return refiner;
@@ -503,10 +495,10 @@ export function createRefiner(){
 
 export function checkVpred(){
     let vPred = 0;
-    const modelVpred = window.dropdownList.vpred.getValue();
-    if(modelVpred === window.cachedFiles.language[window.globalSettings.language].vpred_on)
+    const modelVpred = globalThis.dropdownList.vpred.getValue();
+    if(modelVpred === globalThis.cachedFiles.language[globalThis.globalSettings.language].vpred_on)
         vPred = 1;
-    else if(modelVpred === window.cachedFiles.language[window.globalSettings.language].vpred_off)
+    else if(modelVpred === globalThis.cachedFiles.language[globalThis.globalSettings.language].vpred_off)
         vPred = 2;
 
     return vPred;
@@ -522,7 +514,7 @@ export function convertBase64ImageToUint8Array(image) {
         const bytes = new Uint8Array(binaryString.length);
         
         for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+            bytes[i] = binaryString.codePointAt(i);
         }
         
         /*
@@ -539,58 +531,62 @@ export function convertBase64ImageToUint8Array(image) {
     }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function createControlNet() {
-    if(!window.generate.controlnet.getValue())
+    if (!globalThis.generate.controlnet.getValue())
         return 'none';
 
     let controlnetToBackend = [];
-    let controlNetList = window.controlnet.getValues(true);
-    controlNetList.forEach((
-        [preProcessModel, preProcessResolution, 
-        slot_enable, postProcessModel, postProcessStrength, postProcessStart, postProcessEnd,
-        pre_image, pre_image_after]) => {
+    let controlNetList = globalThis.controlnet.getValues(true);
 
-        if(slot_enable === 'Off')
-            return;
+    for (const [preProcessModel, preProcessResolution, slot_enable, postProcessModel, 
+                postProcessStrength, postProcessStart, postProcessEnd, pre_image, pre_image_after] 
+                of controlNetList) {
+        if (slot_enable === 'Off')
+            continue;
 
-        if(postProcessStart > 1 || postProcessStart < 0) postProcessStart = 0;
-        if(postProcessEnd > 1 || postProcessEnd < 0) postProcessEnd = 1;
+        let realPostProcessStart = postProcessStart;
+        if (postProcessStart > 1 || postProcessStart < 0) 
+            realPostProcessStart = 0;
 
-        if(postProcessStart > postProcessEnd || postProcessModel === 'none') {
+        let realPostProcessEnd = postProcessEnd;
+        if (postProcessEnd > 1 || postProcessEnd < 0) 
+            realPostProcessEnd = 1;
+
+        if (postProcessStart >= postProcessEnd || postProcessModel === 'none') {
             console.warn("Skip controlNet", postProcessModel, postProcessStart, postProcessEnd);
-            return;
+            continue;
         }
 
         let cnData = {
-            preModel:   preProcessModel,
-            preRes:     preProcessResolution,
-            postModel:  postProcessModel,
-            postStr:    postProcessStrength,
-            postStart:  postProcessStart,
-            postEnd:    postProcessEnd,            
-            image:      (slot_enable === 'On')? pre_image:null,
-            imageAfter: (slot_enable === 'Post')? pre_image_after:null
+            preModel: preProcessModel,
+            preRes: preProcessResolution,
+            postModel: postProcessModel,
+            postStr: postProcessStrength,
+            postStart: realPostProcessStart,
+            postEnd: realPostProcessEnd,
+            image: (slot_enable === 'On') ? pre_image : null,
+            imageAfter: (slot_enable === 'Post') ? pre_image_after : null
         };
 
-        if(preProcessModel.startsWith('ip-adapter')) {
-            // whatever slot_enable is On or Post
-            // for IPA we treat it as On
+        if (preProcessModel.startsWith('ip-adapter')) {
             cnData.image = pre_image; // square image
         }
 
         controlnetToBackend.push(cnData);
-    });
+    }
 
     return controlnetToBackend;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function generateControlnetImage(imageData, controlNetSelect, controlNetResolution, skipGzip=false){
     let ret = 'success';
     let retCopy = '';
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
-    window.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+    globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
 
     let res = Number(controlNetResolution) || 512;
     res = Math.round(res / 64) * 64;
@@ -602,21 +598,21 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
     if(!skipGzip) {
         const buffer = await imageData.arrayBuffer();
         const uint8Array = new Uint8Array(buffer);
-        
-        if (!window.inBrowser) {
-            imageGzipped = await window.api.compressGzip(uint8Array);
-        } else {
+
+        if (globalThis.inBrowser) {
             imageGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(uint8Array)] });
+        } else {
+            imageGzipped = await globalThis.api.compressGzip(uint8Array);
         }
     }
 
     let browserUUID = 'none';
-    if(window.inBrowser) {
-        browserUUID = window.clientUUID;
+    if(globalThis.inBrowser) {
+        browserUUID = globalThis.clientUUID;
     }
-    const apiInterface = window.generate.api_interface.getValue();
+    const apiInterface = globalThis.generate.api_interface.getValue();
     const generateData = {
-        addr: extractHostPort(window.generate.api_address.getValue()),
+        addr: extractHostPort(globalThis.generate.api_address.getValue()),
         auth: extractAPISecure(apiInterface),
         uuid: browserUUID,
         imageData: (apiInterface === 'ComfyUI' && !skipGzip)?imageGzipped:(await fileToBase64(imageGzipped)).replace('data:image/png;base64,', ''),
@@ -629,10 +625,10 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
     if(apiInterface === 'None') {
         console.warn('apiInterface', apiInterface);
     } else if(apiInterface === 'ComfyUI') {        
-        if (!window.inBrowser) {
-            newImage = await window.api.runComfyUI_ControlNet(generateData);
-        } else {
+        if (globalThis.inBrowser) {
             newImage = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI_ControlNet', params: [generateData] });
+        } else {
+            newImage = await globalThis.api.runComfyUI_ControlNet(generateData);
         }     
 
         if(!newImage) {
@@ -643,10 +639,10 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
         } 
         retCopy = ret;
     } else if(apiInterface === 'WebUI') {
-        if (!window.inBrowser) {
-            newImage = await window.api.runWebUI_ControlNet(generateData);
-        } else {
+        if (globalThis.inBrowser) {
             newImage = await sendWebSocketMessage({ type: 'API', method: 'runWebUI_ControlNet', params: [generateData] });
+        } else {
+            newImage = await globalThis.api.runWebUI_ControlNet(generateData);
         }     
 
         if(!newImage) {
@@ -663,19 +659,19 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
     let preImageAftGzipped;
     if(apiInterface === 'ComfyUI') {
         const preImageAft = convertBase64ImageToUint8Array(newImage);
-        if (!window.inBrowser) {            
-            preImageAftGzipped = await window.api.compressGzip(preImageAft);
-        } else {
+        if (globalThis.inBrowser) {            
             preImageAftGzipped = await sendWebSocketMessage({ type: 'API', method: 'compressGzip', params: [Array.from(preImageAft)] });
+        } else {
+            preImageAftGzipped = await globalThis.api.compressGzip(preImageAft);
         }        
     } 
-    window.mainGallery.hideLoading(ret, retCopy);
+    globalThis.mainGallery.hideLoading(ret, retCopy);
 
     if (apiInterface === 'WebUI') {
         return {
             preImage: await fileToBase64(imageGzipped), 
             preImageAfter: newImage,
-            preImageAfterBase64: (!newImage.startsWith('Error'))?'data:image/png;base64,' + newImage:newImage
+            preImageAfterBase64: (newImage.startsWith('Error'))? newImage : 'data:image/png;base64,' + newImage
         };
     } 
 
@@ -686,66 +682,67 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
     };
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function generateImage(loops, runSame){
     let ret = 'success';
     let retCopy = '';
     
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
-    const apiInterface = window.generate.api_interface.getValue();
+    const apiInterface = globalThis.generate.api_interface.getValue();
         
-    window.generate.toggleButtons();
-    window.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
-    window.thumbGallery.clear();
-    window.infoBox.image.clear();
+    globalThis.generate.toggleButtons();
+    globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+    globalThis.thumbGallery.clear();
+    globalThis.infoBox.image.clear();
     
-    const negativeColor = (window.globalSettings.css_style==='dark')?'red':'Crimson';
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
 
     for(let loop = 0; loop < loops; loop++){
-        if(window.generate.skipClicked || window.generate.cancelClicked){
+        if(globalThis.generate.skipClicked || globalThis.generate.cancelClicked){
             break;
         }
                 
         const aiPromot = await getAiPrompt(loop, LANG.generate_ai);
 
-        window.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
+        globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
         const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
-        const landscape = window.generate.landscape.getValue();
-        const width = landscape?window.generate.height.getValue():window.generate.width.getValue();
-        const height = landscape?window.generate.width.getValue():window.generate.height.getValue();
+        const landscape = globalThis.generate.landscape.getValue();
+        const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
+        const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
         
         const hifix = createHiFix(createPromptResult.randomSeed, apiInterface,brownColor);
         const refiner = createRefiner();
         
-        window.generate.lastPos = createPromptResult.positivePrompt;
-        window.generate.lastPosColored = createPromptResult.positivePromptColored;
-        window.generate.lastNeg = createPromptResult.negativePrompt;
+        globalThis.generate.lastPos = createPromptResult.positivePrompt;
+        globalThis.generate.lastPosColored = createPromptResult.positivePromptColored;
+        globalThis.generate.lastNeg = createPromptResult.negativePrompt;
 
         let browserUUID = 'none';
-        if(window.inBrowser) {
-            browserUUID = window.clientUUID;
+        if(globalThis.inBrowser) {
+            browserUUID = globalThis.clientUUID;
         }
 
         const generateData = {
-            addr: extractHostPort(window.generate.api_address.getValue()),
+            addr: extractHostPort(globalThis.generate.api_address.getValue()),
             auth: extractAPISecure(apiInterface),
             uuid: browserUUID,
             
-            model: window.dropdownList.model.getValue(),
+            model: globalThis.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive: createPromptResult.positivePrompt,
             negative: createPromptResult.negativePrompt,
             width: width,
             height: height,
-            cfg: window.generate.cfg.getValue(),
-            step: window.generate.step.getValue(),
+            cfg: globalThis.generate.cfg.getValue(),
+            step: globalThis.generate.step.getValue(),
             seed: createPromptResult.randomSeed,
-            sampler: window.generate.sampler.getValue(),
-            scheduler: window.generate.scheduler.getValue(),
-            refresh:window.generate.api_preview_refresh_time.getValue(),
+            sampler: globalThis.generate.sampler.getValue(),
+            scheduler: globalThis.generate.scheduler.getValue(),
+            refresh:globalThis.generate.api_preview_refresh_time.getValue(),
             hifix: hifix,
             refiner: refiner,
             controlnet: await createControlNet(),
@@ -762,10 +759,10 @@ export async function generateImage(loops, runSame){
         finalInfo += hifix.info;
         finalInfo += refiner.info;        
         finalInfo +=`\n`;
-        window.infoBox.image.appendValue(finalInfo);        
+        globalThis.infoBox.image.appendValue(finalInfo);        
 
         // in-case click cancel too quick or during AI gen
-        if(window.generate.cancelClicked) {
+        if(globalThis.generate.cancelClicked) {
             break;
         }
 
@@ -777,8 +774,8 @@ export async function generateImage(loops, runSame){
             break;    
     }
 
-    window.mainGallery.hideLoading(ret, retCopy);
-    window.generate.toggleButtons();
+    globalThis.mainGallery.hideLoading(ret, retCopy);
+    globalThis.generate.toggleButtons();
 }
 
 async function seartGenerate(apiInterface, generateData){
@@ -803,32 +800,33 @@ async function seartGenerate(apiInterface, generateData){
     return {ret, retCopy, breakNow}
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 async function runComfyUI(apiInterface, generateData){
     function sendToGallery(image, generateData){
         if(!image)  // same prompts from backend will return null
             return;
 
         if(!keepGallery)
-            window.mainGallery.clearGallery();
-        window.mainGallery.appendImageData(image, `${generateData.seed}`, generateData.positive, keepGallery, window.globalSettings.scroll_to_last);
+            globalThis.mainGallery.clearGallery();
+        globalThis.mainGallery.appendImageData(image, `${generateData.seed}`, generateData.positive, keepGallery, globalThis.globalSettings.scroll_to_last);
     }
 
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
-    window.generate.nowAPI = apiInterface;
-    const keepGallery = window.generate.keepGallery.getValue();
+    globalThis.generate.nowAPI = apiInterface;
+    const keepGallery = globalThis.generate.keepGallery.getValue();
     let ret = 'success';
     let retCopy = '';
     let breakNow = false;
 
     try {
         let result;
-        if (!window.inBrowser) {
-            result = await window.api.runComfyUI(generateData);
-        } else {
+        if (globalThis.inBrowser) {
             result = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI', params: [generateData] });
+        } else {
+            result = await globalThis.api.runComfyUI(generateData);
         }
 
         if(result.startsWith('Error')){
@@ -840,13 +838,13 @@ async function runComfyUI(apiInterface, generateData){
             if (parsedResult.prompt_id) {
                 try {
                     let image;
-                    if (!window.inBrowser) {
-                        image = await window.api.openWsComfyUI(parsedResult.prompt_id);
-                    } else {
+                    if (globalThis.inBrowser) {
                         image = await sendWebSocketMessage({ type: 'API', method: 'openWsComfyUI', params: [parsedResult.prompt_id] });
+                    } else {
+                        image = await globalThis.api.openWsComfyUI(parsedResult.prompt_id);
                     }
 
-                    if (window.generate.cancelClicked) {
+                    if (globalThis.generate.cancelClicked) {
                         breakNow = true;
                     } else if(image.startsWith('Error')) {
                         ret = LANG.gr_error_creating_image.replace('{0}',image).replace('{1}', apiInterface);
@@ -860,10 +858,10 @@ async function runComfyUI(apiInterface, generateData){
                     retCopy = error.message;
                     breakNow = true;
                 } finally {
-                    if (!window.inBrowser) {
-                        window.api.closeWsComfyUI();
-                    } else {
+                    if (globalThis.inBrowser) {
                         sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI' });
+                    } else {
+                        globalThis.api.closeWsComfyUI();
                     }
                 }                
             } else {
@@ -881,26 +879,27 @@ async function runComfyUI(apiInterface, generateData){
     return {ret, retCopy, breakNow }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 async function runWebUI(apiInterface, generateData) {
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
-    window.generate.nowAPI = apiInterface;
-    const keepGallery = window.generate.keepGallery.getValue();
+    globalThis.generate.nowAPI = apiInterface;
+    const keepGallery = globalThis.generate.keepGallery.getValue();
     let ret = 'success';
     let retCopy = '';
     let breakNow = false;
 
     try {
         let result;
-        if (!window.inBrowser) {
-            result = await window.api.runWebUI(generateData);
-        } else {
+        if (globalThis.inBrowser) {
             result = await sendWebSocketMessage({ type: 'API', method: 'runWebUI', params: [generateData] });
+        } else {
+            result = await globalThis.api.runWebUI(generateData);
         }        
         
-        if(window.generate.cancelClicked) {
+        if(globalThis.generate.cancelClicked) {
             breakNow = true;
         } else {
             const typeResult = typeof result;
@@ -911,8 +910,8 @@ async function runWebUI(apiInterface, generateData) {
                     breakNow = true;
                 } else {
                     if(!keepGallery)
-                        window.mainGallery.clearGallery();
-                    window.mainGallery.appendImageData(result, `${generateData.seed}`, generateData.positive, keepGallery, window.globalSettings.scroll_to_last);
+                        globalThis.mainGallery.clearGallery();
+                    globalThis.mainGallery.appendImageData(result, `${generateData.seed}`, generateData.positive, keepGallery, globalThis.globalSettings.scroll_to_last);
                 }
             }
         }
@@ -922,11 +921,13 @@ async function runWebUI(apiInterface, generateData) {
         breakNow = true;
     }
 
-    if (!window.inBrowser) {
-        window.api.stopPollingWebUI();
-    } else {
+    if(ret.includes('cannot run new generation,')) {
+        // not stop polling due to WebUI is busy
+    } else if (globalThis.inBrowser) {
         sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
-    }    
+    } else {
+        globalThis.api.stopPollingWebUI();
+    }
     
     return {ret, retCopy, breakNow }
 }

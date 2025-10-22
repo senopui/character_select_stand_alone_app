@@ -5,6 +5,7 @@ import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getR
     createControlNet } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function getCustomJSON(loop=-1){
     let BeforeOfPromptsL = '';
     let BeforeOfCharacterL = '';
@@ -16,15 +17,15 @@ function getCustomJSON(loop=-1){
     let EndOfCharacterR = '';
     let EndOfPromptsR = '';
     
-    const jsonSlots = window.jsonlist.getValues(loop);
+    const jsonSlots = globalThis.jsonlist.getValues(loop);
 
-    jsonSlots.forEach(([prompt, strength, regional, method]) => {
+    for(const {prompt, strength, regional, method} of jsonSlots) {
         if(method === 'Off')
-            return;
+            continue;
 
-        const trimmedPrompt = prompt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/:/g, ' ');
+        const trimmedPrompt = prompt.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`).replaceAll(':', ' ');
         let finalPrompt;
-        if (parseFloat(strength) === 1.0)
+        if (Number.parseFloat(strength) === 1)
             finalPrompt = `${trimmedPrompt}, `;
         else
             finalPrompt = `(${trimmedPrompt}:${strength}), `;
@@ -74,7 +75,7 @@ function getCustomJSON(loop=-1){
                 EndOfCharacterR = EndOfCharacterR + finalPrompt;
             }
         } 
-    });
+    };
 
     return {
         BOPL: BeforeOfPromptsL,
@@ -89,18 +90,18 @@ function getCustomJSON(loop=-1){
 }
 
 function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None', loop = -1){
-    const commonColor = (window.globalSettings.css_style==='dark')?'darkorange':'Sienna';
-    const viewColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-    const aiColor = (window.globalSettings.css_style==='dark')?'hotpink':'Purple';
-    const characterColor = (window.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
-    const positiveColor = (window.globalSettings.css_style==='dark')?'LawnGreen':'SeaGreen';
-    const positiveRColor = (window.globalSettings.css_style==='dark')?'LightSkyBlue':'Navy';
+    const commonColor = (globalThis.globalSettings.css_style==='dark')?'darkorange':'Sienna';
+    const viewColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const aiColor = (globalThis.globalSettings.css_style==='dark')?'hotpink':'Purple';
+    const characterColor = (globalThis.globalSettings.css_style==='dark')?'DeepSkyBlue':'MidnightBlue';
+    const positiveColor = (globalThis.globalSettings.css_style==='dark')?'LawnGreen':'SeaGreen';
+    const positiveRColor = (globalThis.globalSettings.css_style==='dark')?'LightSkyBlue':'Navy';
 
-    let common = window.prompt.common.getValue();
-    let positive = window.prompt.positive.getValue().trim();
-    let positiveR = window.prompt.positive_right.getValue().trim();
+    let common = globalThis.prompt.common.getValue();
+    let positive = globalThis.prompt.positive.getValue().trim();
+    let positiveR = globalThis.prompt.positive_right.getValue().trim();
     let aiPrompt = ai.trim();
-    const exclude = window.prompt.exclude.getValue();
+    const exclude = globalThis.prompt.exclude.getValue();
 
     if (common !== '' && !common.endsWith(',')) {
         common += ', ';
@@ -111,27 +112,27 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
 
     const {BOPL, BOCL, EOCL, EOPL, BOPR, BOCR, EOCR, EOPR} = getCustomJSON(loop);
 
-    let positivePromptLeft = `${BOPL}${common}${views}${aiPrompt}${BOCL}${character_left}${EOCL}${positive}${EOPL}`.replace(/\n+/g, ''); 
-    let positivePromptRight = `${BOPR}${common}${views}${aiPrompt}${BOCR}${character_right}${EOCR}${positiveR}${EOPR}`.replace(/\n+/g, ''); 
+    let positivePromptLeft = `${BOPL}${common}${views}${aiPrompt}${BOCL}${character_left}${EOCL}${positive}${EOPL}`.replaceAll(/\n+/g, ''); 
+    let positivePromptRight = `${BOPR}${common}${views}${aiPrompt}${BOCR}${character_right}${EOCR}${positiveR}${EOPR}`.replaceAll(/\n+/g, ''); 
 
-    let positivePromptLeftColored = `[color=${commonColor}]${BOPL}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCL}${character_left}${EOCL}[/color][color=${positiveColor}]${positive}${EOPL}[/color]`.replace(/\n+/g, ''); 
-    let positivePromptRightColored = `[color=${commonColor}]${BOPR}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCR}${character_right}${EOCR}[/color][color=${positiveRColor}]${positiveR}${EOPR}[/color]`.replace(/\n+/g, ''); 
+    let positivePromptLeftColored = `[color=${commonColor}]${BOPL}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCL}${character_left}${EOCL}[/color][color=${positiveColor}]${positive}${EOPL}[/color]`.replaceAll(/\n+/g, ''); 
+    let positivePromptRightColored = `[color=${commonColor}]${BOPR}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCR}${character_right}${EOCR}[/color][color=${positiveRColor}]${positiveR}${EOPR}[/color]`.replaceAll(/\n+/g, ''); 
 
     const excludeKeywords = exclude.split(',')
         .map(keyword => keyword.trim())
         .filter(keyword => keyword.length > 0);
 
-        excludeKeywords.forEach(keyword => {
-            const escapedKeyword = keyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'); 
-            const pattern = new RegExp(
-                `(^|,\\s*|\\n\\s*)${escapedKeyword}(\\s*,\\s*|\\s*$|\\s*\\n)`,
-                'gi'
-            );
-            positivePromptLeft = positivePromptLeft.replace(pattern, '$1'); 
-            positivePromptLeftColored = positivePromptLeftColored.replace(pattern, '$1'); 
-            positivePromptRight = positivePromptRight.replace(pattern, '$1'); 
-            positivePromptRightColored = positivePromptRightColored.replace(pattern, '$1'); 
-        });
+    for (const keyword of excludeKeywords) {
+        const escapedKeyword = keyword.replaceAll(/[-[\]{}()*+?.,\\^$|#\s]/g, String.raw`\$&`);
+        const pattern = new RegExp(
+            `(^|,\\s*|\\n\\s*)${escapedKeyword}(\\s*,\\s*|\\s*$|\\s*\\n)`,
+            'gi'
+        );
+        positivePromptLeft = positivePromptLeft.replace(pattern, '$1');
+        positivePromptLeftColored = positivePromptLeftColored.replace(pattern, '$1');
+        positivePromptRight = positivePromptRight.replace(pattern, '$1');
+        positivePromptRightColored = positivePromptRightColored.replace(pattern, '$1');
+    }
 
     const loraPromot = getLoRAs(apiInterface);
     return {
@@ -141,9 +142,9 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
 }
 
 async function createCharacters(index, seeds) {
-    const FILES = window.cachedFiles;
-    const character = window.characterListRegional.getKey()[index];
-    const isValueOnly = window.characterListRegional.isValueOnly();
+    const FILES = globalThis.cachedFiles;
+    const character = globalThis.characterListRegional.getKey()[index];
+    const isValueOnly = globalThis.characterListRegional.isValueOnly();
     const seed = seeds[index];
 
     if (character.toLowerCase() === 'none') {
@@ -155,11 +156,11 @@ async function createCharacters(index, seeds) {
         ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
         : await handleStandardCharacter(character, seed, isValueOnly, index, FILES);    
 
-    const tagAssist = getTagAssist(tag, window.generate.tag_assist.getValue(), FILES, index, info);
+    const tagAssist = getTagAssist(tag, globalThis.generate.tag_assist.getValue(), FILES, index, info);
     if (tagAssist.tas !== '')
         tagAssist.tas = `${tagAssist.tas}, `;
 
-    const finalTag = isOriginalCharacter ? `${tag}` : tag.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const finalTag = isOriginalCharacter ? `${tag}` : tag.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`);
     return {
         tag: finalTag,
         tag_assist: tagAssist.tas,
@@ -184,10 +185,10 @@ async function handleStandardCharacter(character, seed, isValueOnly, index, FILE
         thumb = await decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
-        value: window.characterListRegional.getValue()[index]
+        value: globalThis.characterListRegional.getValue()[index]
         });        
     }
-    const weight = window.characterListRegional.getTextValue(index);
+    const weight = globalThis.characterListRegional.getTextValue(index);
     return { tag, thumb, info, weight };
 }
 
@@ -204,20 +205,20 @@ function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
         tag = FILES.ocList[character];
         info = formatOriginalCharacterInfo({ key: character, value: tag }, isValueOnly);
     }
-    const weight = window.characterListRegional.getTextValue(index);
+    const weight = globalThis.characterListRegional.getTextValue(index);
     return { tag, thumb: null, info, weight };
 }
 
+function parseCharacter(weight, tag){
+    if(weight === 1){
+        return (tag === '')?'':`${tag}, `;
+    } 
+
+    return (tag === '')?'':`(${tag}:${weight}), `;
+}
+
 async function getCharacters(){    
-    function parseCharacter(weight, tag){
-        if(weight === 1.0){
-            return (tag !== '')?`${tag}, `:'';
-        } 
-
-        return (tag !== '')?`(${tag}:${weight}), `:'';
-    }
-
-    let random_seed = window.generate.seed.getValue();
+    let random_seed = globalThis.generate.seed.getValue();
     if (random_seed === -1){
         random_seed = generateRandomSeed();
     }
@@ -249,7 +250,7 @@ async function getCharacters(){
         information += `${info}`;
     }
 
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     information += `Seed: [[color=${brownColor}]${seeds[0]}[/color]]\n`;    
 
     return{
@@ -272,15 +273,15 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let negativePrompt = '';
 
     if(runSame) {
-        let seed = window.generate.seed.getValue();
+        let seed = globalThis.generate.seed.getValue();
         if (seed === -1){
             randomSeed = generateRandomSeed();
         }
-        positivePromptLeft = window.generate.lastPos;
-        positivePromptLeftColored = window.generate.lastPosColored;
-        positivePromptRight = window.generate.lastPosR;
-        positivePromptRightColored = window.generate.lastPosRColored;
-        negativePrompt = window.generate.lastNeg;
+        positivePromptLeft = globalThis.generate.lastPos;
+        positivePromptLeftColored = globalThis.generate.lastPosColored;
+        positivePromptRight = globalThis.generate.lastPosR;
+        positivePromptRightColored = globalThis.generate.lastPosRColored;
+        negativePrompt = globalThis.generate.lastNeg;
 
     } else {            
         const {thumb, character_left, character_right, information, seed} = await getCharacters();
@@ -302,23 +303,23 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
             positivePromptRight = posR;
         }
         else{
-            const loraColor = (window.globalSettings.css_style==='dark')?'AliceBlue':'DarkBlue';
+            const loraColor = (globalThis.globalSettings.css_style==='dark')?'AliceBlue':'DarkBlue';
             positivePromptLeft = `${posL}\n${lora}`; // only need all lora once
             positivePromptRight = `${posR}\n`;
             finalInfo += `LoRA: [color=${loraColor}]${lora}[/color]\n`;
         }
         positivePromptLeftColored = posLc;
         positivePromptRightColored = posRc;
-        negativePrompt = window.prompt.negative.getValue();
-        window.thumbGallery.append(thumb);            
+        negativePrompt = globalThis.prompt.negative.getValue();
+        globalThis.thumbGallery.append(thumb);            
     }
 
     return {finalInfo, randomSeed, positivePromptLeft, positivePromptRight, positivePromptLeftColored, positivePromptRightColored, negativePrompt}
 }
 
 function createRegional() {
-    const overlap_ratio = window.regional.overlap_ratio.getValue();
-    const image_ratio = window.regional.image_ratio.getValue();
+    const overlap_ratio = globalThis.regional.overlap_ratio.getValue();
+    const image_ratio = globalThis.regional.image_ratio.getValue();
 
     const a = image_ratio / 50;
     const c = 2 - a;
@@ -326,53 +327,53 @@ function createRegional() {
 
     const ratio =`${a},${(b===0)?0.01:b},${c}`;
 
-    const str_left = window.regional.str_left.getFloat();
-    const str_right = window.regional.str_right.getFloat();
+    const str_left = globalThis.regional.str_left.getFloat();
+    const str_right = globalThis.regional.str_right.getFloat();
 
-    const option_left = window.regional.option_left.getValue();
-    const option_right = window.regional.option_right.getValue();    
+    const option_left = globalThis.regional.option_left.getValue();
+    const option_right = globalThis.regional.option_right.getValue();    
 
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     const info = `Regional Condition:\n\tOverlap Ratio: [[color=${brownColor}]${overlap_ratio}[/color]]\n\tImage Ratio: [[color=${brownColor}]${image_ratio}[/color]]\n\tLeft Str: [[color=${brownColor}]${str_left}[/color]]\tMask Area: [[color=${brownColor}]${option_left}[/color]]\n\tRight Str: [[color=${brownColor}]${str_right}[/color]]\tMask Area: [[color=${brownColor}]${option_right}[/color]]\n`;
 
     return {info, ratio, str_left, str_right, option_left, option_right};
 }
 
 async function createGenerateData(createPromptResult, apiInterface){    
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
 
-    const landscape = window.generate.landscape.getValue();
-    const width = landscape?window.generate.height.getValue():window.generate.width.getValue();
-    const height = landscape?window.generate.width.getValue():window.generate.height.getValue();
-    const swap = window.regional.swap.getValue();
+    const landscape = globalThis.generate.landscape.getValue();
+    const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
+    const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
+    const swap = globalThis.regional.swap.getValue();
     
     const hifix = createHiFix(createPromptResult.randomSeed, apiInterface,brownColor);
     const refiner = createRefiner();
     const regional = createRegional();
 
     let browserUUID = 'none';
-    if(window.inBrowser) {
-        browserUUID = window.clientUUID;
+    if(globalThis.inBrowser) {
+        browserUUID = globalThis.clientUUID;
     }   
 
     const generateData = {
-            addr: extractHostPort(window.generate.api_address.getValue()),
+            addr: extractHostPort(globalThis.generate.api_address.getValue()),
             auth: extractAPISecure(apiInterface),
             uuid: browserUUID,
             
-            model: window.dropdownList.model.getValue(),
+            model: globalThis.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive_left: swap?createPromptResult.positivePromptRight:createPromptResult.positivePromptLeft,
             positive_right: swap?createPromptResult.positivePromptLeft:createPromptResult.positivePromptRight,
             negative: createPromptResult.negativePrompt,
             width: width,
             height: height,
-            cfg: window.generate.cfg.getValue(),
-            step: window.generate.step.getValue(),
+            cfg: globalThis.generate.cfg.getValue(),
+            step: globalThis.generate.step.getValue(),
             seed: createPromptResult.randomSeed,
-            sampler: window.generate.sampler.getValue(),
-            scheduler: window.generate.scheduler.getValue(),
-            refresh:window.generate.api_preview_refresh_time.getValue(),
+            sampler: globalThis.generate.sampler.getValue(),
+            scheduler: globalThis.generate.scheduler.getValue(),
+            refresh:globalThis.generate.api_preview_refresh_time.getValue(),
             hifix: hifix,
             refiner: refiner,
             regional: regional,
@@ -383,44 +384,44 @@ async function createGenerateData(createPromptResult, apiInterface){
 }
 
 export async function generateRegionalImage(loops, runSame){
-    const apiInterface = window.generate.api_interface.getValue();
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const apiInterface = globalThis.generate.api_interface.getValue();
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
     if(apiInterface !== 'ComfyUI') {
         console.warn('apiInterface', apiInterface);
         const errorMessage = LANG.regional_error_not_comfyui;
-        window.mainGallery.hideLoading(errorMessage, errorMessage);
+        globalThis.mainGallery.hideLoading(errorMessage, errorMessage);
         return;
     }
     
     let ret = 'success';
     let retCopy = '';
 
-    window.generate.toggleButtons();
-    window.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
-    window.thumbGallery.clear();
-    window.infoBox.image.clear();
+    globalThis.generate.toggleButtons();
+    globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+    globalThis.thumbGallery.clear();
+    globalThis.infoBox.image.clear();
 
-    const negativeColor = (window.globalSettings.css_style==='dark')?'red':'Crimson';
-    const brownColor = (window.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+    const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
 
     for(let loop = 0; loop < loops; loop++){
-        if(window.generate.skipClicked || window.generate.cancelClicked){
+        if(globalThis.generate.skipClicked || globalThis.generate.cancelClicked){
             break;
         }
 
         const aiPromot = await getAiPrompt(loop, LANG.generate_ai);
 
-        window.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
+        globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
         const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
-        window.generate.lastPos = createPromptResult.positivePromptLeft;
-        window.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
-        window.generate.lastPosR = createPromptResult.positivePromptRight;
-        window.generate.lastPosRColored = createPromptResult.positivePromptRightColored;
-        window.generate.lastNeg = createPromptResult.negativePrompt;
+        globalThis.generate.lastPos = createPromptResult.positivePromptLeft;
+        globalThis.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
+        globalThis.generate.lastPosR = createPromptResult.positivePromptRight;
+        globalThis.generate.lastPosRColored = createPromptResult.positivePromptRightColored;
+        globalThis.generate.lastNeg = createPromptResult.negativePrompt;
 
         const generateData = await createGenerateData(createPromptResult, apiInterface);
 
@@ -438,10 +439,10 @@ export async function generateRegionalImage(loops, runSame){
         finalInfo += generateData.regional.info;
         finalInfo +=`\n`;
 
-        window.infoBox.image.appendValue(finalInfo);        
+        globalThis.infoBox.image.appendValue(finalInfo);        
 
         // in-case click cancel too quick or during AI gen
-        if(window.generate.cancelClicked) {
+        if(globalThis.generate.cancelClicked) {
             break;
         }
 
@@ -453,8 +454,8 @@ export async function generateRegionalImage(loops, runSame){
             break;    
     }
 
-    window.mainGallery.hideLoading(ret, retCopy);
-    window.generate.toggleButtons();
+    globalThis.mainGallery.hideLoading(ret, retCopy);
+    globalThis.generate.toggleButtons();
 }
 
 async function seartGenerateRegional(apiInterface, generateData){    
@@ -466,32 +467,33 @@ async function seartGenerateRegional(apiInterface, generateData){
     return {ret, retCopy, breakNow}
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 async function runComfyUI(apiInterface, generateData){
     function sendToGallery(image, generateData){
         if(!image)  // same prompts from backend will return null
             return;
 
         if(!keepGallery)
-            window.mainGallery.clearGallery();
-        window.mainGallery.appendImageData(image, `${generateData.seed}`, `${generateData.positive_left}\n${generateData.positive_right}`, keepGallery, window.globalSettings.scroll_to_last);
+            globalThis.mainGallery.clearGallery();
+        globalThis.mainGallery.appendImageData(image, `${generateData.seed}`, `${generateData.positive_left}\n${generateData.positive_right}`, keepGallery, globalThis.globalSettings.scroll_to_last);
     }
 
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
-    window.generate.nowAPI = apiInterface;
-    const keepGallery = window.generate.keepGallery.getValue();
+    globalThis.generate.nowAPI = apiInterface;
+    const keepGallery = globalThis.generate.keepGallery.getValue();
     let ret = 'success';
     let retCopy = '';
     let breakNow = false;
 
     try {
         let result;
-        if (!window.inBrowser) {
-            result = await window.api.runComfyUI_Regional(generateData);
-        } else {
+        if (globalThis.inBrowser) {
             result = await sendWebSocketMessage({ type: 'API', method: 'runComfyUI_Regional', params: [generateData] });
+        } else {
+            result = await globalThis.api.runComfyUI_Regional(generateData);
         }
 
         if(result.startsWith('Error')){                    
@@ -503,13 +505,13 @@ async function runComfyUI(apiInterface, generateData){
             if (parsedResult.prompt_id) {
                 try {
                     let image;
-                    if (!window.inBrowser) {
-                        image = await window.api.openWsComfyUI(parsedResult.prompt_id);
-                    } else {
+                    if (globalThis.inBrowser) {
                         image = await sendWebSocketMessage({ type: 'API', method: 'openWsComfyUI', params: [parsedResult.prompt_id] });
+                    } else {
+                        image = await globalThis.api.openWsComfyUI(parsedResult.prompt_id);
                     }
 
-                    if(window.generate.cancelClicked) {
+                    if(globalThis.generate.cancelClicked) {
                         breakNow = true;
                     } else {                    
                         sendToGallery(image, generateData);
@@ -519,10 +521,10 @@ async function runComfyUI(apiInterface, generateData){
                     retCopy = error.message;
                     breakNow = true;
                 } finally {
-                    if (!window.inBrowser) {
-                        window.api.closeWsComfyUI();
-                    } else {
+                    if (globalThis.inBrowser) {
                         sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI' });
+                    } else {
+                        globalThis.api.closeWsComfyUI();
                     }
                 }                
             } else {

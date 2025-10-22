@@ -23,10 +23,10 @@ function createJsonSlotsFromValues(slotManager, slotValues, options = {}) {
         }
     }
 
-    slotValues.forEach(([selectedName, selectedStrength, selectedRegional, selectedPosition, jsonObjBase64]) => {
+    for (const [selectedName, selectedStrength, selectedRegional, selectedPosition, jsonObjBase64] of slotValues) {
         const jsonObj = decodeBase64ToJson(jsonObjBase64);
         createJsonSlotFromValues(slotManager, jsonObj, selectedName, selectedStrength, selectedRegional, selectedPosition);
-    });
+    }
 }
 
 function createJsonSlotFromValues(slotManager, jsonObj, 
@@ -44,8 +44,8 @@ function createJsonSlotFromValues(slotManager, jsonObj,
     keys.unshift(enumKey);
     keys.unshift(randomKey);
 
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
     requestAnimationFrame(() => {
         const jsonNameComponent = mySimpleList(
@@ -123,7 +123,7 @@ class JsonSlotManager {
             const slotClass = target.dataset.slot;
 
             if (action === 'add') {
-                window.imageInfo.showOverlay();
+                globalThis.imageInfo.showOverlay();
             } else if (action === 'delete') {
                 this.delSlot(slotClass);
             } else if (action === 'info') {
@@ -137,10 +137,10 @@ class JsonSlotManager {
                     return;
 
                 const jsonStrComponent = this.componentInstances.get(`${slotClass}-${slot.itemClasses.json_strength}`);
-                const selectedStr = parseFloat(jsonStrComponent?.getValue()) || 1.0;
-                const description = (selectedStr===1.0)?slot.jsonObj[selectedName]:`(${slot.jsonObj[selectedName]}:${selectedStr})`;                
+                const selectedStr = Number.parseFloat(jsonStrComponent?.getValue()) || 1;
+                const description = (selectedStr===1)?slot.jsonObj[selectedName]:`(${slot.jsonObj[selectedName]}:${selectedStr})`;                
 
-                window.overlay.custom.createCustomOverlay(null, `\n\n${selectedName}\n${description}`, 64, 'left', 'left');
+                globalThis.overlay.custom.createCustomOverlay(null, `\n\n${selectedName}\n${description}`, 64, 'left', 'left');
             }
         });
 
@@ -155,8 +155,8 @@ class JsonSlotManager {
                 return;
             }
 
-            const numValue = parseFloat(value);
-            if (isNaN(numValue) || numValue < 0 || numValue > 10) {
+            const numValue = Number.parseFloat(value);
+            if (Number.isNaN(numValue) || numValue < 0 || numValue > 10) {
                 input.value = input.dataset.lastValid || '1.0';
             } else {
                 input.dataset.lastValid = value;
@@ -319,28 +319,25 @@ class JsonSlotManager {
     }
 
     flushValue(className, slot) {
-        const rowValues = [];
         const { json_name, json_strength, json_regional, json_position } = slot.itemClasses;
 
         try {
             const jsonNameComponent = this.componentInstances.get(`${className}-${json_name}`);
-            const selectedName = jsonNameComponent.getValue();
-            rowValues.push(selectedName);
-
             const jsonStrengthComponent = this.componentInstances.get(`${className}-${json_strength}`);
-            rowValues.push(jsonStrengthComponent.getValue());
-
             const jsonRegionalComponent = this.componentInstances.get(`${className}-${json_regional}`);
-            rowValues.push(jsonRegionalComponent.getValue());
-
             const jsonPositionComponent = this.componentInstances.get(`${className}-${json_position}`);
-            rowValues.push(jsonPositionComponent.getValue());
 
-            rowValues.push(encodeJsonToBase64(slot.jsonObj));
+            return [
+                jsonNameComponent.getValue(),
+                jsonStrengthComponent.getValue(),
+                jsonRegionalComponent.getValue(),
+                jsonPositionComponent.getValue(),
+                encodeJsonToBase64(slot.jsonObj)
+            ];
         } catch (error) {
             console.error(`Error getting values for slot ${className}:`, error);
+            return [];
         }
-        return rowValues;
     }
 
     flush() {
@@ -409,36 +406,26 @@ class JsonSlotManager {
 
             let jsonObj;
             if (type === 'application/json') {
-                try {
-                    jsonObj = JSON.parse(fileContent);                    
-                } catch (error) {
-                    console.error(`Failed to parse JSON from file "${file.name}":`, error);
-                    return;
-                }
+                jsonObj = JSON.parse(fileContent);
             } else if (type === 'text/csv') {
-                try {
-                    jsonObj = {};
-                    const lines = fileContent.trim().split('\n');
-                    for (const line of lines) {
-                        const columns = line.split(',').map(item => {
-                            let trimmed = item.trim();
-                            if (trimmed.includes('"')) {
-                                trimmed = trimmed.replace(/"/g, '');
-                            }
-                            return trimmed;
-                        });
-                        if (columns.length < 1) continue;
-                        const key = columns[0];
-                        const values = columns.slice(1).join(', ');
+                jsonObj = {};
+                const lines = fileContent.trim().split('\n');
+                for (const line of lines) {
+                    const columns = line.split(',').map(item => {
+                        let trimmed = item.trim();
+                        if (trimmed.includes('"')) {
+                            trimmed = trimmed.replaceAll('"', '');
+                        }
+                        return trimmed;
+                    });
+                    if (columns.length < 1) continue;
+                    const key = columns[0];
+                    const values = columns.slice(1).join(', ');
 
-                        if (key) jsonObj[key] = values || '';
-                    }
-                    if (Object.keys(jsonObj).length === 0) {
-                        console.error(`No valid data found in CSV file "${file.name}"`);
-                        return;
-                    }
-                } catch (error) {
-                    console.error(`Failed to parse CSV from file "${file.name}":`, error);
+                    if (key) jsonObj[key] = values || '';
+                }
+                if (Object.keys(jsonObj).length === 0) {
+                    console.error(`No valid data found in CSV file "${file.name}"`);
                     return;
                 }
             } else {

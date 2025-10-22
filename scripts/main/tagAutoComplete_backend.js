@@ -1,19 +1,36 @@
-const { app, ipcMain } = require('electron')
-const path = require('node:path')
-const fs = require('fs');
-const { dialog } = require('electron');
-const { getWildcardsList }  = require('./wildCards');
+import { app, ipcMain, dialog } from 'electron';
+import path from 'node:path';
+import * as fs from 'node:fs';
+import { getWildcardsList } from './wildCards.js';
 
 const CAT = '[TagAutoCompleteBackend]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 
+const groupNames = {
+    // Danbooru groups
+    0: '[G]',           // General
+    1: '[A]',           // Artist
+    3: '[©]',           // Copyright
+    4: '[C]',           // Character
+    5: '[M]',           // Meta
+    // E621 groups (0+7)
+    7: '&lt;G&gt;',     // General
+    8: '&lt;A&gt;',     // Artist
+    10: '&lt;©&gt;',    // Copyright
+    11: '&lt;C&gt;',    // Character
+    12: '&lt;S&gt;',    // Species
+    14: '&lt;M&gt;',    // Meta
+    15: '&lt;L&gt;',    // Lore
+    // SAA
+    255: 'Wildcards',   // Wildcards
+}
+
 class PromptManager {
-    constructor() {
-        this.prompts = [];
-        this.lastCustomPrompt = "";
-        this.previousCustomPrompt = "";
-        this.dataLoaded = false;
-    }
+    prompts = [];
+    lastCustomPrompt = "";
+    previousCustomPrompt = "";
+    dataLoaded = false;
+    useTranslate = false;
 
     async loadPrompts(promptFilePath, translateFilePath = null, useTranslate = false) {    
         try {
@@ -23,21 +40,24 @@ class PromptManager {
             const wildcardsList = getWildcardsList();
             if (wildcardsList.length > 0) {
                 console.log(CAT, `Found ${wildcardsList.length} wildcards files.`);
-                wildcardsList.forEach(wildcard => {
+                for (const wildcard of wildcardsList) {
                     this.prompts.push({
                         prompt: `__${wildcard}__`,
-                        group: 0,
-                        heat: 2,    //wildcards
+                        group: 255, //wildcards
+                        heat: 0,    
                         aliases: ""
                     });
                     console.log(CAT, `Added wildcard prompt: __${wildcard}__`);
-                });
+                }
             }
 
             if (useTranslate && translateFilePath) {
                 console.log(CAT, `Using translate file ${translateFilePath}`);
                 const translateData = fs.readFileSync(translateFilePath, 'utf-8');
                 this.parseTranslateData(translateData);
+                this.useTranslate = true;
+            } else {
+                this.useTranslate = false;
             }
 
             this.sortPromptsByHeat();
@@ -66,7 +86,7 @@ class PromptManager {
         const prompt = parts[0].trim();
         const group = this.parseNumber(parts[1]);
         const heat = parts.length > 2 ? this.parseNumber(parts[2]) : 0;
-        const aliases = parts.length > 3 ? parts[3].trim().replace(/(^")|("$)/g, '') : "";
+        const aliases = parts.length > 3 ? parts[3].trim().replaceAll(/(^")|("$)/g, '') : "";
 
         return {
             prompt,
@@ -78,7 +98,7 @@ class PromptManager {
 
     parseNumber(value) {
         const match = /^\d+$/.exec(value.trim());
-        return match ? parseInt(match[0]) : 0;
+        return match ? Number.parseInt(match[0]) : 0;
     }
 
     parseTranslateData(translateData) {
@@ -95,8 +115,13 @@ class PromptManager {
             }
 
             const prompt = parts[0].trim();
-            const group = parts[1].trim().match(/^\d+$/) ? parseInt(parts[1]) : 0;
+            const group = parts[1].trim().match(/^\d+$/) ? Number.parseInt(parts[1]) : 0;
             const newAliases = parts[2].trim();
+
+            if (group === 1 || group === 8) {
+                // Skip artist name translations
+                continue;
+            }
 
             if (prompt in promptDict) {
                 const existing = promptDict[prompt];
@@ -114,7 +139,7 @@ class PromptManager {
                     heat: 1,  // translate alias
                     aliases: newAliases
                 });
-                promptDict[prompt] = this.prompts[this.prompts.length - 1];
+                promptDict[prompt] = this.prompts.at(-1);
             }
         }
     }
@@ -127,7 +152,7 @@ class PromptManager {
         if (!text) return [];
 
         const parts = text.split(',');
-        const lastWord = parts[parts.length - 1].trim().toLowerCase();
+        const lastWord = parts.at(-1).trim().toLowerCase();
 
         if (!lastWord) return [];
 
@@ -150,37 +175,63 @@ class PromptManager {
 
     matchPrompt(lastWord, prompt, aliases) {
         if (lastWord.includes('*')) {
-            return this.handleWildcardMatching(lastWord, prompt, aliases);
-        } else if (!prompt.startsWith(lastWord)) {
-            return aliases.find(alias => alias.trim().startsWith(lastWord)) || null;
+            const promptMatch = this.handleWildcardMatching(lastWord, prompt);
+            if (promptMatch) {
+                // null means prompt matched
+                return null;
+            }
+            // check aliases
+            for (const alias of aliases) {
+                if (this.handleWildcardMatching(lastWord, alias.trim())) {
+                    return alias.trim();
+                }
+            }
+            return null;
+        } else {
+            // *tag* exact match
+            if(prompt.includes(lastWord)) {
+                return null;
+            }
+            return aliases.find(alias => alias.trim().includes(lastWord)) || null;
         }
-        return null;
     }
 
-    handleWildcardMatching(lastWord, prompt, aliases) {
-        if (lastWord.startsWith('*') && lastWord.endsWith('*')) {
-            const pattern = lastWord.slice(1, -1);
-            if (!prompt.includes(pattern)) {
-                return aliases.find(alias => alias.trim().includes(pattern)) || null;
-            }
-        } else if (lastWord.startsWith('*')) {
-            const pattern = lastWord.slice(1);
-            if (!prompt.endsWith(pattern)) {
-                return aliases.find(alias => alias.trim().endsWith(pattern)) || null;
-            }
-        } else if (lastWord.endsWith('*')) {
-            const pattern = lastWord.slice(0, -1);
-            if (!prompt.startsWith(pattern)) {
-                return aliases.find(alias => alias.trim().startsWith(pattern)) || null;
-            }
+    handleWildcardMatching(pattern, text) {
+        if (!pattern || !text) return false;
+        
+        text = text.toLowerCase();
+        pattern = pattern.toLowerCase();
+
+        if (pattern.startsWith('*') && pattern.endsWith('*')) {
+            const searchText = pattern.slice(1, -1);
+            return text.includes(searchText);
+        } else if (pattern.startsWith('*')) {
+            const searchText = pattern.slice(1);
+            return text.endsWith(searchText);
+        } else if (pattern.endsWith('*')) {
+            const searchText = pattern.slice(0, -1);
+            return text.startsWith(searchText);
         }
-        return null;
+        return false;
     }
 
     shouldAddMatch(matchedAlias, lastWord, prompt) {
-        return matchedAlias !== null ||
-            (matchedAlias === null && lastWord.includes('*') && prompt.includes(lastWord.slice(1, -1))) ||
-            (matchedAlias === null && !lastWord.includes('*') && prompt.startsWith(lastWord));
+        // if matched alias found
+        if (matchedAlias !== null) {
+            return true;
+        }
+        
+        // if prompt matched with wildcard
+        if (lastWord.includes('*') && this.handleWildcardMatching(lastWord, prompt)) {
+            return true;
+        }
+        
+        // if no wildcard, check startsWith
+        if (!lastWord.includes('*') && prompt.toLowerCase().startsWith(lastWord.toLowerCase())) {
+            return true;
+        }
+        
+        return false;
     }
 
     addMatch(matches, promptInfo, matchedAlias, prompt) {
@@ -188,12 +239,14 @@ class PromptManager {
             const aliasDisplay = matchedAlias || (promptInfo.aliases ? promptInfo.aliases.split(',').map(a => a.trim()).join(', ') : '');
             matches[prompt] = {
                 prompt: promptInfo.prompt,
+                group: promptInfo.group,
                 heat: promptInfo.heat,
                 alias: aliasDisplay || null
             };
         }
     }
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     updateSuggestions(text) {
         if (!this.dataLoaded) {
             console.log(CAT, `No data loaded. Returning empty dataset.`);
@@ -201,7 +254,7 @@ class PromptManager {
         }
 
         const items = [];
-        const currentParts = text ? text.replace(/\n/g, ',').split(',') : [];
+        const currentParts = text ? text.replaceAll('\n', ',').split(',') : [];
         const previousParts = this.previousCustomPrompt ? this.previousCustomPrompt.split(',') : [];
 
         let modifiedIndex = -1;
@@ -223,9 +276,27 @@ class PromptManager {
         }
 
         for (const match of matches) {
-            const key = match.alias
-                ? `<b>${match.prompt}</b>: (${match.alias}) (${match.heat})`
-                : `<b>${match.prompt}</b> (${match.heat})`;
+            let displayAlias = match.alias ? match.alias.split(',').map(a => a.trim()).join(', ') : '';      
+            
+            // If translation is enabled and an alias was matched, use translated aliases
+            if (this.useTranslate && match.alias) {
+                const promptInfo = this.prompts.find(p => p.prompt === match.prompt);
+                if (promptInfo?.aliases) {
+                    displayAlias = promptInfo.aliases.split(',').map(a => a.trim()).join(', ');
+                }
+            }
+
+            const group = Number.parseInt(match.group);
+            const groupName = groupNames[group] || 'Unknown';
+
+            let key = "";
+            if(group === 255) { //wildcards
+                key = `<b>${match.prompt}</b> | ${groupName}`;
+            } else {
+                key = displayAlias
+                    ? `<b>${match.prompt}</b>: (${displayAlias}) (${match.heat}) ${groupName}`
+                    : `<b>${match.prompt}</b> (${match.heat}) ${groupName}`;
+            }
             items.push([key]);
         }
 
@@ -239,7 +310,7 @@ class PromptManager {
 const tagBackend = new PromptManager();
 async function reloadData() {
     const tags = path.join(appPath, 'data', 'danbooru_e621_merged.csv');
-    const translate = path.join(appPath, 'data', 'danbooru_zh_cn.csv');
+    const translate = path.join(appPath, 'data', 'danbooru_e621_merged_zh_cn.csv');
     const isTranslateFile = fs.existsSync(translate);
 
     if (fs.existsSync(tags))
@@ -281,7 +352,7 @@ function tagGet(text) {
     return tagBackend.updateSuggestions(text);
 }
 
-module.exports = {
+export {
     setupTagAutoCompleteBackend,
     tagReload,
     tagGet

@@ -55,27 +55,27 @@ export async function setupSaveSettingsToggle(){
 
     saveSettingsButton.addEventListener('click', async () => {
         setBlur();
-        const inputResult = await showDialog('input', { message: window.cachedFiles.language[window.globalSettings.language].save_settings_title, placeholder: 'tmp_settings', defaultValue: 'tmp_settings' });
+        const inputResult = await showDialog('input', { message: globalThis.cachedFiles.language[globalThis.globalSettings.language].save_settings_title, placeholder: 'tmp_settings', defaultValue: 'tmp_settings' });
         if(inputResult){
-            window.globalSettings.lora_slot = window.lora.getValues();
+            globalThis.globalSettings.lora_slot = globalThis.lora.getValues();
             let result;
-            if (!window.inBrowser) {
-                result = await window.api.saveSettingFile(`${inputResult}.json`, window.globalSettings);
+            if (globalThis.inBrowser) {
+                result = await sendWebSocketMessage({ type: 'API', method: 'saveSettingFile', params: [`${inputResult}.json`, globalThis.globalSettings] });
             } else {
-                result = await sendWebSocketMessage({ type: 'API', method: 'saveSettingFile', params: [`${inputResult}.json`, window.globalSettings] });
+                result = await globalThis.api.saveSettingFile(`${inputResult}.json`, globalThis.globalSettings);
             }
 
             if(result === true) {
-                await showDialog('info', { message: window.cachedFiles.language[window.globalSettings.language].save_settings_success.replace('{0}', inputResult) });
-                if (!window.inBrowser) {
-                    window.cachedFiles.settingList = await window.api.updateSettingFiles();
+                await showDialog('info', { message: globalThis.cachedFiles.language[globalThis.globalSettings.language].save_settings_success.replace('{0}', inputResult) });
+                if (globalThis.inBrowser) {
+                    globalThis.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
                 } else {
-                    window.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
+                    globalThis.cachedFiles.settingList = await globalThis.api.updateSettingFiles();
                 }
-                window.dropdownList.settings.setOptions(window.cachedFiles.settingList);
-                window.dropdownList.settings.updateDefaults(`${inputResult}.json`);
+                globalThis.dropdownList.settings.setOptions(globalThis.cachedFiles.settingList);
+                globalThis.dropdownList.settings.updateDefaults(`${inputResult}.json`);
             } else {
-                await showDialog('info', { message: window.cachedFiles.language[window.globalSettings.language].save_settings_failed.replace('{0}', inputResult) });
+                await showDialog('info', { message: globalThis.cachedFiles.language[globalThis.globalSettings.language].save_settings_failed.replace('{0}', inputResult) });
             }
         }
         setNormal();
@@ -99,41 +99,41 @@ export async function setupModelReloadToggle() {
 }
 
 export async function reloadFiles(){
-    const SETTINGS = window.globalSettings;
-    const LANG = window.cachedFiles.language[SETTINGS.language];
-    const args = [window.globalSettings.model_path_comfyui,
-                window.globalSettings.model_path_webui,
-                window.globalSettings.model_filter_keyword,
-                window.globalSettings.model_filter,
-                window.globalSettings.search_modelinsubfolder];
+    const SETTINGS = globalThis.globalSettings;
+    const LANG = globalThis.cachedFiles.language[SETTINGS.language];
+    const args = [globalThis.globalSettings.model_path_comfyui,
+                globalThis.globalSettings.model_path_webui,
+                globalThis.globalSettings.model_filter_keyword,
+                globalThis.globalSettings.model_filter,
+                globalThis.globalSettings.search_modelinsubfolder];
 
-    if (!window.inBrowser) {
-        await window.api.updateModelList(args);
-        await window.api.updateWildcards();
-        await window.api.tagReload();
-
-        window.cachedFiles.modelList = await window.api.getModelList(SETTINGS.api_interface);
-        window.cachedFiles.modelListAll = await window.api.getModelListAll(SETTINGS.api_interface);
-        window.cachedFiles.loraList = await window.api.getLoRAList(SETTINGS.api_interface);
-        window.cachedFiles.controlnetList = await window.api.getControlNetList(SETTINGS.api_interface);
-        window.cachedFiles.settingList = await window.api.updateSettingFiles();
-        window.cachedFiles.imageTaggerModels = await window.api.getImageTaggerModels();
-    } else {
+    if (globalThis.inBrowser) {
         await sendWebSocketMessage({ type: 'API', method: 'updateModelList', params: [args] });
         await sendWebSocketMessage({ type: 'API', method: 'updateWildcards'});
         await sendWebSocketMessage({ type: 'API', method: 'tagReload'});
 
-        window.cachedFiles.modelList = await sendWebSocketMessage({ type: 'API', method: 'getModelList', params: [SETTINGS.api_interface] });
-        window.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
-        window.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
-        window.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
-        window.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
-        window.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
-    }
-    window.dropdownList.model.setValue(LANG.api_model_file_select, window.cachedFiles.modelList);
-    window.dropdownList.settings.setValue('', window.cachedFiles.settingList);
+        globalThis.cachedFiles.modelList = await sendWebSocketMessage({ type: 'API', method: 'getModelList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
+        globalThis.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
+    } else {
+        await globalThis.api.updateModelList(args);
+        await globalThis.api.updateWildcards();
+        await globalThis.api.tagReload();
 
-    window.refiner.model.setValue(LANG.api_refiner_model, window.cachedFiles.modelListAll);    
+        globalThis.cachedFiles.modelList = await globalThis.api.getModelList(SETTINGS.api_interface);
+        globalThis.cachedFiles.modelListAll = await globalThis.api.getModelListAll(SETTINGS.api_interface);
+        globalThis.cachedFiles.loraList = await globalThis.api.getLoRAList(SETTINGS.api_interface);
+        globalThis.cachedFiles.controlnetList = await globalThis.api.getControlNetList(SETTINGS.api_interface);
+        globalThis.cachedFiles.settingList = await globalThis.api.updateSettingFiles();
+        globalThis.cachedFiles.imageTaggerModels = await globalThis.api.getImageTaggerModels();
+    }
+    globalThis.dropdownList.model.setValue(LANG.api_model_file_select, globalThis.cachedFiles.modelList);
+    globalThis.dropdownList.settings.setValue('', globalThis.cachedFiles.settingList);
+
+    globalThis.refiner.model.setValue(LANG.api_refiner_model, globalThis.cachedFiles.modelListAll);    
 }
 
 export function setupRefreshToggle() {
@@ -158,18 +158,17 @@ export function setupRefreshToggle() {
 }
 
 export function doSwap(rightToLeft) {
-    const split = document.getElementById('split');
     const left = document.getElementById('left');
     const right = document.getElementById('right');
 
     if (rightToLeft) {
-        split.insertBefore(left, right);
+        right.before(left);
         left.style.marginLeft = '10px';
         left.style.marginRight = '5px';
         right.style.marginLeft = '5px';
         right.style.marginRight = '10px';
     } else {
-        split.insertBefore(right, left);
+        left.before(right);
         left.style.marginLeft = '5px';
         left.style.marginRight = '10px';
         right.style.marginLeft = '10px';
@@ -185,8 +184,8 @@ export function setupSwapToggle(){
     }
     
     swapButton.addEventListener('click', () => {
-        window.globalSettings.rightToleft = !window.globalSettings.rightToleft;
-        doSwap(window.globalSettings.rightToleft);
+        globalThis.globalSettings.rightToleft = !globalThis.globalSettings.rightToleft;
+        doSwap(globalThis.globalSettings.rightToleft);
     });    
 
     return swapButton;
