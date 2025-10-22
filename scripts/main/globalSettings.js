@@ -1,7 +1,7 @@
-const { app, ipcMain } = require('electron');
-const path = require('node:path');
-const { loadJSONFile } = require('./fileHandlers'); 
-const fs = require('fs');
+import { app, ipcMain } from 'electron';
+import path from 'node:path';
+import { loadJSONFile } from './fileHandlers.js';
+import * as fs from 'node:fs';
 
 const CAT = '[GlobalSettings]'
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
@@ -18,8 +18,8 @@ const defaultSettings = {
     "css_style": "dark",
     "rightToleft": true,
     
-    "model_path_comfyui": "F:\\ComfyUI\\ComfyUI_windows_portable\\ComfyUI\\models\\checkpoints",
-    "model_path_webui": "F:\\Stable-diffusion\\stable-diffusion-webui\\models\\Stable-diffusion",
+    "model_path_comfyui": "",
+    "model_path_webui": "",
     "webui_auth" : "user:pass",
     "webui_auth_enable" : "OFF",
 
@@ -37,8 +37,8 @@ const defaultSettings = {
     "regional_swap": false,
     "regional_overlap_ratio": 20,
     "regional_image_ratio": 50,
-    "regional_str_left": 1.0,
-    "regional_str_right": 1.0,
+    "regional_str_left": 1,
+    "regional_str_right": 1,
     "regional_option_left": "default",
     "regional_option_right": "default",
     "character_left": "None",
@@ -54,7 +54,7 @@ const defaultSettings = {
     "api_model_file_select" : "Default",
     "api_model_file_vpred" : "Auto",
     "random_seed": -1,
-    "cfg": 7.0,
+    "cfg": 7,
     "step": 30,
     "width": 1024,
     "height": 1360,
@@ -111,17 +111,17 @@ const defaultSettings = {
 }
 
 function setupGlobalSettings() { 
-    globalSettings = JSON.parse(JSON.stringify(defaultSettings));
+    globalSettings = structuredClone(defaultSettings);
     const filePath = path.join(appPath, 'settings', 'settings.json');
     const mySettings = loadJSONFile(filePath);
     if (mySettings) {
-        Object.entries(mySettings).forEach(([key, value]) => {
-            if (globalSettings.hasOwnProperty(key)) {
-                globalSettings[key] = value; 
+        for (const [key, value] of Object.entries(mySettings)) {
+            if (Object.hasOwn(globalSettings, key)) {
+                globalSettings[key] = value;
             } else {
                 console.warn(CAT, `Key "${key}" not found in globalSettings. Ignoring.`);
             }
-        });
+        }
     } else {
         console.warn(CAT, `File settings.json not found, use default settings.`);
     }
@@ -162,11 +162,7 @@ function saveSettings(fineName, settings) {
         return false;
     }
 
-    function convertToValidFilename(string) {
-        return (string.replace(/[/|\\:*?"<>]/g, " "));
-    }
-
-    const settingsDir = path.join(appPath, 'settings', convertToValidFilename(fineName));
+    const settingsDir = path.join(appPath, 'settings', fineName.replaceAll(/[/|\\:*?"<>]/g, " "));
     const settingsParentDir = path.join(appPath, 'settings');
 
     try {
@@ -191,18 +187,18 @@ function saveSettings(fineName, settings) {
 }
 
 function loadSettings(fineName) {
-    globalSettings = JSON.parse(JSON.stringify(defaultSettings));
+    globalSettings = structuredClone(defaultSettings);
     const settingsDir = path.join(appPath, 'settings', fineName);
     console.log(CAT, `Loading ${settingsDir}`);
     const mySettings = loadJSONFile(settingsDir);
     if (mySettings) {
-        Object.entries(mySettings).forEach(([key, value]) => {
-            if (globalSettings.hasOwnProperty(key)) {
-                globalSettings[key] = value; 
+        for (const [key, value] of Object.entries(mySettings)) {
+            if (Object.hasOwn(globalSettings, key)) {
+                globalSettings[key] = value;
             } else {
                 console.warn(CAT, `Key "${key}" not found in globalSettings. Ignoring.`);
             }
-        });
+        }
     } else {
         console.error(CAT, `Failed to load settings directory: ${settingsDir}`);
         console.log(CAT, 'Reset to default');
@@ -244,7 +240,7 @@ function updateSettingFiles() {
     return getSettingFiles();
 }
 
-module.exports = {
+export {
     setupGlobalSettings,
     getGlobalSettings,
     getSettingFiles,

@@ -1,7 +1,8 @@
-const fs = require('fs');
-const path = require('node:path');
-const { app, ipcMain } = require('electron');
-const Main = require('../../main');
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { app, ipcMain } from 'electron';
+import { setMutexBackendBusy } from '../../main-common.js';
+import * as yaml from 'js-yaml';
 
 const CAT = '[ModelList]';
 let MODELLIST_COMFYUI = ['Default'];
@@ -58,6 +59,7 @@ function updateImageTaggerList() {
     console.log(CAT, 'Image Tagger models:', IMAGE_TAGGER);
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function updateControlNetList(model_path_comfyui, model_path_webui, search_subfolder) {
     const cnPathComfyUI = path.join(path.dirname(model_path_comfyui), 'controlnet');
     const clipVisionPathComfyUI = path.join(path.dirname(model_path_comfyui), 'clip_vision');
@@ -71,14 +73,14 @@ function updateControlNetList(model_path_comfyui, model_path_webui, search_subfo
             let ipaList = readDirectory(ipadapterPathComfyUI, '', search_subfolder);
 
             let clipVisionListWithPrefix = [];
-            clipList.forEach((item) => {
+            for (const item of clipList) {
                 clipVisionListWithPrefix.push('CV->' + item);
-            });
+            }
 
             let ipaListWithPrefix = [];
-            ipaList.forEach((item) => {
+            for (const item of ipaList ) {
                 ipaListWithPrefix.push('IPA->' + item);
-            });
+            }
 
             CONTROLNET_COMFYUI = CONTROLNET_COMFYUI.concat(clipVisionListWithPrefix, ipaListWithPrefix);
 
@@ -168,9 +170,9 @@ function collectRelativePaths(fieldName) {
     const raw = EXTRA_MODELS.yamlContent.a111[fieldName];
     if (!raw) return [];
     if (Array.isArray(raw)) {
-        return raw.map(r => String(r).trim()).filter(r => r);
+        return raw.map(r => String(r).trim()).filter(Boolean);
     } else {
-        return String(raw).split(/\r?\n/).map(s => s.trim()).filter(s => s);
+        return String(raw).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     }
 }
 
@@ -186,8 +188,7 @@ function readExtraModelPaths(model_path_comfyui) {
     console.log(CAT, 'readExtraModelPaths: reading from', extraModelPathsFile);
 
     try {
-        const raw = fs.readFileSync(extraModelPathsFile, 'utf8');
-        const yaml = require('js-yaml');
+        const raw = fs.readFileSync(extraModelPathsFile, 'utf8');        
         EXTRA_MODELS.yamlContent = yaml.load(raw);
     } catch (err) {
         console.log(CAT, 'readExtraModelPaths: failed to read/parse yaml', err);
@@ -349,10 +350,15 @@ function updateModelAndLoRAList(args) {
     // This is the Skeleton Key to unlock the Mutex Lock
     // In case ...
     console.warn(CAT, 'The Skeleton Key triggerd, Mutex Lock set to false');
-    Main.setMutexBackendBusy(false);
+    setMutexBackendBusy(false);
 }
 
-module.exports = {
+
+function getExtraModels() {
+    return EXTRA_MODELS;
+}
+
+export {
     setupModelList,
     getModelList,
     getModelListAll,
@@ -361,6 +367,5 @@ module.exports = {
     getImageTaggerModels,
     updateModelAndLoRAList,
     collectRelativePaths,
-    getExtraModels: () => EXTRA_MODELS    
+    getExtraModels
 };
-

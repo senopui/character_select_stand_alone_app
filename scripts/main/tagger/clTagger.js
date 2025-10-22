@@ -1,8 +1,7 @@
-
-const ort = require("onnxruntime-node");
-const fs = require("fs");
-const sharp = require("sharp"); 
-const os = require("os");
+import * as ort from 'onnxruntime-node';
+import * as fs from 'node:fs';
+import sharp from 'sharp';
+import * as os from 'node:os';
 
 const CAT = '[CLTagger] ';
 
@@ -51,7 +50,7 @@ async function preprocessImageCL(base64Str, targetSize=448) {
   const src = rawBuffer; // Buffer / Uint8Array
   const chwArray = new Float32Array(3 * N);
   const meanR = 0.5, meanG = 0.5, meanB = 0.5;
-  const invStdR = 1.0 / 0.5, invStdG = 1.0 / 0.5, invStdB = 1.0 / 0.5;
+  const invStdR = 1 / 0.5, invStdG = 1 / 0.5, invStdB = 1 / 0.5;
   let srcIdx = 0;
   // Precompute plane offsets
   const planeR = 0;
@@ -59,9 +58,9 @@ async function preprocessImageCL(base64Str, targetSize=448) {
   const planeB = 2 * N;
 
   for (let p = 0; p < N; p++) {
-    const r = src[srcIdx    ] / 255.0;
-    const g = src[srcIdx + 1] / 255.0;
-    const b = src[srcIdx + 2] / 255.0;
+    const r = src[srcIdx    ] / 255;
+    const g = src[srcIdx + 1] / 255;
+    const b = src[srcIdx + 2] / 255;
 
     chwArray[planeR + p] = (b - meanB) * invStdB;
     chwArray[planeG + p] = (g - meanG) * invStdG;
@@ -74,25 +73,25 @@ async function preprocessImageCL(base64Str, targetSize=448) {
   return chwArray;
 }
 
+function shouldIncludeTag(entry, i, probs, allowedCats, gen_threshold, char_threshold) {
+  const category = (entry?.category) ? entry.category : "General";
+  if (allowedCats.size > 0 && !allowedCats.has(String(category).toLowerCase())) {
+    return false;
+  }
+  const p = probs[i];
+  if (p === undefined) return false;
+  const threshold =
+    ["Character", "Copyright", "Artist"].includes(category)
+      ? char_threshold
+      : gen_threshold;
+  return p >= threshold;
+}
+
 async function runClTagger(modelPath, inputTensor, gen_threshold=0.55, char_threshold=0.6, 
   cat = ['General', 'Character', 'Artist', 'Copyright', 'Meta', 'Model', 'Rating', 'Quality']) {
   // Sigmoid function with clamping to avoid overflow
   function sigmoid(x) {
     return 1 / (1 + Math.exp(-Math.max(-30, Math.min(30, x))));
-  }
-
-  function shouldIncludeTag(entry, i, probs, allowedCats, gen_threshold, char_threshold) {
-    const category = (entry?.category) ? entry.category : "General";
-    if (allowedCats.size > 0 && !allowedCats.has(String(category).toLowerCase())) {
-      return false;
-    }
-    const p = probs[i];
-    if (typeof p === "undefined") return false;
-    const threshold =
-      ["Character", "Copyright", "Artist"].includes(category)
-        ? char_threshold
-        : gen_threshold;
-    return p >= threshold;
   }
 
   const session = await ort.InferenceSession.create(modelPath, { 
@@ -128,11 +127,11 @@ async function runClTagger(modelPath, inputTensor, gen_threshold=0.55, char_thre
 
   // Apply thresholds and collect tags
   for (const [idxStr, entry] of Object.entries(tagMapping)) {
-    const i = parseInt(idxStr, 10);
+    const i = Number.parseInt(idxStr, 10);
     if (Number.isNaN(i)) continue;
     if (shouldIncludeTag(entry, i, probs, allowedCats, gen_threshold, char_threshold)) {
       const tag = (entry?.tag) ? entry.tag : String(entry);
-      outputTags.push(String(tag).replace(/_/g, " "));
+      outputTags.push(String(tag).replaceAll('_', ' '));
     }
   }
 
@@ -140,7 +139,7 @@ async function runClTagger(modelPath, inputTensor, gen_threshold=0.55, char_thre
   return outputTags;
 }
 
-module.exports = {
+export {
   preprocessImageCL,
   runClTagger
 };

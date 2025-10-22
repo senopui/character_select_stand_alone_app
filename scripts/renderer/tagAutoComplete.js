@@ -8,6 +8,130 @@ function debounce(func, wait) {
     };
 }
 
+function extractCurrentWeight(targetText) {
+    const weightMatch = targetText.match(/^\((.+):(\d*\.?\d+)\)$/);
+    return weightMatch ? Number.parseFloat(weightMatch[2]) : 1;
+}
+
+function calculateNewWeight(currentWeight, isIncrease) {
+    const step = 0.05;
+    const newWeight = isIncrease ? currentWeight + step : currentWeight - step;
+    if (newWeight < 0 || newWeight > 3) return null;
+    return Number.parseFloat(newWeight.toFixed(2));
+}
+
+function formatNewTag(targetText, newWeight) {
+    const baseText = targetText.match(/^\((.+):\d*\.?\d+\)$/)?.[1] || targetText;
+    return newWeight === 1 ? baseText : `(${baseText}:${newWeight})`;
+}
+
+function updateTextboxValue(textbox, value, start, end, newTag) {
+    textbox.value = value.slice(0, start) + newTag + value.slice(end);
+    const newCursorPos = start + newTag.length;
+    textbox.setSelectionRange(newCursorPos, newCursorPos);
+    textbox.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function findBracketedTag(beforeCursor, afterCursor) {
+    const fullText = beforeCursor + afterCursor;
+    const cursorPos = beforeCursor.length;
+
+    const bracketRegex = /\(([^()]+:\d*\.?\d+)\)/g;
+    let match;
+    while ((match = bracketRegex.exec(fullText)) !== null) {
+        const start = match.index;
+        const end = start + match[0].length;
+        if (start <= cursorPos && cursorPos <= end) {
+            return {
+                text: match[0],
+                start: start,
+                end: end
+            };
+        }
+    }
+    return null;
+}
+
+function extractTargetText(value, startPos, endPos) {
+    if (startPos !== endPos) {
+        return { targetText: value.slice(startPos, endPos), start: startPos, end: endPos };
+    }
+
+    const beforeCursor = value.slice(0, startPos);
+    const afterCursor = value.slice(startPos);
+    const bracketMatch = findBracketedTag(beforeCursor, afterCursor);
+
+    if (bracketMatch) {
+        return { targetText: bracketMatch.text, start: bracketMatch.start, end: bracketMatch.end };
+    }
+
+    const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
+    const firstSeparatorAfter = afterCursor.includes(',') ? afterCursor.indexOf(',') : afterCursor.indexOf('\n');
+    const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
+    const end = firstSeparatorAfter >= 0 ? startPos + firstSeparatorAfter : value.length;
+
+    return { targetText: value.slice(start, end).trim(), start, end };
+}
+
+function formatSuggestion(suggestion) {
+    const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
+
+    // AS IS: wildcards like __my_special_tag__
+    if (/^__.*__$/.test(withoutHeat)) {
+        return withoutHeat;
+    }
+
+    // otherwise, format the suggestion
+    let formatted = withoutHeat.replaceAll('_', ' ');
+    formatted = formatted.replaceAll(/[\\()]/g, String.raw`\$&`);
+    return formatted.startsWith(':') ? formatted : formatted.replaceAll(':', ' ');
+}
+
+function adjustWeight(isIncrease, textbox) {
+    const { value, selectionStart: startPos, selectionEnd: endPos } = textbox;
+
+    const { targetText, start, end } = extractTargetText(value, startPos, endPos);
+    if (!targetText) return;
+
+    const currentWeight = extractCurrentWeight(targetText);
+    const newWeight = calculateNewWeight(currentWeight, isIncrease);
+    if (newWeight === null) return;
+
+    const newTag = formatNewTag(targetText, newWeight);
+    updateTextboxValue(textbox, value, start, end, newTag);
+}
+
+function extractWordToSend(value, cursorPosition) {
+    const beforeCursor = value.slice(0, cursorPosition);
+    const afterCursor = value.slice(cursorPosition);                
+    const lastCommaBefore = beforeCursor.lastIndexOf(',');
+    const lastNewlineBefore = beforeCursor.lastIndexOf('\n');
+    const start = Math.max(lastCommaBefore, lastNewlineBefore) >= 0 
+        ? Math.max(lastCommaBefore, lastNewlineBefore) + 1 
+        : 0;        
+    const firstCommaAfter = afterCursor.indexOf(',');
+    const firstNewlineAfter = afterCursor.indexOf('\n');
+    
+    let end;
+    if (firstNewlineAfter === 0) {
+        end = cursorPosition;
+    } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
+        end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
+            ? cursorPosition + firstCommaAfter
+            : (() => {
+                if (firstNewlineAfter >= 0) {
+                    return cursorPosition + firstNewlineAfter;
+                }
+                return value.length;
+            })();
+    } else {
+        end = value.length;
+    }
+
+    const extracted = value.slice(start, end).trim();
+    return extracted.endsWith(',') || extracted === '' ? '' : extracted;
+}
+
 export function setupSuggestionSystem() {
     const textboxes = document.querySelectorAll(
         '.myTextbox-prompt-common-textarea, .myTextbox-prompt-positive-textarea, .myTextbox-prompt-positive-right-textarea, .myTextbox-prompt-negative-textarea, .myTextbox-prompt-exclude-textarea'
@@ -17,8 +141,8 @@ export function setupSuggestionSystem() {
     let lastWordSent = '';
     let skipSuggestion = false;
 
-    textboxes.forEach(textbox => {
-        if (textbox.dataset.suggestionSetup) return;
+    for(const textbox of textboxes) {
+        if (textbox.dataset.suggestionSetup) continue;
 
         console.log('Setting up the Suggestion System for ', textbox);
 
@@ -56,13 +180,13 @@ export function setupSuggestionSystem() {
 
             try {            
                 let suggestions;
-                if (!window.inBrowser) {
-                    suggestions = await window.api.tagGet(wordToSend);
-                } else {
+                if (globalThis.inBrowser) {
                     suggestions = await sendWebSocketMessage({ type: 'API', method: 'tagGet', params: [wordToSend] });
+                } else {
+                    suggestions = await globalThis.api.tagGet(wordToSend);
                 }
 
-                if (!suggestions || suggestions.length === 0 || suggestions.every(s => s.length === 0)) {
+                if (!suggestions || suggestions.every(s => s.length === 0)) {
                     suggestionBox.style.display = 'none';
                     return;
                 }
@@ -76,15 +200,15 @@ export function setupSuggestionSystem() {
                 document.body.appendChild(tempDiv);
 
                 currentSuggestions = [];
-                suggestions.forEach((suggestion, index) => {
+                for (const [index, suggestion] of suggestions.entries()) {
                     if (!Array.isArray(suggestion) || suggestion.length === 0) {
                         console.warn('Invalid suggestion format at index', index, suggestion);
-                        return;
+                        continue;
                     }
                     const element = suggestion[0];
                     if (typeof element !== 'string') {
                         console.error('Unexpected element type at index', index, ':', typeof element, element);
-                        return;
+                        continue;
                     }
                     const item = document.createElement('div');
                     item.className = 'suggestion-item';
@@ -96,15 +220,15 @@ export function setupSuggestionSystem() {
                     let previousElement;
                     do {
                         previousElement = sanitizedElement;
-                        sanitizedElement = sanitizedElement.replace(/<[^>]+>/g, '');
+                        sanitizedElement = sanitizedElement.replaceAll(/<[^>]+>/g, '');
                     } while (sanitizedElement !== previousElement);
                     tempDiv.textContent = sanitizedElement;
                     maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
                     currentSuggestions.push({ prompt: element });
                     fragment.appendChild(item);
-                });
+                }
 
-                document.body.removeChild(tempDiv);
+                tempDiv.remove();
                 suggestionBox.innerHTML = '';
                 suggestionBox.appendChild(fragment);
                 suggestionBox.style.width = `${Math.min(maxWidth + 20, 300)}px`;
@@ -147,86 +271,7 @@ export function setupSuggestionSystem() {
                 e.preventDefault();
                 adjustWeight(e.key === 'ArrowUp', textbox);
             }
-        });
-
-        function adjustWeight(isIncrease, textbox) {
-            const { value, selectionStart: startPos, selectionEnd: endPos } = textbox;
-
-            const { targetText, start, end } = extractTargetText(value, startPos, endPos);
-            if (!targetText) return;
-
-            const currentWeight = extractCurrentWeight(targetText);
-            const newWeight = calculateNewWeight(currentWeight, isIncrease);
-            if (newWeight === null) return;
-
-            const newTag = formatNewTag(targetText, newWeight);
-            updateTextboxValue(textbox, value, start, end, newTag);
-        }
-
-        function extractTargetText(value, startPos, endPos) {
-            if (startPos !== endPos) {
-                return { targetText: value.slice(startPos, endPos), start: startPos, end: endPos };
-            }
-
-            const beforeCursor = value.slice(0, startPos);
-            const afterCursor = value.slice(startPos);
-            const bracketMatch = findBracketedTag(beforeCursor, afterCursor);
-
-            if (bracketMatch) {
-                return { targetText: bracketMatch.text, start: bracketMatch.start, end: bracketMatch.end };
-            }
-
-            const lastSeparatorBefore = Math.max(beforeCursor.lastIndexOf(','), beforeCursor.lastIndexOf('\n'));
-            const firstSeparatorAfter = afterCursor.indexOf(',') >= 0 ? afterCursor.indexOf(',') : afterCursor.indexOf('\n');
-            const start = lastSeparatorBefore >= 0 ? lastSeparatorBefore + 1 : 0;
-            const end = firstSeparatorAfter >= 0 ? startPos + firstSeparatorAfter : value.length;
-
-            return { targetText: value.slice(start, end).trim(), start, end };
-        }
-
-        function extractCurrentWeight(targetText) {
-            const weightMatch = targetText.match(/^\((.+):(\d*\.?\d+)\)$/);
-            return weightMatch ? parseFloat(weightMatch[2]) : 1.0;
-        }
-
-        function calculateNewWeight(currentWeight, isIncrease) {
-            const step = 0.05;
-            const newWeight = isIncrease ? currentWeight + step : currentWeight - step;
-            if (newWeight < 0.0 || newWeight > 3.0) return null;
-            return parseFloat(newWeight.toFixed(2));
-        }
-
-        function formatNewTag(targetText, newWeight) {
-            const baseText = targetText.match(/^\((.+):\d*\.?\d+\)$/)?.[1] || targetText;
-            return newWeight === 1.0 ? baseText : `(${baseText}:${newWeight})`;
-        }
-
-        function updateTextboxValue(textbox, value, start, end, newTag) {
-            textbox.value = value.slice(0, start) + newTag + value.slice(end);
-            const newCursorPos = start + newTag.length;
-            textbox.setSelectionRange(newCursorPos, newCursorPos);
-            textbox.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-
-        function findBracketedTag(beforeCursor, afterCursor) {
-            const fullText = beforeCursor + afterCursor;
-            const cursorPos = beforeCursor.length;
-
-            const bracketRegex = /\(([^()]+:\d*\.?\d+)\)/g;
-            let match;
-            while ((match = bracketRegex.exec(fullText)) !== null) {
-                const start = match.index;
-                const end = start + match[0].length;
-                if (start <= cursorPos && cursorPos <= end) {
-                    return {
-                        text: match[0],
-                        start: start,
-                        end: end
-                    };
-                }
-            }
-            return null;
-        }
+        });        
 
         document.addEventListener('click', (e) => {
             if (!suggestionBox.contains(e.target) && e.target !== textbox) {
@@ -241,54 +286,11 @@ export function setupSuggestionSystem() {
         }, 100), true);
 
         function updateSelection(items) {
-            items.forEach((item, idx) => item.classList.toggle('selected', idx === selectedIndex));
+            for (const [idx, item] of items.entries()) {
+                item.classList.toggle('selected', idx === selectedIndex);
+            }
             if (selectedIndex >= 0) items[selectedIndex].scrollIntoView({ block: 'nearest' });
             textbox.focus();
-        }
-
-        function extractWordToSend(value, cursorPosition) {
-            const beforeCursor = value.slice(0, cursorPosition);
-            const afterCursor = value.slice(cursorPosition);                
-            const lastCommaBefore = beforeCursor.lastIndexOf(',');
-            const lastNewlineBefore = beforeCursor.lastIndexOf('\n');
-            const start = Math.max(lastCommaBefore, lastNewlineBefore) >= 0 
-                ? Math.max(lastCommaBefore, lastNewlineBefore) + 1 
-                : 0;        
-            const firstCommaAfter = afterCursor.indexOf(',');
-            const firstNewlineAfter = afterCursor.indexOf('\n');
-            
-            let end;
-            if (firstNewlineAfter === 0) {
-                end = cursorPosition;
-            } else if (firstCommaAfter >= 0 || firstNewlineAfter >= 0) {
-                end = firstCommaAfter >= 0 && (firstNewlineAfter < 0 || firstCommaAfter < firstNewlineAfter)
-                    ? cursorPosition + firstCommaAfter
-                    : (() => {
-                        if (firstNewlineAfter >= 0) {
-                            return cursorPosition + firstNewlineAfter;
-                        }
-                        return value.length;
-                    })();
-            } else {
-                end = value.length;
-            }
-        
-            const extracted = value.slice(start, end).trim();
-            return extracted.endsWith(',') || extracted === '' ? '' : extracted;
-        }
-
-        function formatSuggestion(suggestion) {
-            const withoutHeat = suggestion.replace(/\s\(\d+\)$/, '');
-
-            // AS IS: wildcards like __my_special_tag__
-            if (/^__.*__$/.test(withoutHeat)) {
-                return withoutHeat;
-            }
-
-            // otherwise, format the suggestion
-            let formatted = withoutHeat.replace(/_/g, ' ');
-            formatted = formatted.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-            return formatted.startsWith(':') ? formatted : formatted.replace(/:/g, ' ');
         }
 
         function applySuggestion(promptText) {
@@ -354,9 +356,9 @@ export function setupSuggestionSystem() {
 
         function updateSuggestionBoxPosition() {
             const rect = textbox.getBoundingClientRect();
-            const textboxTop = rect.top + window.scrollY;
-            const textboxBottom = rect.bottom + window.scrollY;
-            const textboxLeft = rect.left + window.scrollX;
+            const textboxTop = rect.top + globalThis.scrollY;
+            const textboxBottom = rect.bottom + globalThis.scrollY;
+            const textboxLeft = rect.left + globalThis.scrollX;
 
             const cursorPosition = Math.min(textbox.selectionStart, textbox.value.length);
             const textBeforeCursor = textbox.value.substring(0, cursorPosition);
@@ -364,7 +366,7 @@ export function setupSuggestionSystem() {
             const lineSpan = document.createElement('span');
             lineSpan.style.position = 'absolute';
             lineSpan.style.visibility = 'hidden';
-            lineSpan.style.font = window.getComputedStyle(textbox).font;
+            lineSpan.style.font = globalThis.getComputedStyle(textbox).font;
             lineSpan.style.whiteSpace = 'pre-wrap';
             lineSpan.style.width = `${textboxWidth}px`;
             document.body.appendChild(lineSpan);
@@ -381,17 +383,17 @@ export function setupSuggestionSystem() {
                 }
             }
             if (currentLine) lines.push(currentLine);
-            document.body.removeChild(lineSpan);
+            lineSpan.remove();
 
             const widthSpan = document.createElement('span');
             widthSpan.style.position = 'absolute';
             widthSpan.style.visibility = 'hidden';
-            widthSpan.style.font = window.getComputedStyle(textbox).font;
+            widthSpan.style.font = globalThis.getComputedStyle(textbox).font;
             widthSpan.style.whiteSpace = 'nowrap';
-            widthSpan.textContent = lines[lines.length - 1] || '';
+            widthSpan.textContent = lines.at(-1) || '';
             document.body.appendChild(widthSpan);
             const cursorOffset = widthSpan.offsetWidth;
-            document.body.removeChild(widthSpan);
+            widthSpan.remove();
 
             suggestionBox.style.display = 'block';
             const suggestionWidth = suggestionBox.offsetWidth || 200;
@@ -400,8 +402,8 @@ export function setupSuggestionSystem() {
 
             let newLeft = textboxLeft + cursorOffset;
             let newTop = textboxBottom;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
+            const windowWidth = globalThis.innerWidth;
+            const windowHeight = globalThis.innerHeight;
             const paddingX = 24;
             const paddingY = 12;
 
@@ -410,9 +412,9 @@ export function setupSuggestionSystem() {
             }
             if (newLeft < textboxLeft) newLeft = textboxLeft;
 
-            if (newTop + suggestionHeight > windowHeight + window.scrollY - paddingY) {
+            if (newTop + suggestionHeight > windowHeight + globalThis.scrollY - paddingY) {
                 newTop = textboxTop - suggestionHeight - paddingY;
-                if (newTop < window.scrollY) newTop = textboxBottom;
+                if (newTop < globalThis.scrollY) newTop = textboxBottom;
             }
 
             suggestionBox.style.left = `${newLeft}px`;
@@ -422,5 +424,5 @@ export function setupSuggestionSystem() {
         }
 
         textbox.dataset.suggestionSetup = 'true';
-    });
+    }
 }

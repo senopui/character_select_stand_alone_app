@@ -1,8 +1,7 @@
-const { ipcMain } = require('electron')
-const { net } = require('electron');
-const path = require('node:path')
-const { sendToRenderer } = require('./generate_backend_comfyui'); 
-const Main = require('../../main');
+import { ipcMain, net } from 'electron';
+import path from 'node:path';
+import { sendToRenderer } from './generate_backend_comfyui.js';
+import { getMutexBackendBusy, setMutexBackendBusy } from '../../main-common.js';
 
 const CAT = '[WebUI]';
 let backendWebUI = null;
@@ -26,12 +25,12 @@ function applyControlnet(payload, controlnet){
         payload["alwayson_scripts"]["controlnet"] = {};
         payload["alwayson_scripts"]["controlnet"]["args"]  = [];
 
-        controlnet.forEach((slot, idx) => {
+        for( const slot of controlnet) {
             const controlNetArg = {};
             // skip empty
             if(slot.postModel === 'none') {
-                console.log(CAT,"[applyControlnet] Skip", idx, slot);
-                return;
+                console.log(CAT,"[applyControlnet] Skip ", slot);
+                continue;
             }
             
             controlNetArg["enabled"] = true;
@@ -43,25 +42,24 @@ function applyControlnet(payload, controlnet){
                 controlNetArg["module"] = 'none';   // skip pre
                 controlNetArg["image"] = slot.imageAfter;
             } else {  // should not here
-                return;
-            
+                continue;            
             }            
-            controlNetArg["processor_res"] = parseInt(slot.preRes);
+            controlNetArg["processor_res"] = Number.parseInt(slot.preRes);
             controlNetArg["model"] = findControlNetModelByName(slot.postModel);
-            controlNetArg["weight"] = parseFloat(slot.postStr);
-            controlNetArg["guidance_start"] = parseFloat(slot.postStart);
-            controlNetArg["guidance_end"] = parseFloat(slot.postEnd);
+            controlNetArg["weight"] = Number.parseFloat(slot.postStr);
+            controlNetArg["guidance_start"] = Number.parseFloat(slot.postStart);
+            controlNetArg["guidance_end"] = Number.parseFloat(slot.postEnd);
 
             newPayload["alwayson_scripts"]["controlnet"]["args"].push(controlNetArg);
-        });                
+        };                
     }
 
     return newPayload;
 }
 
 class WebUI {
-    constructor() {
-        this.addr = '127.0.0.1:7860';
+    constructor(addr) {
+        this.addr = addr;
         this.preview = 0;
         this.refresh = 0;
         this.timeout = 5000;
@@ -238,14 +236,14 @@ class WebUI {
                     console.error(CAT, 'Request failed:', error.message);
                     ret = `Error: Request failed:, ${error.message}`;
                 }
-                Main.setMutexBackendBusy(false); // Release the mutex lock
+                setMutexBackendBusy(false); // Release the mutex lock
                 resolve(ret);
             });
     
             request.on('timeout', () => {
                 request.destroy();
                 console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                Main.setMutexBackendBusy(false); // Release the mutex lock
+                setMutexBackendBusy(false); // Release the mutex lock
                 resolve(`Error: Request timed out after ${this.timeout}ms`);
             });
 
@@ -501,7 +499,7 @@ class WebUI {
 }
 
 async function setupGenerateBackendWebUI() {
-    backendWebUI = new WebUI();
+    backendWebUI = new WebUI('127.0.0.1:7860');
 
     ipcMain.handle('generate-backend-webui-run', async (event, generateData) => {
         return await runWebUI(generateData);
@@ -549,12 +547,12 @@ async function updateControlNetHashList(generateData) {
 }
 
 async function runWebUI(generateData){
-    const isBusy = await Main.getMutexBackendBusy();
+    const isBusy = await getMutexBackendBusy();
     if (isBusy) {
         console.warn(CAT, '[runWebUI] WebUI is busy, cannot run new generation, please try again later.');
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
-    Main.setMutexBackendBusy(true); // Acquire the mutex lock
+    setMutexBackendBusy(true); // Acquire the mutex lock
 
     if (contronNetModelHashList === 'none') {
         console.log(CAT, "Refresh controlNet model hash list:");
@@ -577,7 +575,7 @@ async function runWebUI(generateData){
             const jsonData =  JSON.parse(imageData);
             sendToRenderer(backendWebUI.uuid, `updateProgress`, `100`, '100%');
             const image = jsonData.images[0];
-            Main.setMutexBackendBusy(false); // Release the mutex lock
+            setMutexBackendBusy(false); // Release the mutex lock
             // parameters info
             return `data:image/png;base64,${image}`;
         } catch (error) {
@@ -590,12 +588,12 @@ async function runWebUI(generateData){
 } 
 
 async function runWebUI_ControlNet(generateData) {
-    const isBusy = await Main.getMutexBackendBusy();
+    const isBusy = await getMutexBackendBusy();
     if (isBusy) {
         console.warn(CAT, '[runWebUI_ControlNet] WebUI is busy, cannot run new generation, please try again later.');
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
-    Main.setMutexBackendBusy(true); // Acquire lock for the entire operation
+    setMutexBackendBusy(true); // Acquire lock for the entire operation
 
     try {
         await updateControlNetHashList(generateData);
@@ -629,7 +627,7 @@ async function runWebUI_ControlNet(generateData) {
         console.error(CAT, 'Unexpected error in ControlNet run:', error);
         return `Error: Unexpected failure - ${error.message}`;
     } finally {
-        Main.setMutexBackendBusy(false); // Release lock after everything (success or error)
+        setMutexBackendBusy(false); // Release lock after everything (success or error)
     }
 }
 
@@ -646,7 +644,7 @@ function stopPollingWebUI() {
     backendWebUI.stopPolling();    
 }
 
-module.exports = {
+export {
     setupGenerateBackendWebUI,
     runWebUI,
     runWebUI_ControlNet,

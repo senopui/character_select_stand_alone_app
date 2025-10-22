@@ -1,8 +1,7 @@
-const { app, ipcMain } = require('electron');
-const path = require('node:path');
-const https = require('https');
-const fs = require('fs');
-const { dialog } = require('electron');
+import { app, ipcMain, dialog } from 'electron';
+import path from 'node:path';
+import https from 'node:https';
+import * as fs from 'node:fs';
 
 const CAT = '[FileDownloader]';
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
@@ -56,7 +55,7 @@ function downloadFile(url, filePath, redirectCount = 0) {
         request.on('error', (err) => {
             console.error(`${CAT}: Error downloading file: ${err.message}`);
             fs.unlink(filePath, () => {});
-            reject(err);
+            reject(new Error(String(err)));
         });
     });
 }
@@ -106,6 +105,6 @@ async function setupDownloadFiles() {
     return true;
 }
 
-module.exports = {
+export {
     setupDownloadFiles
 };

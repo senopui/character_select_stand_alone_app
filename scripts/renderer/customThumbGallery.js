@@ -5,13 +5,7 @@ async function decompressImageData(base64Data) {
         async function decodeImage() {
             try {
                 let decompressedData;
-                if (!window.inBrowser) {
-                    decompressedData = await window.api.decompressGzip(base64Data);
-                    if (decompressedData) {
-                        const image = new Uint8Array(decompressedData);
-                        return resolve(image);
-                    }
-                } else {
+                if (globalThis.inBrowser) {                    
                     const response = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [base64Data] });
                     // Check if the response is valid and contains the expected data
                     if (response && response.type === 'Buffer' && Array.isArray(response.data)) {
@@ -20,6 +14,12 @@ async function decompressImageData(base64Data) {
                     } else {
                         console.error('Invalid decompressed data format:', response);
                         return resolve(null);
+                    }
+                } else {
+                    decompressedData = await globalThis.api.decompressGzip(base64Data);
+                    if (decompressedData) {
+                        const image = new Uint8Array(decompressedData);
+                        return resolve(image);
                     }
                 }
             } catch (error) {
@@ -35,7 +35,7 @@ async function decompressImageData(base64Data) {
 function convertWebPToBase64(webpData) {
     try {
         const binaryString = Array.from(webpData)
-            .map(byte => String.fromCharCode(byte))
+            .map(byte => String.fromCodePoint(byte))
             .join('');
         const base64Data = btoa(binaryString);
 
@@ -77,7 +77,9 @@ function setupScrollableContainer(container) {
 
 function ensureSwitchModeButton(container, toggleFunction, id, images_length) {
     let button = document.getElementById(id);
-    if (!button) {
+    if (button) {        
+        button.textContent = images_length > 0 ? `<${images_length}>` : '<>';
+    } else {
         button = document.createElement('button');
         button.id = id;
         button.className = 'cg-button';
@@ -106,9 +108,6 @@ function ensureSwitchModeButton(container, toggleFunction, id, images_length) {
         }
         container.appendChild(button);
     }
-    else {
-        button.textContent = images_length > 0 ? `<${images_length}>` : '<>';
-    }
 }
 
 function createModeSwitchOverlay(container) {
@@ -119,7 +118,7 @@ function createModeSwitchOverlay(container) {
         overlay.className = 'cg-mode-switch-overlay';
         overlay.innerHTML = `
             <div class="cg-mode-switch-spinner"></div>
-            <div class="cg-mode-switch-text">${window.cachedFiles.language[window.globalSettings.language].switch_gallery_mode}</div>
+            <div class="cg-mode-switch-text">${globalThis.cachedFiles.language[globalThis.globalSettings.language].switch_gallery_mode}</div>
         `;
         container.appendChild(overlay);
     }
@@ -127,8 +126,8 @@ function createModeSwitchOverlay(container) {
 }
 
 export function setupThumbOverlay() {
-    if (window.thumbGallery.isThumbOverlaySetup) return;
-    window.thumbGallery.isThumbOverlaySetup = true;
+    if (globalThis.thumbGallery.isThumbOverlaySetup) return;
+    globalThis.thumbGallery.isThumbOverlaySetup = true;
 
     let images = [];
     let lastCharacter = null;
@@ -164,10 +163,10 @@ export function setupThumbOverlay() {
         const existingImages = Array.from(scrollContainer.children);
         const fragment = document.createDocumentFragment();
 
-        newImages.forEach((url, idx) => {
+        for (const [idx, url] of newImages.entries()) {
             let img = existingImages[idx] || document.createElement('img');
             img.src = url;
-            img.loading = 'lazy'; 
+            img.loading = 'lazy';
             img.className = 'cg-thumb-overlay-image';
             img.style.width = '307px';
             img.style.height = '460px';
@@ -179,19 +178,21 @@ export function setupThumbOverlay() {
                 img.remove();
             };
             fragment.appendChild(img);
-        });
+        }
 
-        existingImages.slice(newImages.length).forEach(img => img.remove());
+        for (const img of existingImages.slice(newImages.length)) {
+            img.remove();
+        }
         scrollContainer.innerHTML = '';
         scrollContainer.appendChild(fragment);
         if (!container.contains(scrollContainer)) container.appendChild(scrollContainer);
 
         const imgWidth = 314;
         const containerWidth = Math.max(314, images.length * imgWidth);
-        container.style.width = `${Math.min(containerWidth, window.innerWidth * 0.8)}px`;
+        container.style.width = `${Math.min(containerWidth, globalThis.innerWidth * 0.8)}px`;
     }
 
-    window.updateThumbOverlay = function (character, imageData) {
+    globalThis.updateThumbOverlay = function (character, imageData) {
         if (typeof character !== 'string' || character === lastCharacter) return;
         lastCharacter = character;
 
@@ -217,13 +218,13 @@ export function setupThumbOverlay() {
     renderOverlay([]);
     return () => {
         container.remove();
-        window.thumbGallery.isThumbOverlaySetup = false;
+        globalThis.thumbGallery.isThumbOverlaySetup = false;
     };
 }
 
 export function setupThumb(containerId) {
-    if (window.thumbGallery.isThumbSetup) return;
-    window.thumbGallery.isThumbSetup = true;
+    if (globalThis.thumbGallery.isThumbSetup) return;
+    globalThis.thumbGallery.isThumbSetup = true;
 
     let isGridMode = false;
     let images = [];
@@ -247,13 +248,13 @@ export function setupThumb(containerId) {
         }
 
         let gallery = container.querySelector('.cg-thumb-grid-container');
-        let lastAspectRatio = parseFloat(localStorage.getItem('thumbGridAspectRatio') || '0');
+        let lastAspectRatio = Number.parseFloat(localStorage.getItem('thumbGridAspectRatio') || '0');
 
         const containerWidth = container.offsetWidth;
         const containerHeight = container.offsetHeight;
 
         const firstImage = new Image();
-        firstImage.src = images[images.length - 1]; // Use latest image for aspect ratio
+        firstImage.src = images.at(-1); // Use latest image for aspect ratio
         firstImage.onload = () => {
             const aspectRatio = firstImage.width / firstImage.height;
             const needsRedraw = !incremental || Math.abs(aspectRatio - lastAspectRatio) > 0.001;
@@ -345,14 +346,14 @@ export function setupThumb(containerId) {
 
         const fragment = document.createDocumentFragment();
         const observer = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
+            for (const entry of entries) {
                 if (entry.isIntersecting) {
                     const img = entry.target;
                     img.src = img.dataset.src;
                     img.className = 'cg-thumb-scroll-image visible';
                     observer.unobserve(img);
                 }
-            });
+            }
         }, { root: scrollContainer, threshold: 0.1 });
 
         // Render only new images in incremental mode
@@ -379,11 +380,11 @@ export function setupThumb(containerId) {
         }, 'cg-thumb-switch-mode-button', images.length);
     }
 
-    window.thumbGallery.clear = function() {
-        window.thumbGallery.update(null);
+    globalThis.thumbGallery.clear = function() {
+        globalThis.thumbGallery.update(null);
     }
 
-    window.thumbGallery.update = function (imageData) {
+    globalThis.thumbGallery.update = function (imageData) {
         if (!Array.isArray(imageData) || imageData.length === 0) {
             container.innerHTML = '';
             const switchModeButton = document.getElementById('cg-thumb-switch-mode-button');
@@ -398,7 +399,7 @@ export function setupThumb(containerId) {
         isGridMode ? thumb_renderGridMode() : thumb_renderSplitMode();
     };
 
-    window.thumbGallery.append = function (imageData) {
+    globalThis.thumbGallery.append = function (imageData) {
         if (!Array.isArray(imageData) || imageData.length === 0) {
             return;
         }
@@ -422,19 +423,19 @@ export async function decodeThumb(character, random_seed = -1) {
             if (!md5Chara) return resolve(null);
 
             let gzipWebp;
-            if(!window.inBrowser) {
-                gzipWebp = window.cachedFiles.characterThumb[md5Chara];
-            } else {
+            if(globalThis.inBrowser) {
                 gzipWebp = await sendWebSocketMessage({ type: 'API', method: 'getCharacterThumb', params: [md5Chara] });                
+            } else {
+                gzipWebp = globalThis.cachedFiles.characterThumb[md5Chara];
             }
             if (!gzipWebp) return resolve(null);
 
             const image = await getBase64Image(gzipWebp);
-            if (!image) {
+            if (image) {                
+                return resolve(image);
+            } else {
                 console.error('Failed to decode image for character:', character);
                 return resolve(null);
-            } else {
-                return resolve(image);
             }
         }
 
@@ -448,14 +449,12 @@ function isValidCharacter(character, random_seed) {
 }
 
 function getCharacterData(character) {
-    return window.cachedFiles.characterList[character] || null;
+    return globalThis.cachedFiles.characterList[character] || null;
 }
 
 async function getMd5Hash(chara) {
-    const sanitizedChara = chara.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-    if(!window.inBrowser) {
-        return window.api.md5Hash(sanitizedChara);
-    } else {
+    const sanitizedChara = chara.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`);
+    if(globalThis.inBrowser) {    
         try {
             const md5Hash = await sendWebSocketMessage({ type: 'API', method: 'md5Hash', params: [sanitizedChara] });
             return md5Hash;
@@ -463,6 +462,8 @@ async function getMd5Hash(chara) {
             console.error('Error generating MD5 hash:', error);
             return null;
         }
+    } else {
+            return globalThis.api.md5Hash(sanitizedChara);
     }
 }
 

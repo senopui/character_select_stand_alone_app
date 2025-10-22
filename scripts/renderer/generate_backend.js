@@ -1,10 +1,10 @@
 import { customCommonOverlay } from './customOverlay.js';
 
 export function from_main_updateGallery(base64, seed, tagsString){
-    const keepGallery = window.generate.keepGallery.getValue();
+    const keepGallery = globalThis.generate.keepGallery.getValue();
     if(!keepGallery)
-        window.mainGallery.clearGallery();
-    window.mainGallery.appendImageData(base64, seed, tagsString, keepGallery, window.globalSettings.scroll_to_last);
+        globalThis.mainGallery.clearGallery();
+    globalThis.mainGallery.appendImageData(base64, seed, tagsString, keepGallery, globalThis.globalSettings.scroll_to_last);
 }
 
 export function from_main_updatePreview(base64){
@@ -19,7 +19,7 @@ export function from_main_updatePreview(base64){
         imgElement.style.maxHeight = '384px';
         imgElement.style.objectFit = 'contain';
         imgElement.onerror = () => {
-            imgElement.src = window.cachedFiles.loadingWait;
+            imgElement.src = globalThis.cachedFiles.loadingWait;
             imgElement.style.maxWidth = '192px';
             imgElement.style.maxHeight = '192px';
             imgElement.onerror = null;
@@ -29,8 +29,8 @@ export function from_main_updatePreview(base64){
 
 export function from_main_customOverlayProgress(progress, totalProgress){
     try {
-        const loadingMessage = window.generate.loadingMessage.split('(')[0];
-        window.generate.loadingMessage = `${loadingMessage}(${progress}/${totalProgress})`;
+        const loadingMessage = globalThis.generate.loadingMessage.split('(')[0];
+        globalThis.generate.loadingMessage = `${loadingMessage}(${progress}/${totalProgress})`;
     } catch {
         // by pass
     }

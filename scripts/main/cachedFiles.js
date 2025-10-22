@@ -1,8 +1,7 @@
-const { app, ipcMain } = require('electron');
-const fs = require('fs');
-const path = require('node:path');
-const { loadCSVFile, loadJSONFile } = require('./fileHandlers'); 
-const { dialog } = require('electron');
+import { app, ipcMain, dialog } from 'electron';
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { loadCSVFile, loadJSONFile } from './fileHandlers.js';
 
 const CAT = '[FileCache]';
 
@@ -131,7 +130,7 @@ function getCharacterThumb(md5Chara) {
     return cachedCharacterThumb[md5Chara];
 }
 
-module.exports = {
+export {
     setupCachedFiles,
     getCachedFiles,
     getCachedFilesWithoutThumb,

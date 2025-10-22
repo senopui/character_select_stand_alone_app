@@ -1,13 +1,14 @@
-
-const ort = require("onnxruntime-node");
-const fs = require("fs");
-const path = require("path");
-
-const { preprocessImageWD, runWd14Tagger } = require("./tagger/wd14tagger");
-const { preprocessImageCL, runClTagger } = require("./tagger/clTagger");
-const { preprocessCamieImage, runCamieTagger } = require("./tagger/camieTagger");
+import * as ort from 'onnxruntime-node';
+import * as fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { preprocessImageWD, runWd14Tagger } from './tagger/wdTagger.js';
+import { preprocessImageCL, runClTagger } from './tagger/clTagger.js';
+import { preprocessCamieImage, runCamieTagger } from './tagger/camieTagger.js';
 
 const CAT = '[imageTaggerChild]';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function getClCategories(model_options) {
   if (model_options === 'All') {

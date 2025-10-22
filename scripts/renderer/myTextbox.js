@@ -2,7 +2,7 @@ const CAT='[myTextbox]';
 
 function addDynamicColorClass(color) {
     try {
-        const sanitizedColor = color.replace(/[^a-zA-Z0-9]/g, '-');
+        const sanitizedColor = color.replaceAll(/[^a-zA-Z0-9]/g, '-');
         const className = `color-${sanitizedColor}`;
         const styleSheet = document.styleSheets[0];
 
@@ -18,20 +18,20 @@ function addDynamicColorClass(color) {
     return 'none';
 }
 
-export function parseTaggedContent(content) {
-    function escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, char => map[char]);
-    }
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replaceAll(/[&<>"']/g, char => map[char]);
+}
 
+export function parseTaggedContent(content) {
     const colorRegex = /\[color=([^\]]*?)\](.*?)\[\/color\]/g;
-    content = content.replace(colorRegex, (match, color, text) => {
+    content = content.replaceAll(colorRegex, (match, color, text) => {
         const isValidColor = /^#[0-9A-Fa-f]{6}$|^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$|^[a-zA-Z]+$/.test(color);
         if (isValidColor) {
             const colorClass = addDynamicColorClass(color); 
@@ -41,7 +41,7 @@ export function parseTaggedContent(content) {
     });
 
     const urlRegex = /\[url=([^\]]*?)\](.*?)\[\/url\]/g;
-    content = content.replace(urlRegex, (match, url, text) => {
+    content = content.replaceAll(urlRegex, (match, url, text) => {
         const isValidUrl = /^(https?:\/\/[^\s<>"']+)$/.test(url);
         if (isValidUrl) {
             return `<a href="${url}" target="_blank" class="myInfoBox-link">${escapeHtml(text)}</a>`;
@@ -50,8 +50,8 @@ export function parseTaggedContent(content) {
     });
 
     const loraRegex = /<lora:[^>]+>/g;
-    content = content.replace(loraRegex, match => escapeHtml(match));
-    content = content.replace(/\n/g, '<br>');    
+    content = content.replaceAll(loraRegex, match => escapeHtml(match));
+    content = content.replaceAll('\n', '<br>');
     return content;
 }
 
@@ -92,8 +92,8 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
     const DEFAULT_LINE_HEIGHT = 20;     
     const adjustHeight = () => {
         if (maxLines === 1) {
-            let lineHeight = parseInt(window.getComputedStyle(textbox).lineHeight, 10);
-            if (isNaN(lineHeight)) {
+            let lineHeight = Number.parseInt(globalThis.getComputedStyle(textbox).lineHeight, 10);
+            if (Number.isNaN(lineHeight)) {
                 lineHeight = DEFAULT_LINE_HEIGHT;
             }
             textbox.style.height = `${lineHeight}px`;
@@ -111,8 +111,8 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
         textbox.style.height = 'auto'; 
         const scrollHeight = textbox.scrollHeight;
         
-        let lineHeight = parseInt(window.getComputedStyle(textbox).lineHeight, 10);
-        if (isNaN(lineHeight)) {
+        let lineHeight = Number.parseInt(globalThis.getComputedStyle(textbox).lineHeight, 10);
+        if (Number.isNaN(lineHeight)) {
             lineHeight = DEFAULT_LINE_HEIGHT;
         }
         
@@ -140,10 +140,10 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
         if (numberOnly) {
             const value = textbox.value;
             const validPattern = /^-?\d*\.?\d*$/;
-            if (!validPattern.test(value)) {
-                textbox.value = textbox.dataset.lastValid || '';
-            } else {
+            if (validPattern.test(value)) {
                 textbox.dataset.lastValid = value;
+            } else {
+                textbox.value = textbox.dataset.lastValid || '';
             }
         }
         
@@ -197,7 +197,7 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
         }
     });
 
-    window.addEventListener('resize', adjustHeight);
+    globalThis.addEventListener('resize', adjustHeight);
 
     return {
         getValue: () => {
@@ -209,10 +209,10 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
             textbox.value = value;
             if (numberOnly) {
                 const validPattern = /^-?\d*\.?\d*$/;
-                if (!validPattern.test(value)) {
-                    textbox.value = textbox.dataset.lastValid || '';
-                } else {
+                if (validPattern.test(value)) {
                     textbox.dataset.lastValid = value;
+                } else {
+                    textbox.value = textbox.dataset.lastValid || '';
                 }
             }
             realValue = textbox.value;

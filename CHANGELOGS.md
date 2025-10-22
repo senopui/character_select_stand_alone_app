@@ -1,3 +1,20 @@
+2025.10.22 v1.15.0     
+Code Refactoring      
+
+Improve tag completion feature and Chinese translation      
+  Add new Chinese translation file by **Kiratian(天痕)**      
+  Add category group mark for tags        
+  Imporve default tag search mode        
+
+Bug fix
+  Fix `Rating` tag missing for `WD Tagger`        
+  Fix Sampler/Scheduler mismatch during switch settings         
+  Fix SAA/SAAC WebUI generating stop polling preview image by clicking Generate in another SAA/SAAC window        
+  Fix WebUI IPAdapter reference image resize mismatch        
+  Fix AI prompt `<think>` `</think>` content not trimmed       
+  Minor bug fixes
+
+
 2025.10.15 v1.14.6      
 Bug fix       
 

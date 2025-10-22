@@ -58,8 +58,8 @@ mobedoor [#23 MIssing characters](https://github.com/mirabarukaso/character_sele
      
 ------
 # Highlights
-## Image Tagger (WD14 and CL)
-Supports [WD14@SmilingWolf](https://huggingface.co/SmilingWolf), [CL@cella110n](https://huggingface.co/cella110n/cl_tagger) and [Camie@Camais03](https://huggingface.co/spaces/Camais03/camie-tagger-v2-app) models in ONNX format.             
+## Image Tagger
+Supports [WD@SmilingWolf](https://huggingface.co/SmilingWolf), [CL@cella110n](https://huggingface.co/cella110n/cl_tagger) and [Camie@Camais03](https://huggingface.co/spaces/Camais03/camie-tagger-v2-app) models in ONNX format.             
 
 Download models with tags from [HF](https://huggingface.co), manually rename them according to the following rules, then copy them into `models/tagger` folder:      
   - cl_tagger_v2.onnx + cl_tagger_v2_tag_mapping.json    
@@ -160,7 +160,8 @@ WebUI(A1111) supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.
 ComfyUI supports more detailed configuration of LoRA, for more information please refer to [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
 Also support check LoRA info by click the 'i' button in LoRA Slot. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
 
-**To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**   
+**To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**    
+
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/loraSlot.png" width=45%>   
 
 ## Semi-Auto Tag Complete
@@ -168,7 +169,26 @@ Tags credits from [a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1
 
 Entering the `first few characters` will automatically search for matching tags, starting with `*` will search for tags with a specific ending, and `*tag*` will search for tags that match in the middle.    
 Use `mouse` to select the prompt word, but you can also use the `keyboard up and down` with `Enter` or `Tab` to select, press `Esc` to close the prompt box.     
-`ctrl + up` and `ctrl + down` arrow to adjust the weight of the current tag, or adjust multiple tags by selecting a fragment, the usage is similar to comfyui and webui, but some details of the logic may be different.    
+`ctrl + up` and `ctrl + down` arrow to adjust the weight of the current tag, or adjust multiple tags by selecting a fragment, the usage is similar to comfyui and webui, but some details of the logic may be different.      
+
+Supports English and Chinese(translate file required) tag search.     
+**Special thanks to Kiratian(天痕) for helping to translate the tags into Chinese version.**
+
+| Mark | ID | Category | Group |
+| --- | --- | --- |  --- | 
+| `[G]` | 0 | General | Danbooru |
+| `[A]` | 1 | Artist | Danbooru |
+| `[©]` | 3 | Copyright | Danbooru |
+| `[C]` | 4 | Character | Danbooru |
+| `[M]` | 5 | Meta | Danbooru |
+| `<G>` | 7 | General | E621 |
+| `<A>` | 8 | Artist | E621 |
+| `<©>` | 10 | Copyright | E621 |
+| `<C>` | 11 | Character | E621 |
+| `<S>` | 12 | Species | E621 |
+| `<M>` | 14 | Meta | E621 |
+| `<L>` | 15 | Lore | E621 |
+| `Wildcards` | 255 | Wildcards | SAA |
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/tagAutoComplete.png" width=45%>   
 

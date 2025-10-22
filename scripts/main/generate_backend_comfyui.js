@@ -1,7 +1,7 @@
-const { ipcMain, BrowserWindow, net } = require('electron')
-const WebSocket = require('ws');
-const wsService = require('../../webserver/back/wsService');
-const Main = require('../../main');
+import { ipcMain, BrowserWindow, net } from 'electron';
+import { WebSocket } from 'ws';
+import * as wsService from '../../webserver/back/wsService.js';
+import { getMutexBackendBusy, setMutexBackendBusy } from '../../main-common.js';
 
 const CAT = '[ComfyUI]';
 let backendComfyUI = null;
@@ -46,23 +46,23 @@ function processImage(imageData) {
     }
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function applyControlnet(workflow, controlnet, workflowInfo){
   let {startIndex, now_pos, now_neg, refiner, ref_pos, ref_neg, hiresfix} = workflowInfo;
 
   if (Array.isArray(controlnet)) {
     let ipaActived = false;
     let index = startIndex + 1;
-
-    controlnet.forEach((slot, idx) => {
+    for( const slot of controlnet) {
       // skip missing
       if(slot.postModel === 'none') {
-        console.log(CAT,"[applyControlnet] Skip", idx, slot);
-        return;
+        console.log(CAT,"[applyControlnet] Skip ", slot);
+        continue;
       }
 
       if(slot.preModel.startsWith('ip-adapter->')) {
         if(ipaActived)
-          return;
+          continue;
         
         // Only accept the first IPA slot
         ipaActived = true;
@@ -140,7 +140,7 @@ function applyControlnet(workflow, controlnet, workflowInfo){
           // move to next
           index = index + 1;
         }
-        return;
+        continue;
       }
 
       if(slot.image) {  // need pre process and post process
@@ -383,278 +383,280 @@ function applyControlnet(workflow, controlnet, workflowInfo){
           workflow["20"]["inputs"]["negative"] = [`${now_neg}`, 1];
         }
       } else {  // should not here
-        return;
+        continue;
       }
-    });
+    }
   }
 
   return workflow;
 }
 
+// HTTP quick health check: return true if HTTP responds
+function checkHttpAlive(addr, timeout = 5000) {
+  return new Promise((res) => {
+    try {
+      const apiUrl = /^https?:\/\//i.test(addr) ? `${addr}/` : `http://${addr}/`;
+      const req = net.request({ method: 'GET', url: apiUrl, timeout: Math.min(2000, timeout) });
+      let answered = false;
+
+      function onResponse(response) {
+        answered = true;
+        // treat any HTTP response as alive (200 or non-200); errors will be caught on 'error'
+        res(true);
+        // consume data to let response finish
+        response.on('data', () => {});
+        response.on('end', () => {});
+      }
+
+      req.on('response', (response) => onResponse(response));
+      req.on('error', () => {
+        if (!answered) res(false);
+      });
+      req.on('timeout', () => {
+        try { req.destroy(); } catch(err) { console.error(CAT, 'HTTP timeout destroy error:', err); }
+        if (!answered) res(false);
+      });
+      req.end();
+    } catch (e) {
+      console.error(CAT, 'HTTP health check error:', e.message ?? e);
+      res(false);
+    }
+  });
+}
+
 class ComfyUI {
-    constructor(clientID) {
-        this.clientID = clientID;
-        this.prompt_id = clientID;
-        this.addr = '127.0.0.1:8188';
-        this.webSocket = null;
-        this.preview = 0;
-        this.refresh = 0;
-        this.timeout = 5000;
-        this.urlPrefix = '';
-        this.step = 0;
-        this.firstValidPreview = false;
-        this.uuid = 'none';
-    }
+  constructor(clientID) {
+    this.clientID = clientID;
+    this.prompt_id = clientID;
+    this.addr = '127.0.0.1:8188';
+    this.webSocket = null;
+    this.preview = 0;
+    this.refresh = 0;
+    this.timeout = 5000;
+    this.urlPrefix = '';
+    this.step = 0;
+    this.firstValidPreview = false;
+    this.uuid = 'none';
+  }
 
-    cancelGenerate() {
-      const apiUrl = `http://${this.addr}/interrupt`;
-      let request = net.request({
-        method: 'POST',
-        url: apiUrl,
-        timeout: this.timeout
-      });
+  cancelGenerate() {
+    const apiUrl = `http://${this.addr}/interrupt`;
+    let request = net.request({
+      method: 'POST',
+      url: apiUrl,
+      timeout: this.timeout
+    });
 
-      request.on('response', (response) => {
-        response.on('end', () => {
-          if (response.statusCode !== 200) {
-            console.error(`${CAT} HTTP error: ${response.statusCode} - ${response.Data}`);
-            resolve(`Error: HTTP error: ${response.statusCode}`);
-          }                    
-        })
+    request.on('response', (response) => {
+      response.on('end', () => {
+        if (response.statusCode !== 200) {
+          console.error(`${CAT} HTTP error: ${response.statusCode} - ${response.Data}`);
+          resolve(`Error: HTTP error: ${response.statusCode}`);
+        }                    
       })
+    })
 
-      request.on('error', (error) => {
-        console.warn(CAT, 'Error on cancel:', error);
-      });
+    request.on('error', (error) => {
+      console.warn(CAT, 'Error on cancel:', error);
+    });
 
-      request.end();
-    }
+    request.end();
+  }
 
-    async openWS(prompt_id, skipFirst = true, index='29'){
-        return new Promise((resolve) => {
-          this.prompt_id = prompt_id;
-          this.preview = 0;
-          this.step = 0;
-          this.firstValidPreview = !skipFirst;
+  async openWS(prompt_id, skipFirst = true, index='29'){
+    return new Promise((resolve) => {
+      this.prompt_id = prompt_id;
+      this.preview = 0;
+      this.step = 0;
+      this.firstValidPreview = !skipFirst;
 
-          const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
-          this.webSocket = new WebSocket(wsUrl);
+      const wsUrl = `ws://${this.addr}/ws?clientId=${this.clientID}`;
+      this.webSocket = new WebSocket(wsUrl);
 
-          let settled = false;
-          let timeoutTimer = null;
-          let sockTimeoutAttached = false;
+      let settled = false;
+      let timeoutTimer = null;
+      let sockTimeoutAttached = false;
 
-          function cleanupTimers() {
-            if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+      function cleanupTimers() {
+        if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+      }
+
+      function finalize(ret) {
+        if (settled) return;            
+        settled = true;
+        cleanupTimers();
+        setMutexBackendBusy(false);  // Release the mutex after getting image or error
+        resolve(ret);
+      }
+
+      // schedule connection timeout with HTTP check fallback
+      const scheduleConnTimeout = () => {
+        cleanupTimers();
+        timeoutTimer = setTimeout(async () => {
+          if (settled) return;
+          const alive = await checkHttpAlive(this.addr, this.timeout);
+          if (alive) {
+            // reschedule next timeout; do not terminate
+            if (!settled) scheduleConnTimeout();
+          } else {
+            console.error(CAT, `WebSocket connection timed out and HTTP unreachable after ${this.timeout}ms`);
+            try { this.webSocket?.terminate(); } catch(err) { console.error(CAT, 'WebSocket terminate error:', err);}
+            finalize(`Error: WebSocket connection timed out after ${this.timeout}ms and HTTP unreachable`);
           }
+        }, this.timeout);
+      };
 
-          function finalize(ret) {
-            if (settled) return;            
-            settled = true;
-            cleanupTimers();
-            Main.setMutexBackendBusy(false);  // Release the mutex after getting image or error
-            try { if (this.webSocket) { this.webSocket.terminate(); } } catch(_) {}
-            resolve(ret);
-          }
+      // start initial timeout watcher
+      scheduleConnTimeout();
 
-          // HTTP quick health check: return true if HTTP responds
-          const checkHttpAlive = () => {
-            return new Promise((res) => {
-              try {
-                const apiUrl = /^https?:\/\//i.test(this.addr) ? `${this.addr}/` : `http://${this.addr}/`;
-                const req = net.request({ method: 'GET', url: apiUrl, timeout: Math.min(2000, this.timeout) });
-                let answered = false;
-                req.on('response', (response) => {
-                  answered = true;
-                  // treat any HTTP response as alive (200 or non-200); errors will be caught on 'error'
-                  res(true);
-                  // consume data to let response finish
-                  response.on('data', () => {});
-                  response.on('end', () => {});
-                });
-                req.on('error', () => {
-                  if (!answered) res(false);
-                });
-                req.on('timeout', () => {
-                  try { req.destroy(); } catch(_) {}
-                  if (!answered) res(false);
-                });
-                req.end();
-              } catch (e) {
-                res(false);
+      this.webSocket.on('open', () => {
+        if (settled) return;
+        cleanupTimers();
+        // attach underlying socket timeout to detect idle socket; reuse same HTTP-check logic
+        try {
+          const sock = this.webSocket._socket;
+          if (sock && typeof sock.setTimeout === 'function' && !sockTimeoutAttached) {
+            sockTimeoutAttached = true;
+            sock.setTimeout(this.timeout);
+            sock.on('timeout', async () => {
+              if (settled) return;
+              console.warn(CAT, `WebSocket underlying socket timeout after ${this.timeout}ms -> performing HTTP check`);
+              const alive = await checkHttpAlive(this.addr, this.timeout);
+              if (alive) {
+                console.log(CAT, 'HTTP is alive; ignore underlying socket timeout and continue monitoring.');
+                // keep socket open and continue monitoring by scheduling next conn timeout
+                scheduleConnTimeout();
+              } else {
+                console.error(CAT, `Underlying socket timeout and HTTP unreachable after ${this.timeout}ms`);
+                try { this.webSocket?.terminate(); } catch(err) { console.error(CAT, 'WebSocket terminate error:', err); }
+                finalize(`Error: WebSocket underlying socket timed out after ${this.timeout}ms and HTTP unreachable`);
               }
             });
-          };
+          }
+        } catch (e) {
+          console.error(CAT, 'WebSocket open error:', e.message ?? e);
+          finalize(`Error:${e.message ?? e}`);
+        }
+      });
 
-          // schedule connection timeout with HTTP check fallback
-          const scheduleConnTimeout = () => {
-            cleanupTimers();
-            timeoutTimer = setTimeout(async () => {
-              if (settled) return;
-              //console.warn(CAT, `WebSocket connection timeout fired after ${this.timeout}ms -> performing HTTP check`);
-              const alive = await checkHttpAlive();
-              if (alive) {
-                //console.log(CAT, 'HTTP is alive; ignore this WS timeout and reschedule next timeout.');
-                // reschedule next timeout; do not terminate
-                if (!settled) scheduleConnTimeout();
-              } else {
-                console.error(CAT, `WebSocket connection timed out and HTTP unreachable after ${this.timeout}ms`);
-                try { this.webSocket && this.webSocket.terminate(); } catch(_) {}
-                finalize(`Error: WebSocket connection timed out after ${this.timeout}ms and HTTP unreachable`);
-              }
-            }, this.timeout);
-          };
+      // eslint-disable-next-line sonarjs/cognitive-complexity
+      this.webSocket.on('message', async (data) => {
+        if (settled) return;
+        // any incoming message -> reset timeout watcher
+        cleanupTimers();
+        scheduleConnTimeout();
 
-          // start initial timeout watcher
-          scheduleConnTimeout();
-
-          this.webSocket.on('open', () => {
-            if (settled) return;
-            cleanupTimers();
-            // attach underlying socket timeout to detect idle socket; reuse same HTTP-check logic
-            try {
-              const sock = this.webSocket._socket;
-              if (sock && typeof sock.setTimeout === 'function' && !sockTimeoutAttached) {
-                sockTimeoutAttached = true;
-                sock.setTimeout(this.timeout);
-                sock.on('timeout', async () => {
-                  if (settled) return;
-                  console.warn(CAT, `WebSocket underlying socket timeout after ${this.timeout}ms -> performing HTTP check`);
-                  const alive = await checkHttpAlive();
-                  if (alive) {
-                    console.log(CAT, 'HTTP is alive; ignore underlying socket timeout and continue monitoring.');
-                    // keep socket open and continue monitoring by scheduling next conn timeout
-                    scheduleConnTimeout();
-                  } else {
-                    console.error(CAT, `Underlying socket timeout and HTTP unreachable after ${this.timeout}ms`);
-                    try { this.webSocket && this.webSocket.terminate(); } catch(_) {}
-                    finalize(`Error: WebSocket underlying socket timed out after ${this.timeout}ms and HTTP unreachable`);
-                  }
-                });
-              }
-            } catch (e) {
-              console.error(CAT, 'WebSocket open error:', e.message ?? e);
-              finalize(`Error:${e.message ?? e}`);
-            }
-          });
-
-          this.webSocket.on('message', async (data) => {
-              if (settled) return;
-              // any incoming message -> reset timeout watcher
-              cleanupTimers();
-              scheduleConnTimeout();
-
-              try {
-                  const message = JSON.parse(data.toString('utf8'));
-                  if (message.type === 'executing' || message.type === 'status') {
-                    const msgData = message.data;
-                    if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
-                      try {
-                          const image = await this.getImage(index);
-                          if (image && Buffer.isBuffer(image)) {
-                              const base64Image = processImage(image);
-                              if (base64Image) {
-                                  finalize(`data:image/png;base64,${base64Image}`);
-                                  return;
-                              } else {
-                                  finalize('Error: Failed to convert image to base64');
-                                  return;
-                              }
-                          } 
-                          finalize('Error: Image not found or invalid');
-                          return;
-                      } catch (err) {
-                          console.error(CAT, 'Error getting image:', err);
-                          finalize(`Error: ${err.message ?? err}`);
-                          return;
-                      }
-                    } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {                      
-                      console.log(CAT, 'Running same promot? message =', message);
-                      finalize(null);
-                      return;
-                    }
-                  } else if(message.type === 'progress'){
-                    this.step += 1;
-                    const progress = message.data;
-                    if(progress?.value && progress?.max){
-                      sendToRenderer(this.uuid, `updateProgress`, progress.value, progress.max);
-                    }                    
-                  }
-              } catch {
-                  // preview
-                  if (this.refresh !== 0) {
-                      if (this.preview !== 0 && this.preview % this.refresh === 0) {
-                          try {
-                              const previewData = data.slice(8);  //skip websocket header
-                              if(previewData.byteLength > 256){ // json parse failed 'executing' 110 ~ 120
-                                if(!this.firstValidPreview) { // skip 1st preview, might last image
-                                  this.firstValidPreview = true;
-                                } else {
-                                  const base64Data = processImage(previewData);
-                                  if (base64Data) {
-                                      sendToRenderer(this.uuid, `updatePreview`, `data:image/png;base64,${base64Data}`);
-                                  }
-                                }
-                              }
-                          } catch (err) {
-                              console.error(CAT, 'Error processing preview image:', err);
-                          }
-                      }
-                      this.preview += 1;  
-                  }                                        
-              }
-          });
-
-          this.webSocket.on('error', (error) => {
-              if (settled) return;
-              cleanupTimers();
-              console.error(CAT, 'WebSocket error:', error?.message ?? error);
-              finalize(`Error:${error?.message ?? error}`);
-          });
-
-          this.webSocket.on('close', (code, reason) => {
-            cleanupTimers();
-            if (!settled) {
-              // if closed before settle, return an error indicating close
-              finalize(`Error: WebSocket closed (${code}) ${reason?.toString() ?? ''}`);
-            }
-          });
-        });
-    }
-
-    closeWS(){
-        this.webSocket.close();
-        this.webSocke = null;        
-    }
-
-    async getImage(index='29') {
         try {
-            this.urlPrefix = `history/${this.prompt_id}`;
-            const historyResponse = await this.getUrl();            
-            if (typeof historyResponse === 'string' && historyResponse.startsWith('Error:')) {
-                console.error(CAT, historyResponse);
-                return null;
+          const message = JSON.parse(data.toString('utf8'));
+          if (message.type === 'executing' || message.type === 'status') {
+            const msgData = message.data;
+            if (msgData.node === null && msgData.prompt_id === this.prompt_id) {
+              try {
+                  const image = await this.getImage(index);
+                  if (image && Buffer.isBuffer(image)) {
+                      const base64Image = processImage(image);
+                      if (base64Image) {
+                          finalize(`data:image/png;base64,${base64Image}`);
+                          return;
+                      } else {
+                          finalize('Error: Failed to convert image to base64');
+                          return;
+                      }
+                  } 
+                  finalize('Error: Image not found or invalid');
+                  return;
+              } catch (err) {
+                  console.error(CAT, 'Error getting image:', err);
+                  finalize(`Error: ${err.message ?? err}`);
+                  return;
+              }
+            } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {                      
+              console.log(CAT, 'Running same promot? message =', message);
+              finalize(null);
+              return;
             }
-            
-            const jsonData = JSON.parse(historyResponse);
-            if (!jsonData[this.prompt_id]?.outputs[index]?.images) {
-                return null;
+          } else if(message.type === 'progress'){
+            this.step += 1;
+            const progress = message.data;
+            if(progress?.value && progress?.max){
+              sendToRenderer(this.uuid, `updateProgress`, progress.value, progress.max);
+            }                    
+          }
+        } catch {
+          // preview
+          if (this.refresh !== 0) {
+            if (this.preview !== 0 && this.preview % this.refresh === 0) {
+              try {
+                const previewData = data.slice(8);  //skip websocket header
+                if(previewData.byteLength > 256){ // json parse failed 'executing' 110 ~ 120
+                  if(this.firstValidPreview) { // skip 1st preview, might last image
+                    const base64Data = processImage(previewData);
+                    if (base64Data) {
+                        sendToRenderer(this.uuid, `updatePreview`, `data:image/png;base64,${base64Data}`);
+                    }
+                  } else {
+                    this.firstValidPreview = true;
+                  }
+                }
+              } catch (err) {
+                console.error(CAT, 'Error processing preview image:', err);
+              }
             }
-            
-            const imageInfo = jsonData[this.prompt_id].outputs[index].images[0];            
-            this.urlPrefix = `view?filename=${imageInfo.filename}&subfolder=${imageInfo.subfolder}&type=${imageInfo.type}`;            
-            const imageData = await this.getUrl();
-            if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
-                console.error(CAT, imageData);
-                return null;
-            }
-            
-            return imageData;
-        } catch (error) {
-            console.error(CAT, 'Error in getImage:', error.message);
+            this.preview += 1;  
+          }                                        
+        }
+      });
+
+      this.webSocket.on('error', (error) => {
+          if (settled) return;
+          cleanupTimers();
+          console.error(CAT, 'WebSocket error:', error?.message ?? error);
+          finalize(`Error:${error?.message ?? error}`);
+      });
+
+      this.webSocket.on('close', (code, reason) => {
+        cleanupTimers();
+        if (!settled) {
+          // if closed before settle, return an error indicating close
+          finalize(`Error: WebSocket closed (${code}) ${reason?.toString() ?? ''}`);
+        }
+      });
+    });
+  }
+
+  closeWS(){
+      this.webSocket.close();
+      this.webSocke = null;        
+  }
+
+  async getImage(index='29') {
+    try {
+        this.urlPrefix = `history/${this.prompt_id}`;
+        const historyResponse = await this.getUrl();            
+        if (typeof historyResponse === 'string' && historyResponse.startsWith('Error:')) {
+            console.error(CAT, historyResponse);
             return null;
         }
+        
+        const jsonData = JSON.parse(historyResponse);
+        if (!jsonData[this.prompt_id]?.outputs[index]?.images) {
+            return null;
+        }
+        
+        const imageInfo = jsonData[this.prompt_id].outputs[index].images[0];            
+        this.urlPrefix = `view?filename=${imageInfo.filename}&subfolder=${imageInfo.subfolder}&type=${imageInfo.type}`;            
+        const imageData = await this.getUrl();
+        if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
+            console.error(CAT, imageData);
+            return null;
+        }
+        
+        return imageData;
+    } catch (error) {
+        console.error(CAT, 'Error in getImage:', error.message);
+        return null;
     }
+  }
 
   // Invalid addr blocklist
   static addrBlockList = {};
@@ -750,408 +752,410 @@ class ComfyUI {
     });
   }
 
-    createWorkflow(generateData) {
-        const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
-        this.addr = addr;
-        this.refresh = refresh;
-        this.auth = auth;
-        this.uuid = uuid;
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  createWorkflow(generateData) {
+    const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
+    this.addr = addr;
+    this.refresh = refresh;
+    this.auth = auth;
+    this.uuid = uuid;
 
-        let workflow = JSON.parse(JSON.stringify(WORKFLOW));
-        let refiner_start_step = 1000;
+    let workflow = structuredClone(WORKFLOW);
+    let refiner_start_step = 1000;
 
-        if (model !== 'Default') {
-            // Set model name
-            workflow["45"].inputs.ckpt_name = model;            
-            workflow["43"].inputs.ckpt_name = model;
+    if (model !== 'Default') {
+      // Set model name
+      workflow["45"].inputs.ckpt_name = model;            
+      workflow["43"].inputs.ckpt_name = model;
 
-            // Set model name to Image Save
-            workflow["29"].inputs.modelname = model;
-        }
-
-        // vPred
-        if((vpred === 0 && (model.includes('vPred') || model.includes('VPR'))) || vpred === 1) {            
-            workflow["35"].inputs.sampling = "v_prediction";
-        }
-
-        if (refiner.enable && model !== refiner.model) {
-            // Set refiner model name
-            workflow["43"].inputs.ckpt_name = refiner.model;
-            if((refiner.vpred === 0 && (refiner.model.includes('vPred') || refiner.model.includes('VPR'))) || refiner.vpred === 1) {
-                workflow["44"].inputs.sampling = "v_prediction";
-            }
-            refiner_start_step = Math.floor(step * refiner.ratio);
-            //Set refiner seed and steps
-            workflow["37"].inputs.noise_seed = seed;
-            workflow["37"].inputs.start_at_step = refiner_start_step;
-            
-            if (refiner.addnoise) {
-              // Set refiner add noise
-              workflow["36"].inputs.return_with_leftover_noise = "disable";
-              workflow["37"].inputs.add_noise = "enable";
-            } else {
-              workflow["36"].inputs.return_with_leftover_noise = "enable";
-              workflow["37"].inputs.add_noise = "disable";
-            }
-        } else {
-            // Reconnect nodes
-            // Ksampler and Model Loader to Vae Decode
-            workflow["6"].inputs.samples = ["36", 0];
-            workflow["6"].inputs.vae = ["45", 2];
-            // Model Loader to Hires fix Vae Decode Tiled 
-            workflow["18"].inputs.vae = ["45", 2];
-            // Model Loader to Hires fix Vae Encode Tiled
-            workflow["19"].inputs.vae = ["45", 2];
-        }
-
-        // Set Sampler and Scheduler
-        workflow["20"].inputs.sampler_name = sampler;
-        workflow["29"].inputs.sampler_name = sampler;
-        workflow["36"].inputs.sampler_name = sampler;
-        workflow["37"].inputs.sampler_name = sampler;
-        
-        workflow["20"].inputs.scheduler = scheduler;
-        workflow["29"].inputs.scheduler = scheduler;
-        workflow["36"].inputs.scheduler = scheduler;
-        workflow["37"].inputs.scheduler = scheduler;
-
-        // Set steps and cfg
-        workflow["13"].inputs.steps = step;
-        workflow["13"].inputs.cfg = cfg;
-                    
-        // Set Image Saver seed
-        workflow["29"].inputs.seed_value = seed;        
-        // Set Ksampler seed and steps
-        workflow["36"].inputs.noise_seed = seed;
-        workflow["36"].inputs.end_at_step = refiner_start_step;       
-        
-        // Set Positive prompt
-        workflow["32"].inputs.text = positive;        
-        // Set Negative prompt
-        workflow["33"].inputs.text = negative;
-        
-        // Set width and height
-        workflow["17"].inputs.Width = width;
-        workflow["17"].inputs.Height = height;
-
-        if (!hifix.enable) {
-            // Image Save set to 1st VAE Decode
-            workflow["29"].inputs.images = ["6", 0];
-        }else {           
-            // Set Hires fix seed and denoise
-            workflow["20"].inputs.seed = hifix.seed;
-            workflow["20"].inputs.denoise = hifix.denoise;
-            workflow["20"].inputs.steps = hifix.steps;
-
-            // Latent or Model hifix
-            if (hifix?.model.includes('Latent')) {
-                const match = hifix.model.match(/\(([^)]+)\)/);
-                const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
-
-                workflow["46"].inputs.upscale_method = latentMethod;
-                workflow["46"].inputs.scale_by = hifix.scale;
-
-                // Check if refiner enabled
-                if (refiner.enable){
-                  workflow["46"].inputs.samples = ["37", 0];
-                }
-
-                // Connect to 2nd KSampler
-                workflow["20"].inputs.latent_image = ["46", 0];        
-            } else {
-              // Set Hires fix parameters
-              workflow["17"].inputs.HiResMultiplier = hifix.scale;
-
-              // Set Hires fix model name
-              workflow["27"].inputs.model_name = `${hifix.model}.pth`;
-            }
-
-            if(hifix.colorTransfer === 'None'){
-                // Image Save set to 2nd VAE Decode (Tiled)
-                workflow["29"].inputs.images = ["18", 0];
-            } else {
-                // Default to Image Color Transfer
-                workflow["28"].inputs.method = hifix.colorTransfer;
-            }            
-        }
-
-        // default pos and neg to ksampler
-        const workflowInfo = {
-          startIndex: 46,
-          now_pos:    2,
-          now_neg:    3,
-          refiner:    refiner.enable,
-          ref_pos:    41,
-          ref_neg:    40,
-          hiresfix:   hifix.enable
-        };
-        workflow = applyControlnet(workflow, controlnet, workflowInfo);
-        return workflow;
+      // Set model name to Image Save
+      workflow["29"].inputs.modelname = model;
     }
 
-    createWorkflowRegional(generateData) {      
-      const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional, controlnet} = generateData;
-      this.addr = addr;
-      this.refresh = refresh;
-      this.auth = auth;
-      this.uuid = uuid;
+    // vPred
+    if((vpred === 0 && (model.includes('vPred') || model.includes('VPR'))) || vpred === 1) {            
+      workflow["35"].inputs.sampling = "v_prediction";
+    }
+
+    if (refiner.enable && model !== refiner.model) {
+      // Set refiner model name
+      workflow["43"].inputs.ckpt_name = refiner.model;
+      if((refiner.vpred === 0 && (refiner.model.includes('vPred') || refiner.model.includes('VPR'))) || refiner.vpred === 1) {
+          workflow["44"].inputs.sampling = "v_prediction";
+      }
+      refiner_start_step = Math.floor(step * refiner.ratio);
+      //Set refiner seed and steps
+      workflow["37"].inputs.noise_seed = seed;
+      workflow["37"].inputs.start_at_step = refiner_start_step;
       
-      let workflow = JSON.parse(JSON.stringify(WORKFLOW_REGIONAL));
-      let refiner_start_step = 1000;
-
-      if (model !== 'Default') {
-          // Set model name
-          workflow["45"].inputs.ckpt_name = model;            
-          workflow["43"].inputs.ckpt_name = model;
-
-          // Set model name to Image Save
-          workflow["29"].inputs.modelname = model;
-      }
-
-      // vPred
-      if((vpred === 0 && (model.includes('vPred') || model.includes('VPR'))) || vpred === 1) {
-          workflow["35"].inputs.sampling = "v_prediction";
-      }
-
-      if (refiner.enable && model !== refiner.model) {
-          // Set refiner model name
-          workflow["43"].inputs.ckpt_name = refiner.model;
-          if((refiner.vpred === 0 && (refiner.model.includes('vPred') || refiner.model.includes('VPR'))) || refiner.vpred === 1) {
-              workflow["44"].inputs.sampling = "v_prediction";
-          }
-          refiner_start_step = Math.floor(step * refiner.ratio);
-          //Set refiner seed and steps
-          workflow["37"].inputs.noise_seed = seed;
-          workflow["37"].inputs.start_at_step = refiner_start_step;
-          
-          if (refiner.addnoise) {
-            // Set refiner add noise
-            workflow["36"].inputs.return_with_leftover_noise = "disable";
-            workflow["37"].inputs.add_noise = "enable";
-          } else {
-            workflow["36"].inputs.return_with_leftover_noise = "enable";
-            workflow["37"].inputs.add_noise = "disable";
-          }
+      if (refiner.addnoise) {
+        // Set refiner add noise
+        workflow["36"].inputs.return_with_leftover_noise = "disable";
+        workflow["37"].inputs.add_noise = "enable";
       } else {
-          // Reconnect nodes
-          // Ksampler and Model Loader to Vae Decode
-          workflow["6"].inputs.samples = ["36", 0];
-          workflow["6"].inputs.vae = ["45", 2];
-          // Model Loader to Hires fix Vae Decode Tiled 
-          workflow["18"].inputs.vae = ["45", 2];
-          // Model Loader to Hires fix Vae Encode Tiled
-          workflow["19"].inputs.vae = ["45", 2];
+        workflow["36"].inputs.return_with_leftover_noise = "enable";
+        workflow["37"].inputs.add_noise = "disable";
       }
-
-      // Set Sampler and Scheduler
-      workflow["20"].inputs.sampler_name = sampler;
-      workflow["29"].inputs.sampler_name = sampler;
-      workflow["36"].inputs.sampler_name = sampler;
-      workflow["37"].inputs.sampler_name = sampler;
-      
-      workflow["20"].inputs.scheduler = scheduler;
-      workflow["29"].inputs.scheduler = scheduler;
-      workflow["36"].inputs.scheduler = scheduler;
-      workflow["37"].inputs.scheduler = scheduler;
-
-      // Set steps and cfg
-      workflow["13"].inputs.steps = step;
-      workflow["13"].inputs.cfg = cfg;
-                  
-      // Set Image Saver seed
-      workflow["29"].inputs.seed_value = seed;        
-      // Set Ksampler seed and steps
-      workflow["36"].inputs.noise_seed = seed;
-      workflow["36"].inputs.end_at_step = refiner_start_step;       
-      
-      // Set Positive prompt
-      workflow["32"].inputs.text = positive_left;
-      workflow["46"].inputs.text = positive_right;
-      // Combine prompt
-      workflow["29"].inputs.positive = `${positive_left}\n${positive_right}`;
-      
-      // Set Negative prompt
-      workflow["33"].inputs.text = negative;
-      
-      // Set width and height
-      workflow["17"].inputs.Width = width;
-      workflow["17"].inputs.Height = height;
-
-      // Regional Condition Mask
-      // Set Mask Ratio
-      workflow["47"].inputs.Layout = regional.ratio;
-      // Set Left Mask Strength and Area
-      workflow["50"].inputs.strength = regional.str_left;
-      workflow["50"].inputs.set_cond_area = regional.option_left;
-      workflow["55"].inputs.strength = regional.str_left;
-      workflow["55"].inputs.set_cond_area = regional.option_left;
-      // Set Right Mask Strength and Area
-      workflow["52"].inputs.strength = regional.str_right;
-      workflow["52"].inputs.set_cond_area = regional.option_right;
-      workflow["56"].inputs.strength = regional.str_right;
-      workflow["56"].inputs.set_cond_area = regional.option_right;
-
-      if (!hifix.enable) {
-          // Image Save set to 1st VAE Decode
-          workflow["29"].inputs.images = ["6", 0];
-      }else {
-          // Set Hires fix seed and denoise
-          workflow["20"].inputs.seed = hifix.seed;
-          workflow["20"].inputs.denoise = hifix.denoise;
-          workflow["20"].inputs.steps = hifix.steps;
-
-          // Latent or Model hifix
-          if (hifix?.model.includes('Latent')) {
-              const match = hifix.model.match(/\(([^)]+)\)/);
-              const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
-
-              workflow["58"].inputs.upscale_method = latentMethod;
-              workflow["58"].inputs.scale_by = hifix.scale;
-
-              // Check if refiner enabled
-              if (refiner.enable){
-                workflow["58"].inputs.samples = ["37", 0];
-              }
-
-              // Connect to 2nd KSampler
-              workflow["20"].inputs.latent_image = ["58", 0];        
-          } else {
-            // Set Hires fix parameters
-            workflow["17"].inputs.HiResMultiplier = hifix.scale;
-
-            // Set Hires fix model name
-            workflow["27"].inputs.model_name = `${hifix.model}.pth`;
-          }
-
-          if(hifix.colorTransfer === 'None'){
-              // Image Save set to 2nd VAE Decode (Tiled)
-              workflow["29"].inputs.images = ["18", 0];
-          } else {
-              // Default to Image Color Transfer
-              workflow["28"].inputs.method = hifix.colorTransfer;
-          }  
-      }
-
-      // default pos and neg to ksampler
-      const workflowInfo = {
-        startIndex: 58,
-        now_pos:    53,
-        now_neg:    3,
-        refiner:    refiner.enable,
-        ref_pos:    57,
-        ref_neg:    40,
-        hiresfix:   hifix.enable
-      };
-      workflow = applyControlnet(workflow, controlnet, workflowInfo);                                         
-      return workflow;
+    } else {
+      // Reconnect nodes
+      // Ksampler and Model Loader to Vae Decode
+      workflow["6"].inputs.samples = ["36", 0];
+      workflow["6"].inputs.vae = ["45", 2];
+      // Model Loader to Hires fix Vae Decode Tiled 
+      workflow["18"].inputs.vae = ["45", 2];
+      // Model Loader to Hires fix Vae Encode Tiled
+      workflow["19"].inputs.vae = ["45", 2];
     }
 
-    createWorkflowControlnet(generateData){
-      const {addr, auth, uuid, imageData, controlNet, outputResolution} = generateData;
-      this.addr = addr;
-      this.auth = auth;
-      this.uuid = uuid;
+    // Set Sampler and Scheduler
+    workflow["20"].inputs.sampler_name = sampler;
+    workflow["29"].inputs.sampler_name = sampler;
+    workflow["36"].inputs.sampler_name = sampler;
+    workflow["37"].inputs.sampler_name = sampler;
+    
+    workflow["20"].inputs.scheduler = scheduler;
+    workflow["29"].inputs.scheduler = scheduler;
+    workflow["36"].inputs.scheduler = scheduler;
+    workflow["37"].inputs.scheduler = scheduler;
 
-      let workflow = JSON.parse(JSON.stringify(WORKFLOW_CONTROLNET));
-      workflow["1"].inputs.base64text = imageData;
-      workflow["2"].inputs.preprocessor = controlNet;
-      workflow["2"].inputs.resolution = outputResolution;
-      return workflow;
+    // Set steps and cfg
+    workflow["13"].inputs.steps = step;
+    workflow["13"].inputs.cfg = cfg;
+                
+    // Set Image Saver seed
+    workflow["29"].inputs.seed_value = seed;        
+    // Set Ksampler seed and steps
+    workflow["36"].inputs.noise_seed = seed;
+    workflow["36"].inputs.end_at_step = refiner_start_step;       
+    
+    // Set Positive prompt
+    workflow["32"].inputs.text = positive;        
+    // Set Negative prompt
+    workflow["33"].inputs.text = negative;
+    
+    // Set width and height
+    workflow["17"].inputs.Width = width;
+    workflow["17"].inputs.Height = height;
+
+    if (hifix.enable) {            
+      // Set Hires fix seed and denoise
+      workflow["20"].inputs.seed = hifix.seed;
+      workflow["20"].inputs.denoise = hifix.denoise;
+      workflow["20"].inputs.steps = hifix.steps;
+
+      // Latent or Model hifix
+      if (hifix?.model.includes('Latent')) {
+        const match = hifix.model.match(/\(([^)]+)\)/);
+        const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
+
+        workflow["46"].inputs.upscale_method = latentMethod;
+        workflow["46"].inputs.scale_by = hifix.scale;
+
+        // Check if refiner enabled
+        if (refiner.enable){
+          workflow["46"].inputs.samples = ["37", 0];
+        }
+
+        // Connect to 2nd KSampler
+        workflow["20"].inputs.latent_image = ["46", 0];        
+      } else {
+        // Set Hires fix parameters
+        workflow["17"].inputs.HiResMultiplier = hifix.scale;
+
+        // Set Hires fix model name
+        workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+      }
+
+      if(hifix.colorTransfer === 'None'){
+        // Image Save set to 2nd VAE Decode (Tiled)
+        workflow["29"].inputs.images = ["18", 0];
+      } else {
+        // Default to Image Color Transfer
+        workflow["28"].inputs.method = hifix.colorTransfer;
+      }            
+    } else {
+      // Image Save set to 1st VAE Decode
+      workflow["29"].inputs.images = ["6", 0];
     }
 
-    run(workflow) {
-      return new Promise((resolve, reject) => {
-        const requestBody = {
-          prompt: workflow,
-          client_id: this.clientID
-        };
-        const body = JSON.stringify(requestBody);
-        const apiUrl = `http://${this.addr}/prompt`;
+    // default pos and neg to ksampler
+    const workflowInfo = {
+      startIndex: 46,
+      now_pos:    2,
+      now_neg:    3,
+      refiner:    refiner.enable,
+      ref_pos:    41,
+      ref_neg:    40,
+      hiresfix:   hifix.enable
+    };
+    workflow = applyControlnet(workflow, controlnet, workflowInfo);
+    return workflow;
+  }
 
-        let request = net.request({
-          method: 'POST',
-          url: apiUrl,
-          headers: {
-              'Content-Type': 'application/json'
-          },
-          timeout: this.timeout,
-        });
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  createWorkflowRegional(generateData) {      
+    const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional, controlnet} = generateData;
+    this.addr = addr;
+    this.refresh = refresh;
+    this.auth = auth;
+    this.uuid = uuid;
+    
+    let workflow = structuredClone(WORKFLOW_REGIONAL);
+    let refiner_start_step = 1000;
 
-        request.on('response', (response) => {
-          let responseData = ''            
-          response.on('data', (chunk) => {
-            responseData += chunk
-          })
-          response.on('end', () => {
-            if (response.statusCode !== 200) {
-              console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
-              resolve(`Error HTTP ${response.statusCode} - ${responseData}`);
-            }
-            resolve(responseData);
-          })
-        });
+    if (model !== 'Default') {
+        // Set model name
+        workflow["45"].inputs.ckpt_name = model;            
+        workflow["43"].inputs.ckpt_name = model;
+
+        // Set model name to Image Save
+        workflow["29"].inputs.modelname = model;
+    }
+
+    // vPred
+    if((vpred === 0 && (model.includes('vPred') || model.includes('VPR'))) || vpred === 1) {
+        workflow["35"].inputs.sampling = "v_prediction";
+    }
+
+    if (refiner.enable && model !== refiner.model) {
+        // Set refiner model name
+        workflow["43"].inputs.ckpt_name = refiner.model;
+        if((refiner.vpred === 0 && (refiner.model.includes('vPred') || refiner.model.includes('VPR'))) || refiner.vpred === 1) {
+            workflow["44"].inputs.sampling = "v_prediction";
+        }
+        refiner_start_step = Math.floor(step * refiner.ratio);
+        //Set refiner seed and steps
+        workflow["37"].inputs.noise_seed = seed;
+        workflow["37"].inputs.start_at_step = refiner_start_step;
         
-        request.on('error', (error) => {
-          let ret = '';
-          if (error.code === 'ECONNABORTED') {
-            console.error(`${CAT} Request timed out after ${timeout}ms`);
-            ret = `Error: Request timed out after ${timeout}ms`;
-          } else {
-            console.error(CAT, 'Request failed:', error.message);
-            ret = `Error: Request failed:, ${error.message}`;
+        if (refiner.addnoise) {
+          // Set refiner add noise
+          workflow["36"].inputs.return_with_leftover_noise = "disable";
+          workflow["37"].inputs.add_noise = "enable";
+        } else {
+          workflow["36"].inputs.return_with_leftover_noise = "enable";
+          workflow["37"].inputs.add_noise = "disable";
+        }
+    } else {
+        // Reconnect nodes
+        // Ksampler and Model Loader to Vae Decode
+        workflow["6"].inputs.samples = ["36", 0];
+        workflow["6"].inputs.vae = ["45", 2];
+        // Model Loader to Hires fix Vae Decode Tiled 
+        workflow["18"].inputs.vae = ["45", 2];
+        // Model Loader to Hires fix Vae Encode Tiled
+        workflow["19"].inputs.vae = ["45", 2];
+    }
+
+    // Set Sampler and Scheduler
+    workflow["20"].inputs.sampler_name = sampler;
+    workflow["29"].inputs.sampler_name = sampler;
+    workflow["36"].inputs.sampler_name = sampler;
+    workflow["37"].inputs.sampler_name = sampler;
+    
+    workflow["20"].inputs.scheduler = scheduler;
+    workflow["29"].inputs.scheduler = scheduler;
+    workflow["36"].inputs.scheduler = scheduler;
+    workflow["37"].inputs.scheduler = scheduler;
+
+    // Set steps and cfg
+    workflow["13"].inputs.steps = step;
+    workflow["13"].inputs.cfg = cfg;
+                
+    // Set Image Saver seed
+    workflow["29"].inputs.seed_value = seed;        
+    // Set Ksampler seed and steps
+    workflow["36"].inputs.noise_seed = seed;
+    workflow["36"].inputs.end_at_step = refiner_start_step;       
+    
+    // Set Positive prompt
+    workflow["32"].inputs.text = positive_left;
+    workflow["46"].inputs.text = positive_right;
+    // Combine prompt
+    workflow["29"].inputs.positive = `${positive_left}\n${positive_right}`;
+    
+    // Set Negative prompt
+    workflow["33"].inputs.text = negative;
+    
+    // Set width and height
+    workflow["17"].inputs.Width = width;
+    workflow["17"].inputs.Height = height;
+
+    // Regional Condition Mask
+    // Set Mask Ratio
+    workflow["47"].inputs.Layout = regional.ratio;
+    // Set Left Mask Strength and Area
+    workflow["50"].inputs.strength = regional.str_left;
+    workflow["50"].inputs.set_cond_area = regional.option_left;
+    workflow["55"].inputs.strength = regional.str_left;
+    workflow["55"].inputs.set_cond_area = regional.option_left;
+    // Set Right Mask Strength and Area
+    workflow["52"].inputs.strength = regional.str_right;
+    workflow["52"].inputs.set_cond_area = regional.option_right;
+    workflow["56"].inputs.strength = regional.str_right;
+    workflow["56"].inputs.set_cond_area = regional.option_right;
+
+    if (hifix.enable) {
+      // Set Hires fix seed and denoise
+      workflow["20"].inputs.seed = hifix.seed;
+      workflow["20"].inputs.denoise = hifix.denoise;
+      workflow["20"].inputs.steps = hifix.steps;
+
+      // Latent or Model hifix
+      if (hifix?.model.includes('Latent')) {
+          const match = hifix.model.match(/\(([^)]+)\)/);
+          const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
+
+          workflow["58"].inputs.upscale_method = latentMethod;
+          workflow["58"].inputs.scale_by = hifix.scale;
+
+          // Check if refiner enabled
+          if (refiner.enable){
+            workflow["58"].inputs.samples = ["37", 0];
           }
-          Main.setMutexBackendBusy(false); // Release the mutex lock
-          resolve(ret);
-        });
 
-        request.on('timeout', () => {
-          req.destroy();
-          console.error(`${CAT} Request timed out after ${timeout}ms`);
-          Main.setMutexBackendBusy(false); // Release the mutex lock
-          resolve(`Error: Request timed out after ${timeout}ms`);
-        });
+          // Connect to 2nd KSampler
+          workflow["20"].inputs.latent_image = ["58", 0];        
+      } else {
+        // Set Hires fix parameters
+        workflow["17"].inputs.HiResMultiplier = hifix.scale;
 
-        request.write(body);
-        request.end();   
+        // Set Hires fix model name
+        workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+      }
+
+      if(hifix.colorTransfer === 'None'){
+          // Image Save set to 2nd VAE Decode (Tiled)
+          workflow["29"].inputs.images = ["18", 0];
+      } else {
+          // Default to Image Color Transfer
+          workflow["28"].inputs.method = hifix.colorTransfer;
+      }  
+    } else {
+      // Image Save set to 1st VAE Decode
+      workflow["29"].inputs.images = ["6", 0];
+    }
+
+    // default pos and neg to ksampler
+    const workflowInfo = {
+      startIndex: 58,
+      now_pos:    53,
+      now_neg:    3,
+      refiner:    refiner.enable,
+      ref_pos:    57,
+      ref_neg:    40,
+      hiresfix:   hifix.enable
+    };
+    workflow = applyControlnet(workflow, controlnet, workflowInfo);                                         
+    return workflow;
+  }
+
+  createWorkflowControlnet(generateData){
+    const {addr, auth, uuid, imageData, controlNet, outputResolution} = generateData;
+    this.addr = addr;
+    this.auth = auth;
+    this.uuid = uuid;
+
+    let workflow = structuredClone(WORKFLOW_CONTROLNET);
+    workflow["1"].inputs.base64text = imageData;
+    workflow["2"].inputs.preprocessor = controlNet;
+    workflow["2"].inputs.resolution = outputResolution;
+    return workflow;
+  }
+
+  run(workflow) {
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        prompt: workflow,
+        client_id: this.clientID
+      };
+      const body = JSON.stringify(requestBody);
+      const apiUrl = `http://${this.addr}/prompt`;
+
+      let request = net.request({
+        method: 'POST',
+        url: apiUrl,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        timeout: this.timeout,
       });
-    }   
+
+      request.on('response', (response) => {
+        let responseData = ''            
+        response.on('data', (chunk) => {
+          responseData += chunk
+        })
+        response.on('end', () => {
+          if (response.statusCode !== 200) {
+            console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
+            resolve(`Error HTTP ${response.statusCode} - ${responseData}`);
+          }
+          resolve(responseData);
+        })
+      });
+      
+      request.on('error', (error) => {
+        let ret = '';
+        if (error.code === 'ECONNABORTED') {
+          console.error(`${CAT} Request timed out after ${timeout}ms`);
+          ret = `Error: Request timed out after ${timeout}ms`;
+        } else {
+          console.error(CAT, 'Request failed:', error.message);
+          ret = `Error: Request failed:, ${error.message}`;
+        }
+        setMutexBackendBusy(false); // Release the mutex lock
+        resolve(ret);
+      });
+
+      request.on('timeout', () => {
+        req.destroy();
+        console.error(`${CAT} Request timed out after ${timeout}ms`);
+        setMutexBackendBusy(false); // Release the mutex lock
+        resolve(`Error: Request timed out after ${timeout}ms`);
+      });
+
+      request.write(body);
+      request.end();   
+    });
+  }   
 }
 
 async function setupGenerateBackendComfyUI() {
-    backendComfyUI = new ComfyUI(crypto.randomUUID());
+  backendComfyUI = new ComfyUI(crypto.randomUUID());
 
-    ipcMain.handle('generate-backend-comfyui-run', async (event, generateData) => {
-        return await runComfyUI(generateData);
-    });
+  ipcMain.handle('generate-backend-comfyui-run', async (event, generateData) => {
+      return await runComfyUI(generateData);
+  });
 
-    ipcMain.handle('generate-backend-comfyui-run-regional', async (event, generateData) => {
-        return await runComfyUI_Regional(generateData);
-    });
+  ipcMain.handle('generate-backend-comfyui-run-regional', async (event, generateData) => {
+      return await runComfyUI_Regional(generateData);
+  });
 
-    ipcMain.handle('generate-backend-comfyui-run-controlnet', async (event, generateData) => {
-        return await runComfyUI_ControlNet(generateData);
-    });
+  ipcMain.handle('generate-backend-comfyui-run-controlnet', async (event, generateData) => {
+      return await runComfyUI_ControlNet(generateData);
+  });
 
-    ipcMain.handle('generate-backend-comfyui-open-ws', async (event, prompt_id) => {
-        return await backendComfyUI.openWS(prompt_id);
-    });
+  ipcMain.handle('generate-backend-comfyui-open-ws', async (event, prompt_id) => {
+      return await backendComfyUI.openWS(prompt_id);
+  });
 
-    ipcMain.handle('generate-backend-comfyui-close-ws', (event) => {
-        closeWsComfyUI();
-    });
+  ipcMain.handle('generate-backend-comfyui-close-ws', (event) => {
+      closeWsComfyUI();
+  });
 
-    ipcMain.handle('generate-backend-comfyui-cancel', async (event) => {
-        await cancelComfyUI();
-    });
+  ipcMain.handle('generate-backend-comfyui-cancel', async (event) => {
+      await cancelComfyUI();
+  });
 }
 
 async function runComfyUI(generateData) {
-  const isBusy = await Main.getMutexBackendBusy();
+  const isBusy = await getMutexBackendBusy();
   if (isBusy) {
     console.warn(CAT, 'ComfyUI is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+  setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflow(generateData)
   if(backendComfyUI.uuid !== 'none')
@@ -1161,12 +1165,12 @@ async function runComfyUI(generateData) {
 }
 
 async function runComfyUI_Regional(generateData) {
-  const isBusy = await Main.getMutexBackendBusy();
+  const isBusy = await getMutexBackendBusy();
   if (isBusy) {
     console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+  setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowRegional(generateData)
   if(backendComfyUI.uuid !== 'none')
@@ -1176,18 +1180,20 @@ async function runComfyUI_Regional(generateData) {
 }
 
 async function runComfyUI_ControlNet(generateData){
-  const isBusy = await Main.getMutexBackendBusy();
+  const isBusy = await getMutexBackendBusy();
   if (isBusy) {
     console.warn(CAT, 'ComfyUI API is busy, cannot run new generation, please try again later.');
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
-  Main.setMutexBackendBusy(true); // Acquire the mutex lock
+  setMutexBackendBusy(true); // Acquire the mutex lock
 
   const workflow = backendComfyUI.createWorkflowControlnet(generateData)
   console.log(CAT, 'Running ComfyUI ControlNet with uuid:', backendComfyUI.uuid);
   const result = await backendComfyUI.run(workflow);
 
-  if(!result.startsWith('Error')){
+  if(result.startsWith('Error')){
+    console.log("Error with ControlNet:", result);    
+  } else {
     const parsedResult = JSON.parse(result);
     let newImage;
     if (parsedResult.prompt_id) {
@@ -1200,8 +1206,6 @@ async function runComfyUI_ControlNet(generateData){
       }
       return newImage;
     } 
-  } else {
-    console.log("Error with ControlNet:", result);
   }
 
   return result;
@@ -1220,7 +1224,7 @@ async function cancelComfyUI() {
   await backendComfyUI.cancelGenerate();  
 }
 
-module.exports = {
+export {
   sendToRenderer,
   setupGenerateBackendComfyUI,
   runComfyUI,

@@ -7,7 +7,7 @@
  * https://www.electronjs.org/docs/latest/tutorial/sandbox
  */
 
-const { contextBridge, ipcRenderer } = require('electron');
+import { contextBridge, ipcRenderer } from 'electron';
 
 // main to render
 let okm = {
@@ -136,7 +136,7 @@ contextBridge.exposeInMainWorld('api', {
   runImageTagger: async (args) => ipcRenderer.invoke('run-image-tagger', args),
 });
 
-window.addEventListener('DOMContentLoaded', () => {
+globalThis.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
     const element = document.getElementById(selector)
     if (element) element.innerText = text

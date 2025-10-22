@@ -5,11 +5,17 @@ import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 let instanceSlotManager = null;
 
 export function generateGUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = (Math.random() * 16) | 0;
-        const v = c === 'x' ? r : (r & 0x3) | 0x8;
-        return v.toString(16);
-    });
+    const template = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+    let result = template;
+    for (let i = 0; i < template.length; i++) {
+        const c = template[i];
+        if (c === 'x' || c === 'y') {
+            const r = (Math.random() * 16) | Math.trunc(0);
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            result = result.substring(0, i) + v.toString(16) + result.substring(i + 1);
+        }
+    }
+    return result;
 }
 
 async function processLoraMetadata(data) {
@@ -65,32 +71,32 @@ async function processLoraMetadata(data) {
 }
 
 async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lora_metadata, lora_no_metadata){
-    const greenColor = (window.globalSettings.css_style==='dark')?'Chartreuse':'SeaGreen';
+    const greenColor = (globalThis.globalSettings.css_style==='dark')?'Chartreuse':'SeaGreen';
     try {
         let loraInfo;
-        if (!window.inBrowser) {
-            loraInfo = await window.api.readSafetensors(modelPath, prefix, loraPath);
-        } else {
+        if (globalThis.inBrowser) {
             loraInfo = await sendWebSocketMessage({ type: 'API', method: 'readSafetensors', params: [modelPath, prefix, loraPath] });
+        } else {
+            loraInfo = await globalThis.api.readSafetensors(modelPath, prefix, loraPath);
         }
         if(typeof loraInfo === 'string')
         {
             if(loraInfo.startsWith('None'))
             {
-                window.overlay.custom.createCustomOverlay('none', `\n\n${lora_no_metadata}`);
+                globalThis.overlay.custom.createCustomOverlay('none', `\n\n${lora_no_metadata}`);
             } else if(loraInfo.startsWith('Error')){
-                window.overlay.custom.createCustomOverlay('none', `\n\n${loraInfo}`);
+                globalThis.overlay.custom.createCustomOverlay('none', `\n\n${loraInfo}`);
             }
         } else {
             const { jsonString, basicInfo, topTags } = await processLoraMetadata(loraInfo);
             let loraImage;
-            if (!window.inBrowser) {
-                loraImage = await window.api.readFile(modelPath, prefix, loraPath.replace('.safetensors', '.png'));
-            } else {
+            if (globalThis.inBrowser) {
                 loraImage = await sendWebSocketMessage({ type: 'API', method: 'readFile', params: [modelPath, prefix, loraPath.replace('.safetensors', '.png')] });
+            } else {
+                loraImage = await globalThis.api.readFile(modelPath, prefix, loraPath.replace('.safetensors', '.png'));
             }
             const message = `\n\n${basicInfo}\n${lora_trigger_words}[color=${greenColor}]${topTags}[/color]\n\n${lora_metadata}\n${jsonString}`;
-            window.overlay.custom.createCustomOverlay(loraImage, message);
+            globalThis.overlay.custom.createCustomOverlay(loraImage, message);
         }
     } catch (error) {
         console.log('error', error);
@@ -100,8 +106,8 @@ async function showLoRAInfo(modelPath, prefix, loraPath, lora_trigger_words, lor
 function createSlotsFromValues(slotManager, slotValues, options = {}) {
     const { validateLoRA = true, clearSlots = true } = options;
 
-    const SETTINGS = window.globalSettings || {};
-    const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+    const SETTINGS = globalThis.globalSettings || {};
+    const FILES = globalThis.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
     const LANG = FILES.language[SETTINGS.language] || {
         lora_model_strength: 'Model Strength',
         lora_clip_strength: 'Clip Strength',
@@ -117,25 +123,21 @@ function createSlotsFromValues(slotManager, slotValues, options = {}) {
     }
 
     // Process each set of slot values
-    slotValues.forEach(([loraName, modelStrength, clipStrength, enableValue]) => {
+    for (let [loraName, modelStrength, clipStrength, enableValue] of slotValues) {
         // Validate LoRA existence if required
         if (validateLoRA && !FILES.loraList.includes(loraName)) {
+            console.warn(`LoRA "${loraName}" not found in loraList`);
             if (options.skipInvalid) {
-                console.warn(`LoRA "${loraName}" not found in loraList, skipping`);
-                return;
+                console.log(`LoRA "${loraName}" skipped due to validation failure.`);
+                continue;
             }
-            // Use default values for invalid LoRAs
-            loraName = FILES.loraList[0] || 'Default LoRA';
-            modelStrength = '0';
-            clipStrength = '0';
-            enableValue = 'OFF';
         }
 
         const className = slotManager.addSlot();
-        if (!className) return;
+        if (!className) continue;
 
         const slot = slotManager.slotIndex.get(className);
-        if (!slot) return;
+        if (!slot) continue;
 
         requestAnimationFrame(() => {
             // Initialize select1 (LoRA dropdown)            
@@ -172,7 +174,7 @@ function createSlotsFromValues(slotManager, slotValues, options = {}) {
                 { value: clipStrength, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
                 false,
                 null,
-                window.generate.api_interface.getValue() !== 'ComfyUI',
+                globalThis.generate.api_interface.getValue() !== 'ComfyUI',
                 true
             );
             slot.items.set(slot.itemClasses.text2, () => text2Component);
@@ -193,7 +195,7 @@ function createSlotsFromValues(slotManager, slotValues, options = {}) {
             slot.items.set(slot.itemClasses.select2, () => select2Component);
             slotManager.componentInstances.set(`${className}-${slot.itemClasses.select2}`, select2Component);
         });
-    });
+    }
 }
 
 
@@ -221,11 +223,11 @@ class SlotManager {
             } else if (action === 'info') {
                 const slotClass = target.dataset.slot;
                 
-                const SETTINGS = window.globalSettings;
-                const FILES = window.cachedFiles;
+                const SETTINGS = globalThis.globalSettings;
+                const FILES = globalThis.cachedFiles;
                 const LANG = FILES.language[SETTINGS.language];
 
-                const apiInterface = window.generate.api_interface.getValue();
+                const apiInterface = globalThis.generate.api_interface.getValue();
                 let modelPath = '';
                 let prefix = '';
                 if(apiInterface == 'ComfyUI'){
@@ -247,10 +249,10 @@ class SlotManager {
 
             const value = input.value;
             const validPattern = /^-?\d*\.?\d*$/;
-            if (!validPattern.test(value)) {
-                input.value = input.dataset.lastValid || '';
-            } else {
+            if (validPattern.test(value)) {
                 input.dataset.lastValid = value;
+            } else {
+                input.value = input.dataset.lastValid || '';
             }
         });
 
@@ -543,15 +545,15 @@ class SlotManager {
     flush(){
         this.clear();
 
-        const slots = window.globalSettings.lora_slot;
+        const slots = globalThis.globalSettings.lora_slot;
         if (!slots || slots.length === 0) {
             return;
         }
 
         const loraStrings = slots.map(([loraName, modelStrength, clipStrength, enableValue]) => {
     
-            const modelStr = parseFloat(modelStrength) || 0;
-            const clipStr = parseFloat(clipStrength) || 0;
+            const modelStr = Number.parseFloat(modelStrength) || 0;
+            const clipStr = Number.parseFloat(clipStrength) || 0;
     
             let loraFormat = '';
             switch (enableValue) {
@@ -578,10 +580,11 @@ class SlotManager {
         this.flushSlot(loraString);
     }
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     flushSlot(loraString) {
         this.clear();
         
-        const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+        const FILES = globalThis.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
     
         // Parse loraString into slotValues
         const slotValues = [];
@@ -592,7 +595,7 @@ class SlotManager {
             const loraContent = match[1];
             const parts = loraContent.split(':');
             const loraName = parts[0];
-            const values = parts.slice(1).map(v => parseFloat(v) || 0);
+            const values = parts.slice(1).map(v => Number.parseFloat(v) || 0);
     
             let select1 = loraName;
             let text1 = '0';
@@ -608,7 +611,7 @@ class SlotManager {
             if (values.length <= 2) {
                 text1 = values[0]?.toString() || '0';
                 text2 = values[1]?.toString() || '0';
-                select2 = (parseFloat(text1) !== 0 || parseFloat(text2) !== 0) ? 'ALL' : 'OFF';
+                select2 = (Number.parseFloat(text1) !== 0 || Number.parseFloat(text2) !== 0) ? 'ALL' : 'OFF';
                 slotValues.push([select1, text1, text2, select2]);
             } else if (values.length === 4) {
                 const pair1 = [values[0], values[1]];
@@ -679,8 +682,8 @@ class SlotManager {
     }
 
     handleAdd() {
-        const SETTINGS = window.globalSettings || {};
-        const FILES = window.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
+        const SETTINGS = globalThis.globalSettings || {};
+        const FILES = globalThis.cachedFiles || { language: {}, loraList: ['Default LoRA'] };
         const LANG = FILES.language[SETTINGS.language] || {
             lora_model_strength: 'Model Strength',
             lora_clip_strength: 'Clip Strength',
@@ -733,7 +736,7 @@ class SlotManager {
                     { value: '1.0', defaultTextColor: 'rgb(255,213,0)', maxLines: 1 }, 
                     false, 
                     null,
-                    window.generate.api_interface.getValue() !== 'ComfyUI',  
+                    globalThis.generate.api_interface.getValue() !== 'ComfyUI',  
                     true    
                 );
             slot.items.set(slot.itemClasses.text2, text2Generator);

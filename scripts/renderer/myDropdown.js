@@ -29,11 +29,11 @@ const activeDropdownsRegistry = {
     setActive(id) {
         this.activeId = id;
         // Close all other dropdowns
-        this.registry.forEach((instance, dropdownId) => {
+        for (const [dropdownId, instance] of this.registry) {
             if (dropdownId !== id && instance) {
                 instance._closeDropdown();
             }
-        });
+        }
     },
     
     getActive() {
@@ -41,29 +41,29 @@ const activeDropdownsRegistry = {
     }
 };
 
+function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
+    const [[keys, values], oc] = args;
+    if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
+        console.error(CAT, '[handleCharacterOptions] Invalid keys or values:', keys, values);
+        return;
+    }
+    if (!Array.isArray(oc)) {
+        console.error(CAT, '[handleCharacterOptions] Invalid oc:', oc);
+        return;
+    }
+
+    const charOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(keys.map((key, idx) => ({ key, value: values[idx] })));
+    for (let i = 0; i < dropdownCount - 1; i++) {
+        options[i] = charOptions;
+        filteredOptions[i] = [...charOptions];
+    }
+
+    const originalOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(oc.map(key => ({ key, value: key })));
+    options[dropdownCount - 1] = originalOptions;
+    filteredOptions[dropdownCount - 1] = [...originalOptions];
+}
+
 export function myCharacterList(containerId, wai_characters, oc_characters) {
-    function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
-        const [[keys, values], oc] = args;
-        if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
-            console.error(CAT, '[handleCharacterOptions] Invalid keys or values:', keys, values);
-            return;
-        }
-        if (!Array.isArray(oc)) {
-            console.error(CAT, '[handleCharacterOptions] Invalid oc:', oc);
-            return;
-        }
-
-        const charOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(keys.map((key, idx) => ({ key, value: values[idx] })));
-        for (let i = 0; i < dropdownCount - 1; i++) {
-            options[i] = charOptions;
-            filteredOptions[i] = [...charOptions];
-        }
-
-        const originalOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(oc.map(key => ({ key, value: key })));
-        options[dropdownCount - 1] = originalOptions;
-        filteredOptions[dropdownCount - 1] = [...originalOptions];
-    }    
-
     const dropdown = createDropdown({
         containerId: containerId,
         dropdownCount: 4,
@@ -73,7 +73,7 @@ export function myCharacterList(containerId, wai_characters, oc_characters) {
         callback_func: callback_myCharacterList_updateThumb,
         enableSearch: true,
         enableOverlay: true,
-        valueOnly: (window.globalSettings.language === 'en-US'),
+        valueOnly: (globalThis.globalSettings.language === 'en-US'),
         height: 40,
         enableNumberInput: true
     });
@@ -85,10 +85,10 @@ export function myCharacterList(containerId, wai_characters, oc_characters) {
         
         if (dropdown) {
             const labelPrefixList = `
-            ${window.cachedFiles.language[window.globalSettings.language].character1},
-            ${window.cachedFiles.language[window.globalSettings.language].character2},
-            ${window.cachedFiles.language[window.globalSettings.language].character3},
-            ${window.cachedFiles.language[window.globalSettings.language].original_character}`
+            ${globalThis.cachedFiles.language[globalThis.globalSettings.language].character1},
+            ${globalThis.cachedFiles.language[globalThis.globalSettings.language].character2},
+            ${globalThis.cachedFiles.language[globalThis.globalSettings.language].character3},
+            ${globalThis.cachedFiles.language[globalThis.globalSettings.language].original_character}`
             dropdown.setOptions([keys, values], oc_keys, labelPrefixList, 'None', 'None', 'None', 'None', true);
             
             return dropdown;
@@ -100,41 +100,41 @@ export function myCharacterList(containerId, wai_characters, oc_characters) {
     return dropdown;
 }
 
+function handleRegionalCharacterOptions(options, filteredOptions, args, dropdownCount) {
+    const [[keys, values], oc] = args;
+    if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
+        console.error(CAT, '[handleRegionalCharacterOptions] Invalid keys or values:', keys, values);
+        return;
+    }
+    if (!Array.isArray(oc)) {
+        console.error(CAT, '[handleRegionalCharacterOptions] Invalid oc:', oc);
+        return;
+    }
+
+    const charOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(keys.map((key, idx) => ({ key, value: values[idx] })));
+    for (let i = 0; i < 2; i++) {
+        options[i] = charOptions;
+        filteredOptions[i] = [...charOptions];
+    }
+
+    const originalOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(oc.map(key => ({ key, value: key })));
+    for (let i = 2; i < dropdownCount; i++) {
+        options[i] = originalOptions;
+        filteredOptions[i] = [...originalOptions];
+    }
+}
+
 export function myRegionalCharacterList(containerId, wai_characters, oc_characters) {
-    function handleCharacterOptions(options, filteredOptions, args, dropdownCount) {
-        const [[keys, values], oc] = args;
-        if (!Array.isArray(keys) || !Array.isArray(values) || keys.length !== values.length) {
-            console.error(CAT, '[handleCharacterOptions] Invalid keys or values:', keys, values);
-            return;
-        }
-        if (!Array.isArray(oc)) {
-            console.error(CAT, '[handleCharacterOptions] Invalid oc:', oc);
-            return;
-        }
-
-        const charOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(keys.map((key, idx) => ({ key, value: values[idx] })));
-        for (let i = 0; i < 2; i++) {
-            options[i] = charOptions;
-            filteredOptions[i] = [...charOptions];
-        }
-
-        const originalOptions = [{ key: 'Random', value: 'random' }, { key: 'None', value: 'none' }].concat(oc.map(key => ({ key, value: key })));
-        for (let i = 2; i < dropdownCount; i++) {
-            options[i] = originalOptions;
-            filteredOptions[i] = [...originalOptions];
-        }
-    }    
-
     const dropdown = createDropdown({
         containerId: containerId,
         dropdownCount: 4,
         labelPrefixList: ['character_left', 'character_right', 'original_character_left', 'original_character_right'],
         textboxIds: ['cd-character1', 'cd-character2', 'cd-original-character-left', 'cd-original-character-right'],
-        optionHandler: handleCharacterOptions,
+        optionHandler: handleRegionalCharacterOptions,
         callback_func: callback_myCharacterList_updateThumb,
         enableSearch: true,
         enableOverlay: true,
-        valueOnly: (window.globalSettings.language === 'en-US'),
+        valueOnly: (globalThis.globalSettings.language === 'en-US'),
         height: 40,
         enableNumberInput: true
     });
@@ -161,19 +161,22 @@ export function myRegionalCharacterList(containerId, wai_characters, oc_characte
     return dropdown;
 }
 
-export function myViewsList(containerId, view_tags) {
-    function handleViewOptions(options, filteredOptions, args, dropdownCount) {
-        const [data] = args;
-        if (typeof data !== 'object' || data === null || Object.keys(data).length !== dropdownCount) return;
-        
-        const keys = ['angle', 'camera', 'background', 'style'];
-        options.forEach((_, index) => {
-            const key = keys[index];
-            options[index] = [{ key: 'random', value: 'random' }, { key: 'none', value: 'none' }].concat(data[key].map(item => ({ key: item, value: item })));
-            filteredOptions[index] = [...options[index]];
-        });
-    }
+function handleViewOptions(options, filteredOptions, args, dropdownCount) {
+    const [data] = args;
+    if (typeof data !== 'object' || data === null || Object.keys(data).length !== dropdownCount) return;
     
+    const keys = ['angle', 'camera', 'background', 'style'];
+    for (let index = 0; index < options.length; index++) {
+        const key = keys[index];
+        options[index] = [
+            { key: 'random', value: 'random' }, 
+            { key: 'none', value: 'none' }
+        ].concat(data[key].map(item => ({ key: item, value: item })));
+        filteredOptions[index] = [...options[index]];
+    }
+}
+
+export function myViewsList(containerId, view_tags) {    
     const dropdown = createDropdown({
         containerId: containerId,
         dropdownCount: 4,
@@ -190,10 +193,10 @@ export function myViewsList(containerId, view_tags) {
 
     if (view_tags && dropdown) {
         const labelPrefixList = `
-        ${window.cachedFiles.language[window.globalSettings.language].view_angle},
-        ${window.cachedFiles.language[window.globalSettings.language].view_camera},
-        ${window.cachedFiles.language[window.globalSettings.language].view_background},
-        ${window.cachedFiles.language[window.globalSettings.language].view_style}`;
+        ${globalThis.cachedFiles.language[globalThis.globalSettings.language].view_angle},
+        ${globalThis.cachedFiles.language[globalThis.globalSettings.language].view_camera},
+        ${globalThis.cachedFiles.language[globalThis.globalSettings.language].view_background},
+        ${globalThis.cachedFiles.language[globalThis.globalSettings.language].view_style}`;
         dropdown.setOptions(view_tags, null, labelPrefixList, 'None', 'None', 'None', 'None', false);
     } else if (!dropdown) {
         console.error(CAT, `[myViewsList] Dropdown with containerId "${containerId}" not found.`);
@@ -215,14 +218,14 @@ export function myLanguageList(language) {
     }));
 
     const callback = (index, selectedValue) => {
-        window.globalSettings.language = selectedValue[0];
-        updateLanguage(false, window.inBrowser);    
+        globalThis.globalSettings.language = selectedValue[0];
+        updateLanguage(false, globalThis.inBrowser);    
     };
 
     const dropdown = createDropdown({
         containerId: containerId,
         dropdownCount: 1,
-        labelPrefixList: [window.cachedFiles.language[window.globalSettings.language].language_select],
+        labelPrefixList: [globalThis.cachedFiles.language[globalThis.globalSettings.language].language_select],
         textboxIds: [`${containerId}-dropdown`],
         optionHandler: (optionsArray, filteredOptionsArray, args) => {
             optionsArray[0] = options;
@@ -237,24 +240,24 @@ export function myLanguageList(language) {
 
     if (dropdown) {
         dropdown.setOptions(options);
-        dropdown.updateDefaults(window.cachedFiles.language[window.globalSettings.language].language);
+        dropdown.updateDefaults(globalThis.cachedFiles.language[globalThis.globalSettings.language].language);
     }
     
     return dropdown;
 }
 
-export function mySimpleList(containerId, label, options, callback_func = null, height = 15, enableSearch = true, showTitle = false) {
-    function handleOptions(optionsArray, filteredOptionsArray, args, dropdownCount) {
-        const [data] = args;
-        if (!Array.isArray(data)) {
-            console.error(`[mySimpleList] Invalid options data:`, data);
-            return;
-        }
-
-        optionsArray[0] = data.map(item => ({ key: item, value: item }));
-        filteredOptionsArray[0] = [...optionsArray[0]];
+function handleOptions(optionsArray, filteredOptionsArray, args, dropdownCount) {
+    const [data] = args;
+    if (!Array.isArray(data)) {
+        console.error(`[mySimpleList] Invalid options data:`, data);
+        return;
     }
 
+    optionsArray[0] = data.map(item => ({ key: item, value: item }));
+    filteredOptionsArray[0] = [...optionsArray[0]];
+}
+
+export function mySimpleList(containerId, label, options, callback_func = null, height = 15, enableSearch = true, showTitle = false) {   
     const dropdown = createDropdown({
         containerId: containerId,
         dropdownCount: 1, 
@@ -278,6 +281,7 @@ export function mySimpleList(containerId, label, options, callback_func = null, 
     return dropdown;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function createDropdown({
     containerId, dropdownCount, labelPrefixList, textboxIds, 
     optionHandler, callback_func = null, 
@@ -316,7 +320,7 @@ function createDropdown({
             html += `
                 <div class="mydropdown-wrapper-with-text" data-index="${i}">
                     <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
-                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
+                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${enableSearch ? '' : 'readonly'}>
                         <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
                     </div>
                     <div class="mydropdown-number-wrapper">
@@ -328,7 +332,7 @@ function createDropdown({
             html += `
                 <div class="mydropdown-wrapper" data-index="${i}">
                     <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
-                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${!enableSearch ? 'readonly' : ''}>
+                        <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${enableSearch ? '' : 'readonly'}>
                         <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
                     </div>
                 </div>
@@ -345,13 +349,13 @@ function createDropdown({
     optionsList.style.display = 'none';
     document.body.appendChild(optionsList);
 
-    let options = Array(dropdownCount).fill().map(() => []);
-    let filteredOptions = Array(dropdownCount).fill().map(() => []);
+    let options = new Array(dropdownCount).fill().map(() => []);
+    let filteredOptions = new Array(dropdownCount).fill().map(() => []);
     let activeInput = null;
-    let isEditing = Array(dropdownCount).fill(false);
-    let selectedKeys = Array(dropdownCount).fill('');
-    let selectedValues = Array(dropdownCount).fill('');
-    let numberValues = Array(dropdownCount).fill('1.0');
+    let isEditing = new Array(dropdownCount).fill(false);
+    let selectedKeys = new Array(dropdownCount).fill('');
+    let selectedValues = new Array(dropdownCount).fill('');
+    let numberValues = new Array(dropdownCount).fill('1.0');
     
     // Create dropdown instance
     const dropdown = {
@@ -359,7 +363,7 @@ function createDropdown({
         
         setOptions: function(data, oc, labelPrefixList, ...rest) {
             const defaults = rest.slice(0, dropdownCount);
-            const newEnableSearch = rest[dropdownCount] !== undefined ? rest[dropdownCount] : enableSearch;
+            const newEnableSearch = rest[dropdownCount] === undefined ? enableSearch : rest[dropdownCount];
     
             optionHandler(options, filteredOptions, [data, oc], dropdownCount);
     
@@ -371,34 +375,39 @@ function createDropdown({
                 labelPrefixList = updatedLabelPrefixList;
             }
     
-            inputs.forEach((input, index) => {
+            for (const [index, input] of inputs.entries()) {
                 const value = defaults[index] || '';
                 selectedValues[index] = value;
                 selectedKeys[index] = value;
                 input.value = value;
-                if (!newEnableSearch) input.setAttribute('readonly', 'readonly');
-            });
+                if (!newEnableSearch) 
+                    input.setAttribute('readonly', 'readonly');
+            }
+
             const labels = container.querySelectorAll('.mydropdown-label');
-            labels.forEach((label, index) => label.textContent = labelPrefixList[index]);
+            for (const [index, label] of labels.entries()) {
+                label.textContent = labelPrefixList[index];
+            }
             this._updateOptionsList(0); 
             return this;
         },
         
         updateDefaults: function(...defaults) {
             let defaultValues;
-            if (defaults.length === 1 && Array.isArray(defaults[0])) {
+            if (defaults.length >= 1 && Array.isArray(defaults[0])) {
                 defaultValues = defaults[0].slice(0, dropdownCount);
             } else {
                 defaultValues = defaults.slice(0, dropdownCount);
             }
-            inputs.forEach((input, index) => {
+            for (let index = 0; index < inputs.length; index++) {
                 if (!isEditing[index]) {
+                    const input = inputs[index];
                     const value = defaultValues[index] || '';
                     selectedValues[index] = value;
                     selectedKeys[index] = value;
                     input.value = value;
                 }
-            });
+            }
             return this;
         },
         
@@ -419,9 +428,9 @@ function createDropdown({
         
         getTextValue: function(index) {
             if (enableNumberInput && numberInputs[index]) {
-                return parseFloat(numberInputs[index].value) || 1.0;
+                return Number.parseFloat(numberInputs[index].value) || 1;
             }
-            return 1.0;
+            return 1;
         },
         
         setValueOnly: function(trigger) {
@@ -447,16 +456,16 @@ function createDropdown({
             if (Array.isArray(newLabelPrefixList) && newLabelPrefixList.length === dropdownCount) {
                 const labels = container.querySelectorAll('.mydropdown-input-container');
                 if (labels.length !== 0) {
-                    labels.forEach((label, index) => {
-                        label.title = newLabelPrefixList[index];
-                    });
+                    for (let index = 0; index < labels.length; index++) {
+                        labels[index].title = newLabelPrefixList[index];
+                    }
                 }
         
                 const headers = container.querySelectorAll(`.mydropdown-${containerId}-header`);
                 if (headers.length !== 0) {
-                    headers.forEach((header, index) => {
-                        header.textContent = newLabelPrefixList[index];
-                    });
+                    for (let index = 0; index < headers.length; index++) {
+                        headers[index].textContent = newLabelPrefixList[index];
+                    }
                 }
             } else {
                 console.error(`[setTitle] Invalid labelPrefixList:`, newLabelPrefixList);
@@ -472,10 +481,10 @@ function createDropdown({
         // Private methods (prefixed with _)
         _closeDropdown: function() {
             optionsList.style.display = 'none';
-            inputs.forEach((input, index) => {
-                input.value = valueOnly ? selectedValues[index] : selectedKeys[index];
+            for (let index = 0; index < inputs.length; index++) {
+                inputs[index].value = valueOnly ? selectedValues[index] : selectedKeys[index];
                 isEditing[index] = false;
-            });
+            }
             activeInput = null;
         },
         
@@ -493,12 +502,12 @@ function createDropdown({
                 currentOptions = filteredOptions[activeIndex];
             }
     
-            currentOptions.forEach((option, idx) => {
+            for (const [idx, option] of currentOptions.entries()) {
                 let item = existingItems[idx] || document.createElement('div');
                 item.className = 'mydropdown-item';
                 let textContent = valueOnly
-                        ? `${option.value}` 
-                        : `${option.key}\n(${option.value})`;
+                    ? `${option.value}` 
+                    : `${option.key}\n(${option.value})`;
 
                 if ((containerId === 'dropdown-character' && activeIndex === 3) ||
                     (containerId === 'dropdown-character-regional' && (activeIndex === 2 || activeIndex === 3))) {
@@ -509,9 +518,11 @@ function createDropdown({
                 item.dataset.key = `${option.key}`; 
                 item.dataset.value = `${option.value || ''}`;
                 fragment.appendChild(item);
-            });
-        
-            existingItems.slice(currentOptions.length).forEach(item => item.remove());
+            }
+
+            for (const item of existingItems.slice(currentOptions.length)) {
+                item.remove();
+            }
             optionsList.innerHTML = '';
             optionsList.appendChild(fragment);
     
@@ -523,7 +534,7 @@ function createDropdown({
                 const item = e.target.closest('.mydropdown-item');
                 if (!item) return;
                 const wrapper = activeInput ? activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text') : null;
-                const index = wrapper ? parseInt(wrapper.dataset.index) : activeIndex;
+                const index = wrapper ? Number.parseInt(wrapper.dataset.index) : activeIndex;
                 selectedValues[index] = item.dataset.value;
                 selectedKeys[index] = item.dataset.key;
                 activeInput.value = valueOnly ? item.dataset.value : item.dataset.key;
@@ -573,7 +584,7 @@ function createDropdown({
                     const image = await decodeThumb(lastOptionKey);
                     if (currentTaskId !== overlayTaskId) return;
 
-                    window.updateThumbOverlay(lastOptionKey, image);
+                    globalThis.updateThumbOverlay(lastOptionKey, image);
         
                     const overlayContainer = document.getElementById('cg-thumb-overlay');
                     if (overlayContainer) {
@@ -596,22 +607,22 @@ function createDropdown({
         
                                 const inputId = activeInput.id;
                                 if (inputId === 'cd-character1-overlay' || inputId === 'cd-character2-overlay') {
-                                    left = optionsRect.left + optionsWidth + window.scrollX + 30;
+                                    left = optionsRect.left + optionsWidth + globalThis.scrollX + 30;
                                 } else if (inputId === 'cd-character3-overlay') {
-                                    left = optionsRect.left + window.scrollX - overlayWidth - 10;
+                                    left = optionsRect.left + globalThis.scrollX - overlayWidth - 10;
                                 } else {
                                     overlayContainer.style.display = 'none';
                                     return;
                                 }
                                             
-                                if (top + overlayHeight > window.innerHeight - 10) {
-                                    top = window.innerHeight - overlayHeight - 10;
+                                if (top + overlayHeight > globalThis.innerHeight - 10) {
+                                    top = globalThis.innerHeight - overlayHeight - 10;
                                 }
                                 if (top < 10) {
                                     top = 10;
                                 }
-                                if (top + overlayHeight - window.scrollY > window.innerHeight - 10) {
-                                    top = window.innerHeight - overlayHeight - 10;
+                                if (top + overlayHeight - globalThis.scrollY > globalThis.innerHeight - 10) {
+                                    top = globalThis.innerHeight - overlayHeight - 10;
                                 }
     
                                 overlayContainer.style.transform = `translate(${left}px, ${top}px)`;
@@ -646,27 +657,27 @@ function createDropdown({
             if (!activeInput) activeInput = inputs[index];
             const inputRect = activeInput.getBoundingClientRect();
             const actualOptionsHeight = 30 * height;
-            let maxHeight = Math.min(actualOptionsHeight, window.innerHeight * 0.8);
-            const spaceBelow = window.innerHeight - inputRect.bottom;
+            let maxHeight = Math.min(actualOptionsHeight, globalThis.innerHeight * 0.8);
+            const spaceBelow = globalThis.innerHeight - inputRect.bottom;
             const spaceAbove = inputRect.top;
             const showAbove = spaceBelow < maxHeight && spaceAbove >= maxHeight;
     
             if(showAbove){
-                maxHeight = Math.min(optionsList.scrollHeight, window.innerHeight * 0.8);
+                maxHeight = Math.min(optionsList.scrollHeight, globalThis.innerHeight * 0.8);
             }
     
             const styles = {
                 width: `${Math.min(inputRect.width, 600)}px`,
-                left: `${inputRect.left + window.scrollX}px`,
+                left: `${inputRect.left + globalThis.scrollX}px`,
                 top: showAbove
-                    ? `${inputRect.top + window.scrollY - maxHeight}px`
-                    : `${inputRect.bottom + window.scrollY}px`,
+                    ? `${inputRect.top + globalThis.scrollY - maxHeight}px`
+                    : `${inputRect.bottom + globalThis.scrollY}px`,
                 zIndex: '10002',
                 maxHeight: `${maxHeight}px`
             };
     
-            if (showAbove && styles.top < window.scrollY) {
-                styles.top = window.scrollY;
+            if (showAbove && styles.top < globalThis.scrollY) {
+                styles.top = globalThis.scrollY;
             }
     
             Object.assign(optionsList.style, styles);
@@ -675,35 +686,35 @@ function createDropdown({
     
     // Setup number input validation
     if (enableNumberInput && numberInputs.length > 0) {
-        numberInputs.forEach((numberInput, index) => {
+        for (const [index, numberInput] of numberInputs.entries()) {
             numberInput.addEventListener('input', (e) => {
-                const value = e.target.value;
-                // Allow empty input or intermediate states (e.g., "1.", ".")
-                if (value === '' || /^\d*\.?\d*$/.test(value)) {
-                    numberValues[index] = value;
-                    return;
-                }
-                // Revert to previous valid value if input is invalid
-                e.target.value = numberValues[index];
+            const value = e.target.value;
+            // Allow empty input or intermediate states (e.g., "1.", ".")
+            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                numberValues[index] = value;
+                return;
+            }
+            // Revert to previous valid value if input is invalid
+            e.target.value = numberValues[index];
             });
 
             numberInput.addEventListener('blur', (e) => {
-                let value = e.target.value.trim();
-                if (value === '' || !/^\d*\.?\d*$/.test(value)) {
-                    value = '1.0'; 
-                } else {
-                    let numValue = parseFloat(value);
-                    if (isNaN(numValue) || numValue < 0.1) {
-                        numValue = 0.1; 
-                    } else if (numValue > 2.0) {
-                        numValue = 2.0; 
-                    }
-                    value = numValue.toFixed(1); // Format to 1 decimal places
+            let value = e.target.value.trim();
+            if (value === '' || !/^\d*\.?\d*$/.test(value)) {
+                value = '1.0'; 
+            } else {
+                let numValue = Number.parseFloat(value);
+                if (Number.isNaN(numValue) || numValue < 0.1) {
+                numValue = 0.1; 
+                } else if (numValue > 2) {
+                numValue = 2; 
                 }
-                e.target.value = value;
-                numberValues[index] = value;
+                value = numValue.toFixed(1); // Format to 1 decimal places
+            }
+            e.target.value = value;
+            numberValues[index] = value;
             });
-        });
+        }
     }
     
     // Setup event handlers
@@ -716,7 +727,7 @@ function createDropdown({
 
     dropdown._scrollHandler = debounce(() => {
         if (optionsList.style.display !== 'none' && activeInput) {
-            const index = parseInt(activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text').dataset.index);
+            const index = Number.parseInt(activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text').dataset.index);
             dropdown._updateOptionsPosition(index);
         }
     }, 100);
@@ -725,9 +736,9 @@ function createDropdown({
     document.addEventListener('scroll', dropdown._scrollHandler, true);
 
     if (enableSearch) {        
-        let inputHistory = Array(dropdownCount).fill('');
+        let inputHistory = new Array(dropdownCount).fill('');
 
-        inputs.forEach((input, index) => {
+        for (const [index, input] of inputs.entries()) {
             input.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation(); 
@@ -758,60 +769,58 @@ function createDropdown({
                 const searchText = (input.value || '').toLowerCase();
                 inputHistory[index] = input.value || ''; // Save Search history
 
-                if (!searchText) {
-                    if (filteredOptions[index].length === 1) {
-                        filteredOptions[index] = [...options[index]];
-                        dropdown._updateOptionsList(index, null);
-
-                        setTimeout(() => {
-                            const selectedKey = selectedKeys[index];
-                            const items = optionsList.querySelectorAll('.mydropdown-item');
-                            for (const item of items) {
-                                if (item.dataset.key === selectedKey) {
-                                    item.scrollIntoView({ block: 'nearest' });
-                                    break;
-                                }
-                            }
-                        }, 0);
-                    } else {
-                        filteredOptions[index] = [...options[index]];
-                        dropdown._updateOptionsList(index, null);
-                    }
-                } else {
+                if (searchText) {                
                     filteredOptions[index] = options[index].filter(option =>
                         option.key.toLowerCase().includes(searchText) ||
                         option.value.toLowerCase().includes(searchText)
                     );
                     dropdown._updateOptionsList(index, searchText);
+                } else if (filteredOptions[index].length === 1) {
+                    filteredOptions[index] = [...options[index]];
+                    dropdown._updateOptionsList(index, null);
+
+                    setTimeout(() => {
+                        const selectedKey = selectedKeys[index];
+                        const items = optionsList.querySelectorAll('.mydropdown-item');
+                        for (const item of items) {
+                            if (item.dataset.key === selectedKey) {
+                            item.scrollIntoView({ block: 'nearest' });
+                            break;
+                            }
+                        }
+                    }, 0);
+                } else {
+                    filteredOptions[index] = [...options[index]];
+                    dropdown._updateOptionsList(index, null);
                 }
             }, 100));
-        });
+        }
     } else {
-        inputs.forEach((input, index) => {
+        for (const [index, input] of inputs.entries()) {
             input.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
 
-                activeDropdownsRegistry.setActive(uniqueId);
+            activeDropdownsRegistry.setActive(uniqueId);
 
-                if (activeInput === input && optionsList.style.display === 'block') {
-                    optionsList.style.display = 'none';
-                    activeInput = null;
-                    activeDropdownsRegistry.setActive(null);
-                } else {
-                    if (activeInput !== null) {
-                        const prevIndex = parseInt(activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text').dataset.index);
-                        inputs[prevIndex].value = valueOnly ? selectedValues[prevIndex] : selectedKeys[prevIndex];
-                        isEditing[prevIndex] = false;
-                    }
-                    activeInput = input;
-                    filteredOptions[index] = [...options[index]];
-                    dropdown._updateOptionsList(index);
-                    optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
-                    input.value = valueOnly ? selectedValues[index] : selectedKeys[index];
+            if (activeInput === input && optionsList.style.display === 'block') {
+                optionsList.style.display = 'none';
+                activeInput = null;
+                activeDropdownsRegistry.setActive(null);
+            } else {
+                if (activeInput !== null) {
+                const prevIndex = Number.parseInt(activeInput.closest('.mydropdown-wrapper, .mydropdown-wrapper-with-text').dataset.index);
+                inputs[prevIndex].value = valueOnly ? selectedValues[prevIndex] : selectedKeys[prevIndex];
+                isEditing[prevIndex] = false;
                 }
+                activeInput = input;
+                filteredOptions[index] = [...options[index]];
+                dropdown._updateOptionsList(index);
+                optionsList.style.display = filteredOptions[index].length > 0 ? 'block' : 'none';
+                input.value = valueOnly ? selectedValues[index] : selectedKeys[index];
+            }
             });
-        });
+        }
     }
 
     // Register this dropdown instance
