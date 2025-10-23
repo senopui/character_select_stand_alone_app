@@ -47,13 +47,15 @@ function readDirectory(directory, basePath = '', search_subfolder = false, maxDe
     return result;
 }
 
-function updateImageTaggerList() {
+function updateImageTaggerList() {   
     const taggerPath = path.join(appPath, 'models', 'tagger');
     console.log(CAT, 'Checking Image Tagger models in:', taggerPath);
     if (fs.existsSync(taggerPath)) {
         IMAGE_TAGGER = readDirectory(taggerPath, '', false, Infinity, 0, '.onnx');
-    } else {
-        IMAGE_TAGGER = ['none'];
+        // empty check
+        if (IMAGE_TAGGER.length === 0) {
+            IMAGE_TAGGER = ['none'];
+        }
     }
 
     console.log(CAT, 'Image Tagger models:', IMAGE_TAGGER);
