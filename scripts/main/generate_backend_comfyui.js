@@ -571,8 +571,8 @@ class ComfyUI {
                   return;
               }
             } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {                      
-              console.log(CAT, 'Running same promot? message =', message);
-              finalize(null);
+              console.log(CAT, 'No result from backend, running same promot? message =', message);
+              finalize(`Error: No result from backend, running same promot?`);
               return;
             }
           } else if(message.type === 'progress'){
