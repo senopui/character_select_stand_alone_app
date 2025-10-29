@@ -1,22 +1,21 @@
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
-
 let lastAIPromot = '';
 
 async function remoteGenerateWithPrompt() {
     try {
         const options = {
-            apiUrl: window.ai.remote_address.getValue(),
-            apiKey: window.ai.remote_apikey.getValue(),
-            modelSelect: window.ai.remote_model_select.getValue(),
-            userPrompt: window.prompt.ai.getValue(),
-            systemPrompt: window.ai.ai_system_prompt.getValue(),
-            timeout: window.ai.remote_timeout.getValue() * 1000
+            apiUrl: globalThis.ai.remote_address.getValue(),
+            apiKey: globalThis.ai.remote_apikey.getValue(),
+            modelSelect: globalThis.ai.remote_model_select.getValue(),
+            userPrompt: globalThis.prompt.ai.getValue(),
+            systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+            timeout: globalThis.ai.remote_timeout.getValue() * 1000
         };
         let result;
-        if (!window.inBrowser) {
-            result = await window.api.remoteAI(options);
-        } else {
+        if (globalThis.inBrowser) {
             result = await sendWebSocketMessage({ type: 'API', method: 'remoteAI', params: [options] });
+        } else {
+            result = await globalThis.api.remoteAI(options);
         }
 
         if(result.startsWith('Error:')){
@@ -37,8 +36,9 @@ async function remoteGenerateWithPrompt() {
             console.error('Content not found in response:', parsedResult);
             return '';
         }
-
-        return content;
+        // Just in case, trim off <think>...</think>
+        const final_result = content.replace(/<think>[\s\S]*<\/think>\s*/, '').trim();
+        return final_result;
     } catch (error) {
         console.error('Request remote AI failed:', error.message);
         return '';
@@ -48,19 +48,19 @@ async function remoteGenerateWithPrompt() {
 async function localGenerateWithPrompt() {
     try {
         const options = {
-            apiUrl: window.ai.local_address.getValue(),
-            userPrompt: window.prompt.ai.getValue(),
-            systemPrompt: window.ai.ai_system_prompt.getValue(),
-            temperature: window.ai.local_temp.getValue(),
-            n_predict:window.ai.local_n_predict.getValue(),
-            timeout: window.ai.remote_timeout.getValue() * 1000
+            apiUrl: globalThis.ai.local_address.getValue(),
+            userPrompt: globalThis.prompt.ai.getValue(),
+            systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+            temperature: globalThis.ai.local_temp.getValue(),
+            n_predict:globalThis.ai.local_n_predict.getValue(),
+            timeout: globalThis.ai.remote_timeout.getValue() * 1000
         };
 
         let result;
-        if (!window.inBrowser) {
-            result = await window.api.localAI(options);
-        } else {
+        if (globalThis.inBrowser) {
             result = await sendWebSocketMessage({ type: 'API', method: 'localAI', params: [options] });
+        } else {
+            result = await globalThis.api.localAI(options);
         }
 
         if(result.startsWith('Error:')){
@@ -81,8 +81,9 @@ async function localGenerateWithPrompt() {
             console.error('Content not found in local response:', parsedResult);
             return '';
         }
-
-        return content;
+        // trim off <think>...</think>
+        const final_result = content.replace(/<think>[\s\S]*<\/think>\s*/, '').trim();
+        return final_result;
     } catch (error) {
         console.error('Request local AI failed:', error.message);
         return '';
@@ -91,8 +92,8 @@ async function localGenerateWithPrompt() {
 
 
 export async function getAiPrompt(loop, overlay_generate_ai) {
-    const currentInterface = window.ai.interface.getValue();
-    const currentRole = window.ai.ai_select.getValue();
+    const currentInterface = globalThis.ai.interface.getValue();
+    const currentRole = globalThis.ai.ai_select.getValue();
 
     if(currentRole === 0)   // None
         return '';
@@ -103,10 +104,10 @@ export async function getAiPrompt(loop, overlay_generate_ai) {
     if (currentInterface.toLowerCase() === 'none') {
         return '';
     } else if (currentInterface.toLowerCase() === 'remote') {     
-        window.generate.loadingMessage = overlay_generate_ai;
+        globalThis.generate.loadingMessage = overlay_generate_ai;
         lastAIPromot = await remoteGenerateWithPrompt();        
     } else {
-        window.generate.loadingMessage = overlay_generate_ai;
+        globalThis.generate.loadingMessage = overlay_generate_ai;
         lastAIPromot = await localGenerateWithPrompt();
     }    
     return lastAIPromot;

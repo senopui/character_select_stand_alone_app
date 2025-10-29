@@ -2,8 +2,6 @@ import { getAiPrompt } from './remoteAI.js';
 import { showDialog } from './myDialog.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
-const CAT = '[RightClickMenu]';
-
 function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -29,7 +27,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
     }
 
     const spellCheckFragment = document.createDocumentFragment();
-    let maxWidth = parseInt(menuBox.style.width, 10) - 24 || 200;
+    let maxWidth = Number.parseInt(menuBox.style.width, 10) - 24 || 200;
 
     const tempDiv = document.createElement('div');
     tempDiv.style.position = 'absolute';
@@ -38,7 +36,8 @@ export function addSpellCheckSuggestions(suggestions, word) {
     document.body.appendChild(tempDiv);
 
     if (suggestions.length > 0) {
-        suggestions.forEach((suggestion, index) => {
+        let index = 0;
+        for( const suggestion of suggestions) {
             const menuItem = document.createElement('div');
             menuItem.className = 'menu-item';
             menuItem.style.padding = '6px 12px';
@@ -57,7 +56,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
 
             menuItem.addEventListener('click', async () => {
                 try {
-                    await window.api.replaceMisspelling(suggestion);
+                    await globalThis.api.replaceMisspelling(suggestion);
                     menuBox.style.display = 'none';
                 } catch (error) {
                     console.error('Error replacing misspelling:', error);
@@ -67,7 +66,8 @@ export function addSpellCheckSuggestions(suggestions, word) {
             tempDiv.textContent = suggestion;
             maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
             spellCheckFragment.appendChild(menuItem);
-        });
+            index++;
+        }
 
         // Add to dictionary option
         const addToDictItem = document.createElement('div');
@@ -88,7 +88,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
 
         addToDictItem.addEventListener('click', async () => {
             try {
-                await window.api.addToDictionary(word);
+                await globalThis.api.addToDictionary(word);
                 menuBox.style.display = 'none';
             } catch (error) {
                 console.error('Error adding to dictionary:', error);
@@ -105,13 +105,15 @@ export function addSpellCheckSuggestions(suggestions, word) {
         spellCheckFragment.appendChild(separator);
     }
 
-    document.body.removeChild(tempDiv);
+    tempDiv.remove();
 
     // insert the spell check suggestions at the top of the menu
     const currentChildren = Array.from(menuBox.children);
     menuBox.innerHTML = '';
     menuBox.appendChild(spellCheckFragment);
-    currentChildren.forEach(child => menuBox.appendChild(child));
+    for (const child of currentChildren) {
+        menuBox.appendChild(child);
+    }
 
     // update the menu width
     menuBox.style.width = `${Math.min(maxWidth + 24, 300)}px`;
@@ -119,7 +121,7 @@ export function addSpellCheckSuggestions(suggestions, word) {
 }
 
 export function setupRightClickMenu() {
-    if (window.rightClick?.initialized) {
+    if (globalThis.rightClick?.initialized) {
         console.log('RightClickMenu already initialized');
         return;
     }
@@ -137,7 +139,7 @@ export function setupRightClickMenu() {
     let allowMenu = false;
     let isMoved = false;
 
-    window.rightClick = {
+    globalThis.rightClick = {
         initialized: true,
         push: (index, displayName, handler) => {
             if (typeof index !== 'string' && typeof index !== 'number') {
@@ -192,9 +194,9 @@ export function setupRightClickMenu() {
         }
     };
 
-    if (!window.inBrowser) {
+    if (!globalThis.inBrowser) {
         // global spellcheck API
-        window.api.onSpellCheckSuggestions?.((suggestions, word) => {
+        globalThis.api.onSpellCheckSuggestions?.((suggestions, word) => {
             addSpellCheckSuggestions(suggestions, word);
         });
     }
@@ -240,11 +242,11 @@ export function setupRightClickMenu() {
         }
 
         const targetElement = e.target;
-        if (!window.inBrowser) {
-            await renderMenu(e.clientX, e.clientY, targetElement);
-        } else {
+        if (globalThis.inBrowser) {
             // Move my right click menu a little left
             await renderMenu(e.clientX - 128, e.clientY, targetElement);
+        } else {
+            await renderMenu(e.clientX, e.clientY, targetElement);
         }
         rightClickStartX = undefined;
         rightClickStartY = undefined;
@@ -272,6 +274,7 @@ export function setupRightClickMenu() {
         e.stopPropagation(); 
     });
 
+    // eslint-disable-next-line sonarjs/cognitive-complexity
     async function renderMenu(x, y, targetElement) {
         const fragment = document.createDocumentFragment();
         let maxWidth = 0;
@@ -295,10 +298,7 @@ export function setupRightClickMenu() {
         // update currentSelectedText
         currentSelectedText = '';
         if (isTextInput) {
-            if (targetElement.selectionStart !== targetElement.selectionEnd) {
-                // selected text
-                currentSelectedText = targetElement.value.slice(targetElement.selectionStart, targetElement.selectionEnd).trim();
-            } else {
+            if (targetElement.selectionStart === targetElement.selectionEnd) {                
                 // cursor word
                 const text = targetElement.value;
                 const cursorPos = targetElement.selectionStart;
@@ -312,23 +312,26 @@ export function setupRightClickMenu() {
                     }
                 }
                 currentSelectedText = word;
+            } else {
+                // selected text
+                currentSelectedText = targetElement.value.slice(targetElement.selectionStart, targetElement.selectionEnd).trim();
             }
         }
         currentMenuX = x;
         currentMenuY = y;
 
         // render menu items
-        menuConfig.forEach((item) => {
+        for(const item of menuConfig) {
             if (item.displayName === null && item.handler === null) {
                 const separator = document.createElement('div');
                 separator.className = 'menu-separator';
                 fragment.appendChild(separator);
-                return;
+                continue;
             }
 
             if (typeof item.handler === 'object' && item.handler.selector) {
                 if (!targetElement.closest(item.handler.selector)) {
-                    return;
+                    continue;
                 }
             }
 
@@ -357,9 +360,10 @@ export function setupRightClickMenu() {
             tempDiv.textContent = item.displayName;
             maxWidth = Math.max(maxWidth, tempDiv.offsetWidth);
             fragment.appendChild(menuItem);
-        });
+        }
 
-        document.body.removeChild(tempDiv);
+        tempDiv.remove();
+
         if (!fragment.children.length && !currentSelectedText) {
             menuBox.style.display = 'none';
             return;
@@ -395,8 +399,8 @@ function executeMenuAction(handler, targetElement) {
 function updateMenuPosition(x = currentMenuX, y = currentMenuY) {
     const menuWidth = menuBox.offsetWidth || 200;
     const menuHeight = menuBox.offsetHeight || 100;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+    const windowWidth = globalThis.innerWidth;
+    const windowHeight = globalThis.innerHeight;
     const paddingX = 10;
     const paddingY = 10;
 
@@ -415,94 +419,94 @@ function updateMenuPosition(x = currentMenuX, y = currentMenuY) {
 }
 
 function updateRightClickMenu(){
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
-    window.rightClick.setTitle('copy_image', LANG.right_menu_copy_image);
-    window.rightClick.setTitle('copy_image_metadata', LANG.right_menu_copy_image_metadata);
-    window.rightClick.setTitle('copy_image_full_screen', LANG.right_menu_copy_image);
-    window.rightClick.setTitle('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata);
+    globalThis.rightClick.setTitle('copy_image', LANG.right_menu_copy_image);
+    globalThis.rightClick.setTitle('copy_image_metadata', LANG.right_menu_copy_image_metadata);
+    globalThis.rightClick.setTitle('copy_image_full_screen', LANG.right_menu_copy_image);
+    globalThis.rightClick.setTitle('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata);
     
-    window.rightClick.setTitle('clear_gallery', LANG.right_menu_clear_gallery);
-    window.rightClick.setTitle('bcryptHash', LANG.right_menu_bcrypt_hash);
+    globalThis.rightClick.setTitle('clear_gallery', LANG.right_menu_clear_gallery);
+    globalThis.rightClick.setTitle('bcryptHash', LANG.right_menu_bcrypt_hash);
 
-    window.rightClick.setTitle('lora_common_to_slot', LANG.right_menu_send_lora_to_slot);
-    window.rightClick.setTitle('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot);
-    window.rightClick.setTitle('test_ai_generate', LANG.right_menu_test_ai_generate);
+    globalThis.rightClick.setTitle('lora_common_to_slot', LANG.right_menu_send_lora_to_slot);
+    globalThis.rightClick.setTitle('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot);
+    globalThis.rightClick.setTitle('test_ai_generate', LANG.right_menu_test_ai_generate);
 }
 
 function registerDefaultMenuItems() {
-    const SETTINGS = window.globalSettings;
-    const FILES = window.cachedFiles;
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
 
     //Dynamic menu
     // split mode
-    window.rightClick.append('copy_image', LANG.right_menu_copy_image, {
+    globalThis.rightClick.append('copy_image', LANG.right_menu_copy_image, {
         selector: '.cg-main-image-container',
         func: (element) => menu_copyImage(element)
     });
-    window.rightClick.append('copy_image_metadata', LANG.right_menu_copy_image_metadata, {
+    globalThis.rightClick.append('copy_image_metadata', LANG.right_menu_copy_image_metadata, {
         selector: '.cg-main-image-container',
         func: async (element) => await menu_copyImageMetadata(element)
     });
     // full screen mode
-    window.rightClick.append('copy_image_full_screen', LANG.right_menu_copy_image, {
+    globalThis.rightClick.append('copy_image_full_screen', LANG.right_menu_copy_image, {
         selector: '.cg-fullscreen-overlay',
         func: (element) => menu_copyImage(element)
     });
-    window.rightClick.append('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata, {
+    globalThis.rightClick.append('copy_image_metadata_full_screen', LANG.right_menu_copy_image_metadata, {
         selector: '.cg-fullscreen-overlay',
         func: async (element) => await menu_copyImageMetadata(element)
     });
     // Custom overlay image
-    window.rightClick.append('copy_image_preview', LANG.right_menu_copy_image, {
+    globalThis.rightClick.append('copy_image_preview', LANG.right_menu_copy_image, {
         selector: '.cg-image-wrapper',
         func: (element) => menu_copyImage(element)
     });    
 
     // Common
-    window.rightClick.append('lora_common_to_slot', LANG.right_menu_send_lora_to_slot, {
+    globalThis.rightClick.append('lora_common_to_slot', LANG.right_menu_send_lora_to_slot, {
         selector: '.prompt-common',
         func: (element) => {
             const textPrompt = prompt_sendLoRAtoSlot(element, '.myTextbox-prompt-common-textarea ')
             if(textPrompt) {
-                window.prompt.common.setValue(textPrompt.trim());
-                window.collapsedTabs.lora.setCollapsed(false);
+                globalThis.prompt.common.setValue(textPrompt.trim());
+                globalThis.collapsedTabs.lora.setCollapsed(false);
             }
         }
     });
     // Positive
-    window.rightClick.append('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot, {
+    globalThis.rightClick.append('lora_positive_to_slot', LANG.right_menu_send_lora_to_slot, {
         selector: '.prompt-positive',
         func: (element) => {
             const textPrompt = prompt_sendLoRAtoSlot(element, '.myTextbox-prompt-positive-textarea ')
             if(textPrompt){
-                window.prompt.positive.setValue(textPrompt.trim());
-                window.collapsedTabs.lora.setCollapsed(false);
+                globalThis.prompt.positive.setValue(textPrompt.trim());
+                globalThis.collapsedTabs.lora.setCollapsed(false);
             }
         }
     });
 
     // AI prompt
-    window.rightClick.append('test_ai_generate', LANG.right_menu_test_ai_generate, {
+    globalThis.rightClick.append('test_ai_generate', LANG.right_menu_test_ai_generate, {
         selector: '.prompt-ai',
         func: async (element) => await prompt_testAIgenerate(element)
     });
 
     // line-------------------
-    window.rightClick.append('separator_1', null, null);
+    globalThis.rightClick.append('separator_1', null, null);
 
     // Static menu
-    window.rightClick.append('clear_gallery', LANG.right_menu_clear_gallery, () => {
-        window.mainGallery.clearGallery();
+    globalThis.rightClick.append('clear_gallery', LANG.right_menu_clear_gallery, () => {
+        globalThis.mainGallery.clearGallery();
     });
 
-    if(!window.inBrowser) {
-        window.rightClick.append('bcryptHash', LANG.right_menu_bcrypt_hash, async () => {
-            const SETTINGS = window.globalSettings;
-            const FILES = window.cachedFiles;
+    if(!globalThis.inBrowser) {
+        globalThis.rightClick.append('bcryptHash', LANG.right_menu_bcrypt_hash, async () => {
+            const SETTINGS = globalThis.globalSettings;
+            const FILES = globalThis.cachedFiles;
             const LANG = FILES.language[SETTINGS.language];
             const password = await showDialog('input', { 
                 message: LANG.right_menu_bcrypt_hash_text,
@@ -512,8 +516,8 @@ function registerDefaultMenuItems() {
                 buttonText: LANG.setup_ok
             });
 
-            const hashedPassword = await window.api.bcryptHash(password);
-            window.overlay.custom.createCustomOverlay('none', `\n\nRAW:\n${password}\n\nHASH:\n${hashedPassword}`);
+            const hashedPassword = await globalThis.api.bcryptHash(password);
+            globalThis.overlay.custom.createCustomOverlay('none', `\n\nRAW:\n${password}\n\nHASH:\n${hashedPassword}`);
         });
     }
 }
@@ -523,15 +527,15 @@ function menu_copyImage(element) {
     if (img?.src.startsWith('data:image/')) {
         try {
             // Check if the document is focused
-            if (!document.hasFocus()) {
+            if (document.hasFocus()) {
+                proceedWithCopy(img);
+            } else {
                 console.log('Document is not focused, attempting to focus the window');
-                window.focus(); // Attempt to bring the window into focus
+                globalThis.focus(); // Attempt to bring the window into focus
                 // Add a small delay to ensure focus is applied before clipboard access
                 setTimeout(() => {
                     proceedWithCopy(img);
                 }, 100); // 100ms delay to allow focus to take effect
-            } else {
-                proceedWithCopy(img);
             }
         } catch (err) {
             console.error('Error processing image:', err);
@@ -558,10 +562,10 @@ function proceedWithCopy(img) {
                         console.log('Image successfully copied to clipboard');
                     } catch (err){
                         console.warn('Failed to copy PNG image to clipboard:', err);
-                        const SETTINGS = window.globalSettings;
-                        const FILES = window.cachedFiles;
+                        const SETTINGS = globalThis.globalSettings;
+                        const FILES = globalThis.cachedFiles;
                         const LANG = FILES.language[SETTINGS.language];
-                        window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_copy_image);
+                        globalThis.overlay.custom.createCustomOverlay('none', LANG.saac_macos_copy_image);
                     }
                 }
             }, 'image/png');
@@ -579,10 +583,10 @@ async function menu_copyImageMetadata(element) {
     if (img?.src.startsWith('data:image/')) {
         try {
             let result;
-            if (!window.inBrowser) {
-                result = await window.api.readBase64Image(img.src);
-            } else {
+            if (globalThis.inBrowser) {
                 result = await sendWebSocketMessage({ type: 'API', method: 'readBase64Image', params: [img.src] });
+            } else {
+                result = await globalThis.api.readBase64Image(img.src);
             }
             if (result.error || !result.metadata) {
                 return ;
@@ -591,10 +595,10 @@ async function menu_copyImageMetadata(element) {
                 await navigator.clipboard.writeText(result.metadata?.parameters || result.metadata?.data);
             } catch (err){
                 console.warn('Failed to copy PNG image metadata to clipboard:', err);
-                const SETTINGS = window.globalSettings;
-                const FILES = window.cachedFiles;
+                const SETTINGS = globalThis.globalSettings;
+                const FILES = globalThis.cachedFiles;
                 const LANG = FILES.language[SETTINGS.language];
-                window.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', result.metadata));
+                globalThis.overlay.custom.createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', result.metadata));
             }
             
         } catch (error) {
@@ -620,12 +624,12 @@ function prompt_sendLoRAtoSlot(element, textArea){
         const loraRegex = /<lora:[^>]+>/g;
         const loraMatches = text.match(loraRegex) || [];
         const allLora = loraMatches.join(' ');
-        const allPrompt = text.replace(loraRegex, '').replace(/,\s*,/g, ',').replace(/(^,\s*)|(\s*,$)/g, '').trim();
+        const allPrompt = text.replaceAll(loraRegex, '').replaceAll(/,\s*,/g, ',').replaceAll(/(^,\s*)|(\s*,$)/g, '').trim();
 
-        if(allLora.trim() !== '') {
-            window.lora.flushSlot(allLora);
-        } else {
+        if(allLora.trim() === '') {
             console.warn(`No LoRA in ${textArea}`);
+        } else {
+            globalThis.lora.flushSlot(allLora);
         }
 
         return `${allPrompt} `;
@@ -650,7 +654,7 @@ async function prompt_testAIgenerate(element){
         }
 
         const aiText = await getAiPrompt(0, text);
-        window.overlay.custom.createCustomOverlay('none', `\n\n\n${aiText}`);
+        globalThis.overlay.custom.createCustomOverlay('none', `\n\n\n${aiText}`);
     } catch (err) {
         console.error('Error on get AI prompt:', err);
     }

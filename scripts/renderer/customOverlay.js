@@ -1,21 +1,21 @@
 import { parseTaggedContent } from './myTextbox.js';
 
 export function setupButtonOverlay() {
-    window.addEventListener('resize', () => {
+    globalThis.addEventListener('resize', () => {
         const overlays = ['cg-button-overlay', 'cg-loading-overlay'];
-        overlays.forEach(id => {
+        for (const id of overlays) {
             const overlay = document.getElementById(id);
             if (overlay && !overlay.classList.contains('minimized')) {
                 restrictOverlayPosition(overlay, {
                     translateX: id === 'cg-loading-overlay' 
-                        ? (window.innerWidth - overlay.offsetWidth) / 2 
-                        : window.innerWidth * 0.5 - 120,
+                        ? (globalThis.innerWidth - overlay.offsetWidth) / 2 
+                        : globalThis.innerWidth * 0.5 - 120,
                     translateY: id === 'cg-loading-overlay' 
-                        ? window.innerHeight * 0.2 - overlay.offsetHeight * 0.2 
-                        : window.innerHeight * 0.8
+                        ? globalThis.innerHeight * 0.2 - overlay.offsetHeight * 0.2 
+                        : globalThis.innerHeight * 0.8
                 });
             }
-        });
+        }
     });
 
     console.log("Setting up button overlay");
@@ -56,7 +56,7 @@ export function setupButtonOverlay() {
     const clonedRunButton = runButton.cloneNode(true);
     const clonedRandomButton = runRandomButton.cloneNode(true);
 
-    [clonedRunButton, clonedRandomButton].forEach(button => {
+    for (const button of [clonedRunButton, clonedRandomButton]) {
         button.classList.add('cg-overlay-button');
         button.style.width = '200px';
         button.style.height = '36px';
@@ -64,23 +64,23 @@ export function setupButtonOverlay() {
         button.style.padding = '10px 15px';
         button.style.display = 'inline-block';
         button.style.transition = 'background-color 0.3s ease';
-    });
+    }
 
-    clonedRunButton.style.backgroundColor = window.generate.generate_single.getDefaultColor();
-    clonedRandomButton.style.backgroundColor = window.generate.generate_batch.getDefaultColor();
+    clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
+    clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
 
     clonedRunButton.addEventListener('mouseover', () => {
-        clonedRunButton.style.backgroundColor = window.generate.generate_single.getHoverColor();
+        clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getHoverColor();
     });
     clonedRunButton.addEventListener('mouseout', () => {
-        clonedRunButton.style.backgroundColor = window.generate.generate_single.getDefaultColor();
+        clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
     });
 
     clonedRandomButton.addEventListener('mouseover', () => {
-        clonedRandomButton.style.backgroundColor = window.generate.generate_batch.getHoverColor();
+        clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getHoverColor();
     });
     clonedRandomButton.addEventListener('mouseout', () => {
-        clonedRandomButton.style.backgroundColor = window.generate.generate_batch.getDefaultColor();
+        clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
     });
 
     function preventClickIfDragged(clonedButton, type) {
@@ -103,9 +103,9 @@ export function setupButtonOverlay() {
             const onUp = () => {
                 if (!hasMoved) {
                     if(type === 'single')
-                        window.generate.generate_single.click();
+                        globalThis.generate.generate_single.click();
                     else
-                        window.generate.generate_batch.click();
+                        globalThis.generate.generate_batch.click();
                 }
 
                 document.removeEventListener('mousemove', onMove);
@@ -131,8 +131,8 @@ export function setupButtonOverlay() {
     buttonOverlay.style.boxSizing = 'border-box';
 
     const defaultPosition = {
-        translateX: window.innerWidth * 0.5 - 120,
-        translateY: window.innerHeight * 0.8
+        translateX: globalThis.innerWidth * 0.5 - 120,
+        translateY: globalThis.innerHeight * 0.8
     };
     const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
     let translateX, translateY;
@@ -272,7 +272,7 @@ export function setupButtonOverlay() {
             const clonedRunButton = runButton.cloneNode(true);
             const clonedRandomButton = runRandomButton.cloneNode(true);
 
-            [clonedRunButton, clonedRandomButton].forEach(button => {
+            for (const button of [clonedRunButton, clonedRandomButton]) {
                 button.classList.add('cg-overlay-button');
                 button.style.width = '200px';
                 button.style.height = '36px';
@@ -280,23 +280,23 @@ export function setupButtonOverlay() {
                 button.style.padding = '10px 15px';
                 button.style.display = 'inline-block';
                 button.style.transition = 'background-color 0.3s ease';
-            });
+            }
 
-            clonedRunButton.style.backgroundColor = window.generate.generate_single.getDefaultColor();
-            clonedRandomButton.style.backgroundColor = window.generate.generate_batch.getDefaultColor();
+            clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
+            clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
 
             clonedRunButton.addEventListener('mouseover', () => {
-                clonedRunButton.style.backgroundColor = window.generate.generate_single.getHoverColor();
+                clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getHoverColor();
             });
             clonedRunButton.addEventListener('mouseout', () => {
-                clonedRunButton.style.backgroundColor = window.generate.generate_single.getDefaultColor();
+                clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
             });
 
             clonedRandomButton.addEventListener('mouseover', () => {
-                clonedRandomButton.style.backgroundColor = window.generate.generate_batch.getHoverColor();
+                clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getHoverColor();
             });
             clonedRandomButton.addEventListener('mouseout', () => {
-                clonedRandomButton.style.backgroundColor = window.generate.generate_batch.getDefaultColor();
+                clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
             });
 
             preventClickIfDragged(clonedRandomButton, 'batch');
@@ -313,7 +313,7 @@ function restrictOverlayPosition(element, defaultPosition) {
 
     const rect = element.getBoundingClientRect();
     const isOutOfBounds = rect.top < 0 || rect.left < 0 ||
-                         rect.bottom > window.innerHeight || rect.right > window.innerWidth;
+                         rect.bottom > globalThis.innerHeight || rect.right > globalThis.innerWidth;
 
     if (isOutOfBounds) {
         let translateX = defaultPosition.translateX;
@@ -416,15 +416,15 @@ export function addDragFunctionality(element, getSyncElement) {
 
         const rect = element.getBoundingClientRect();
         const isOutOfBounds = rect.top < 0 || rect.left < 0 ||
-                                rect.bottom > window.innerHeight || rect.right > window.innerWidth;
+                                rect.bottom > globalThis.innerHeight || rect.right > globalThis.innerWidth;
 
         if (isOutOfBounds) {
             if (element.id === 'cg-loading-overlay') {
-                state.translateX = (window.innerWidth - element.offsetWidth) / 2;
-                state.translateY = window.innerHeight * 0.2 - element.offsetHeight * 0.2;
+                state.translateX = (globalThis.innerWidth - element.offsetWidth) / 2;
+                state.translateY = globalThis.innerHeight * 0.2 - element.offsetHeight * 0.2;
             } else {
-                state.translateX = window.innerWidth * 0.5 - 120;
-                state.translateY = window.innerHeight * 0.8;
+                state.translateX = globalThis.innerWidth * 0.5 - 120;
+                state.translateY = globalThis.innerHeight * 0.8;
             }
         }
 
@@ -475,7 +475,7 @@ export function addCustomOverlayDragFunctionality(element, dragHandle, getSyncEl
 
         isDragging = true;
 
-        const computedStyle = window.getComputedStyle(element);
+        const computedStyle = globalThis.getComputedStyle(element);
         if (computedStyle.transform !== 'none' && !element.dataset.transformReset) {
             const rect = element.getBoundingClientRect();
             element.style.left = `${rect.left}px`;
@@ -531,9 +531,9 @@ export function addCustomOverlayDragFunctionality(element, dragHandle, getSyncEl
 
         localStorage.setItem(storageKey, JSON.stringify({ top: newTop, left: newLeft }));
 
-        if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight || rect.right > window.innerWidth) {
-            const defaultTop = window.innerHeight * 0.1;
-            const defaultLeft = window.innerWidth * 0.5 - (element.offsetWidth / 2);
+        if (rect.top < 0 || rect.left < 0 || rect.bottom > globalThis.innerHeight || rect.right > globalThis.innerWidth) {
+            const defaultTop = globalThis.innerHeight * 0.1;
+            const defaultLeft = globalThis.innerWidth * 0.5 - (element.offsetWidth / 2);
             element.style.top = `${defaultTop}px`;
             element.style.left = `${defaultLeft}px`;
             element.style.transform = 'none';
@@ -575,8 +575,8 @@ export function addResizeFunctionality(element, handle) {
         isResizing = true;
         startX = e.clientX;
         startY = e.clientY;
-        startWidth = parseFloat(getComputedStyle(element).width);
-        startHeight = parseFloat(getComputedStyle(element).height);
+        startWidth = Number.parseFloat(getComputedStyle(element).width);
+        startHeight = Number.parseFloat(getComputedStyle(element).height);
 
         element.classList.add('resizing');
         document.body.style.userSelect = 'none';
@@ -604,8 +604,8 @@ export function addResizeFunctionality(element, handle) {
         element.classList.remove('resizing');
         document.body.style.userSelect = '';
 
-        const finalWidth = parseFloat(getComputedStyle(element).width);
-        const finalHeight = parseFloat(getComputedStyle(element).height);
+        const finalWidth = Number.parseFloat(getComputedStyle(element).width);
+        const finalHeight = Number.parseFloat(getComputedStyle(element).height);
         localStorage.setItem('customOverlaySize', JSON.stringify({
             width: finalWidth,
             height: finalHeight
@@ -628,382 +628,384 @@ export function addResizeFunctionality(element, handle) {
     };
 }
 
-export function customCommonOverlay() {
-    function createInfoOverlay({ id, content, className = '', onClick = null }) {
-        let overlay = document.getElementById(id);
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = id;
-            overlay.className = `cg-overlay ${className}`;
-            document.body.appendChild(overlay);
-        }        
-        overlay.innerHTML = content;
-        if (onClick) overlay.onclick = onClick;
-        return overlay;
+function createInfoOverlay({ id, content, className = '', onClick = null }) {
+    let overlay = document.getElementById(id);
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = id;
+        overlay.className = `cg-overlay ${className}`;
+        document.body.appendChild(overlay);
+    }        
+    overlay.innerHTML = content;
+    if (onClick) overlay.onclick = onClick;
+    return overlay;
+}
+
+function createErrorOverlay(errorMessage, copyMessage) {
+    const displayMessage = parseTaggedContent(errorMessage);
+
+    const overlay = createInfoOverlay({
+        id: 'cg-error-overlay',
+        className: 'cg-overlay-error',
+        content: `
+            <div class="cg-error-content">
+                <img src="${globalThis.cachedFiles.loadingFailed}" alt="Error">
+                <pre>${displayMessage}</pre>
+            </div>
+        `,
+        onClick: async (e) => {
+            if (e.target.tagName === 'A') {
+                e.stopPropagation();
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(copyMessage);
+            } catch (err){
+                console.warn('Failed to copy:', err);
+                const SETTINGS = globalThis.globalSettings;
+                const FILES = globalThis.cachedFiles;
+                const LANG = FILES.language[SETTINGS.language];
+                createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', copyMessage));
+            }
+            document.getElementById('cg-error-overlay').remove();
+        }
+    });
+    overlay.style.width = 'fit-content';
+    overlay.style.minWidth = '200px';
+    overlay.style.maxWidth = 'min(1000px, 90vw)';
+    overlay.style.boxSizing = 'border-box';
+    overlay.style.padding = '20px';
+
+    const contentPre = overlay.querySelector('.cg-error-content pre');
+    if (contentPre) {
+        contentPre.style.boxSizing = 'border-box';
+        contentPre.style.wordWrap = 'break-word';
+        contentPre.style.whiteSpace = 'pre-wrap'; 
     }
 
-    function createErrorOverlay(errorMessage, copyMessage) {
-        const displayMessage = parseTaggedContent(errorMessage);
+    return overlay;
+}
 
-        const overlay = createInfoOverlay({
-            id: 'cg-error-overlay',
-            className: 'cg-overlay-error',
-            content: `
-                <div class="cg-error-content">
-                    <img src="${window.cachedFiles.loadingFailed}" alt="Error">
-                    <pre>${displayMessage}</pre>
-                </div>
-            `,
-            onClick: async (e) => {
-                if (e.target.tagName === 'A') {
-                    e.stopPropagation();
-                    return;
-                }
-                try {
-                    await navigator.clipboard.writeText(copyMessage);
-                } catch (err){
-                    console.warn('Failed to copy:', err);
-                    const SETTINGS = window.globalSettings;
-                    const FILES = window.cachedFiles;
-                    const LANG = FILES.language[SETTINGS.language];
-                    createCustomOverlay('none', LANG.saac_macos_clipboard.replace('{0}', copyMessage));
-                }
-                document.getElementById('cg-error-overlay').remove();
-            }
-        });
-        overlay.style.width = 'fit-content';
-        overlay.style.minWidth = '200px';
-        overlay.style.maxWidth = 'min(1000px, 90vw)';
-        overlay.style.boxSizing = 'border-box';
-        overlay.style.padding = '20px';
+function createLoadingOverlay(loadingMessage, elapsedTimePrefix, elapsedTimeSuffix) {
+    let currentImage = globalThis.cachedFiles.loadingWait;
+    let lastBase64 = currentImage;
+    let pendingImage = null;
+    let loadingTitle = loadingMessage;
 
-        const contentPre = overlay.querySelector('.cg-error-content pre');
-        if (contentPre) {
-            contentPre.style.boxSizing = 'border-box';
-            contentPre.style.wordWrap = 'break-word';
-            contentPre.style.whiteSpace = 'pre-wrap'; 
-        }
+    const overlay = createInfoOverlay({
+        id: 'cg-loading-overlay',
+        className: '',
+        content: `
+            <img id="cg-loading-overlay-image" src="${currentImage}" alt="Loading">
+            <span class="cg-overlay-title">${loadingMessage || 'Now generating...'}</span>
+            <span class="cg-overlay-timer">${elapsedTimePrefix || 'Elapsed time:'} 0 ${elapsedTimeSuffix || 'seconds'}</span>
+        `
+    });
+    overlay.style.zIndex = '10001';
+    overlay.style.pointerEvents = 'auto';
 
-        return overlay;
+    const savedPosition = JSON.parse(localStorage.getItem('overlayPosition') || '{}');
+    const buttonOverlay = document.getElementById('cg-button-overlay');
+    let translateX, translateY;
+
+    if (savedPosition.top !== undefined && savedPosition.left !== undefined) {
+        translateX = savedPosition.left;
+        translateY = savedPosition.top;
+    } else if (buttonOverlay && !buttonOverlay.classList.contains('minimized')) {
+        const rect = buttonOverlay.getBoundingClientRect();
+        translateX = rect.left;
+        translateY = rect.top;
+    } else {
+        translateX = (globalThis.innerWidth - overlay.offsetWidth) / 2;
+        translateY = globalThis.innerHeight * 0.2 - overlay.offsetHeight * 0.2;
     }
 
-    function createLoadingOverlay(loadingMessage, elapsedTimePrefix, elapsedTimeSuffix) {
-        let currentImage = window.cachedFiles.loadingWait;
-        let lastBase64 = currentImage;
-        let pendingImage = null;
-        let loadingTitle = loadingMessage;
-    
-        const overlay = createInfoOverlay({
-            id: 'cg-loading-overlay',
-            className: '',
-            content: `
-                <img id="cg-loading-overlay-image" src="${currentImage}" alt="Loading">
-                <span class="cg-overlay-title">${loadingMessage || 'Now generating...'}</span>
-                <span class="cg-overlay-timer">${elapsedTimePrefix || 'Elapsed time:'} 0 ${elapsedTimeSuffix || 'seconds'}</span>
-            `
-        });
-        overlay.style.zIndex = '10001';
-        overlay.style.pointerEvents = 'auto';
-    
-        const savedPosition = JSON.parse(localStorage.getItem('overlayPosition') || '{}');
-        const buttonOverlay = document.getElementById('cg-button-overlay');
-        let translateX, translateY;
-    
-        if (savedPosition.top !== undefined && savedPosition.left !== undefined) {
-            translateX = savedPosition.left;
-            translateY = savedPosition.top;
-        } else if (buttonOverlay && !buttonOverlay.classList.contains('minimized')) {
-            const rect = buttonOverlay.getBoundingClientRect();
-            translateX = rect.left;
-            translateY = rect.top;
-        } else {
-            translateX = (window.innerWidth - overlay.offsetWidth) / 2;
-            translateY = window.innerHeight * 0.2 - overlay.offsetHeight * 0.2;
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
+
+    if (overlay.updateDragPosition) {
+        overlay.updateDragPosition(translateX, translateY);
+    }
+
+    restrictOverlayPosition(overlay, {
+        translateX: (globalThis.innerWidth - overlay.offsetWidth) / 2,
+        translateY: globalThis.innerHeight * 0.2 - overlay.offsetHeight * 0.2
+    });
+        
+    const startTime = Date.now();
+    if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
+    const intervalId = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const timerElement = overlay.querySelector('.cg-overlay-timer');
+        if (timerElement) {
+            timerElement.textContent = `${elapsedTimePrefix || 'Elapsed time:'} ${elapsed} ${elapsedTimeSuffix || 'seconds'}`;
         }
-    
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.transform = `translate(${translateX}px, ${translateY}px)`;
-    
-        if (overlay.updateDragPosition) {
-            overlay.updateDragPosition(translateX, translateY);
+        const titleElement = overlay.querySelector('.cg-overlay-title');
+        if (titleElement) {                
+            titleElement.textContent = `${globalThis.generate.loadingMessage || loadingTitle}`;
         }
-    
-        restrictOverlayPosition(overlay, {
-            translateX: (window.innerWidth - overlay.offsetWidth) / 2,
-            translateY: window.innerHeight * 0.2 - overlay.offsetHeight * 0.2
-        });
-            
-        const startTime = Date.now();
-        if (overlay.dataset.timerInterval) clearInterval(overlay.dataset.timerInterval);
-        const intervalId = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            const timerElement = overlay.querySelector('.cg-overlay-timer');
-            if (timerElement) {
-                timerElement.textContent = `${elapsedTimePrefix || 'Elapsed time:'} ${elapsed} ${elapsedTimeSuffix || 'seconds'}`;
-            }
-            const titleElement = overlay.querySelector('.cg-overlay-title');
-            if (titleElement) {                
-                titleElement.textContent = `${window.generate.loadingMessage || loadingTitle}`;
-            }
-            if (pendingImage && pendingImage !== lastBase64) {
-                lastBase64 = pendingImage;
-                currentImage = pendingImage;
-                const imgElement = overlay.querySelector('img');
-                if (imgElement) {
+        if (pendingImage && pendingImage !== lastBase64) {
+            lastBase64 = pendingImage;
+            currentImage = pendingImage;
+            const imgElement = overlay.querySelector('img');
+            if (imgElement) {
+                imgElement.src = currentImage;
+                imgElement.style.maxWidth = '256px';
+                imgElement.style.maxHeight = '384px';
+                imgElement.style.objectFit = 'contain';
+                imgElement.onerror = () => {
+                    currentImage = globalThis.cachedFiles.loadingWait;
+                    lastBase64 = currentImage;
                     imgElement.src = currentImage;
-                    imgElement.style.maxWidth = '256px';
-                    imgElement.style.maxHeight = '384px';
-                    imgElement.style.objectFit = 'contain';
-                    imgElement.onerror = () => {
-                        currentImage = window.cachedFiles.loadingWait;
-                        lastBase64 = currentImage;
-                        imgElement.src = currentImage;
-                        imgElement.style.maxWidth = '128px';
-                        imgElement.style.maxHeight = '128px';
-                        imgElement.onerror = null;
-                    };
-                }
-            }
-        }, 100);
-    
-        overlay.dataset.timerInterval = intervalId;
-    
-        overlay._cleanup = () => {
-            if (overlay.dataset.timerInterval) {
-                clearInterval(overlay.dataset.timerInterval);
-                delete overlay.dataset.timerInterval;
-            }
-        };
-    
-        return overlay;
-    }
-
-    function createCustomOverlay(image, message, imageWidth=384, imageAlign='center', textAlign='left') {
-        const displayMessage = (typeof message === 'string' && message.trim()) ? message : '\nNo content provided';
-        
-        let images = [];
-        if (image && image !== 'none') {
-            if (typeof image === 'string') {
-                images = [image];
-            } else if (Array.isArray(image)) {
-                images = image.filter(img => img && typeof img === 'string');
-            }
-        }
-        
-        const hasImages = images.length > 0;
-
-        const processedMessage = parseTaggedContent(displayMessage)
-            .replace(/\n/g, '<br>')
-            .replace(
-                /\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g,
-                '<a href="$1" target="_blank" style="color: #1e90ff; text-decoration: underline;">$1</a>'
-            )
-            .replace(
-                /\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g,
-                (match, color, text) => {
-                    const colorStyle = color || '#ffffff';
-                    return `<span style="color: ${colorStyle}">${text}</span>`;
-                }
-            );
-
-        const overlay = createInfoOverlay({
-            id: 'cg-custom-overlay',
-            className: 'cg-custom-overlay',
-            content: `
-                <div class="cg-custom-content">
-                    <div class="cg-drag-handle"></div>
-                    <div class="cg-custom-textbox scroll-container"></div>
-                </div>
-            `
-        });
-
-        const textbox = overlay.querySelector('.cg-custom-textbox');
-        textbox.style.display = 'block'; 
-        textbox.style.overflowY = 'auto';
-        textbox.style.padding = '10px';
-        textbox.style.maxHeight = '100%';
-
-        const fragment = document.createDocumentFragment();
-
-        if (hasImages) {
-            const imageContainer = document.createElement('div');
-            imageContainer.className = 'cg-image-container';
-            imageContainer.style.display = 'flex';
-            imageContainer.style.gap = '10px';
-            imageContainer.style.marginTop = '25px';
-            imageContainer.style.marginBottom = '15px';
-            imageContainer.style.width = `${imageWidth}px`;
-            imageContainer.style.flexDirection = 'row';
-            if (images.length > 1) {
-                imageContainer.style.width = `${imageWidth*0.75}px`;
-            }
-
-            images.forEach((imageData, index) => {
-                const imgWrapper = document.createElement('div');
-                imgWrapper.className = 'cg-image-wrapper';
-                imgWrapper.style.display = 'inline-flex';                
-                imgWrapper.style.marginBottom = '5px';
-                imgWrapper.style.flex = '0 0 auto'; 
-
-                const img = document.createElement('img');
-                img.src = imageData.startsWith('data:') ? imageData : `data:image/webp;base64,${imageData}`;
-                img.alt = `Overlay Image ${index + 1}`;
-                img.style.minWidth = '64px';
-                img.style.maineight = '64px';
-                img.style.maxWidth = `${imageWidth}px`;
-                img.style.maxHeight = `${imageWidth}px`;
-                img.style.objectFit = 'contain';
-                img.style.display = 'block';
-                img.style.borderRadius = '4px';
-                img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                
-                if (images.length > 1) {
-                    img.style.maxWidth = `${imageWidth*0.75}px`;
-                    img.style.maxHeight = `${imageWidth*0.75}px`;
-                }
-
-                img.onerror = () => {
-                    console.warn(`Failed to load image ${index + 1}, removing from overlay`);
-                    imgWrapper.remove();
+                    imgElement.style.maxWidth = '128px';
+                    imgElement.style.maxHeight = '128px';
+                    imgElement.onerror = null;
                 };
+            }
+        }
+    }, 100);
 
-                imgWrapper.appendChild(img);
-                imageContainer.appendChild(imgWrapper);
-            });
+    overlay.dataset.timerInterval = intervalId;
 
-            fragment.appendChild(imageContainer);
+    overlay._cleanup = () => {
+        if (overlay.dataset.timerInterval) {
+            clearInterval(overlay.dataset.timerInterval);
+            delete overlay.dataset.timerInterval;
+        }
+    };
+
+    return overlay;
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function createCustomOverlay(image, message, imageWidth=384, imageAlign='center', textAlign='left') {
+    const displayMessage = (typeof message === 'string' && message.trim()) ? message : '\nNo content provided';
+    
+    let images = [];
+    if (image && image !== 'none') {
+        if (typeof image === 'string') {
+            images = [image];
+        } else if (Array.isArray(image)) {
+            images = image.filter(img => img && typeof img === 'string');
+        }
+    }
+    
+    const hasImages = images.length > 0;
+
+    const processedMessage = parseTaggedContent(displayMessage)
+        .replaceAll('\n', '<br>')
+        .replaceAll(
+            /\[COPY_URL\](https?:\/\/[^\s]+)\[\/COPY_URL\]/g,
+            '<a href="$1" target="_blank" style="color: #1e90ff; text-decoration: underline;">$1</a>'
+        )
+        .replaceAll(
+            /\[COPY_CUSTOM(?:=(#[0-9A-Fa-f]{6}|[a-zA-Z]+))?\](.+?)\[\/COPY_CUSTOM\]/g,
+            (match, color, text) => {
+                const colorStyle = color || '#ffffff';
+                return `<span style="color: ${colorStyle}">${text}</span>`;
+            }
+        );
+
+    const overlay = createInfoOverlay({
+        id: 'cg-custom-overlay',
+        className: 'cg-custom-overlay',
+        content: `
+            <div class="cg-custom-content">
+                <div class="cg-drag-handle"></div>
+                <div class="cg-custom-textbox scroll-container"></div>
+            </div>
+        `
+    });
+
+    const textbox = overlay.querySelector('.cg-custom-textbox');
+    textbox.style.display = 'block'; 
+    textbox.style.overflowY = 'auto';
+    textbox.style.padding = '10px';
+    textbox.style.maxHeight = '100%';
+
+    const fragment = document.createDocumentFragment();
+
+    if (hasImages) {
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'cg-image-container';
+        imageContainer.style.display = 'flex';
+        imageContainer.style.gap = '10px';
+        imageContainer.style.marginTop = '25px';
+        imageContainer.style.marginBottom = '15px';
+        imageContainer.style.width = `${imageWidth}px`;
+        imageContainer.style.flexDirection = 'row';
+        if (images.length > 1) {
+            imageContainer.style.width = `${imageWidth*0.75}px`;
         }
 
-        const textDiv = document.createElement('div');
-        textDiv.className = `cg-custom-textbox-data`;
-        textDiv.innerHTML = processedMessage;
-        textDiv.style.whiteSpace = 'pre-wrap'; 
-        textDiv.style.wordBreak = 'break-word';
-        textDiv.style.width = '100%';
-        textDiv.style.textAlign = textAlign;
-        fragment.appendChild(textDiv);
+        for (const [index, imageData] of images.entries()) {
+            const imgWrapper = document.createElement('div');
+            imgWrapper.className = 'cg-image-wrapper';
+            imgWrapper.style.display = 'inline-flex';
+            imgWrapper.style.marginBottom = '5px';
+            imgWrapper.style.flex = '0 0 auto';
 
-        textbox.appendChild(fragment);
+            const img = document.createElement('img');
+            img.src = imageData.startsWith('data:') ? imageData : `data:image/webp;base64,${imageData}`;
+            img.alt = `Overlay Image ${index + 1}`;
+            img.style.minWidth = '64px';
+            img.style.maxHeight = '64px';
+            img.style.maxWidth = `${imageWidth}px`;
+            img.style.maxHeight = `${imageWidth}px`;
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            img.style.borderRadius = '4px';
+            img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
 
-        const closeButton = document.createElement('button');
-        closeButton.className = 'cg-close-button';
-
-        closeButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            overlay.remove();
-            document.removeEventListener('mousemove', overlay._onMouseMove);
-            document.removeEventListener('mouseup', overlay._onMouseUp);
-            document.removeEventListener('mousemove', overlay._onResizeMove);
-            document.removeEventListener('mouseup', overlay._onResizeUp);
-            if (overlay._cleanup) overlay._cleanup();
-        });
-        overlay.appendChild(closeButton);
-
-        const dragHandle = overlay.querySelector('.cg-drag-handle');    
-        const resizeHandle = document.createElement('div');
-        resizeHandle.className = 'cg-resize-handle'; 
-                
-        overlay.appendChild(resizeHandle);
-        overlay.style.pointerEvents = 'auto';
-        overlay.style.position = 'relative'; 
-
-        let defaultWidth = 600;
-        let defaultHeight = 800;
-        
-        if (hasImages) {
             if (images.length > 1) {
-                defaultWidth = Math.min(1200, Math.max(800, images.length * 320));
-            }
-            defaultHeight = Math.max(600, defaultHeight);
-        }
-
-        const defaultSize = { width: defaultWidth, height: defaultHeight };
-
-        let savedSize;
-        try {
-            savedSize = localStorage.getItem('customOverlaySize') ? JSON.parse(localStorage.getItem('customOverlaySize')) : null;
-        } catch (err) {
-            console.error('Failed to parse customOverlaySize:', err);
-            localStorage.removeItem('customOverlaySize');
-        }
-        let initialWidth = defaultSize.width;
-        let initialHeight = defaultSize.height;
-
-        if (savedSize && savedSize.width >= 200 && savedSize.width <= 1600 && savedSize.height >= 150 && savedSize.height <= 1600) {
-            initialWidth = savedSize.width;
-            initialHeight = savedSize.height;
-        }
-
-        overlay.style.width = `${initialWidth}px`;
-        overlay.style.height = `${initialHeight}px`;
-
-        let savedPosition;
-        try {
-            savedPosition = localStorage.getItem('customOverlayPosition') ? JSON.parse(localStorage.getItem('customOverlayPosition')) : null;
-        } catch (err) {
-            console.error('Failed to parse customOverlayPosition:', err);
-            localStorage.removeItem('customOverlayPosition');
-        }
-        if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
-            overlay.style.position = 'fixed';
-            overlay.style.top = `${savedPosition.top}px`;
-            overlay.style.left = `${savedPosition.left}px`;
-            overlay.style.transform = 'none';
-        } else {
-            overlay.style.position = 'fixed';
-            overlay.style.top = '10%';
-            overlay.style.left = '50%';
-            overlay.style.transform = 'translate(-50%, -10%)';
-        }
-
-        const adjustOverlaySize = () => {
-            const rect = overlay.getBoundingClientRect();
-            const resizeHandleOffset = 4;
-            const rightEdge = rect.left + rect.width - resizeHandleOffset;
-            const bottomEdge = rect.top + rect.height - resizeHandleOffset;
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const padding = 10;
-
-            let newWidth = rect.width;
-            let newHeight = rect.height;
-
-            if (rightEdge > viewportWidth - padding) {
-                newWidth = viewportWidth - rect.left - padding;
-                newWidth = Math.max(newWidth, 200);
-            }
-            if (bottomEdge > viewportHeight - padding) {
-                newHeight = viewportHeight - rect.top - padding;
-                newHeight = Math.max(newHeight, 150);
+                img.style.maxWidth = `${imageWidth * 0.75}px`;
+                img.style.maxHeight = `${imageWidth * 0.75}px`;
             }
 
-            if (newWidth !== rect.width || newHeight !== rect.height) {
-                overlay.style.width = `${newWidth}px`;
-                overlay.style.height = `${newHeight}px`;
-                localStorage.setItem('customOverlaySize', JSON.stringify({
-                    width: newWidth,
-                    height: newHeight
-                }));
-            }
-        };
+            img.onerror = () => {
+                console.warn(`Failed to load image ${index + 1}, removing from overlay`);
+                imgWrapper.remove();
+            };
 
-        requestAnimationFrame(adjustOverlaySize);
+            imgWrapper.appendChild(img);
+            imageContainer.appendChild(imgWrapper);
+        }
 
-        const resizeCleanup = addResizeFunctionality(overlay, resizeHandle);
-        const dragCleanup = addCustomOverlayDragFunctionality(overlay, dragHandle, () => null, 'customOverlayPosition');
-
-        overlay._cleanup = () => {
-            dragCleanup();
-            resizeCleanup();
-            if (overlay.dataset.timerInterval) {
-                clearInterval(overlay.dataset.timerInterval);
-                delete overlay.dataset.timerInterval;
-            }
-        };
-
-        return overlay;
+        fragment.appendChild(imageContainer);
     }
 
+    const textDiv = document.createElement('div');
+    textDiv.className = `cg-custom-textbox-data`;
+    textDiv.innerHTML = processedMessage;
+    textDiv.style.whiteSpace = 'pre-wrap'; 
+    textDiv.style.wordBreak = 'break-word';
+    textDiv.style.width = '100%';
+    textDiv.style.imageAlign = imageAlign;
+    textDiv.style.textAlign = textAlign;
+    fragment.appendChild(textDiv);
+
+    textbox.appendChild(fragment);
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'cg-close-button';
+
+    closeButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        overlay.remove();
+        document.removeEventListener('mousemove', overlay._onMouseMove);
+        document.removeEventListener('mouseup', overlay._onMouseUp);
+        document.removeEventListener('mousemove', overlay._onResizeMove);
+        document.removeEventListener('mouseup', overlay._onResizeUp);
+        if (overlay._cleanup) overlay._cleanup();
+    });
+    overlay.appendChild(closeButton);
+
+    const dragHandle = overlay.querySelector('.cg-drag-handle');    
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'cg-resize-handle'; 
+            
+    overlay.appendChild(resizeHandle);
+    overlay.style.pointerEvents = 'auto';
+    overlay.style.position = 'relative'; 
+
+    let defaultWidth = 600;
+    let defaultHeight = 800;
+    
+    if (hasImages) {
+        if (images.length > 1) {
+            defaultWidth = Math.min(1200, Math.max(800, images.length * 320));
+        }
+        defaultHeight = Math.max(600, defaultHeight);
+    }
+
+    const defaultSize = { width: defaultWidth, height: defaultHeight };
+
+    let savedSize;
+    try {
+        savedSize = localStorage.getItem('customOverlaySize') ? JSON.parse(localStorage.getItem('customOverlaySize')) : null;
+    } catch (err) {
+        console.error('Failed to parse customOverlaySize:', err);
+        localStorage.removeItem('customOverlaySize');
+    }
+    let initialWidth = defaultSize.width;
+    let initialHeight = defaultSize.height;
+
+    if (savedSize && savedSize.width >= 200 && savedSize.width <= 1600 && savedSize.height >= 150 && savedSize.height <= 1600) {
+        initialWidth = savedSize.width;
+        initialHeight = savedSize.height;
+    }
+
+    overlay.style.width = `${initialWidth}px`;
+    overlay.style.height = `${initialHeight}px`;
+
+    let savedPosition;
+    try {
+        savedPosition = localStorage.getItem('customOverlayPosition') ? JSON.parse(localStorage.getItem('customOverlayPosition')) : null;
+    } catch (err) {
+        console.error('Failed to parse customOverlayPosition:', err);
+        localStorage.removeItem('customOverlayPosition');
+    }
+    if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+        overlay.style.position = 'fixed';
+        overlay.style.top = `${savedPosition.top}px`;
+        overlay.style.left = `${savedPosition.left}px`;
+        overlay.style.transform = 'none';
+    } else {
+        overlay.style.position = 'fixed';
+        overlay.style.top = '10%';
+        overlay.style.left = '50%';
+        overlay.style.transform = 'translate(-50%, -10%)';
+    }
+
+    const adjustOverlaySize = () => {
+        const rect = overlay.getBoundingClientRect();
+        const resizeHandleOffset = 4;
+        const rightEdge = rect.left + rect.width - resizeHandleOffset;
+        const bottomEdge = rect.top + rect.height - resizeHandleOffset;
+        const viewportWidth = globalThis.innerWidth;
+        const viewportHeight = globalThis.innerHeight;
+        const padding = 10;
+
+        let newWidth = rect.width;
+        let newHeight = rect.height;
+
+        if (rightEdge > viewportWidth - padding) {
+            newWidth = viewportWidth - rect.left - padding;
+            newWidth = Math.max(newWidth, 200);
+        }
+        if (bottomEdge > viewportHeight - padding) {
+            newHeight = viewportHeight - rect.top - padding;
+            newHeight = Math.max(newHeight, 150);
+        }
+
+        if (newWidth !== rect.width || newHeight !== rect.height) {
+            overlay.style.width = `${newWidth}px`;
+            overlay.style.height = `${newHeight}px`;
+            localStorage.setItem('customOverlaySize', JSON.stringify({
+                width: newWidth,
+                height: newHeight
+            }));
+        }
+    };
+
+    requestAnimationFrame(adjustOverlaySize);
+
+    const resizeCleanup = addResizeFunctionality(overlay, resizeHandle);
+    const dragCleanup = addCustomOverlayDragFunctionality(overlay, dragHandle, () => null, 'customOverlayPosition');
+
+    overlay._cleanup = () => {
+        dragCleanup();
+        resizeCleanup();
+        if (overlay.dataset.timerInterval) {
+            clearInterval(overlay.dataset.timerInterval);
+            delete overlay.dataset.timerInterval;
+        }
+    };
+
+    return overlay;
+}
+
+export function customCommonOverlay() {
     return { createErrorOverlay, createLoadingOverlay, createCustomOverlay };
 }

@@ -1,3 +1,66 @@
+2025.10.23 v1.15.3      
+Add `iTxt` and `zTxt` support for metadata reader      
+Fix When the same prompt is rejected by the ComfyUI backend, an ambiguous error message is displayed in SAA        
+
+
+2025.10.23 v1.15.2     
+Bugfix: [#43] An error in `Image Info` caused by an empty tagger model folder        
+
+
+2025.10.23 v1.15.1     
+More precise handling of tags containing colons        
+
+
+2025.10.22 v1.15.0     
+Code Refactoring      
+
+Improve tag completion feature and Chinese translation      
+  Add new Chinese translation file by **Kiratian(天痕)**      
+  Add category group mark for tags        
+  Imporve default tag search mode        
+
+Bug fix
+  Fix `Rating` tag missing for `WD Tagger`        
+  Fix Sampler/Scheduler mismatch during switch settings         
+  Fix SAA/SAAC WebUI generating stop polling preview image by clicking Generate in another SAA/SAAC window        
+  Fix WebUI IPAdapter reference image resize mismatch        
+  Fix AI prompt `<think>` `</think>` content not trimmed       
+  Minor bug fixes
+
+
+2025.10.15 v1.14.6      
+Bug fix       
+
+
+2025.10.08 v1.14.5      
+Add WS health check for ComfyUI Backend             
+Change ComfyUI IPAdapter reference image to square           
+Bug fix       
+
+
+2025.10.06 v1.14.4     
+Bug fix      
+
+v1.14.3      
+Add Category support for `Image Tagger`     
+  Add `Camie` tagger support    
+
+v1.14.2     
+Remove uselesss hardware acceleration code     
+
+
+2025.10.05 v1.14.1     
+Improve `Image Tagger` image process             
+  Change Subprocess timeout 5s to 10s     
+  Bug fix      
+
+
+2025.10.05 v1.14.0      
+Add `Image Tagger`      
+  Native feature, not backend API call       
+  Supports `CL` and `WD` tagger       
+
+
 2025.09.26 v1.13.2       
 Rename `Create Prompt` to `Create Single Image` [#41]       
 

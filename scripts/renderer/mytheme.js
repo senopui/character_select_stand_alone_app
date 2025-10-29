@@ -8,14 +8,14 @@ export function setupThemeToggle() {
     const baseTheme = 'html/index.css'; 
     loadCSS(baseTheme, 'base-theme');    
 
-    const savedTheme = window.globalSettings.css_style || 'dark';
+    const savedTheme = globalThis.globalSettings.css_style || 'dark';
     applyTheme(savedTheme);
 
     themeToggleButton.addEventListener('click', () => {
-        const currentTheme = window.globalSettings.css_style;
+        const currentTheme = globalThis.globalSettings.css_style;
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         applyTheme(newTheme);
-        window.globalSettings.css_style = newTheme;
+        globalThis.globalSettings.css_style = newTheme;
     });
 
     return themeToggleButton;

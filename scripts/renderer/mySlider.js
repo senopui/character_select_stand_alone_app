@@ -1,6 +1,5 @@
 const CAT = '[mySlider]';
 
-
 export function setupSlider(containerId, spanText = 'mySlider', min = 0, max = 255, step = 1, defaultValue = 0, callback = null) {
     const container = document.querySelector(`.${containerId}`);
     if (!container) {
@@ -24,8 +23,8 @@ export function setupSlider(containerId, spanText = 'mySlider', min = 0, max = 2
     const isIntegerStep = Number.isInteger(step);
 
     const getTypedValue = (value) => {
-        const parsed = parseFloat(value);
-        return isIntegerStep ? parseInt(parsed, 10) : parsed;
+        const parsed = Number.parseFloat(value);
+        return isIntegerStep ? Number.parseInt(parsed, 10) : parsed;
     };
 
     sliderBar.addEventListener('input', () => {
@@ -36,7 +35,7 @@ export function setupSlider(containerId, spanText = 'mySlider', min = 0, max = 2
     });
 
     sliderText.addEventListener('input', () => {
-        const value = parseFloat(sliderText.value);
+        const value = Number.parseFloat(sliderText.value);
 
         if (value >= min && value <= max) {
             sliderBar.value = value;
@@ -61,10 +60,10 @@ export function setupSlider(containerId, spanText = 'mySlider', min = 0, max = 2
             }
         },
         getValue: () => {
-            return parseInt(sliderBar.value, 10);
+            return Number.parseInt(sliderBar.value, 10);
         },
         getFloat: () => {
-            return parseFloat(sliderBar.value);
+            return Number.parseFloat(sliderBar.value);
         },
         setTitle: (text) => {
             sliderSpan.textContent = text;

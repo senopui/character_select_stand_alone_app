@@ -22,7 +22,7 @@ export function setupCheckbox(containerId, spanText = 'myCheckbox', defaultCheck
     }
 
     if(mirror) {
-        container.insertBefore(checkboxInput, checkboxSpan);
+        checkboxSpan.before(checkboxInput);
     }
 
     container.addEventListener('click', (event) => {
@@ -106,7 +106,7 @@ export function setupRadiobox(containerId, spanText = 'myRadiobox', items = 'ON,
     container.addEventListener('click', (event) => {
         const input = event.target.closest(`.myRadiobox-${containerId}-input`);
         if (input) {
-            const currentValue = parseInt(input.value, 10);
+            const currentValue = Number.parseInt(input.value, 10);
             if (currentValue !== previousValue && callback) {
                 callback(currentValue);
                 previousValue = currentValue;

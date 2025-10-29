@@ -35,8 +35,8 @@ export async function initWebSocket(reConnect = false) {
             });
         }
         const [username, password] = userpass.split(':');
-        window.clientUUID = await attemptLogin(username, password);
-        if (!window.clientUUID) {
+        globalThis.clientUUID = await attemptLogin(username, password);
+        if (!globalThis.clientUUID) {
             throw new Error('Login failed');
         }
 
@@ -46,7 +46,7 @@ export async function initWebSocket(reConnect = false) {
         version = await sendWebSocketMessage({ type: 'API', method: 'getAppVersion' });
         setHTMLTitle(`SAA Client ${version} (Connected)`);
         // Warn if using HTTP/WS in a production-like environment
-        if (wsAddress.startsWith('ws://') && window.location.hostname !== 'localhost') {
+        if (wsAddress.startsWith('ws://') && globalThis.location.hostname !== 'localhost') {
             console.warn('Using non-secure WebSocket (ws://) on a non-localhost server. Consider enabling HTTPS for security.');
         } else {
             console.log('Using secured WebSocket (wss://)');
@@ -76,16 +76,16 @@ async function fetchWsConfig() {
         return {
             wsAddress: data.wsAddress,
             wsPort: data.wsPort,
-            httpProtocol: window.location.protocol,
+            httpProtocol: globalThis.location.protocol,
         };
     } catch (error) {
         console.error('Failed to fetch WebSocket config:', error);
         // Fallback to current protocol and host
-        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const protocol = globalThis.location.protocol === 'https:' ? 'wss' : 'ws';
         return {
-            wsAddress: `${protocol}://${window.location.host || 'localhost'}`,
-            wsPort: window.location.port || 51028,
-            httpProtocol: window.location.protocol,
+            wsAddress: `${protocol}://${globalThis.location.host || 'localhost'}`,
+            wsPort: globalThis.location.port || 51028,
+            httpProtocol: globalThis.location.protocol,
         };
     }
 }
@@ -115,14 +115,14 @@ async function attemptLogin(username, password) {
 
 // Function to register a callback for a specific message type
 export function registerCallback(messageType, callback) {
-    const callbackName = `${window.clientUUID}-${messageType}`;
+    const callbackName = `${globalThis.clientUUID}-${messageType}`;
     callbacks.set(callbackName, callback);
     console.log(`Registered callback for message type: ${callbackName}`);
 }
 
 // Function to unregister a callback for a specific message type
 export function unregisterCallback(messageType) {
-    const callbackName = `${window.clientUUID}-${messageType}`;
+    const callbackName = `${globalThis.clientUUID}-${messageType}`;
     callbacks.delete(callbackName);
     console.log(`Unregistered callback for message type: ${callbackName}`);
 }
@@ -142,7 +142,7 @@ export function unregisterAllCallbacks() {
 
 // Function to set up beforeunload event listener
 function setupBeforeUnloadListener() {
-    window.addEventListener('beforeunload', () => {
+    globalThis.addEventListener('beforeunload', () => {
         unregisterAllCallbacks();
         if (ws && isWebSocketOpen(ws)) {
             ws.close();
@@ -151,7 +151,39 @@ function setupBeforeUnloadListener() {
     });
 }
 
-async function connectWebSocket(wsAddress, wsPort) {
+function handleAuthenticationError(ws, reject) {
+    console.error('Authentication failed, closing WebSocket');
+    ws.close();
+    reject(new Error('Authentication failed'));
+}
+
+function handleAPIResponseOrError(data, id) {
+    const { type, method, value, error } = data;
+    const promiseCallback = pendingMessages.get(id);
+    if (promiseCallback) {
+        if (type === 'APIResponse') {
+            promiseCallback.resolve(value);
+        } else {
+            console.error('API Error for method:', method, 'type:', type, 'error:', error);
+            promiseCallback.reject(new Error(`API Error for method ${method}: ${error}`));
+        }
+        pendingMessages.delete(id);
+    } else {
+        console.warn(`No callback found for message ID: ${id}`);
+    }
+}
+
+function handleCallbackMessage(value) {
+    const { callbackName, args } = value;
+    const callback = callbacks.get(callbackName);
+    if (typeof callback === 'function') {
+        callback(...args);
+    } else {
+        console.warn(`No valid callback registered for ${callbackName}`);
+    }
+}
+
+async function connectWebSocket(wsAddress, wsPort) {    
     return new Promise((resolve, reject) => {
         if (ws && ws.readyState !== WebSocket.CLOSED) {
             ws.close();
@@ -159,45 +191,13 @@ async function connectWebSocket(wsAddress, wsPort) {
 
         function handleRegisterUUIDResponse(data, resolve) {
             console.log(`UUID registration response: ${data.value}`);
-            if(data.value === window.clientUUID) {
+            if(data.value === globalThis.clientUUID) {
                 resolve();
             } else {
                 console.log('UUID registration failed:', data.error);
                 reject(new Error(`UUID registration failed: ${data.error}`));
             }
-        }
-
-        function handleAuthenticationError(ws, reject) {
-            console.error('Authentication failed, closing WebSocket');
-            ws.close();
-            reject(new Error('Authentication failed'));
-        }
-
-        function handleAPIResponseOrError(data, id) {
-            const { type, method, value, error } = data;
-            const promiseCallback = pendingMessages.get(id);
-            if (promiseCallback) {
-                if (type === 'APIResponse') {
-                    promiseCallback.resolve(value);
-                } else {
-                    console.error('API Error for method:', method, 'type:', type, 'error:', error);
-                    promiseCallback.reject(new Error(`API Error for method ${method}: ${error}`));
-                }
-                pendingMessages.delete(id);
-            } else {
-                console.warn(`No callback found for message ID: ${id}`);
-            }
-        }
-
-        function handleCallbackMessage(value) {
-            const { callbackName, args } = value;
-            const callback = callbacks.get(callbackName);
-            if (typeof callback === 'function') {
-                callback(...args);
-            } else {
-                console.warn(`No valid callback registered for ${callbackName}`);
-            }
-        }
+        }       
 
         ws = new WebSocket(wsAddress);
 
@@ -250,16 +250,16 @@ async function connectWebSocket(wsAddress, wsPort) {
         };
 
         ws.onclose = () => {
-            const SETTINGS = window.globalSettings;
-            const FILES = window.cachedFiles;
+            const SETTINGS = globalThis.globalSettings;
+            const FILES = globalThis.cachedFiles;
             const LANG = FILES.language[SETTINGS.language];
             console.warn('Disconnected from SAA');
-            window.overlay.custom.createErrorOverlay(LANG.saac_disconnected , 'Disconnected from SAA');
+            globalThis.overlay.custom.createErrorOverlay(LANG.saac_disconnected , 'Disconnected from SAA');
 
-            pendingMessages.forEach(({ reject }, id) => {
+            for (const [id, { reject }] of pendingMessages) {
                 reject(new Error('WebSocket connection closed, delete pending message'));
                 pendingMessages.delete(id);
-            });
+            }
             callbacks.clear();
             console.log('Cleared all pending messages and callbacks');
             ws = null;
@@ -322,7 +322,7 @@ export async function sendWebSocketMessage(message) {
         pendingMessages.set(id, { resolve, reject });
 
         try {
-            messageWithId.uuid = window.clientUUID;
+            messageWithId.uuid = globalThis.clientUUID;
             ws.send(JSON.stringify(messageWithId));
         } catch (error) {
             console.error('Failed to send message:', error);

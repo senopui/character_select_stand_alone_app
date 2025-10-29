@@ -1,5 +1,4 @@
-const { ipcMain } = require('electron');
-const { net } = require('electron');
+import { ipcMain, net } from 'electron';
 
 const CAT = '[ModelAPI]';
 
@@ -147,7 +146,7 @@ async function localAI(options){
     return await requestLocal(options);
 }
 
-module.exports = {
+export {
     setupModelApi,
     remoteAI,
     localAI
