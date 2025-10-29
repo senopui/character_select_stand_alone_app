@@ -81,7 +81,7 @@ npm run package_mac
 
 ### Prerequisites
 - Node.js 20 or higher
-- For ComfyUI integration: [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) v0.4.9.2 or above
+- For ComfyUI integration: [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) v0.4.9.2+
 - For image tagger: ONNX models downloaded to `models/tagger/`
 
 ## Testing
@@ -99,7 +99,7 @@ This project currently does not have automated tests. When making changes:
 ## Code Style & Conventions
 
 ### General Guidelines
-- Use ES6+ module syntax (`import`/`export`)
+- Use ES6+ module syntax (`import`/`export`) for main process code (the project uses `"type": "module"`)
 - Use async/await for asynchronous operations
 - Follow existing code structure and naming conventions
 - Use descriptive variable and function names
@@ -217,7 +217,7 @@ app.post('/your-endpoint', async (req, res) => {
 
 1. **No automated tests** - Manual testing required for all changes
 2. **ONNX GPU acceleration** - Currently not working in Node.js environment
-3. **Forge support** - Not fully supported due to API inconsistencies
+3. **Forge support** - Not fully supported; API differs from A1111 with undocumented changes and inconsistent responses
 4. **Image Color Transfer** - Only supported in ComfyUI (no OpenCV in WebUI)
 5. **Wildcard subfolders** - Not supported
 6. **ControlNet in ComfyUI** - Doesn't like submitting identical data
