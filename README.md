@@ -5,7 +5,7 @@ For more information check [README_SAAC.md](https://github.com/mirabarukaso/char
 ### If you find a character that isn't show on the list but can be generated correctly, please don't hesitate to let me know.
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.    
-Now supports 5326 (includes multiple costumes) Characters in list.   
+Now supports 5328 (includes multiple costumes) Characters in list.   
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%>   
 
@@ -34,7 +34,7 @@ npm install
 npm start
 ```
 
-*One-Click package v1.15.0*    
+*One-Click package v1.15.2*    
 In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)      
 
 ## Update
