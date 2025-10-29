@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { app, ipcMain } from 'electron';
 import { collectRelativePaths, getExtraModels } from './modelList.js';
 
@@ -101,52 +102,105 @@ function loadFile(relativePath, prefix='', filePath='') {
   }
 }
 
-function processMetadata(buffer, offset, length) {
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function processMetadata(buffer, offset, length, chunkType) {
   try {
-    const chunkData = buffer.slice(offset, length);
-    const nullPos = chunkData.indexOf(0);
-    let metadataFound = {};
-
-    if (nullPos === -1) {      
-      // No null separator, try decoding entire chunk
-      let textData;
-      try {
-        textData = chunkData.toString('utf8');
-      } catch {
-        textData = chunkData.toString('latin1');
+    const chunkData = buffer.slice(offset, offset + length);
+    const AI_KEYWORDS = new Set(['parameters', 'prompt', 'Comment', 'Description', 'AI-metadata']);
+    
+    // support function to parse metadata
+    const parseMetadata = (keyword, textData) => {
+      if (!AI_KEYWORDS.has(keyword.toLowerCase())) {
+        return { [keyword]: textData };
       }
-      
       try {
         return JSON.parse(textData);
       } catch {
-        return { data: textData };
+        return { [keyword]: textData };
       }
-    } else {
-      const keyword = chunkData.toString('utf8', 0, nullPos);
-      let textData;
-      try {
-        textData = chunkData.toString('utf8', nullPos + 1);
-      } catch {
-        // Fallback to latin1 for non-UTF-8 encodings
-        textData = chunkData.toString('latin1', nullPos + 1);
-      }
+    };
 
-      if (keyword === 'parameters' || keyword === 'prompt' || 
-          keyword === 'Comment' || keyword === 'Description' || 
-          keyword === 'Software' || keyword === 'AI-metadata') {
+    // process iTXt
+    if (chunkType === 'iTXt') {
+      const nullPos = chunkData.indexOf(0);
+      if (nullPos === -1) return null;
+      
+      const keyword = chunkData.toString('utf8', 0, nullPos);
+      
+      // iTXt format: keyword\0compression_flag\0compression_method\0language_tag\0translated_keyword\0text
+      let pos = nullPos + 1;
+      const compressionFlag = chunkData[pos++];
+      pos++; // skip compression_method
+      
+      // skip language tag and translated keyword
+      const langEnd = chunkData.indexOf(0, pos);
+      if (langEnd === -1) return null;
+      const transEnd = chunkData.indexOf(0, langEnd + 1);
+      if (transEnd === -1) return null;
+      pos = transEnd + 1;
+      
+      // read text data
+      let textData;
+      if (compressionFlag === 1) {
         try {
-          metadataFound = JSON.parse(textData);
-        } catch {
-          metadataFound[keyword] = textData;
+          textData = zlib.inflateSync(chunkData.slice(pos)).toString('utf8');
+        } catch (e) {
+          console.warn(CAT, 'Failed to decompress iTXt:', e.message);
+          return null;
         }
-        return metadataFound;
       } else {
-        metadataFound[keyword] = textData;
-        return metadataFound;
+        textData = chunkData.slice(pos).toString('utf8');
+      }
+      
+      return parseMetadata(keyword, textData);
+    }
+    
+    // process zTXt
+    if (chunkType === 'zTXt') {
+      const nullPos = chunkData.indexOf(0);
+      if (nullPos === -1) return null;
+      
+      const keyword = chunkData.toString('latin1', 0, nullPos);
+      const compressionMethod = chunkData[nullPos + 1];
+      
+      if (compressionMethod !== 0) {
+        console.warn(CAT, 'Unsupported compression method:', compressionMethod);
+        return null;
+      }
+      
+      try {
+        const textData = zlib.inflateSync(chunkData.slice(nullPos + 2)).toString('utf8');
+        return parseMetadata(keyword, textData);
+      } catch (e) {
+        console.warn(CAT, 'Failed to decompress zTXt:', e.message);
+        return null;
       }
     }
+    
+    // process tExt Latin-1
+    if (chunkType === 'tEXt') {
+      const nullPos = chunkData.indexOf(0);
+      
+      // no null terminator, treat whole as text data
+      if (nullPos === -1) {
+        const textData = chunkData.toString('utf8').catch(() => chunkData.toString('latin1'));
+        try {
+          return JSON.parse(textData);
+        } catch {
+          return { data: textData };
+        }
+      }
+      
+      // keyword and text data
+      const keyword = chunkData.toString('latin1', 0, nullPos);
+      const textData = chunkData.toString('utf8', nullPos + 1);
+      
+      return parseMetadata(keyword, textData);
+    }
+    
+    return null;
   } catch (error) {
-    console.warn(CAT, `Error processing metadata: ${error.message}`);
+    console.warn(CAT, `Error processing ${chunkType} metadata:`, error.message);
     return null;
   }
 }
@@ -196,13 +250,14 @@ function extractPngMetadata(buffer) {
       const type = buffer.toString('ascii', offset, offset + 4);
       offset += 4;
       
-      if (type === 'tEXt') {
-        metadataFound = processMetadata(buffer, offset, offset + length);
+      if (type === 'tEXt' || type === 'iTXt' || type === 'zTXt') {
+        metadataFound = processMetadata(buffer, offset, length, type);
         if (metadataFound) {
           break;
         }
       }
-      offset += length + 4;
+      
+      offset += length + 4; // data + CRC
     }
     
     return metadataFound;
