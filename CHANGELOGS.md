@@ -1,4 +1,11 @@
-2025.10.23 v1.15.3      
+2025.10.30 v1.15.4       
+Improved reload Model/LoRA/ControlNet trigger #45          
+ Model list will not reset to `Default` if selected model exist        
+ All exist LoRA/ControlNet slots will update their list to latest       
+ Missing model LoRA/ControlNet slots will automatically remove after reload         
+
+
+2025.10.28 v1.15.3      
 Add `iTxt` and `zTxt` support for metadata reader      
 Fix When the same prompt is rejected by the ComfyUI backend, an ambiguous error message is displayed in SAA        
 
