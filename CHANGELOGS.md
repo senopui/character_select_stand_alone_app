@@ -1,3 +1,7 @@
+2025.11.02 v1.15.5       
+Add random string selector with square bracket parsing #47       
+
+
 2025.10.30 v1.15.4       
 Improved reload Model/LoRA/ControlNet trigger #45          
  Model list will not reset to `Default` if selected model exist        
