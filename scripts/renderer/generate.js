@@ -385,6 +385,90 @@ export async function replaceWildcardsAsync(pos, seed) {
     return pos;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function validateBraces(str) {
+    let depth = 0;
+    let inParens = 0;
+    let inBrackets = 0;
+    
+    for (const char of str) {
+        // excure () []
+        if (char === '(') inParens++;
+        if (char === ')') inParens--;
+        if (char === '[') inBrackets++;
+        if (char === ']') inBrackets--;
+        
+        if (inParens === 0 && inBrackets === 0) {
+            if (char === '{') {
+                depth++;
+            } else if (char === '}') {
+                depth--;
+                if (depth < 0) {
+                    // } before {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return depth === 0;
+}
+
+export function processRandomString(input) {
+    // Check if input contains braces
+    if (!input.includes('{')) {
+        return input;
+    }
+
+    // Check if braces are properly matched
+    if (!validateBraces(input)) {
+        console.error('Error: Braces are not matched or in wrong order');
+        return input;
+    }
+
+    let result = input;
+    
+    // Find and process all brace contents
+    while (result.includes('{')) {
+        const start = result.indexOf('{');
+        const end = result.indexOf('}', start);
+        
+        if (end === -1) {
+            console.error('Error: Cannot find matching closing brace');
+            return input;
+        }
+
+        // Extract content within braces
+        const braceContent = result.substring(start + 1, end);
+        
+        // Check if it contains the separator |
+        if (!braceContent.includes('|')) {
+            // No separator, skip this brace and use temporary marker to avoid reprocessing
+            result = result.substring(0, start) + '<<<SKIP>>>' + result.substring(end + 1);
+            continue;
+        }
+
+        // Split options by |
+        const options = braceContent.split('|').map(opt => opt.trim());
+        
+        // Randomly select one option
+        const randomIndex = Math.floor(Math.random() * options.length);
+        const selected = options[randomIndex];
+        
+        // Replace brace content
+        result = result.substring(0, start) + selected + result.substring(end + 1);
+    }
+
+    // Restore skipped brace contents
+    result = result.replaceAll('<<<SKIP>>>', (match, offset) => {
+        const originalStart = input.indexOf('{', 0);
+        const originalEnd = input.indexOf('}', originalStart);
+        return input.substring(originalStart + 1, originalEnd);
+    });
+
+    return result;
+}
+
 async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let finalInfo = ''
     let randomSeed = -1;
@@ -411,6 +495,9 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
                 
         pos = await replaceWildcardsAsync(pos, randomSeed);
         posc = await replaceWildcardsAsync(posc, randomSeed);
+
+        pos = processRandomString(pos);
+        posc = processRandomString(posc);
 
         if(lora === ''){
             positivePrompt = pos;

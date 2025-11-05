@@ -144,6 +144,8 @@ Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wi
 By default, wildcards are randomly selected using the current seed. If `wildcard random seed` is `Checked`, a new random seed will be generated for every selection every time.      
 **Subfolder is not supported**     
 
+Random string selector with square bracket parsing #47      
+
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
 
 ## Regional Condition (ComfyUI only)

@@ -92,7 +92,14 @@ export async function setupModelReloadToggle() {
     }
 
     refreshButton.addEventListener('click', async () => {
+        const currentModelSelect = globalThis.dropdownList.model.getValue();
         await reloadFiles();
+        if(globalThis.dropdownList.model.isValueExist(currentModelSelect)){
+            globalThis.dropdownList.model.updateDefaults(currentModelSelect);
+        }
+
+        globalThis.lora.reload();
+        globalThis.controlnet.reload();
     });
 
     return refreshButton;

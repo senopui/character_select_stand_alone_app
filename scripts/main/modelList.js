@@ -178,7 +178,21 @@ function collectRelativePaths(fieldName) {
     }
 }
 
-function readExtraModelPaths(model_path_comfyui) {    
+function cleanupExtraModelPaths(reload=false) {
+    // release EXTRA_MODELS
+    EXTRA_MODELS.checkpoints = [];
+    EXTRA_MODELS.loras = [];
+    EXTRA_MODELS.controlnet = [];
+    
+    // reload extra model paths
+    if (EXTRA_MODELS.exist && reload) {
+        readExtraModelPaths(model_path_comfyui);
+    }
+}
+
+function readExtraModelPaths(model_path_comfyui) {
+    cleanupExtraModelPaths(false);
+    
     const basePath = path.dirname(path.dirname(model_path_comfyui));
     const extraModelPathsFile = path.join(basePath, 'extra_model_paths.yaml');
 
