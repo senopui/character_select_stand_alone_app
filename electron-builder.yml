@@ -8,10 +8,11 @@ files:
   - html/**
   - webserver/**
   - scripts/**
-  - settings/**
   - data/**
+  - models/**
+  - build/**
   - package.json
 win:
   target: [zip]
   executableName: "saa"
-artifactName: 'saa--win.'
+artifactName: 'saa-${version}-win-${arch}.${ext}'
