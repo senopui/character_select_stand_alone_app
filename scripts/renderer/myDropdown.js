@@ -410,6 +410,24 @@ function createDropdown({
             }
             return this;
         },
+
+        isValueExist: function(value) {
+            if (!value) return false;
+            
+            const searchValue = value.toLowerCase();
+            
+            for (const optionArray of options) {
+                console.log('optionArray ', optionArray);
+                for (const option of optionArray) {                    
+                    if (option.key.toLowerCase().includes(searchValue) || 
+                        option.value.toLowerCase().includes(searchValue)) {
+                            console.log('hit ', option);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        },
         
         getKey: function() {
             return selectedKeys.slice();

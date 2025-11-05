@@ -2,7 +2,7 @@ import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
 import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
     getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred, extractAPISecure,
-    createControlNet } from './generate.js';
+    createControlNet, processRandomString } from './generate.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -297,6 +297,12 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
 
         posR = await replaceWildcardsAsync(posR, randomSeedr);
         posRc = await replaceWildcardsAsync(posRc, randomSeedr);
+
+        posL = processRandomString(posL);
+        posLc = processRandomString(posLc);
+
+        posR = processRandomString(posR);
+        posRc = processRandomString(posRc);
 
         if(lora === ''){
             positivePromptLeft = posL;
