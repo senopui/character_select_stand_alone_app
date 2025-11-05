@@ -16,8 +16,6 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Build application
-        run: npm run build
 
       # Ensure electron-packager is available (do not modify package.json here)
       - name: Install electron-packager
