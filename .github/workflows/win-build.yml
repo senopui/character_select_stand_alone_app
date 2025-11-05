@@ -18,14 +18,28 @@ jobs:
         run: npm ci
       - name: Build application
         run: npm run build
-      - name: Package application
-        run: npx electron-builder -w --x64 -c electron-builder.yml --publish=never
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # Ensure electron-packager is available (do not modify package.json here)
+      - name: Install electron-packager
+        run: npm install --no-save electron-packager@latest
+
+      - name: Package application (electron-packager)
+        run: |
+          # Source directory "." and app name "saa" (adjust if your built app is in a subfolder)
+          npx electron-packager . "saa" --platform=win32 --arch=x64 --out=release --overwrite
+        shell: bash
+
+      - name: Zip packaged app
+        run: |
+          # Create dist directory and compress the release output into a single zip
+          # Use PowerShell on windows to ensure paths are handled correctly
+          pwsh -Command "New-Item -ItemType Directory -Force -Path dist | Out-Null; Compress-Archive -Path 'release\\*' -DestinationPath 'dist\\saa-win.zip' -Force"
+        shell: bash
+
       - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: saa-win-zip
           path: |
             dist/*.zip
-            dist/win-unpacked/
+            release/
