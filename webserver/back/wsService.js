@@ -13,11 +13,13 @@ import bcrypt from 'bcrypt';
 import { WebSocketServer } from 'ws';
 import { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } from '../../scripts/main/globalSettings.js';
 import { getCachedFilesWithoutThumb, getCharacterThumb } from '../../scripts/main/cachedFiles.js';
-import { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList } from '../../scripts/main/modelList.js';
+import { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList,
+    getUpscalerList } from '../../scripts/main/modelList.js';
 import { updateWildcards, loadWildcard } from '../../scripts/main/wildCards.js';
 import { tagReload, tagGet } from '../../scripts/main/tagAutoComplete_backend.js';
 import { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, openWsComfyUI, closeWsComfyUI, cancelComfyUI } from '../../scripts/main/generate_backend_comfyui.js';
-import { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet } from '../../scripts/main/generate_backend_webui.js';
+import { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet, 
+    getControlNetProcessorList, getADetailerModelList, getUpscalersModelList, resetModelLists } from '../../scripts/main/generate_backend_webui.js';
 import { remoteAI, localAI } from '../../scripts/main/remoteAI_backend.js';
 import { loadFile, readImage, readSafetensors, readBase64Image } from '../../scripts/main/fileHandlers.js';
 import { runImageTagger } from '../../scripts/main/imageTagger.js';
@@ -393,6 +395,7 @@ const methodHandlers = {
   'getModelListAll': (params)=> getModelListAll(...params),
   'getLoRAList': (params)=> getLoRAList(...params),
   'getControlNetList': (params)=> getControlNetList(...params),
+  'getUpscalerList': (params)=> getUpscalerList(...params),
   'getImageTaggerModels': ()=> getImageTaggerModels(),
   'updateModelList': (params)=> updateModelAndLoRAList(...params),
 
@@ -453,6 +456,10 @@ const methodHandlers = {
   'cancelWebUI': ()=> cancelWebUI(),
   'startPollingWebUI': ()=> startPollingWebUI(),
   'stopPollingWebUI': ()=> stopPollingWebUI(),
+  'getControlNetProcessorListWebUI': ()=> getControlNetProcessorList(),
+  'getADetailerModelListWebUI': ()=> getADetailerModelList(),
+  'getUpscalersModelListWebUI': ()=> getUpscalersModelList(),
+  'resetModelListsWebUI': ()=> resetModelLists(),
 
   // Image Tagger
   'runImageTagger': (params)=> {

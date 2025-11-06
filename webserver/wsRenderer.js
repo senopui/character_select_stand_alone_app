@@ -3,25 +3,27 @@ import { setupGallery } from '../scripts/renderer/customGallery.js';
 import { setupThumbOverlay, setupThumb } from '../scripts/renderer/customThumbGallery.js';
 import { setupSuggestionSystem } from '../scripts/renderer/tagAutoComplete.js';
 import { setupButtonOverlay, customCommonOverlay } from '../scripts/renderer/customOverlay.js';
-import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from '../scripts/renderer/myDropdown.js';
-import { callback_mySettingList, callback_api_interface, callback_sync_click_hf, callback_sync_click_refiner,
+import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from '../scripts/renderer/components/myDropdown.js';
+import { callback_mySettingList, callback_api_interface, 
     callback_generate_start, callback_generate_skip, callback_generate_cancel,callback_keep_gallery,
-    callback_regional_condition
+    callback_regional_condition, callback_controlnet, callback_adetailer, callback_queue_autostart
  } from '../scripts/renderer/callbacks.js';
-import { setupSlider } from '../scripts/renderer/mySlider.js';
-import { setupCheckbox, setupRadiobox } from '../scripts/renderer/myCheckbox.js';
-import { setupButtons, toggleButtons } from '../scripts/renderer/myButtons.js';
+import { setupSlider } from '../scripts/renderer/components/mySlider.js';
+import { setupCheckbox, setupRadiobox } from '../scripts/renderer/components/myCheckbox.js';
+import { setupButtons, toggleButtons, showCancelButtons } from '../scripts/renderer/components/myButtons.js';
 import { setupCollapsed, setupSaveSettingsToggle, setupModelReloadToggle, 
-    setupRefreshToggle, setupSwapToggle, doSwap } from '../scripts/renderer/myCollapsed.js';
-import { setupTextbox, setupInfoBox } from '../scripts/renderer/myTextbox.js';
+    setupRefreshToggle, setupSwapToggle, doSwap } from '../scripts/renderer/components/myCollapsed.js';
+import { setupTextbox, setupInfoBox } from '../scripts/renderer/components/myTextbox.js';
 import { from_main_updateGallery, from_main_updatePreview, from_main_customOverlayProgress } from '../scripts/renderer/generate_backend.js';
-import { setupLoRA } from '../scripts/renderer/myLoRASlot.js';
-import { setupControlNet } from '../scripts/renderer/myControlNetSlot.js';
-import { setupJsonSlot } from '../scripts/renderer/myJsonSlot.js';
-import { setBlur, setNormal, showDialog } from '../scripts/renderer/myDialog.js';
+import { setupLoRA } from '../scripts/renderer/slots/myLoRASlot.js';
+import { setupControlNet } from '../scripts/renderer/slots/myControlNetSlot.js';
+import { setupJsonSlot } from '../scripts/renderer/slots/myJsonSlot.js';
+import { setupADetailer } from '../scripts/renderer/slots/myADetailerSlot.js';
+import { setupQueue } from '../scripts/renderer/slots/myQueueSlot.js';
+import { setBlur, setNormal, showDialog } from '../scripts/renderer/components/myDialog.js';
 import { setupImageUploadOverlay } from '../scripts/renderer/imageInfo.js';
-import { setupThemeToggle } from '../scripts/renderer/mytheme.js';
-import { setupRightClickMenu } from '../scripts/renderer/myRightClickMenu.js';
+import { setupThemeToggle } from '../scripts/renderer/theme.js';
+import { setupRightClickMenu } from '../scripts/renderer/components/myRightClickMenu.js';
 import { initWebSocket, isSecuredConnection, sendWebSocketMessage, registerCallback } from './front/wsRequest.js';
 
 // Run the init function when the DOM is fully loaded
@@ -108,6 +110,8 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         settings: setupCollapsed('system-settings', true),
         regional: setupCollapsed('regional-condition', true),
         jsonlist: setupCollapsed('jsonlist', true),
+        aDetailer: setupCollapsed('adetailer', true),
+        queueManager: setupCollapsed('queue', false),
     }
 }
 
@@ -133,17 +137,11 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         width: setupSlider('generate-width', LANG.width, 512, 2048, 8, SETTINGS.width, (value) =>{globalThis.globalSettings.width = value;}),
         height: setupSlider('generate-height', LANG.height, 512, 2048, 8, SETTINGS.height, (value) =>{globalThis.globalSettings.height = value;}),
         batch: setupSlider('generate-batch', LANG.batch, 1, 2038, 1, SETTINGS.batch, (value) =>{globalThis.globalSettings.batch = value;}),
-        hifix: setupCheckbox('generate-hires-fix', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix'); }),
-        hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; callback_sync_click_hf('generate-hires-fix-dummy'); }),
-        refiner: setupCheckbox('generate-refiner', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { globalThis.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner'); }),
-        refiner_dummy: setupCheckbox('generate-refiner-dummy', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { globalThis.globalSettings.api_refiner_enable = value; callback_sync_click_refiner('generate-refiner-dummy'); }),
-        controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, (value) => { 
-                globalThis.globalSettings.api_controlnet_enable = value; 
-                if(value && globalThis.generate.api_interface.getValue() === 'ComfyUI') 
-                    globalThis.overlay.custom.createErrorOverlay(LANG.message_controlnet_comfyui , 'Links:\nhttps://github.com/Fannovel16/comfyui_controlnet_aux\nhttps://github.com/sipherxyz/comfyui-art-venture'); 
-                if(value && globalThis.generate.api_interface.getValue() === 'WebUI') 
-                    globalThis.overlay.custom.createErrorOverlay(LANG.message_controlnet_webui , 'https://github.com/Mikubill/sd-webui-controlnet'); 
-            }),
+        hifix: setupCheckbox('generate-hires-fix', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; }),
+        refiner: setupCheckbox('generate-refiner', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { globalThis.globalSettings.api_refiner_enable = value; }),
+        controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, callback_controlnet),
+        adetailer: setupCheckbox('generate-adetailer', LANG.api_adetailer_enable, SETTINGS.api_adetailer_enable, true, callback_adetailer),
+
         landscape: setupCheckbox('generate-landscape', LANG.api_image_landscape, SETTINGS.api_image_landscape, true, (value) =>{globalThis.globalSettings.api_image_landscape = value;}),
         tag_assist: setupCheckbox('generate-tag-assist', LANG.tag_assist, SETTINGS.tag_assist, true, (value) =>{ globalThis.globalSettings.tag_assist = value; }),
         wildcard_random: setupCheckbox('generate-wildcard-random', LANG.wildcard_random, SETTINGS.wildcard_random, true, (value) =>{ globalThis.globalSettings.wildcard_random = value; }),
@@ -246,6 +244,15 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
             }, true, (value) => { globalThis.globalSettings.remote_ai_webui_auth = value;}, true),  
         webui_auth_enable: mySimpleList('system-settings-api-webui-auth-enable', LANG.remote_ai_webui_auth_enable, ['OFF', 'ON'], 
             (value) => {globalThis.globalSettings.remote_ai_webui_auth_enable = value; }, 5, false, true),
+        
+        queueAutostart:setupCheckbox('queue-autostart-generate', LANG.generate_auto_start, SETTINGS.generate_auto_start,
+            true, async (value) => {
+                await callback_queue_autostart(value, false);
+        }),
+        queueAutostart_dummy:setupCheckbox('queue-autostart-generate-dummy', LANG.generate_auto_start, SETTINGS.generate_auto_start,
+            true, async (value) => {
+                await callback_queue_autostart(value, true);
+        }),
     };
 }
 
@@ -290,7 +297,7 @@ export async function createPrompt(SETTINGS, FILES, LANG) {
 export async function createHifixRefiner(SETTINGS, FILES, LANG) {
     console.log('Creating globalThis.hifix');
     globalThis.hifix = {
-        model: mySimpleList('hires-fix-model', LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_list,
+        model: mySimpleList('hires-fix-model', LANG.api_hf_upscaler_selected, globalThis.cachedFiles.upscalerList,
             (vindex, value) => { globalThis.globalSettings.api_hf_upscaler_selected = value; }, 10, true, true),
         colorTransfer: mySimpleList('hires-fix-color-transfer', LANG.api_hf_colortransfer, ['None', 'Mean', 'Lab']
             , (index, value) => { globalThis.globalSettings.api_hf_colortransfer = value; }, 3, false, true),
@@ -435,6 +442,9 @@ async function init() {
         globalThis.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.controlnetProcessorListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getControlNetProcessorListWebUI'});
+        globalThis.cachedFiles.upscalerList = await sendWebSocketMessage({ type: 'API', method: 'getUpscalerList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.aDetailerListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getADetailerModelListWebUI'});
         globalThis.cachedFiles.characterListArray = Object.entries(FILES.characterList);
         globalThis.cachedFiles.ocListArray = Object.entries(FILES.ocList);
         globalThis.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
@@ -460,6 +470,12 @@ async function init() {
 
         // Custom JSON
         globalThis.jsonlist = setupJsonSlot('jsonlist-main');
+
+        // aDetailer
+        globalThis.aDetailer = setupADetailer('adetailer-main');
+
+        // Queue management
+        globalThis.queueManager = setupQueue('queue-main');
         
         // Setup Overlay
         globalThis.overlay = {
@@ -468,6 +484,8 @@ async function init() {
         }
 
         globalThis.generate.toggleButtons = toggleButtons;
+        globalThis.generate.showCancelButtons = showCancelButtons;
+        globalThis.generate.queueColor1st = false;
         globalThis.generate.lastPos = '';
         globalThis.generate.lastPosColored = '';
         globalThis.generate.lastPosR = '';
@@ -483,7 +501,8 @@ async function init() {
         
         doSwap(globalThis.globalSettings.rightToleft);   //default is right to left        
         updateLanguage(false, globalThis.inBrowser); 
-        updateSettings();           
+        updateSettings();
+        globalThis.globalSettings.lastLoadedSettings = 'settings';
     } catch (error) {
         console.error('Error during initialization:', error);
     }
