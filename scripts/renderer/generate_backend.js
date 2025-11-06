@@ -29,8 +29,8 @@ export function from_main_updatePreview(base64){
 
 export function from_main_customOverlayProgress(progress, totalProgress){
     try {
-        const loadingMessage = globalThis.generate.loadingMessage.split('(')[0];
-        globalThis.generate.loadingMessage = `${loadingMessage}(${progress}/${totalProgress})`;
+        const loadingMessage = globalThis.generate.loadingMessage.split('<')[0];
+        globalThis.generate.loadingMessage = `${loadingMessage} <${progress}/${totalProgress}>`;
     } catch {
         // by pass
     }

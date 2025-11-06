@@ -1,6 +1,6 @@
-import { mySimpleList } from './myDropdown.js';
-import { setupTextbox } from './myTextbox.js';
-import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+import { mySimpleList } from '../components/myDropdown.js';
+import { setupTextbox } from '../components/myTextbox.js';
+import { sendWebSocketMessage } from '../../../webserver/front/wsRequest.js';
 
 let instanceSlotManager = null;
 
@@ -390,16 +390,7 @@ class SlotManager {
     }
 
     addSlot() {
-        if (!this.candidateClassName) {
-            console.error('No candidate row available');
-            return null;
-        }
-
         const slot = this.slotIndex.get(this.candidateClassName);
-        if (!slot) {
-            console.error('Candidate slot not found');
-            return null;
-        }
 
         slot.isCandidate = false;
         slot.itemClasses.delete = this.generateClassName('delete');

@@ -1,8 +1,8 @@
 import { decodeThumb } from './customThumbGallery.js';
-import { getAiPrompt } from './remoteAI.js';
 import { generateRandomSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, getRandomIndex, formatCharacterInfo, formatOriginalCharacterInfo,
     getViewTags, createHiFix, createRefiner, extractHostPort, checkVpred, extractAPISecure,
-    createControlNet, processRandomString } from './generate.js';
+    createControlNet, createADetailer, toggleQueueColor, startQueue, REPLACE_AI_MARK } from './generate.js';
+import { processRandomString } from './tools/nestedBraceParsing.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -152,7 +152,7 @@ async function createCharacters(index, seeds) {
     }
 
     const isOriginalCharacter = (index === 3 || index === 2);
-    const { tag, thumb, info, weight } = isOriginalCharacter
+    const { tag, thumb, info, weight, name } = isOriginalCharacter
         ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
         : await handleStandardCharacter(character, seed, isValueOnly, index, FILES);    
 
@@ -166,12 +166,13 @@ async function createCharacters(index, seeds) {
         tag_assist: tagAssist.tas,
         thumb,
         info: tagAssist.info,
-        weight: weight
+        weight: weight,
+        characterName:name
     };
 }
 
 async function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
-    let tag, thumb, info;
+    let tag, thumb, info, name;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.characterListArray.length);
         tag = FILES.characterListArray[selectedIndex][1];
@@ -179,21 +180,29 @@ async function handleStandardCharacter(character, seed, isValueOnly, index, FILE
         info = formatCharacterInfo(index, isValueOnly, {
         key: FILES.characterListArray[selectedIndex][0],
         value: FILES.characterListArray[selectedIndex][1]
-        });        
+        });
+        if(globalThis.globalSettings.language === 'en-US')
+            name = FILES.characterListArray[selectedIndex][1];
+        else
+            name = FILES.characterListArray[selectedIndex][0];
     } else {
         tag = FILES.characterList[character];
         thumb = await decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
         value: globalThis.characterListRegional.getValue()[index]
-        });        
+        });
+        if(globalThis.globalSettings.language === 'en-US')
+            name = tag;
+        else
+            name = character;   
     }
     const weight = globalThis.characterListRegional.getTextValue(index);
-    return { tag, thumb, info, weight };
+    return { tag, thumb, info, weight, name };
 }
 
 function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
-    let tag, info;
+    let tag, info, name;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.ocListArray.length);
         tag = FILES.ocListArray[selectedIndex][1];
@@ -201,12 +210,14 @@ function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
         key: FILES.ocListArray[selectedIndex][0],
         value: FILES.ocListArray[selectedIndex][1]
         });
+        name = FILES.ocListArray[selectedIndex][0];
     } else {
         tag = FILES.ocList[character];
         info = formatOriginalCharacterInfo({ key: character, value: tag }, isValueOnly);
+        name = character;
     }
     const weight = globalThis.characterListRegional.getTextValue(index);
-    return { tag, thumb: null, info, weight };
+    return { tag, thumb: null, info, weight, name };
 }
 
 function parseCharacter(weight, tag){
@@ -217,6 +228,7 @@ function parseCharacter(weight, tag){
     return (tag === '')?'':`(${tag}:${weight}), `;
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 async function getCharacters(){    
     let random_seed = globalThis.generate.seed.getValue();
     if (random_seed === -1){
@@ -228,9 +240,9 @@ async function getCharacters(){
     let character_right = '';
     let information = '';
     let thumbImages = [];
-
+    let characters = '';
     for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info, weight} = await createCharacters(index, seeds);
+        let {tag, tag_assist, thumb, info, weight, characterName} = await createCharacters(index, seeds);
         if (index === 0 || index === 2){
             character_left += parseCharacter(weight, tag);
             character_left += tag_assist;
@@ -248,6 +260,8 @@ async function getCharacters(){
         }
 
         information += `${info}`;
+        if(characterName)
+            characters += (characters.length>0)?`\n${characterName}`:`${characterName}`;
     }
 
     const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
@@ -258,7 +272,8 @@ async function getCharacters(){
         character_left:character_left,
         character_right:character_right,
         information: information,
-        seed:random_seed
+        seed:random_seed,
+        characters:characters
     }
 }
 
@@ -271,6 +286,8 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let positivePromptRight = '';
     let positivePromptRightColored = '';
     let negativePrompt = '';
+    let thumbImage = null;
+    let charactersName = '';
 
     if(runSame) {
         let seed = globalThis.generate.seed.getValue();
@@ -284,7 +301,7 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
         negativePrompt = globalThis.generate.lastNeg;
 
     } else {            
-        const {thumb, character_left, character_right, information, seed} = await getCharacters();
+        const {thumb, character_left, character_right, information, seed, characters} = await getCharacters();
         randomSeed = seed;
         randomSeedr = Math.floor(seed / 3);
         finalInfo = information;
@@ -317,10 +334,14 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
         positivePromptLeftColored = posLc;
         positivePromptRightColored = posRc;
         negativePrompt = globalThis.prompt.negative.getValue();
-        globalThis.thumbGallery.append(thumb);            
+        thumbImage = thumb;
+        charactersName = characters;         
     }
 
-    return {finalInfo, randomSeed, positivePromptLeft, positivePromptRight, positivePromptLeftColored, positivePromptRightColored, negativePrompt}
+    return {finalInfo, randomSeed, positivePromptLeft, positivePromptRight, 
+            positivePromptLeftColored, positivePromptRightColored, negativePrompt,
+            thumbImage, charactersName
+    }
 }
 
 function createRegional() {
@@ -345,28 +366,100 @@ function createRegional() {
     return {info, ratio, str_left, str_right, option_left, option_right};
 }
 
-async function createGenerateData(createPromptResult, apiInterface){    
-    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export async function generateRegionalImage(loops, runSame){   
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
 
-    const landscape = globalThis.generate.landscape.getValue();
-    const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
-    const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
-    const swap = globalThis.regional.swap.getValue();
-    
-    const hifix = createHiFix(createPromptResult.randomSeed, apiInterface,brownColor);
-    const refiner = createRefiner();
-    const regional = createRegional();
+    const apiInterface = globalThis.generate.api_interface.getValue();
+    if(apiInterface !== 'ComfyUI') {
+        const errorMessage = LANG.regional_error_not_comfyui;
+        globalThis.mainGallery.hideLoading(errorMessage, errorMessage);
+        return;
+    }
+    const apiAddress = extractHostPort(globalThis.generate.api_address.getValue());
+    const apiAuth = extractAPISecure(apiInterface);
+    const browserUUID = (globalThis.inBrowser)?globalThis.clientUUID:'none';
 
-    let browserUUID = 'none';
-    if(globalThis.inBrowser) {
-        browserUUID = globalThis.clientUUID;
-    }   
+    const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';    
+                
+    const aiPromptInterface = globalThis.ai.interface.getValue();
+    const aiPromptCurrentRole = globalThis.ai.ai_select.getValue();        
+    const aiPromot = (aiPromptCurrentRole===0 || String(aiPromptCurrentRole).toLowerCase() === 'none')?'': REPLACE_AI_MARK;
 
-    const generateData = {
-            addr: extractHostPort(globalThis.generate.api_address.getValue()),
-            auth: extractAPISecure(apiInterface),
+    toggleQueueColor();
+
+    if(!globalThis.mainGallery.isLoading && !globalThis.globalSettings.generate_auto_start && !globalThis.inGenerating) {
+        globalThis.generate.showCancelButtons(true);
+        globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+        globalThis.thumbGallery.clear();
+        globalThis.infoBox.image.clear();
+    }
+
+    for(let loop = 0; loop < loops; loop++){
+        if(globalThis.generate.cancelClicked){
+            globalThis.queueManager.removeAll();
+            break;
+        }                                
+
+        if(globalThis.generate.skipClicked){
+            break;
+        }
+
+        if(!globalThis.inGenerating)
+            globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
+
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
+
+        const hifix = createHiFix(createPromptResult.randomSeed, apiInterface,brownColor);
+        const refiner = createRefiner();
+        const regional = createRegional();
+
+        const landscape = globalThis.generate.landscape.getValue();
+        const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
+        const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
+        const swap = globalThis.regional.swap.getValue();
+
+        globalThis.generate.lastPos = createPromptResult.positivePromptLeft;
+        globalThis.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
+        globalThis.generate.lastPosR = createPromptResult.positivePromptRight;
+        globalThis.generate.lastPosRColored = createPromptResult.positivePromptRightColored;
+        globalThis.generate.lastNeg = createPromptResult.negativePrompt;        
+
+        const generateData = {
+            addr: apiAddress,
+            auth: apiAuth,
             uuid: browserUUID,
             
+            queueManager: {
+                isRegional: true,
+                apiInterface:apiInterface,
+                finalInfo: '',
+                loop: loop,
+                loops: loops,
+                aiInterface: aiPromptInterface,
+                aiRole: aiPromptCurrentRole,
+                aiOptions: (aiPromptInterface.toLowerCase() === 'remote') ? {
+                        apiUrl: globalThis.ai.remote_address.getValue(),
+                        apiKey: globalThis.ai.remote_apikey.getValue(),
+                        modelSelect: globalThis.ai.remote_model_select.getValue(),
+                        userPrompt: globalThis.prompt.ai.getValue(),
+                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
+                    } : {
+                        apiUrl: globalThis.ai.local_address.getValue(),
+                        userPrompt: globalThis.prompt.ai.getValue(),
+                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+                        temperature: globalThis.ai.local_temp.getValue(),
+                        n_predict:globalThis.ai.local_n_predict.getValue(),
+                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
+                    },
+                thumb:createPromptResult.thumbImage,
+                id:`${createPromptResult.charactersName}`,
+            },
+
             model: globalThis.dropdownList.model.getValue(),
             vpred: checkVpred(),
             positive_left: swap?createPromptResult.positivePromptRight:createPromptResult.positivePromptLeft,
@@ -383,88 +476,48 @@ async function createGenerateData(createPromptResult, apiInterface){
             hifix: hifix,
             refiner: refiner,
             regional: regional,
-            controlnet: await createControlNet(),            
+            controlnet: createControlNet(),      
+            adetailer: createADetailer(),      
         }
-
-    return generateData;
-}
-
-export async function generateRegionalImage(loops, runSame){
-    const apiInterface = globalThis.generate.api_interface.getValue();
-    const SETTINGS = globalThis.globalSettings;
-    const FILES = globalThis.cachedFiles;
-    const LANG = FILES.language[SETTINGS.language];
-
-    if(apiInterface !== 'ComfyUI') {
-        console.warn('apiInterface', apiInterface);
-        const errorMessage = LANG.regional_error_not_comfyui;
-        globalThis.mainGallery.hideLoading(errorMessage, errorMessage);
-        return;
-    }
-    
-    let ret = 'success';
-    let retCopy = '';
-
-    globalThis.generate.toggleButtons();
-    globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
-    globalThis.thumbGallery.clear();
-    globalThis.infoBox.image.clear();
-
-    const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
-    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
-
-    for(let loop = 0; loop < loops; loop++){
-        if(globalThis.generate.skipClicked || globalThis.generate.cancelClicked){
-            break;
-        }
-
-        const aiPromot = await getAiPrompt(loop, LANG.generate_ai);
-
-        globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
-
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
-        globalThis.generate.lastPos = createPromptResult.positivePromptLeft;
-        globalThis.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
-        globalThis.generate.lastPosR = createPromptResult.positivePromptRight;
-        globalThis.generate.lastPosRColored = createPromptResult.positivePromptRightColored;
-        globalThis.generate.lastNeg = createPromptResult.negativePrompt;
-
-        const generateData = await createGenerateData(createPromptResult, apiInterface);
-
+        
         let finalInfo = `${createPromptResult.finalInfo}\n`;
-        finalInfo += `Positive Left: ${createPromptResult.positivePromptLeftColored}\n`;
-        finalInfo += `Positive Right: ${createPromptResult.positivePromptRightColored}\n`;
-        finalInfo += `Negative: [color=${negativeColor}]${generateData.negative}[/color]\n\n`;
-        finalInfo += `Layout: [[color=${brownColor}]${generateData.width} x ${generateData.height}[/color]]\t`;
-        finalInfo += `CFG: [[color=${brownColor}]${generateData.cfg}[/color]]\t`;
-        finalInfo += `Setp: [[color=${brownColor}]${generateData.step}[/color]]\n`;
-        finalInfo += `Sampler: [[color=${brownColor}]${generateData.sampler}[/color]]\n`;
-        finalInfo += `Scheduler: [[color=${brownColor}]${generateData.scheduler}[/color]]\n`;
-        finalInfo += generateData.hifix.info;
-        finalInfo += generateData.refiner.info;
-        finalInfo += generateData.regional.info;
-        finalInfo +=`\n`;
+            finalInfo += `Positive Left: ${createPromptResult.positivePromptLeftColored}\n`;
+            finalInfo += `Positive Right: ${createPromptResult.positivePromptRightColored}\n`;
+            finalInfo += `Negative: [color=${negativeColor}]${generateData.negative}[/color]\n\n`;
+            finalInfo += `Layout: [[color=${brownColor}]${generateData.width} x ${generateData.height}[/color]]\t`;
+            finalInfo += `CFG: [[color=${brownColor}]${generateData.cfg}[/color]]\t`;
+            finalInfo += `Setp: [[color=${brownColor}]${generateData.step}[/color]]\n`;
+            finalInfo += `Sampler: [[color=${brownColor}]${generateData.sampler}[/color]]\n`;
+            finalInfo += `Scheduler: [[color=${brownColor}]${generateData.scheduler}[/color]]\n`;
+            finalInfo += generateData.hifix.info;
+            finalInfo += generateData.refiner.info;
+            finalInfo += generateData.regional.info;
+            finalInfo +=`\n`;
 
-        globalThis.infoBox.image.appendValue(finalInfo);        
+        generateData.queueManager.finalInfo = finalInfo;
 
-        // in-case click cancel too quick or during AI gen
-        if(globalThis.generate.cancelClicked) {
-            break;
-        }
-
-        // start generate        
-        const result = await seartGenerateRegional(apiInterface, generateData);
-        ret = result.ret;
-        retCopy = result.retCopy;
-        if(result.breakNow)
-            break;    
+        const nameList = generateData.queueManager.id.replaceAll('\n', ' | ');
+        const fullPrompt = `${createPromptResult.positivePromptLeft}\n${createPromptResult.positivePromptRight}`;
+        globalThis.queueManager.attach(
+            [   (nameList === '') ? LANG.generate_regional.replace('{0}', fullPrompt) : LANG.generate_regional.replace('{0}', nameList), 
+                fullPrompt
+            ],
+            generateData
+        );
     }
 
-    globalThis.mainGallery.hideLoading(ret, retCopy);
-    globalThis.generate.toggleButtons();
+    globalThis.generate.generate_single.setClickable(true);
+    globalThis.generate.generate_batch.setClickable(true);
+    globalThis.generate.generate_same.setClickable(true);    
+    
+    if(globalThis.globalSettings.generate_auto_start) {
+        await startQueue();
+    } else {
+        globalThis.mainGallery.hideLoading('success', '');
+    }
 }
 
-async function seartGenerateRegional(apiInterface, generateData){    
+export async function seartGenerateRegional(apiInterface, generateData){    
     const result = await runComfyUI(apiInterface, generateData);
     const ret = result.ret;
     const retCopy = result.retCopy;
@@ -519,6 +572,14 @@ async function runComfyUI(apiInterface, generateData){
 
                     if(globalThis.generate.cancelClicked) {
                         breakNow = true;
+                    } else if(image.startsWith('Error')) {
+                        if(image.endsWith('Cancelled')) {
+                            console.log('Generate cancelled from queue manager');
+                        } else {
+                            ret = LANG.gr_error_creating_image.replace('{0}',image).replace('{1}', apiInterface);
+                            retCopy = image;
+                            breakNow = true;
+                        }
                     } else {                    
                         sendToGallery(image, generateData);
                     }

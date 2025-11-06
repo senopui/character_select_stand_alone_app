@@ -1,5 +1,6 @@
 import { setBlur, setNormal, showDialog } from './myDialog.js';
-import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+import { sendWebSocketMessage } from '../../../webserver/front/wsRequest.js';
+import { setADetailerModelList } from '../slots/myADetailerSlot.js';
 
 const CAT = '[myCollapsed]'
 
@@ -55,7 +56,11 @@ export async function setupSaveSettingsToggle(){
 
     saveSettingsButton.addEventListener('click', async () => {
         setBlur();
-        const inputResult = await showDialog('input', { message: globalThis.cachedFiles.language[globalThis.globalSettings.language].save_settings_title, placeholder: 'tmp_settings', defaultValue: 'tmp_settings' });
+        const inputResult = await showDialog('input', { 
+            message: globalThis.cachedFiles.language[globalThis.globalSettings.language].save_settings_title, 
+            placeholder: 'tmp_settings', 
+            defaultValue: globalThis.globalSettings.lastLoadedSettings
+        });
         if(inputResult){
             globalThis.globalSettings.lora_slot = globalThis.lora.getValues();
             let result;
@@ -100,6 +105,7 @@ export async function setupModelReloadToggle() {
 
         globalThis.lora.reload();
         globalThis.controlnet.reload();
+        globalThis.aDetailer.reload();
     });
 
     return refreshButton;
@@ -123,8 +129,11 @@ export async function reloadFiles(){
         globalThis.cachedFiles.modelListAll = await sendWebSocketMessage({ type: 'API', method: 'getModelListAll', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.upscalerList = await sendWebSocketMessage({ type: 'API', method: 'getUpscalerList', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
         globalThis.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
+        if (SETTINGS.api_interface === 'WebUI')
+            await sendWebSocketMessage({ type: 'API', method: 'resetModelListsWebUI'});
     } else {
         await globalThis.api.updateModelList(args);
         await globalThis.api.updateWildcards();
@@ -134,9 +143,25 @@ export async function reloadFiles(){
         globalThis.cachedFiles.modelListAll = await globalThis.api.getModelListAll(SETTINGS.api_interface);
         globalThis.cachedFiles.loraList = await globalThis.api.getLoRAList(SETTINGS.api_interface);
         globalThis.cachedFiles.controlnetList = await globalThis.api.getControlNetList(SETTINGS.api_interface);
+        globalThis.cachedFiles.upscalerList = await globalThis.api.getUpscalerList(SETTINGS.api_interface);
         globalThis.cachedFiles.settingList = await globalThis.api.updateSettingFiles();
         globalThis.cachedFiles.imageTaggerModels = await globalThis.api.getImageTaggerModels();
+        if (SETTINGS.api_interface === 'WebUI') {
+            await globalThis.api.resetModelListsWebUI();
+        }
     }
+    
+    // reset few list for A1111
+    if (SETTINGS.api_interface === 'WebUI') {
+        globalThis.cachedFiles.controlnetProcessorListWebUI = 'none';
+        globalThis.cachedFiles.aDetailerListWebUI = 'none';
+        globalThis.cachedFiles.upscalerListWebUI = 'none';        
+        setADetailerModelList(SETTINGS.api_interface, true);
+    } else {
+        // Flush ADetailer since ComfyUI is not support
+        setADetailerModelList(null, true);
+    }
+
     globalThis.dropdownList.model.setValue(LANG.api_model_file_select, globalThis.cachedFiles.modelList);
     globalThis.dropdownList.settings.setValue('', globalThis.cachedFiles.settingList);
 

@@ -1,6 +1,6 @@
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 import { generateControlnetImage, fileToBase64 } from './generate.js';
-import { getControlNetLiet } from "./myControlNetSlot.js";
+import { getControlNetListWithProcessorList } from "./slots/myControlNetSlot.js";
 import { resizeImageToControlNetResolution, arrayBufferToBase64 } from './imageInfoUtils.js';
 
 function createHtmlOptions(itemList) {
@@ -30,7 +30,7 @@ export function createControlNetButtons(apiInterface, cachedImage, previewImg) {
 
     const controlNetSelect = document.createElement('select');
     controlNetSelect.className = 'controlnet-select';
-    controlNetSelect.innerHTML = createHtmlOptions(getControlNetLiet());
+    controlNetSelect.innerHTML = createHtmlOptions(getControlNetListWithProcessorList());
 
     const controlNetResolution = document.createElement('select');
     controlNetResolution.className = 'controlnet-select';
@@ -61,12 +61,13 @@ export function createControlNetButtons(apiInterface, cachedImage, previewImg) {
             await generateControlnetImage(
                 cachedImage, controlNetSelect.value, controlNetResolution.value,
                 apiInterface !== 'ComfyUI'); // WebUI skip gzip
-
+        
+        const postMode = (globalThis.globalSettings.api_interface === 'ComfyUI')?"Post":"On";
         if (preImageAfterBase64?.startsWith('data:image/png;base64,')) {
             const slotValues = [[
                 controlNetSelect.value,          // preProcessModel
                 controlNetResolution.value,      // preProcessResolution
-                'Post',                          // slot_enable
+                postMode,                        // slot_enable
                 controlNetPostSelect.value,      // postModel
                 0.6,                             // postProcessStrength
                 0,                               // postProcessStart
@@ -118,12 +119,13 @@ export function createControlNetButtons(apiInterface, cachedImage, previewImg) {
         } else { 
             // WebUI
             preImageGzipped = arrayBufferToBase64(preImageGzipped);
-        }            
+        }
 
+        const postMode = (globalThis.globalSettings.api_interface === 'ComfyUI')?"Post":"On";
         const slotValues = [[
             controlNetSelect.value,          // preProcessModel
             controlNetResolution.value,      // preProcessResolution
-            onTrigger ? 'On' : 'Post',       // slot_enable
+            onTrigger ? 'On' : postMode,     // slot_enable
             controlNetPostSelect.value,      // postModel
             0.8,                             // postProcessStrength
             0,                               // postProcessStart
@@ -148,6 +150,7 @@ export function createControlNetButtons(apiInterface, cachedImage, previewImg) {
         try {
             const preImageBase64 = await fileToBase64(cachedImage);
 
+            // None for Forge doesn't support direct
             if (controlNetSelect.value !== 'none' && !controlNetSelect.value.startsWith('ip-adapter')) {
                 await handleGeneratedControlNet(preImageBase64);
             } else {

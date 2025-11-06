@@ -1,3 +1,35 @@
+2025.11.06 v1.16.0       
+Add `ADetailer` for A1111(WebUI/Forge Neo) #49       
+Add `Queue Manager` slot #48       
+Change `Skip/Cancel` buttons' position to `Thumb Preview`           
+Change `Hires Fix` now uses real model name for both backend       
+ To update the previous version configuration file, first select your preferred upscaler model and then save the configuration file.             
+Improved nested random #50            
+Improved generate preview display       
+Bugs fix      
+
+A1111 Important Changes:         
+ `ControlNet` now limit supports Forge based A1111         
+ `Upscaler`, `Control Processor`, `ADetailer`  lists have to be read from the API.       
+ The default ADetailer model list will be updated after the first generation. Simply start generating an image as normal.       
+
+Controlnet notes for A1111/Forge:      
+ For ComfyUI and A1111, `Post` directly feed the processed image to controlnet model without requiring Processor Model preprocessing. They accepts `none` as preProcessModel.       
+ But Forge based controlnet DOES NOT support `none` as preProcessModel, it accepts `None`. 
+ Unfortunately, it's impossible to determine whether it's A1111 or Forge from API perspective, so WebUI uses `On` by default in all cases. Choose the proper `none` or `None` for A1111 or Forge yourself.        
+
+Upscaler notes for A1111/Forge Neo:        
+A1111 uses a name-based upscaler model list. The `static upscaler list` should work, and will update to API list after the first generate.             
+
+Forge uses a file-based upscaler model list. But it's messy! 
+  **IMPORTANT: If the upscale_models folder is NOT exist, SAA will use static upscaler list as A1111**  
+  **If you're confused about how to do it, don't panic—just run generate once, and HiFix model list will update properly.**          
+  The solution:   
+  1. Create a folder called `upscale_models` inside the `models` folder and put all your upscaler models in it.              
+  2. Create a symbolic link named after the upscaler model folder, e.g. `ESRGAN`, which points to `upscale_models`.            
+  3. Restart your Forge. The `Hires Fix` model should now work and will update to API list after the first generate.      
+
+
 2025.11.02 v1.15.5       
 Add random string selector with square bracket parsing #47       
 

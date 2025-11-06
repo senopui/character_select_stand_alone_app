@@ -98,7 +98,6 @@
     left: 10px;
     top: 50px;
     background: linear-gradient(45deg, red, orange, yellow, green, blue, indigo, violet);
-    color: white;
     font-weight: bold;
 }
 
@@ -123,7 +122,8 @@
 
 /* Apply shadow only for fallback (no image) */
 .cg-privacy-ball:not([style*="background-image"]) {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    background: #E8B090; /* Soft coral */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .cg-privacy-ball:active {
@@ -176,12 +176,12 @@
     align-items: center;
     gap: 10px;
     z-index: 10000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border: 2px solid #333;
     max-width: 320px;
 }
 
-#cg-loading-overlay-image{
+#cg-loading-overlay-image {
     max-width: 192px; 
     max-height: 192px; 
     object-fit: contain; 
@@ -194,11 +194,13 @@
     border: 2px solid #ff4d4f;
     background: rgba(17, 17, 17, 0.9);
 }
+
 .cg-error-content {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
+
 .cg-error-content img {
     max-width: 128px;
     max-height: 128px;
@@ -339,7 +341,8 @@
     outline: none; 
     appearance: none;
 }
-.mySlider-generate-random-seed-value{
+
+.mySlider-generate-random-seed-value {
     min-width: 128px !important;
 }
 
@@ -375,21 +378,34 @@
     margin: 0 auto;
     padding: 6px;
 }
+
 .slot-row {
     display: grid;
     gap: 6px;
     margin-bottom: 2px;
     align-items: center;
 }
+
 .slot-row.add-row, .slot-row.content-row {
     grid-template-columns: 0.5fr 7fr 1fr 1fr 1fr 0.5fr; 
 }
+
+.slot-row.adetailer-row {
+    grid-template-columns: 0.5fr 7fr 0.75fr 0.75fr 2fr;
+}
+
+.slot-row.queue-row {
+    grid-template-columns: 0.5fr 10fr 0.5fr; 
+}
+
 [class^="myTextbox-slot-row-text1-"]{
     color: rgb(179,157,219) !important;
 }
+
 [class^="myTextbox-slot-row-text2-"]{
     color: rgb(255,213,0) !important;
 }
+
 .slot-action {
     cursor: pointer;
     display: flex;
@@ -397,10 +413,12 @@
     justify-content: center;
     border: none;
 }
+
 .slot-action-add-toggle {
     background: green;
     border: 4px solid green;
 }
+
 .slot-action-add:hover .slot-action-add-toggle:hover {
     background: chartreuse;
     border: 4px solid chartreuse;
@@ -411,6 +429,7 @@
     background: red;
     border: 4px solid red;    
 }
+
 .slot-action-del:hover .slot-action-del-toggle:hover {
     background: orangered;
     border: 4px solid orangered;
@@ -421,11 +440,13 @@
     background: darkorange;
     border: 4px solid darkorange;
 }
+
 .slot-action-info-toggle:hover {
     background: Gold;
     border: 4px solid Gold;
     opacity: 1;
 }
+
 .slot-action-add-toggle, .slot-action-del-toggle, .slot-action-info-toggle {
     margin-top: 2px;
     width: 18px;
@@ -447,9 +468,11 @@
     z-index: 10001;
     pointer-events: auto;
 }
+
 .cg-drag-handle:active {
     cursor: grabbing;
 }
+
 .cg-resize-handle {
     position: absolute;
     bottom: 8px; 
@@ -459,11 +482,12 @@
     background: linear-gradient(45deg, #3498db, #ad5cea);
     border-radius: 50%;
     border: 1px solid #333;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     cursor: se-resize;
     z-index: 10002;
     transition: transform 0.2s ease, background 0.2s ease;
 }
+
 .cg-resize-handle:hover {
     transform: scale(1.5);
     background: linear-gradient(45deg, #1ce088, #ad5cea); 
@@ -479,6 +503,7 @@
     box-sizing: border-box;
     z-index: 9999;
 }
+
 .cg-custom-textbox {
     display: block;
     overflow-y: auto;
@@ -488,6 +513,7 @@
     box-sizing: border-box;
     position: relative;
 }
+
 .cg-custom-textbox div {
     white-space: pre-wrap; 
     word-break: break-word;
@@ -557,7 +583,7 @@
     background-color: rgba(30, 30, 35, 0.9); 
     border: 2px solid #333;
     position: fixed;
-    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     transition: background-color 0.3s;
 }
@@ -632,7 +658,7 @@
     background-color: rgba(20, 20, 25, 0.8);
     color: #f0f0f0;
     line-height: 1.4;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 0 0 8px 8px;
 }
 
@@ -689,7 +715,7 @@
 
 .copy-all-metadata, .image-tagger-process {
     background-color: rgb(61,154,215);
-    color: white;
+    color: rgb(30, 30, 30);
     border: none;
 }
 
@@ -699,7 +725,7 @@
 
 .send-metadata, .controlnet-postprocess {
     background-color: rgb(229,87,32);
-    color: white;
+    color: rgb(30, 30, 30);
     border: none;
 }
 
@@ -728,18 +754,23 @@
 .myTextbox-prompt-common-textarea {
     color: darkorange !important;
 }
+
 .myTextbox-prompt-positive-textarea {
     color: LawnGreen !important;
 }
+
 .myTextbox-prompt-positive-right-textarea{
     color: LightSkyBlue !important;
 }
+
 .myTextbox-prompt-negative-textarea {
     color: red !important;
 }
+
 .myTextbox-prompt-ai-textarea {
     color: hotpink !important;
 }
+
 .myTextbox-prompt-exclude-textarea {
     color: SaddleBrown !important;
 }

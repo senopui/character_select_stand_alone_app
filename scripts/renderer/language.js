@@ -95,10 +95,10 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.generate.batch.setTitle(LANG.batch);
 
     globalThis.generate.hifix.setTitle(LANG.api_hf_enable);
-    globalThis.generate.hifix_dummy.setTitle(LANG.api_hf_enable);
     globalThis.generate.refiner.setTitle(LANG.api_refiner_enable);
-    globalThis.generate.refiner_dummy.setTitle(LANG.api_refiner_enable);
     globalThis.generate.controlnet.setTitle(LANG.api_controlnet_enable);
+    globalThis.generate.adetailer.setTitle(LANG.api_adetailer_enable);
+
     globalThis.generate.landscape.setTitle(LANG.api_image_landscape);
     globalThis.generate.tag_assist.setTitle(LANG.tag_assist);
     globalThis.generate.wildcard_random.setTitle(LANG.wildcard_random);
@@ -125,6 +125,8 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.generate.model_path_webui.setTitle(LANG.model_path_webui);
     globalThis.generate.webui_auth.setTitle(LANG.webui_auth);
     globalThis.generate.webui_auth_enable.setTitle(LANG.webui_auth_enable);
+    globalThis.generate.queueAutostart.setTitle(LANG.generate_auto_start);
+    globalThis.generate.queueAutostart_dummy.setTitle(LANG.generate_auto_start);
 
     globalThis.generate.scrollToLatest.setTitle(LANG.scroll_to_last);
     globalThis.generate.keepGallery.setTitle(LANG.keep_gallery);
@@ -168,6 +170,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
         globalThis.lora.reload();
         globalThis.controlnet.reload();
         globalThis.jsonlist.reload();
+        globalThis.aDetailer.reload();
     }
 
     if(!skipRightClick)
@@ -205,6 +208,8 @@ export function updateSettings() {
     globalThis.generate.model_path_webui.setValue(SETTINGS.model_path_webui);
     globalThis.generate.webui_auth.setValue(SETTINGS.webui_auth);
     globalThis.generate.webui_auth_enable.updateDefaults(SETTINGS.webui_auth_enable);
+    globalThis.generate.queueAutostart.setValue(SETTINGS.generate_auto_start);
+    globalThis.generate.queueAutostart_dummy.setValue(SETTINGS.generate_auto_start);
 
     globalThis.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
     globalThis.characterListRegional.updateDefaults(SETTINGS.character_left, SETTINGS.character_right, 'None', 'None');
@@ -272,19 +277,15 @@ export function updateSettings() {
     globalThis.generate.api_address.setValue(SETTINGS.api_addr);
 
     globalThis.generate.hifix.setValue(SETTINGS.api_hf_enable);
-    globalThis.generate.hifix_dummy.setValue(SETTINGS.api_hf_enable);
     globalThis.hifix.scale.setValue(SETTINGS.api_hf_scale);
     globalThis.hifix.denoise.setValue(SETTINGS.api_hf_denoise);
     globalThis.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
     globalThis.hifix.colorTransfer.updateDefaults(SETTINGS.api_hf_colortransfer);
     globalThis.hifix.randomSeed.setValue(SETTINGS.api_hf_random_seed);
-    globalThis.hifix.steps.setValue(SETTINGS.api_hf_steps);
+    globalThis.hifix.steps.setValue(SETTINGS.api_hf_steps);    
+    globalThis.hifix.model.setOptions(globalThis.cachedFiles.upscalerList, null, LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_selected);
 
     globalThis.generate.refiner.setValue(SETTINGS.api_refiner_enable);
-    globalThis.generate.refiner_dummy.setValue(SETTINGS.api_refiner_enable);
-
-    globalThis.hifix.model.setOptions(SETTINGS.api_hf_upscaler_list, null, LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_selected);
-
     globalThis.refiner.addnoise.setValue(SETTINGS.api_refiner_add_noise);    
     globalThis.refiner.model.updateDefaults(SETTINGS.api_refiner_model);
     globalThis.refiner.vpred.updateDefaults(SETTINGS.api_refiner_model_vpred);

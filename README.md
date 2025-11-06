@@ -9,17 +9,18 @@ Now supports 5328 (includes multiple costumes) Characters in list.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%>   
 
-| Item Support | ComfyUI| A1111(WebUI) | Forge|
+| Item Support | [ComfyUI](https://github.com/comfyanonymous/ComfyUI) | [A1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui) | [Forge Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)  |
 | --- | --- | --- | --- |
 | LoRA | Yes | Yes | Yes |
 | BREAK | No | Yes | Yes |
 | Refiner | Yes | Yes | Yes |
 | Image Color Transfer | Yes | No | No |
 | Regional Condition | Yes | No | No |
-| ControlNet/IPA | Yes | Yes | No |
+| ControlNet/IPA | Yes | Yes | Yes |
+| ADetailer | No | Yes | Yes |
 | API authentication| No | Yes | Yes |
 
-Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)    
+Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)             
 
 ## Install and run
 Setup your [API Call](https://github.com/mirabarukaso/character_select_stand_alone_app#api-call-for-local-image-generator) before you start SAA.     
@@ -98,7 +99,7 @@ The good news is, you can run `Image tagger` during gegenerate
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/imageTagger.png" width=35%>   
 
-## ControlNet / IP Adapter (ComfyUI & A1111)
+## ControlNet / IP Adapter
 *For ComfyUI*     
 Upgrade your [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) version to `0.4.9.6 or above`      
 
@@ -111,12 +112,21 @@ Put your `IP Adapter` models in `ComfyUI\\models\\ipadapter`
 I didn't test too much on IPA, but for `SDXL/ilXL/NoobXL` recommends `CLIP-ViT-bigG-14-laion2B-39B-b160k.safetensors` with `ipa_styleIpadapterFor_NoobAI-XL_v10.safetensors`. You may also need `CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors`           
 Only the first `IP Adapter` slot will accept by ComfyUI, others set to `On` will ignore.     
 
-*For A1111(WebUI)*      
-Requires [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet).      
-Put your `ControlNet` and `IP Adapter` models in `stable-diffusion-webui\\extensions\\sd-webui-controlnet\\models`, the extension plugin path.       
+*For A1111 and Forge Neo*  
+For ComfyUI and A1111, `Post` directly feed the processed image to controlnet model without requiring Processor Model preprocessing. They accepts `none` as preProcessModel.       
+But Forge based controlnet DOES NOT support `none` as preProcessModel, it accepts `None`. 
+Unfortunately, it's impossible to determine whether it's A1111 or Forge from API perspective, so WebUI uses `On` by default in all cases. Choose the proper `none` or `None` for A1111 or Forge yourself.  
+     
+A1111:    
+  Requires [sd-webui-controlnet](https://github.com/Mikubill/sd-webui-controlnet).      
+  Put your `ControlNet` and `IP Adapter` models in `stable-diffusion-webui\\extensions\\sd-webui-controlnet\\models`, the extension plugin path.       
+  Use `none`
 
-Forge will not be supported. Tired to treat Forge and A1111 as two different backends, but API doesn't work well, and no documents at all... :(      
+Forge:      
+  Put your `ControlNet` and `IP Adapter` models in `models\\ControlNet`.        
+  Use `None` and always `On`         
 
+*Usage:*       
 1. Drag and drop (or click `Add` then `Paste`) your Image(or openPose image) to SAA/SAAC `Image Info`, select `Pre-processor`, `Resolution`, `Post-processor` and then click `Add ControlNet`. After it says `Added` the previre image will swap to your `Pre-processed` image, close `Image info` window, check `ControlNet` tab for more settings. **Hover your mouse over a dropdown/text item to view its feature.**                 
 2. In `ControlNet` tab, you can change `Pre-processor` by select the a one and click `Refresh` to generate it and update preview. (Or set `Method` to `On` but SAA preview will not update).      
 3. Because images are too big to save in settings file, so `ControlNet` settings will not save when SAA close, but also select another settings will not override current `ControlNet` settings.      
@@ -132,12 +142,37 @@ All `Post-processor` models, aka the `Apply ControlNet Model` you need download 
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/controlnet.png" width=35%>   
 
+## LoRA Slot 
+WebUI(A1111) supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.    
+ComfyUI supports more detailed configuration of LoRA, for more information please refer to [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
+Also support check LoRA info by click the 'i' button in LoRA Slot. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
+
+**To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**    
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/loraSlot.png" width=45%>   
+
 ## JSON/CSV List
 Support `*.json` and `*.csv` files, just drag and drop (or click `Add` then `Paste`) those file info `Image Info` window. File format please refer to `wai_characters.csv` and `wai_tag_assist.json`, try drag them into SAA.     
 `__Random__`, randomly selects an item from the list without a seed bound, works for `Single` and `Batch (Random)`  generate mode.          
 `__Enumerate__`, enumerates every item one by one and only works in `Batch (Random)` mode, in `Single` it downgrade to `__Random__`             
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/json-csv.png" width=35%>   
+
+## ADetailer(A1111/Forge Neo)         
+Because I don't want to introduce too many custom nodes, ComfyUI might support in future.        
+
+`Upscaler`, `Control Processor`, `ADetailer`  lists have to be read from the API.       
+The default ADetailer model list will be updated after the first generation. Simply start generating an image as normal.        
+*If the settings are too confusing, just remember to adjust the gold parameter in the bottom-right corner (Denoise).*         
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aDetailer.png" width=35%>   
+
+## Queue Manager
+The queue management system enables you to submit multiple generation tasks, each with their own distinct parameters. Once submitted, the queue automatically begins processing them and removes completed tasks.       
+If an error occurs, or if you manually unchecked `Enable Generation`, the queue will pause after the current task has finished and will remain preserved.       
+You can `delete` or `view details` of tasks within the queue. Deleting the first task in the queue cancels the current generation process.       
+*Recommended that the length of the queue should not exceed 10,000.*         
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/queueManager.png" width=35%>   
 
 ## Wildcards    
 Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wildcards`      
@@ -156,15 +191,6 @@ Try SAA Regional Condition with only 3 steps:
 3. Start `common prompt` with `duo, masterpiece, best quality, amazing quality`(Don't forget quality words like me), have fun!     
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/regionalCondition.png" width=35%>   
-
-## LoRA Slot 
-WebUI(A1111) supports it's default LoRA prompt style `<lora:xxxxx:1.0>`.    
-ComfyUI supports more detailed configuration of LoRA, for more information please refer to [LoRA from Text](https://github.com/mirabarukaso/ComfyUI_Mira#lora).    
-Also support check LoRA info by click the 'i' button in LoRA Slot. And, if there's a same named PNG file with LoRA, the image will show in LoRA info page.       
-
-**To use LoRA in ComfyUI API, you need update your ComfyUI_Mira node to at least 0.4.9.2**    
-
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/loraSlot.png" width=45%>   
 
 ## Semi-Auto Tag Complete
 Tags credits from [a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete/blob/main/tags/danbooru_e621_merged.csv)    
@@ -291,14 +317,24 @@ Copy and paste your `Username:Password` to SAA->Settings->`WebUI API Auth`, then
 ------
 # Hires Fix and Image Color Transfer
 Please refer to [Image Color Transfer](https://github.com/mirabarukaso/ComfyUI_Mira#image-color-transfer) for more details about Image Color Transfer.   
-
 *Due to lack of generate rule and missing openCV, Color transfer no longer support in WebUI*
 
-1. WeuUI will(I think...) download upscale models itself, select any model end with `(W)` will work for WebUI.   
-2. Comfyui needs to download upscale models by yourself. Select `Manager`->`Model Manager` and filter with `upscale`, then download them.   
-3. Upscale model list can be modity in your `settings.json` -> `api_hf_upscaler_list`    
-3.1. For WebUI, copy and paste them from WebUI, and add `(W)` in the end.        
-3.2. For ComfyUI, check your model's name from `ComfyUI/models/upscale_models`, and add `(C)` in the end.
+Makesure all upscaler models located in `upscale_models` folder.        
+
+Notes for ComfyUI:        
+Comfyui needs to download upscale models by yourself. Select `Manager`->`Model Manager` and filter with `upscale`, then download them.   
+
+Upscaler notes for A1111/Forge:        
+A1111 uses a name-based upscaler model list. The `static upscaler list` should work, and will update to API list after the first generate.             
+
+Forge uses a file-based upscaler model list. But it's messy! 
+  **IMPORTANT: If the upscale_models folder is NOT exist, SAA will use static upscaler list as A1111**  
+  **If you're confused about how to do it, don't panic—just run generate once, and HiFix model list will update properly.**          
+  The solution:   
+  1. Create a folder called `upscale_models` inside the `models` folder and put all your upscaler models in it.              
+  2. Create a symbolic link named after the upscaler model folder, e.g. `ESRGAN`, which points to `upscale_models`.            
+  3. Restart your Forge. The `Hires Fix` model should now work and will update to API list after the first generate.       
+
 
 ------
 # FAQ

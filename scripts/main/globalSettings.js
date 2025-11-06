@@ -106,8 +106,11 @@ const defaultSettings = {
     "api_refiner_ratio": 0.4,
 
     "api_controlnet_enable": false,
+    "api_adetailer_enable": false,
 
     "lora_slot": [],
+
+    "generate_auto_start": true,
 }
 
 function setupGlobalSettings() { 

@@ -59,7 +59,8 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
     const {
         value = '',
         defaultTextColor = 'auto', 
-        maxLines = 10
+        maxLines = 10,
+        readOnly = false
     } = options;
 
     const container = document.querySelector(`.${containerId}`);
@@ -71,11 +72,11 @@ export function setupTextbox(containerId, placeholder = 'Enter text...', options
     if(showTitle){
         container.innerHTML = `
             <div class="myTextbox-${containerId}-header">${placeholder}</div>
-            <textarea class="myTextbox-${containerId}-textarea ${numberOnly ? 'numeric-input' : ''}" title="${placeholder}" placeholder="${placeholder}"></textarea>
+            <textarea class="myTextbox-${containerId}-textarea ${numberOnly ? 'numeric-input' : ''}" title="${placeholder}" placeholder="${placeholder}" ${readOnly?'readonly':''}></textarea>
         `;
     } else {
         container.innerHTML = `
-        <textarea class="myTextbox-${containerId}-textarea ${numberOnly ? 'numeric-input' : ''}" title="${placeholder}" placeholder="${placeholder}"></textarea>
+        <textarea class="myTextbox-${containerId}-textarea ${numberOnly ? 'numeric-input' : ''}" title="${placeholder}" placeholder="${placeholder}" ${readOnly?'readonly':''}></textarea>
     `;
     }
 

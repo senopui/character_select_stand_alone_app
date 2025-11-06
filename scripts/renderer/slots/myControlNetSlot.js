@@ -1,9 +1,9 @@
-import { mySimpleList } from './myDropdown.js';
-import { setupTextbox } from './myTextbox.js';
+import { mySimpleList } from '../components/myDropdown.js';
+import { setupTextbox } from '../components/myTextbox.js';
 import { generateGUID } from './myLoRASlot.js'
-import { generateControlnetImage } from './generate.js';
-import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
-import { resizeImageToControlNetResolution } from './imageInfoUtils.js';
+import { generateControlnetImage } from '../generate.js';
+import { sendWebSocketMessage } from '../../../webserver/front/wsRequest.js';
+import { resizeImageToControlNetResolution } from '../imageInfoUtils.js';
 
 const controlNetValuesComfyUI = [
     "none",
@@ -57,6 +57,7 @@ const controlNetValuesComfyUI = [
 
 const controlNetValuesWebUI = [
     "none",
+    "None",
     "ip-adapter-auto",
     "tile_resample",
     "pidinet",
@@ -165,7 +166,7 @@ function createControlNetSlotsFromValues(slotManager, slotValues, options = {}) 
         pre_image, pre_image_after, pre_image_base64, pre_image_after_base64
         ] of slotValues) {
         if (validateControlNet) {
-            if (!getControlNetLiet().includes(preProcessModel)) {
+            if (!getControlNetListWithProcessorList().includes(preProcessModel)) {
                 console.warn(`Pre-Process Model "${preProcessModel}" not found, skipping`);
                 continue;
             }
@@ -189,7 +190,7 @@ function createControlNetSlotsFromValues(slotManager, slotValues, options = {}) 
             const preProcessModelComponent = mySimpleList(
                 slot.itemClasses.pre_process_model,
                 LANG.api_controlnet_pre_process_model,
-                getControlNetLiet(),
+                getControlNetListWithProcessorList(),
                 null,
                 15,
                 true,
@@ -510,16 +511,7 @@ class ControlNetSlotManager {
     }
 
     addSlot(pre_image_base64 = null, pre_image_after_base64 = null) {
-        if (!this.candidateClassName) {
-            console.error('No candidate row available');
-            return null;
-        }
-
         const slot = this.slotIndex.get(this.candidateClassName);
-        if (!slot) {
-            console.error('Candidate slot not found');
-            return null;
-        }
 
         slot.isCandidate = false;
         slot.itemClasses.delete = this.generateClassName('delete');
@@ -716,11 +708,11 @@ class ControlNetSlotManager {
     }
 }
 
-export function getControlNetLiet() {
+export function getControlNetListWithProcessorList() {
     let controlNetPreprocessor = [];
 
     if(globalThis.globalSettings.api_interface === 'ComfyUI') {
-        controlNetPreprocessor = controlNetValuesComfyUI;
+        controlNetPreprocessor = [...controlNetValuesComfyUI];
 
         let clipVisionList = [];
         for (const clipVision of globalThis.cachedFiles.controlnetList) {
@@ -732,7 +724,11 @@ export function getControlNetLiet() {
 
         controlNetPreprocessor = controlNetPreprocessor.concat(clipVisionList);
     } else if(globalThis.globalSettings.api_interface === 'WebUI') {
-        controlNetPreprocessor = controlNetValuesWebUI;
+        if (globalThis.cachedFiles.controlnetProcessorListWebUI === 'none'){
+            controlNetPreprocessor = [...controlNetValuesWebUI];
+        } else {
+            controlNetPreprocessor = [...globalThis.cachedFiles.controlnetProcessorListWebUI];
+        }
     } else {
         controlNetPreprocessor = [];
     }

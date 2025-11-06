@@ -5,7 +5,12 @@ import { getMutexBackendBusy, setMutexBackendBusy } from '../../main-common.js';
 
 const CAT = '[WebUI]';
 let backendWebUI = null;
+let cancelMark = false;
+
+let contronProcessorList = 'none';
 let contronNetModelHashList = 'none';
+let aDetailerModelList = 'none';
+let upscalersModelList = 'none';
 
 function findControlNetModelByName(name) {
   const cleanName = path.basename(name, '.safetensors');
@@ -21,10 +26,8 @@ function findControlNetModelByName(name) {
 function applyControlnet(payload, controlnet){
     let newPayload = payload;
     if (Array.isArray(controlnet)) {
-        payload["alwayson_scripts"] = {};
-        payload["alwayson_scripts"]["controlnet"] = {};
-        payload["alwayson_scripts"]["controlnet"]["args"]  = [];
-
+        newPayload["alwayson_scripts"]['controlnet']={};
+        newPayload["alwayson_scripts"]['controlnet']['args']=[];
         for( const slot of controlnet) {
             const controlNetArg = {};
             // skip empty
@@ -37,7 +40,6 @@ function applyControlnet(payload, controlnet){
             if(slot.image) {
                 controlNetArg["module"] = slot.preModel;
                 controlNetArg["image"] = slot.image;
-
             } else if(slot.imageAfter) {
                 controlNetArg["module"] = 'none';   // skip pre
                 controlNetArg["image"] = slot.imageAfter;
@@ -50,6 +52,14 @@ function applyControlnet(payload, controlnet){
             controlNetArg["guidance_start"] = Number.parseFloat(slot.postStart);
             controlNetArg["guidance_end"] = Number.parseFloat(slot.postEnd);
 
+            // Forge
+            controlNetArg["control_mode"] = "Balanced";
+            controlNetArg["resize_mode"] = "Just Resize";
+            controlNetArg["threshold_a"] = 0.5;
+            controlNetArg["threshold_b"] = 0.5;
+            controlNetArg["hr_option"] = "Both";
+            controlNetArg["pixel_perfect"] = true;
+
             newPayload["alwayson_scripts"]["controlnet"]["args"].push(controlNetArg);
         };                
     }
@@ -57,6 +67,37 @@ function applyControlnet(payload, controlnet){
     return newPayload;
 }
 
+function applyADetailer(payload, adetailer) {
+    let newPayload = payload;
+    if (Array.isArray(adetailer)) {
+        newPayload["alwayson_scripts"]['ADetailer']={};
+        newPayload["alwayson_scripts"]['ADetailer']['args']=[
+            true,   // ad_enable
+            false,  // skip_img2img
+        ];
+        for( const slot of adetailer) {
+            const aDetailerArg = {};
+
+            aDetailerArg['ad_model'] = slot.model;
+            aDetailerArg['ad_prompt'] = slot.prompt;
+            aDetailerArg['ad_negative_prompt'] = slot.negative_prompt;
+            // Detection
+            aDetailerArg['ad_confidence'] = slot.confidence;
+            aDetailerArg['ad_mask_k'] = slot.mask_k;
+            aDetailerArg['ad_mask_filter_method'] = slot.mask_filter_method;
+            // Mask Preprocessing
+            aDetailerArg['ad_dilate_erode'] = slot.dilate_erode;
+            aDetailerArg['ad_mask_merge_invert'] = slot.ask_merge_invert;
+            // Inpainting
+            aDetailerArg['ad_mask_blur'] = slot.mask_blur;
+            aDetailerArg['ad_denoising_strength'] = slot.denoise;                    
+
+            newPayload['alwayson_scripts']['ADetailer']['args'].push(aDetailerArg);
+        }
+    }
+
+    return newPayload;
+}
 class WebUI {
     constructor(addr) {
         this.addr = addr;
@@ -137,7 +178,7 @@ class WebUI {
 
     async run (generateData) {
         return new Promise((resolve, reject) => {
-            const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
+            const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet, adetailer} = generateData;
             this.addr = addr;
             this.refresh = refresh;
             this.lastProgress = -1;
@@ -159,6 +200,7 @@ class WebUI {
                 "seed": seed,
                 "cfg_scale": cfg,
                 "save_images": true,
+                "alwayson_scripts": {},
             }
 
             if (hifix.enable){
@@ -186,9 +228,15 @@ class WebUI {
                     "refiner_switch_at": refiner.ratio,
                 }
             }
-
             // ControlNet
-            payload = applyControlnet(payload, controlnet);
+            if(controlnet) {
+                payload = applyControlnet(payload, controlnet);
+            }
+
+            // aDetailer
+            if(adetailer) {
+                payload = applyADetailer(payload, adetailer);
+            }
             
             const body = JSON.stringify(payload);
             const apiUrl = `http://${this.addr}/sdapi/v1/txt2img`;
@@ -400,8 +448,7 @@ class WebUI {
                             try {
                                 const buffer = Buffer.concat(chunks);
                                 const jsonData = JSON.parse(buffer.toString());
-                                const modelList = jsonData.model_list;
-                                resolve(modelList);
+                                resolve(jsonData);
                             } catch(error) {
                                 console.error(`${CAT} modelList Decode error: ${error}`);
                                 resolve(`Error: modelList Decode error ${error}`);
@@ -520,13 +567,27 @@ async function setupGenerateBackendWebUI() {
     ipcMain.handle('generate-backend-webui-cancel', async (event) => {        
         cancelWebUI();
     });
+    
+    ipcMain.handle('generate-backend-webui-get-module-list', async (event) => {
+        return getControlNetProcessorList();
+    });
+    
+    ipcMain.handle('generate-backend-webui-get-ad-model', async (event) => {
+        return getADetailerModelList();
+    });
+
+    ipcMain.handle('generate-backend-webui-get-upscaler-model', async (event) => {
+        return getUpscalersModelList();
+    });
+
+    ipcMain.handle('generate-backend-webui-reset-model-list', async (event) => {
+        return resetModelLists();
+    });
 }
 
-async function updateControlNetHashList(generateData) {
-     // update contronNe tModel Hash List first
-    // that's really annoying, why they did not use prefix with model name?!
-    contronNetModelHashList = await backendWebUI.makeHttpRequestControlnet(
-        `http://${generateData.addr}/controlnet/model_list`,
+async function getListFromBAckend(generateData, url){
+    let result = await backendWebUI.makeHttpRequestControlnet(
+        url,
         generateData.auth,
         'GET',
         null,
@@ -534,16 +595,64 @@ async function updateControlNetHashList(generateData) {
         backendWebUI.timeout
     );
 
-    if (typeof contronNetModelHashList === 'string' && contronNetModelHashList.startsWith('Error:')) {
-        console.error(CAT, 'GET request failed:', contronNetModelHashList);
-        contronNetModelHashList = 'none';
+    if (typeof result === 'string' && result.startsWith('Error:')) {
+        console.error(CAT, 'GET request failed:', result);
+        console.log(CAT, 'URL = ', url);
+        result = 'none';
     }
+
+    return result;
+}
+
+async function updateControlNetHashList(generateData) {
+    // update contronNe tModel Hash List first
+    // that's really annoying, why they did not use prefix with model name?!
+    const  result = await getListFromBAckend(generateData, `http://${generateData.addr}/controlnet/model_list?update=true`);
+    contronNetModelHashList = result?.model_list;    
     if (!Array.isArray(contronNetModelHashList)) {
-        console.error(CAT, 'Invalid model list from GET');
+        console.error(CAT, 'Invalid controlnet model_list from GET');
         contronNetModelHashList = 'none';
     }
 
     return contronNetModelHashList;
+}
+
+async function updateControlProcessorList(generateData) {
+    // update controlnet module_list
+    const result = await getListFromBAckend(generateData, `http://${generateData.addr}/controlnet/module_list`);
+    contronProcessorList = result?.module_list;    
+    if (!Array.isArray(contronProcessorList)) {
+        console.error(CAT, 'Invalid controlnet module_list from GET');
+        contronProcessorList = 'none';
+    }
+    return contronProcessorList;
+}
+
+async function updateAdModelList(generateData) {
+    // update aDetailer Model List 
+    const result = await getListFromBAckend(generateData, `http://${generateData.addr}/adetailer/v1/ad_model`);
+    aDetailerModelList = result?.ad_model;
+    if (!Array.isArray(aDetailerModelList)) {
+        console.error(CAT, 'Invalid aDetailer ad_model from GET');
+        aDetailerModelList = 'not_exist';    // ADetailer plugin may not exist, stop refresh
+    }
+    return aDetailerModelList;
+}
+
+async function updateUpscalerModelList(generateData) {
+    // update Upscaler Model List 
+    const jsonData = await getListFromBAckend(generateData, `http://${generateData.addr}/sdapi/v1/upscalers`);
+    if (typeof jsonData === 'string') {
+        upscalersModelList = 'none';
+        return upscalersModelList;
+    } 
+
+    const names = jsonData
+        .filter(item => item.name && item.name !== "None")
+        .map(item => item.name);
+    
+    upscalersModelList = names;
+    return upscalersModelList;
 }
 
 async function runWebUI(generateData){
@@ -553,11 +662,30 @@ async function runWebUI(generateData){
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
     setMutexBackendBusy(true); // Acquire the mutex lock
+    cancelMark = false;
 
     if (contronNetModelHashList === 'none') {
         console.log(CAT, "Refresh controlNet model hash list:");
         const result = await updateControlNetHashList(generateData);
-        console.log(result);
+        console.log(result);        
+    }
+
+    if (contronProcessorList === 'none') {
+        console.log(CAT, "Refresh ControlNet processor list:");
+        contronProcessorList = await updateControlProcessorList(generateData);
+        console.log(contronProcessorList);
+    }
+
+    if (aDetailerModelList === 'none') {
+        console.log(CAT, "Refresh aDetailer model list:");
+        aDetailerModelList = await updateAdModelList(generateData);
+        console.log(aDetailerModelList);
+    }
+
+    if (upscalersModelList === 'none'){
+        console.log(CAT, "Refresh upscaler model list:");
+        upscalersModelList = await updateUpscalerModelList(generateData);
+        console.log(upscalersModelList);
     }
     
     const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
@@ -566,6 +694,12 @@ async function runWebUI(generateData){
             if(backendWebUI.uuid !== 'none')
                 console.log(CAT, 'Running A1111 with uuid:', generateData.uuid);
             const imageData = await backendWebUI.run(generateData);
+            setMutexBackendBusy(false); // Release the mutex lock
+
+            if(cancelMark) {
+                console.log(CAT, 'Error: Cancelled');
+                return 'Error: Cancelled';
+            }
 
             if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
                 console.error(CAT, imageData);
@@ -575,15 +709,15 @@ async function runWebUI(generateData){
             const jsonData =  JSON.parse(imageData);
             sendToRenderer(backendWebUI.uuid, `updateProgress`, `100`, '100%');
             const image = jsonData.images[0];
-            setMutexBackendBusy(false); // Release the mutex lock
             // parameters info
             return `data:image/png;base64,${image}`;
-        } catch (error) {
+        } catch (error) {            
             console.error(CAT, 'Image not found or invalid:', error);
             return `Error: Image not found or invalid: ${error}`;
         }
     }
 
+    console.log(CAT, 'result is not 200', result);
     return result;
 } 
 
@@ -594,6 +728,7 @@ async function runWebUI_ControlNet(generateData) {
         return 'Error: WebUI is busy, cannot run new generation, please try again later.';
     }
     setMutexBackendBusy(true); // Acquire lock for the entire operation
+    cancelMark = false;
 
     try {
         await updateControlNetHashList(generateData);
@@ -602,8 +737,8 @@ async function runWebUI_ControlNet(generateData) {
             "controlnet_module": generateData.controlNet,
             "controlnet_input_images": [generateData.imageData],
             "controlnet_processor_res": generateData.outputResolution,
-            "controlnet_threshold_a": -1,
-            "controlnet_threshold_b": -1,
+            "controlnet_threshold_a": 64,
+            "controlnet_threshold_b": 64,
             "controlnet_masks": [],
             "low_vram": false
         };
@@ -632,8 +767,10 @@ async function runWebUI_ControlNet(generateData) {
 }
 
 function cancelWebUI() {
+    console.log(CAT, 'Processing interrupted');
+    cancelMark = true;
     backendWebUI.cancelGenerate();
-    stopPollingWebUI();    
+    stopPollingWebUI();
 }
 
 function startPollingWebUI() {
@@ -644,11 +781,34 @@ function stopPollingWebUI() {
     backendWebUI.stopPolling();    
 }
 
+function getControlNetProcessorList() {
+    return contronProcessorList;
+}
+
+function getADetailerModelList() {
+    return aDetailerModelList;
+}
+
+function getUpscalersModelList() {
+    return upscalersModelList;
+}
+
+function resetModelLists() {
+    contronProcessorList = 'none';
+    contronNetModelHashList = 'none';
+    aDetailerModelList = 'none';
+    upscalersModelList = 'none';
+}
+
 export {
     setupGenerateBackendWebUI,
     runWebUI,
     runWebUI_ControlNet,
     cancelWebUI,
     startPollingWebUI,
-    stopPollingWebUI
+    stopPollingWebUI,
+    getControlNetProcessorList,
+    getADetailerModelList,
+    getUpscalersModelList,
+    resetModelLists
 };

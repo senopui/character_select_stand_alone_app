@@ -1,6 +1,6 @@
-import { getAiPrompt } from './remoteAI.js';
+import { getAiPrompt } from '../remoteAI.js';
 import { showDialog } from './myDialog.js';
-import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+import { sendWebSocketMessage } from '../../../webserver/front/wsRequest.js';
 
 function debounce(func, wait) {
     let timeout;

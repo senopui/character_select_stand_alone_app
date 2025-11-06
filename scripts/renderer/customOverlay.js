@@ -1,4 +1,4 @@
-import { parseTaggedContent } from './myTextbox.js';
+import { parseTaggedContent } from './components/myTextbox.js';
 
 export function setupButtonOverlay() {
     globalThis.addEventListener('resize', () => {
@@ -137,7 +137,7 @@ export function setupButtonOverlay() {
     const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
     let translateX, translateY;
 
-    if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+    if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
         translateX = savedPosition.left;
         translateY = savedPosition.top;
     } else {
@@ -203,7 +203,7 @@ export function setupButtonOverlay() {
             container.style.padding = '20px';
 
             const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
-            if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+            if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
                 translateX = savedPosition.left;
                 translateY = savedPosition.top;
             } else {
@@ -237,7 +237,7 @@ export function setupButtonOverlay() {
         buttonOverlay.style.display = (loadingOverlay || errorOverlay) ? 'none' : 'flex';
         if (!isMinimized && buttonOverlay.style.display !== 'none') {
             const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
-            if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+            if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
                 translateX = savedPosition.left;
                 translateY = savedPosition.top;
             } else {
@@ -946,7 +946,7 @@ function createCustomOverlay(image, message, imageWidth=384, imageAlign='center'
         console.error('Failed to parse customOverlayPosition:', err);
         localStorage.removeItem('customOverlayPosition');
     }
-    if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+    if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
         overlay.style.position = 'fixed';
         overlay.style.top = `${savedPosition.top}px`;
         overlay.style.left = `${savedPosition.left}px`;

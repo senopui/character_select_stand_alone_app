@@ -94,6 +94,7 @@ contextBridge.exposeInMainWorld('api', {
   getModelListAll: async (args) => ipcRenderer.invoke('get-model-list-all', args),
   getLoRAList: async (args) => ipcRenderer.invoke('get-lora-list-all', args),
   getControlNetList: async (args) => ipcRenderer.invoke('get-controlnet-list', args),
+  getUpscalerList: async (args) => ipcRenderer.invoke('get-upscaler-list', args),
   getImageTaggerModels: async () => ipcRenderer.invoke('get-image-tagger-models'),
   // Tag Auto Complete
   tagReload: async () => ipcRenderer.invoke('tag-reload'),
@@ -117,6 +118,10 @@ contextBridge.exposeInMainWorld('api', {
   cancelWebUI: async () => ipcRenderer.invoke('generate-backend-webui-cancel'),
   startPollingWebUI: async () => ipcRenderer.invoke('generate-backend-webui-start-polling'),
   stopPollingWebUI: async () => ipcRenderer.invoke('generate-backend-webui-stop-polling'),
+  getControlNetProcessorListWebUI: async () => ipcRenderer.invoke('generate-backend-webui-get-module-list'),
+  getADetailerModelListWebUI: async () => ipcRenderer.invoke('generate-backend-webui-get-ad-model'),
+  getUpscalersModelListWebUI: async () => ipcRenderer.invoke('generate-backend-webui-get-upscaler-model'),
+  resetModelListsWebUI: async () => ipcRenderer.invoke('generate-backend-webui-reset-model-list'),
 
   // spellcheck
   replaceMisspelling: async (word) => ipcRenderer.invoke('replace-misspelling', word),

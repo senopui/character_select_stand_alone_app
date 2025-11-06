@@ -5,6 +5,7 @@ import { getMutexBackendBusy, setMutexBackendBusy } from '../../main-common.js';
 
 const CAT = '[ComfyUI]';
 let backendComfyUI = null;
+let cancelMark = false;
 
 function sendToRendererEx(channel, data) {
     const window = BrowserWindow.getAllWindows();
@@ -562,8 +563,11 @@ class ComfyUI {
                           finalize('Error: Failed to convert image to base64');
                           return;
                       }
-                  } 
-                  finalize('Error: Image not found or invalid');
+                  }
+                  if(cancelMark)
+                    finalize('Error: Cancelled');
+                  else 
+                    finalize('Error: Image not found or invalid');
                   return;
               } catch (err) {
                   console.error(CAT, 'Error getting image:', err);
@@ -863,7 +867,7 @@ class ComfyUI {
         workflow["17"].inputs.HiResMultiplier = hifix.scale;
 
         // Set Hires fix model name
-        workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+        workflow["27"].inputs.model_name = `${hifix.model}`;
       }
 
       if(hifix.colorTransfer === 'None'){
@@ -1021,7 +1025,7 @@ class ComfyUI {
         workflow["17"].inputs.HiResMultiplier = hifix.scale;
 
         // Set Hires fix model name
-        workflow["27"].inputs.model_name = `${hifix.model}.pth`;
+        workflow["27"].inputs.model_name = `${hifix.model}`;
       }
 
       if(hifix.colorTransfer === 'None'){
@@ -1156,6 +1160,7 @@ async function runComfyUI(generateData) {
     return 'Error: ComfyUI is busy, cannot run new generation, please try again later.';
   }
   setMutexBackendBusy(true); // Acquire the mutex lock
+  cancelMark = false;
 
   const workflow = backendComfyUI.createWorkflow(generateData)
   if(backendComfyUI.uuid !== 'none')
@@ -1171,6 +1176,7 @@ async function runComfyUI_Regional(generateData) {
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
   setMutexBackendBusy(true); // Acquire the mutex lock
+  cancelMark = false;
 
   const workflow = backendComfyUI.createWorkflowRegional(generateData)
   if(backendComfyUI.uuid !== 'none')
@@ -1186,6 +1192,7 @@ async function runComfyUI_ControlNet(generateData){
     return 'Error: ComfyUI API is busy, cannot run new generation, please try again later.';
   }
   setMutexBackendBusy(true); // Acquire the mutex lock
+  cancelMark = false;
 
   const workflow = backendComfyUI.createWorkflowControlnet(generateData)
   console.log(CAT, 'Running ComfyUI ControlNet with uuid:', backendComfyUI.uuid);
@@ -1221,6 +1228,7 @@ function closeWsComfyUI() {
 
 async function cancelComfyUI() {
   console.log(CAT, 'Processing interrupted');
+  cancelMark = true;
   await backendComfyUI.cancelGenerate();  
 }
 

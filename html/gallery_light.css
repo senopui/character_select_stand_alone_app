@@ -98,7 +98,6 @@
     left: 10px;
     top: 50px;
     background: #E8B090; /* Soft coral */
-    color: #4A403A; /* Dark gray-brown */
     font-weight: bold;
 }
 
@@ -389,6 +388,14 @@
 
 .slot-row.add-row, .slot-row.content-row {
     grid-template-columns: 0.5fr 7fr 1fr 1fr 1fr 0.5fr;
+}
+
+.slot-row.adetailer-row {
+    grid-template-columns: 0.5fr 7fr 0.75fr 0.75fr 2fr;
+}
+
+.slot-row.queue-row {
+    grid-template-columns: 0.5fr 10fr 0.5fr; 
 }
 
 [class^="myTextbox-slot-row-text1-"] {
@@ -687,7 +694,7 @@
     padding: 8px;
 }
 
-.metadata-buttons, .controlnet-buttons{
+.metadata-buttons, .controlnet-buttons {
     display: grid;
     grid-template-columns: 4fr 1fr; 
     justify-items: end;

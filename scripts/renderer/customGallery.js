@@ -119,6 +119,7 @@ function process_oberserver(entries, observer) {
 export function setupGallery(containerId) {
     if (globalThis.mainGallery.isGallerySetup) return;
     globalThis.mainGallery.isGallerySetup = true;
+    globalThis.mainGallery.isLoading = false;
 
     let isGridMode = false;
     let currentIndex = 0;
@@ -169,11 +170,11 @@ export function setupGallery(containerId) {
         }
     };
 
-    globalThis.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {
+    globalThis.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {        
         const loadingOverlay = customCommonOverlay().createLoadingOverlay(loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix);
         const buttonOverlay = document.getElementById('cg-button-overlay');
         const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
-        if (savedPosition && savedPosition.top !== undefined && savedPosition.left !== undefined) {
+        if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {
             loadingOverlay.style.top = `${savedPosition.top}px`;
             loadingOverlay.style.left = `${savedPosition.left}px`;
             loadingOverlay.style.transform = 'none';
@@ -188,6 +189,7 @@ export function setupGallery(containerId) {
             loadingOverlay.style.transform = 'translate(-50%, -20%)';
         }
         addDragFunctionality(loadingOverlay, buttonOverlay);
+        globalThis.mainGallery.isLoading = true;
     };
 
     globalThis.mainGallery.hideLoading = function (errorMessage, copyMessage) {
@@ -212,6 +214,7 @@ export function setupGallery(containerId) {
             console.error('Got Error from backend:', copyMessage);
             customCommonOverlay().createErrorOverlay(errorMessage, copyMessage);
         }
+        globalThis.mainGallery.isLoading = false;
     };
 
     function ensurePrivacyButton() {

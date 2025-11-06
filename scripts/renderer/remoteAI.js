@@ -1,16 +1,16 @@
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 let lastAIPromot = '';
 
-async function remoteGenerateWithPrompt() {
+async function remoteGenerateWithPrompt(aiOptions = null) {
     try {
-        const options = {
-            apiUrl: globalThis.ai.remote_address.getValue(),
-            apiKey: globalThis.ai.remote_apikey.getValue(),
-            modelSelect: globalThis.ai.remote_model_select.getValue(),
-            userPrompt: globalThis.prompt.ai.getValue(),
-            systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
-            timeout: globalThis.ai.remote_timeout.getValue() * 1000
-        };
+        const options = aiOptions || {
+                apiUrl: globalThis.ai.remote_address.getValue(),
+                apiKey: globalThis.ai.remote_apikey.getValue(),
+                modelSelect: globalThis.ai.remote_model_select.getValue(),
+                userPrompt: globalThis.prompt.ai.getValue(),
+                systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+                timeout: globalThis.ai.remote_timeout.getValue() * 1000
+            };
         let result;
         if (globalThis.inBrowser) {
             result = await sendWebSocketMessage({ type: 'API', method: 'remoteAI', params: [options] });
@@ -45,16 +45,16 @@ async function remoteGenerateWithPrompt() {
     }
 }
 
-async function localGenerateWithPrompt() {
+async function localGenerateWithPrompt(aiOptions = null) {
     try {
-        const options = {
-            apiUrl: globalThis.ai.local_address.getValue(),
-            userPrompt: globalThis.prompt.ai.getValue(),
-            systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
-            temperature: globalThis.ai.local_temp.getValue(),
-            n_predict:globalThis.ai.local_n_predict.getValue(),
-            timeout: globalThis.ai.remote_timeout.getValue() * 1000
-        };
+        const options = aiOptions || {
+                apiUrl: globalThis.ai.local_address.getValue(),
+                userPrompt: globalThis.prompt.ai.getValue(),
+                systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+                temperature: globalThis.ai.local_temp.getValue(),
+                n_predict:globalThis.ai.local_n_predict.getValue(),
+                timeout: globalThis.ai.remote_timeout.getValue() * 1000
+            };
 
         let result;
         if (globalThis.inBrowser) {
@@ -91,9 +91,9 @@ async function localGenerateWithPrompt() {
 }
 
 
-export async function getAiPrompt(loop, overlay_generate_ai) {
-    const currentInterface = globalThis.ai.interface.getValue();
-    const currentRole = globalThis.ai.ai_select.getValue();
+export async function getAiPrompt(loop, overlay_generate_ai, aiInterface=null, aiRole=null, aiOptions=null) {
+    const currentInterface = aiInterface || globalThis.ai.interface.getValue();
+    const currentRole = aiRole || globalThis.ai.ai_select.getValue();
 
     if(currentRole === 0)   // None
         return '';
@@ -105,10 +105,10 @@ export async function getAiPrompt(loop, overlay_generate_ai) {
         return '';
     } else if (currentInterface.toLowerCase() === 'remote') {     
         globalThis.generate.loadingMessage = overlay_generate_ai;
-        lastAIPromot = await remoteGenerateWithPrompt();        
+        lastAIPromot = await remoteGenerateWithPrompt(aiOptions);        
     } else {
         globalThis.generate.loadingMessage = overlay_generate_ai;
-        lastAIPromot = await localGenerateWithPrompt();
+        lastAIPromot = await localGenerateWithPrompt(aiOptions);
     }    
     return lastAIPromot;
 }

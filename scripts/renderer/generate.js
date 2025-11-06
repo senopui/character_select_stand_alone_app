@@ -1,6 +1,16 @@
 import { decodeThumb } from './customThumbGallery.js';
 import { getAiPrompt } from './remoteAI.js';
+import { seartGenerateRegional } from './generate_regional.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
+import { setADetailerModelList } from './slots/myADetailerSlot.js';
+import { processRandomString } from './tools/nestedBraceParsing.js';
+import { convertToMultipleOfNFloor, checkNumberInRange } from './tools/numbers.js';
+
+export const REPLACE_AI_MARK = '_|REPLACE_AI_PROMPT|_';
+
+export function toggleQueueColor() {
+    globalThis.generate.queueColor1st = !globalThis.generate.queueColor1st;
+}
 
 export function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -111,25 +121,25 @@ async function createCharacters(index, seeds) {
     }
 
     const isOriginalCharacter = index === 3;
-    const { tag, thumb, info, weight } = isOriginalCharacter
+    const { tag, thumb, info, weight, name } = isOriginalCharacter
         ? handleOriginalCharacter(character, seed, isValueOnly, index, FILES)
         : await handleStandardCharacter(character, seed, isValueOnly, index, FILES);
 
     const tagAssist = getTagAssist(tag, globalThis.generate.tag_assist.getValue(), FILES, index, info);
     if (tagAssist.tas !== '')
         tagAssist.tas = `${tagAssist.tas}, `;
-
     return {
         tag: isOriginalCharacter ? `${tag}` : tag.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`),
         tag_assist: tagAssist.tas,
         thumb,
         info: tagAssist.info,
-        weight: weight
+        weight: weight,
+        characterName:name
     };
 }
 
 async function handleStandardCharacter(character, seed, isValueOnly, index, FILES) {
-    let tag, thumb, info;
+    let tag, thumb, info, name;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.characterListArray.length);
         tag = FILES.characterListArray[selectedIndex][1];
@@ -137,21 +147,29 @@ async function handleStandardCharacter(character, seed, isValueOnly, index, FILE
         info = formatCharacterInfo(index, isValueOnly, {
         key: FILES.characterListArray[selectedIndex][0],
         value: FILES.characterListArray[selectedIndex][1]
-        });        
+        });
+        if(globalThis.globalSettings.language === 'en-US')
+            name = FILES.characterListArray[selectedIndex][1];
+        else
+            name = FILES.characterListArray[selectedIndex][0];
     } else {
         tag = FILES.characterList[character];
         thumb = await decodeThumb(character);
         info = formatCharacterInfo(index, isValueOnly, {
         key: character,
         value: globalThis.characterList.getValue()[index]
-        });        
+        });
+        if(globalThis.globalSettings.language === 'en-US')
+            name = tag;
+        else
+            name = character;
     }
     const weight = globalThis.characterList.getTextValue(index);
-    return { tag, thumb, info, weight };
+    return { tag, thumb, info, weight, name };
 }
 
 function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
-    let tag, info;
+    let tag, info, name;
     if (character.toLowerCase() === 'random') {
         const selectedIndex = getRandomIndex(seed, FILES.ocListArray.length);
         tag = FILES.ocListArray[selectedIndex][1];
@@ -159,12 +177,14 @@ function handleOriginalCharacter(character, seed, isValueOnly, index, FILES) {
         key: FILES.ocListArray[selectedIndex][0],
         value: FILES.ocListArray[selectedIndex][1]
         });
+        name = FILES.ocListArray[selectedIndex][0];
     } else {
         tag = FILES.ocList[character];
         info = formatOriginalCharacterInfo({ key: character, value: tag }, isValueOnly);
+        name = character;
     }
     const weight = globalThis.characterList.getTextValue(index);
-    return { tag, thumb: null, info, weight };
+    return { tag, thumb: null, info, weight, name };
 }
 
 export function getRandomIndex(seed, listLength) {
@@ -232,6 +252,7 @@ function getCustomJSON(loop = -1) {
     };
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 async function getCharacters(){
     const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
     let random_seed = globalThis.generate.seed.getValue();
@@ -243,8 +264,9 @@ async function getCharacters(){
     let character = '';
     let information = '';
     let thumbImages = [];
+    let characters = '';
     for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info, weight} = await createCharacters(index, seeds);
+        let {tag, tag_assist, thumb, info, weight, characterName} = await createCharacters(index, seeds);
         if(weight === 1){
             character += (tag === '')?'':`${tag}, `;
         } else {
@@ -256,15 +278,17 @@ async function getCharacters(){
             thumbImages.push(thumb);
         }
         information += `${info}`;
+        if(characterName)
+            characters += (characters.length>0)?`\n${characterName}`:`${characterName}`;
     }
 
     information += `Seed: [[color=${brownColor}]${seeds[0]}[/color]]\n`;
-
     return{
         thumb: thumbImages,
         characters_tag:character,
         information: information,
-        seed:random_seed
+        seed:random_seed,
+        characters:characters
     }
 }
 
@@ -385,96 +409,14 @@ export async function replaceWildcardsAsync(pos, seed) {
     return pos;
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
-function validateBraces(str) {
-    let depth = 0;
-    let inParens = 0;
-    let inBrackets = 0;
-    
-    for (const char of str) {
-        // excure () []
-        if (char === '(') inParens++;
-        if (char === ')') inParens--;
-        if (char === '[') inBrackets++;
-        if (char === ']') inBrackets--;
-        
-        if (inParens === 0 && inBrackets === 0) {
-            if (char === '{') {
-                depth++;
-            } else if (char === '}') {
-                depth--;
-                if (depth < 0) {
-                    // } before {
-                    return false;
-                }
-            }
-        }
-    }
-    
-    return depth === 0;
-}
-
-export function processRandomString(input) {
-    // Check if input contains braces
-    if (!input.includes('{')) {
-        return input;
-    }
-
-    // Check if braces are properly matched
-    if (!validateBraces(input)) {
-        console.error('Error: Braces are not matched or in wrong order');
-        return input;
-    }
-
-    let result = input;
-    
-    // Find and process all brace contents
-    while (result.includes('{')) {
-        const start = result.indexOf('{');
-        const end = result.indexOf('}', start);
-        
-        if (end === -1) {
-            console.error('Error: Cannot find matching closing brace');
-            return input;
-        }
-
-        // Extract content within braces
-        const braceContent = result.substring(start + 1, end);
-        
-        // Check if it contains the separator |
-        if (!braceContent.includes('|')) {
-            // No separator, skip this brace and use temporary marker to avoid reprocessing
-            result = result.substring(0, start) + '<<<SKIP>>>' + result.substring(end + 1);
-            continue;
-        }
-
-        // Split options by |
-        const options = braceContent.split('|').map(opt => opt.trim());
-        
-        // Randomly select one option
-        const randomIndex = Math.floor(Math.random() * options.length);
-        const selected = options[randomIndex];
-        
-        // Replace brace content
-        result = result.substring(0, start) + selected + result.substring(end + 1);
-    }
-
-    // Restore skipped brace contents
-    result = result.replaceAll('<<<SKIP>>>', (match, offset) => {
-        const originalStart = input.indexOf('{', 0);
-        const originalEnd = input.indexOf('}', originalStart);
-        return input.substring(originalStart + 1, originalEnd);
-    });
-
-    return result;
-}
-
 async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
     let finalInfo = ''
     let randomSeed = -1;
     let positivePrompt = '';
     let positivePromptColored = '';
     let negativePrompt = '';
+    let thumbImage = null;
+    let charactersName = '';
 
     if(runSame) {
         let seed = globalThis.generate.seed.getValue();
@@ -486,7 +428,7 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
         negativePrompt = globalThis.generate.lastNeg;
 
     } else {            
-        const {thumb, characters_tag, information, seed} = await getCharacters();
+        const {thumb, characters_tag, information, seed, characters} = await getCharacters();
         randomSeed = seed;
         finalInfo = information;
 
@@ -509,10 +451,11 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
         }
         positivePromptColored = posc;            
         negativePrompt = globalThis.prompt.negative.getValue();
-        globalThis.thumbGallery.append(thumb);            
+        thumbImage = thumb;
+        charactersName = characters;
     }
 
-    return {finalInfo, randomSeed, positivePrompt, positivePromptColored, negativePrompt}
+    return {finalInfo, randomSeed, positivePrompt, positivePromptColored, negativePrompt, thumbImage, charactersName}
 }
 
 export function createHiFix(randomSeed, apiInterface, brownColor){
@@ -528,22 +471,7 @@ export function createHiFix(randomSeed, apiInterface, brownColor){
         steps: globalThis.hifix.steps.getValue(),
         info: ''
     }
-    if(hifix.enable) {
-        if(apiInterface === 'ComfyUI') {
-            if(hifix.model.endsWith('(C)')) {
-                hifix.model = hifix.model.replace('(C)', ''); 
-            } else {
-                console.warn( `Reset ${hifix.model} to 4x-UltraSharp`);
-                hifix.model = '4x-UltraSharp';
-            }
-        } else if(apiInterface === 'WebUI') {
-            if(hifix.model.endsWith('(W)')) {
-                hifix.model = hifix.model.replace('(W)', ''); 
-            } else {
-                console.warn( `Reset ${hifix.model} to R-ESRGAN 4x+`);
-                hifix.model = 'R-ESRGAN 4x+';
-            }
-        }
+    if(hifix.enable) {        
         hifix.info += `Hires Fix: [[color=${brownColor}]${hifix.enable}[/color]]\n`;
         hifix.info += `\tSteps: [[color=${brownColor}]${hifix.steps}[/color]]\n`;
 
@@ -619,9 +547,9 @@ export function convertBase64ImageToUint8Array(image) {
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export async function createControlNet() {
+export function createControlNet() {
     if (!globalThis.generate.controlnet.getValue())
-        return 'none';
+        return null;
 
     let controlnetToBackend = [];
     let controlNetList = globalThis.controlnet.getValues(true);
@@ -632,17 +560,18 @@ export async function createControlNet() {
         if (slot_enable === 'Off')
             continue;
 
-        let realPostProcessStart = postProcessStart;
-        if (postProcessStart > 1 || postProcessStart < 0) 
-            realPostProcessStart = 0;
+        const realPostProcessStart = checkNumberInRange(postProcessStart, 0, 1, 0);
+        const realPostProcessEnd = checkNumberInRange(postProcessEnd, 0, 1, 1);
 
-        let realPostProcessEnd = postProcessEnd;
-        if (postProcessEnd > 1 || postProcessEnd < 0) 
-            realPostProcessEnd = 1;
-
-        if (postProcessStart >= postProcessEnd || postProcessModel === 'none') {
+        if (postProcessStart >= postProcessEnd || postProcessModel.toLowerCase() === 'none') {
             console.warn("Skip controlNet", postProcessModel, postProcessStart, postProcessEnd);
             continue;
+        }
+        
+        // A1111 if none and On
+        let slotTrigger = slot_enable;
+        if(preProcessModel === 'none' && slotTrigger === 'On'){
+            slotTrigger = 'Post';   // Set to Post
         }
 
         let cnData = {
@@ -652,8 +581,8 @@ export async function createControlNet() {
             postStr: postProcessStrength,
             postStart: realPostProcessStart,
             postEnd: realPostProcessEnd,
-            image: (slot_enable === 'On') ? pre_image : null,
-            imageAfter: (slot_enable === 'Post') ? pre_image_after : null
+            image: (slotTrigger === 'On') ? pre_image : null,
+            imageAfter: (slotTrigger === 'Post') ? pre_image_after : null
         };
 
         if (preProcessModel.startsWith('ip-adapter')) {
@@ -664,6 +593,43 @@ export async function createControlNet() {
     }
 
     return controlnetToBackend;
+}
+
+export function createADetailer() {
+    const aDetailerList = globalThis.aDetailer.getValues(true);
+
+    if (aDetailerList.length === 0)
+        return null;
+
+    let aDetailerToBackend = [];
+    for (const [
+        ad_model, ad_confidence, ad_mask_k, slot_enable,
+        ad_prompt, ad_dilate_erode, ad_mask_merge_invert,
+        ad_negative_prompt, ad_mask_blur, ad_denoise
+    ] of aDetailerList) {
+        if (slot_enable === 'Off' || ad_model.toLowerCase() === 'none')
+            continue;
+        
+        const mask_filter = slot_enable;
+        const adData = {
+            model: ad_model,
+            prompt: ad_prompt,
+            negative_prompt: ad_negative_prompt,            
+            // Detection
+            confidence: checkNumberInRange(ad_confidence, 0, 1, 0.3),
+            mask_k: checkNumberInRange(ad_mask_k, 0, 10, true),
+            mask_filter_method: mask_filter,            
+            // Mask Preprocessing
+            dilate_erode: convertToMultipleOfNFloor(ad_dilate_erode, 4),
+            mask_merge_invert: ad_mask_merge_invert,            
+            // Inpainting
+            mask_blur:checkNumberInRange(ad_mask_blur, 0, 64, 4, true),
+            denoise: checkNumberInRange(ad_denoise, 0, 1, 0.4),                                    
+        };
+        aDetailerToBackend.push(adData);
+    }
+
+    return aDetailerToBackend;
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -770,31 +736,44 @@ export async function generateControlnetImage(imageData, controlNetSelect, contr
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
-export async function generateImage(loops, runSame){
-    let ret = 'success';
-    let retCopy = '';
-    
+export async function generateImage(loops, runSame){       
     const SETTINGS = globalThis.globalSettings;
     const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
-    const apiInterface = globalThis.generate.api_interface.getValue();
-        
-    globalThis.generate.toggleButtons();
-    globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
-    globalThis.thumbGallery.clear();
-    globalThis.infoBox.image.clear();
-    
-    const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
-    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
 
-    for(let loop = 0; loop < loops; loop++){
-        if(globalThis.generate.skipClicked || globalThis.generate.cancelClicked){
+    const apiInterface = globalThis.generate.api_interface.getValue();
+    const apiAddress = extractHostPort(globalThis.generate.api_address.getValue());
+    const apiAuth = extractAPISecure(apiInterface);
+    const browserUUID = (globalThis.inBrowser)?globalThis.clientUUID:'none';
+            
+    const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
+    const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';    
+    
+    const aiPromptInterface = globalThis.ai.interface.getValue();
+    const aiPromptCurrentRole = globalThis.ai.ai_select.getValue();        
+    const aiPromot = (aiPromptCurrentRole===0 || String(aiPromptCurrentRole).toLowerCase() === 'none')?'':REPLACE_AI_MARK;
+
+    toggleQueueColor();
+
+    if(!globalThis.mainGallery.isLoading && !globalThis.globalSettings.generate_auto_start && !globalThis.inGenerating) {
+        globalThis.generate.showCancelButtons(true);
+        globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+        globalThis.thumbGallery.clear();
+        globalThis.infoBox.image.clear();
+    }
+
+    for(let loop = 0; loop < loops; loop++){        
+        if(globalThis.generate.cancelClicked){
+            globalThis.queueManager.removeAll();
+            break;
+        }                                
+
+        if(globalThis.generate.skipClicked){
             break;
         }
-                
-        const aiPromot = await getAiPrompt(loop, LANG.generate_ai);
 
-        globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
+        if(!globalThis.inGenerating)
+            globalThis.generate.loadingMessage = LANG.generate_warmup.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
         const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1);
         const landscape = globalThis.generate.landscape.getValue();
@@ -808,15 +787,37 @@ export async function generateImage(loops, runSame){
         globalThis.generate.lastPosColored = createPromptResult.positivePromptColored;
         globalThis.generate.lastNeg = createPromptResult.negativePrompt;
 
-        let browserUUID = 'none';
-        if(globalThis.inBrowser) {
-            browserUUID = globalThis.clientUUID;
-        }
-
-        const generateData = {
-            addr: extractHostPort(globalThis.generate.api_address.getValue()),
-            auth: extractAPISecure(apiInterface),
+        let generateData = {
+            addr: apiAddress,
+            auth: apiAuth,
             uuid: browserUUID,
+            
+            queueManager : {
+                isRegional: false,
+                apiInterface:apiInterface,
+                finalInfo: '',
+                loop: loop,
+                loops: loops,
+                aiInterface: aiPromptInterface,
+                aiRole: aiPromptCurrentRole,
+                aiOptions: (aiPromptInterface.toLowerCase() === 'remote') ? {
+                        apiUrl: globalThis.ai.remote_address.getValue(),
+                        apiKey: globalThis.ai.remote_apikey.getValue(),
+                        modelSelect: globalThis.ai.remote_model_select.getValue(),
+                        userPrompt: globalThis.prompt.ai.getValue(),
+                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
+                    } : {
+                        apiUrl: globalThis.ai.local_address.getValue(),
+                        userPrompt: globalThis.prompt.ai.getValue(),
+                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
+                        temperature: globalThis.ai.local_temp.getValue(),
+                        n_predict:globalThis.ai.local_n_predict.getValue(),
+                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
+                    },
+                thumb:createPromptResult.thumbImage,
+                id:`${createPromptResult.charactersName}`,
+            },
             
             model: globalThis.dropdownList.model.getValue(),
             vpred: checkVpred(),
@@ -832,37 +833,129 @@ export async function generateImage(loops, runSame){
             refresh:globalThis.generate.api_preview_refresh_time.getValue(),
             hifix: hifix,
             refiner: refiner,
-            controlnet: await createControlNet(),
+            controlnet: createControlNet(),
+            adetailer: createADetailer(),
         }
 
         let finalInfo = `${createPromptResult.finalInfo}\n`;
-        finalInfo += `Positive: ${createPromptResult.positivePromptColored}\n`;
-        finalInfo += `Negative: [color=${negativeColor}]${generateData.negative}[/color]\n\n`;
-        finalInfo += `Layout: [[color=${brownColor}]${generateData.width} x ${generateData.height}[/color]]\t`;
-        finalInfo += `CFG: [[color=${brownColor}]${generateData.cfg}[/color]]\t`;
-        finalInfo += `Setp: [[color=${brownColor}]${generateData.step}[/color]]\n`;
-        finalInfo += `Sampler: [[color=${brownColor}]${generateData.sampler}[/color]]\n`;
-        finalInfo += `Scheduler: [[color=${brownColor}]${generateData.scheduler}[/color]]\n`;
-        finalInfo += hifix.info;
-        finalInfo += refiner.info;        
-        finalInfo +=`\n`;
-        globalThis.infoBox.image.appendValue(finalInfo);        
+            finalInfo += `Positive: ${createPromptResult.positivePromptColored}\n`;
+            finalInfo += `Negative: [color=${negativeColor}]${generateData.negative}[/color]\n\n`;
+            finalInfo += `Layout: [[color=${brownColor}]${generateData.width} x ${generateData.height}[/color]]\t`;
+            finalInfo += `CFG: [[color=${brownColor}]${generateData.cfg}[/color]]\t`;
+            finalInfo += `Setp: [[color=${brownColor}]${generateData.step}[/color]]\n`;
+            finalInfo += `Sampler: [[color=${brownColor}]${generateData.sampler}[/color]]\n`;
+            finalInfo += `Scheduler: [[color=${brownColor}]${generateData.scheduler}[/color]]\n`;
+            finalInfo += hifix.info;
+            finalInfo += refiner.info;        
+            finalInfo +=`\n`;
 
-        // in-case click cancel too quick or during AI gen
-        if(globalThis.generate.cancelClicked) {
+        generateData.queueManager.finalInfo = finalInfo;
+        
+        globalThis.queueManager.attach(
+            [   LANG.generate_normal.replace('{0}', generateData.queueManager.id.replaceAll('\n', ' | ')),
+                createPromptResult.positivePrompt
+            ], 
+            generateData
+        );
+    }
+
+    globalThis.generate.generate_single.setClickable(true);
+    globalThis.generate.generate_batch.setClickable(true);
+    globalThis.generate.generate_same.setClickable(true);    
+    
+    if(globalThis.globalSettings.generate_auto_start) {
+        await startQueue();
+    } else {
+        globalThis.mainGallery.hideLoading('success', '');
+    }
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+export async function startQueue(){
+    if(globalThis.inGenerating)
+        return;    
+    globalThis.inGenerating = true;
+
+    let ret = 'success';
+    let retCopy = '';
+
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
+
+    if(!globalThis.mainGallery.isLoading) {
+        globalThis.generate.showCancelButtons(true);
+        globalThis.mainGallery.showLoading(LANG.overlay_title, LANG.overlay_te, LANG.overlay_sec);
+        globalThis.thumbGallery.clear();
+        globalThis.infoBox.image.clear();
+    }
+
+    let generateData = globalThis.queueManager.getFirstSlot();
+    while (generateData) {
+        if(globalThis.generate.cancelClicked){
+            globalThis.queueManager.removeAll();
+            break;
+        }                                
+
+        if(globalThis.generate.skipClicked) {
             break;
         }
 
-        // start generate        
-        const result = await seartGenerate(apiInterface, generateData);
+        const queueManager = generateData.queueManager;
+
+        globalThis.thumbGallery.append(queueManager.thumb);
+
+        const aiPrompt = await getAiPrompt(queueManager.loop, LANG.generate_ai, queueManager.aiInterface, queueManager.aiRole, queueManager.aiOptions);
+        if(queueManager.isRegional) {
+            generateData.positive_left = String(generateData.positive_left).replaceAll(REPLACE_AI_MARK, aiPrompt);
+            generateData.positive_right = String(generateData.positive_right).replaceAll(REPLACE_AI_MARK, aiPrompt);            
+        } else {
+            generateData.positive = String(generateData.positive).replaceAll(REPLACE_AI_MARK, aiPrompt);
+        }
+        const finalInfo = String(queueManager.finalInfo).replaceAll(REPLACE_AI_MARK, aiPrompt);
+        globalThis.infoBox.image.appendValue(finalInfo);
+        globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${queueManager.id}`).replace('{1}', `[${queueManager.loop + 1}/${queueManager.loops}]`);
+        
+        // Just keep apiInterface in case of cancel
+        //const apiInterface = queueManager.apiInterface;
+        //generateData.queueManager = {apiInterface:apiInterface};
+
+        // start generate
+        let result = '';
+        if(queueManager.isRegional) {
+            result = await seartGenerateRegional(queueManager.apiInterface, generateData);
+        } else {
+            result = await seartGenerate(queueManager.apiInterface, generateData);
+        }
         ret = result.ret;
         retCopy = result.retCopy;
-        if(result.breakNow)
-            break;    
+        
+        if(result.breakNow) {
+            if(globalThis.generate.cancelClicked) {
+                globalThis.queueManager.removeAll();
+            }
+
+            if(ret !== 'success') {
+                // Disable auto start, the error may solved in future
+                globalThis.globalSettings.generate_auto_start=false;
+                globalThis.generate.queueAutostart.setValue(globalThis.globalSettings.generate_auto_start);
+                globalThis.generate.queueAutostart_dummy.setValue(globalThis.globalSettings.generate_auto_start);
+                // Restore queue data
+                //generateData.queueManager = queueManager;
+            }
+            break;
+        }
+
+        generateData = globalThis.queueManager.pop();
+
+        if(!globalThis.globalSettings.generate_auto_start)
+            break;
     }
 
     globalThis.mainGallery.hideLoading(ret, retCopy);
-    globalThis.generate.toggleButtons();
+    if(globalThis.queueManager.getSlotsCount() === 0)
+        globalThis.generate.showCancelButtons(false);
+    globalThis.inGenerating = false;
 }
 
 async function seartGenerate(apiInterface, generateData){
@@ -934,9 +1027,13 @@ async function runComfyUI(apiInterface, generateData){
                     if (globalThis.generate.cancelClicked) {
                         breakNow = true;
                     } else if(image.startsWith('Error')) {
-                        ret = LANG.gr_error_creating_image.replace('{0}',image).replace('{1}', apiInterface);
-                        retCopy = image;
-                        breakNow = true;                    
+                        if(image.endsWith('Cancelled')) {
+                            console.log('Generate cancelled from queue manager');
+                        } else {
+                            ret = LANG.gr_error_creating_image.replace('{0}',image).replace('{1}', apiInterface);
+                            retCopy = image;
+                            breakNow = true;
+                        }
                     } else {
                         sendToGallery(image, generateData);
                     }
@@ -992,9 +1089,13 @@ async function runWebUI(apiInterface, generateData) {
             const typeResult = typeof result;
             if(typeResult === 'string'){
                 if(result.startsWith('Error')){
-                    ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface)
-                    retCopy = result;
-                    breakNow = true;
+                    if(result.endsWith('Cancelled')) {
+                        console.log('Generate cancelled from queue manager');
+                    } else {
+                        ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface)
+                        retCopy = result;
+                        breakNow = true;
+                    }
                 } else {
                     if(!keepGallery)
                         globalThis.mainGallery.clearGallery();
@@ -1014,6 +1115,32 @@ async function runWebUI(apiInterface, generateData) {
         sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
     } else {
         globalThis.api.stopPollingWebUI();
+    }
+
+    if (globalThis.cachedFiles.controlnetProcessorListWebUI === 'none') {   // aDetailer might not installed  || globalThis.cachedFiles.aDetailerListWebUI === 'none'        
+        if (globalThis.inBrowser) {
+            globalThis.cachedFiles.controlnetProcessorListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getControlNetProcessorListWebUI'});
+            globalThis.cachedFiles.aDetailerListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getADetailerModelListWebUI'});
+            globalThis.cachedFiles.upscalerListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getUpscalersModelListWebUI'});            
+        } else {
+            globalThis.cachedFiles.controlnetProcessorListWebUI = await globalThis.api.getControlNetProcessorListWebUI();
+            globalThis.cachedFiles.aDetailerListWebUI = await globalThis.api.getADetailerModelListWebUI();
+            globalThis.cachedFiles.upscalerListWebUI = await globalThis.api.getUpscalersModelListWebUI();            
+        } 
+
+        console.log("WebUI: Processor, Upscaler and aDetailer List updated!");
+        console.log(globalThis.cachedFiles.controlnetProcessorListWebUI);
+        console.log(globalThis.cachedFiles.aDetailerListWebUI);
+        console.log(globalThis.cachedFiles.upscalerListWebUI);
+
+        setADetailerModelList(globalThis.cachedFiles.aDetailerListWebUI, false);
+        
+        const currentModelSelect = globalThis.hifix.model.getValue();        
+        globalThis.cachedFiles.upscalerList = [...globalThis.cachedFiles.upscalerListWebUI];
+        globalThis.hifix.model.setValue(LANG.api_hf_upscaler_selected, globalThis.cachedFiles.upscalerList);
+        if(globalThis.hifix.model.isValueExist(currentModelSelect)){
+            globalThis.hifix.model.updateDefaults(currentModelSelect);
+        }
     }
     
     return {ret, retCopy, breakNow }

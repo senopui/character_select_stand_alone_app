@@ -96,19 +96,27 @@ export function setupButtons(containerId, buttonText = 'Button', options = {}, c
     };
 }
 
-let showButtons1 = false;
+let showButtons2 = true;
 export function toggleButtons() {
-    const buttons1 = document.getElementById('generate-buttons-1');
     const buttons2 = document.getElementById('generate-buttons-2');
 
-    if (showButtons1) {
-        buttons1.style.display = 'flex';
-        buttons2.style.display = 'none';
-    } else {
-        buttons1.style.display = 'none';
+    if (showButtons2) {
         buttons2.style.display = 'flex';
+    } else {
+        buttons2.style.display = 'none';
     }
 
-    showButtons1 = !showButtons1;
+    showButtons2 = !showButtons2;
 }
 
+export function showCancelButtons(trigger) {
+    const buttons2 = document.getElementById('generate-buttons-2');
+
+    if (trigger) {
+        buttons2.style.display = 'flex';
+    } else {
+        buttons2.style.display = 'none';
+    }
+
+    showButtons2 = trigger;
+}

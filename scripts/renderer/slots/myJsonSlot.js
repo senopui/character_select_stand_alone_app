@@ -1,6 +1,6 @@
-import { mySimpleList } from './myDropdown.js';
+import { mySimpleList } from '../components/myDropdown.js';
 import { generateGUID } from './myLoRASlot.js';
-import { setupTextbox } from './myTextbox.js';
+import { setupTextbox } from '../components/myTextbox.js';
 
 const regionalPositions = ['Both', 'Left', 'Right'];
 const promptPositions = ["BOP", "BOC", "EOC", "EOP", "Off"];
@@ -242,16 +242,7 @@ class JsonSlotManager {
     }
 
     addSlot() {
-        if (!this.candidateClassName) {
-            console.error('No candidate row available');
-            return null;
-        }
-
         const slot = this.slotIndex.get(this.candidateClassName);
-        if (!slot) {
-            console.error('Candidate slot not found');
-            return null;
-        }
 
         slot.isCandidate = false;
         slot.itemClasses.delete = this.generateClassName('delete');

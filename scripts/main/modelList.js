@@ -13,6 +13,9 @@ let LORALIST_COMFYUI = ['None'];
 let LORALIST_WEBUI = ['None'];
 let CONTROLNET_COMFYUI = ['None'];
 let CONTROLNET_WEBUI = ['None'];
+let UPSCALER_COMFYUI = ['None'];
+let UPSCALER_WEBUI = ['None'];
+
 let EXTRA_MODELS = {
     exist: false,
     yamlContent: null,
@@ -24,7 +27,7 @@ let IMAGE_TAGGER = ['none'];
 
 const appPath = app.isPackaged ? path.join(path.dirname(app.getPath('exe')), 'resources', 'app') : app.getAppPath();
 
-function readDirectory(directory, basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0, extName = '.safetensors') {
+function readDirectory(directory='', basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0, extName = '.safetensors') {
     let files = [];
     try {
         files = fs.readdirSync(directory, { withFileTypes: true });
@@ -47,6 +50,62 @@ function readDirectory(directory, basePath = '', search_subfolder = false, maxDe
     return result;
 }
 
+function updateUpscalerList(model_path_comfyui, model_path_webui, search_subfolder) {
+    const upPathComfyUI = path.join(path.dirname(model_path_comfyui), 'upscale_models');
+    
+    // Forge
+    const upPathWebUI = path.join(path.dirname(model_path_webui), 'upscale_models');
+
+    if (fs.existsSync(upPathComfyUI)) {
+        const pthList = readDirectory(upPathComfyUI, '', search_subfolder, Infinity, 0, '.pth');
+        const safetensorsList = readDirectory(upPathComfyUI, '', search_subfolder, Infinity, 0, '.safetensors');
+        UPSCALER_COMFYUI = [...pthList, ...safetensorsList];
+    } else {
+        UPSCALER_COMFYUI = [];
+    }
+
+    if (fs.existsSync(upPathWebUI)) {
+        const pthList = readDirectory(upPathWebUI, '', search_subfolder, Infinity, 0, '.pth');
+        const safetensorsList = readDirectory(upPathWebUI, '', search_subfolder, Infinity, 0, '.safetensors');
+        UPSCALER_WEBUI =  [...pthList, ...safetensorsList];
+    } else {
+        UPSCALER_WEBUI = [];
+    }
+
+    if (UPSCALER_COMFYUI.length > 0) {
+        // do nothing
+    } else {
+        UPSCALER_COMFYUI = ['None'];
+    }
+
+    if (UPSCALER_WEBUI.length > 0) {
+        let newList = [];
+        for(const item of UPSCALER_WEBUI) {
+            newList.push(path.parse(item).name);
+        }
+        UPSCALER_WEBUI = newList
+    } else {
+        // For A1111
+        // Use static value
+        UPSCALER_WEBUI = [
+            "R-ESRGAN 4x+ Anime6B",
+            "DAT x2",
+            "DAT x3",
+            "DAT x4",
+            "ESRGAN_4x",
+            "LDSR",
+            "R-ESRGAN 2x+",
+            "R-ESRGAN 4x+",            
+            "ScuNET GAN",
+            "ScuNET PSNR",
+            "SwinIR_4x"
+        ];
+    }
+
+    console.log(CAT, "UPSCALER_COMFYUI", UPSCALER_COMFYUI);
+    console.log(CAT, "UPSCALER_WEBUI", UPSCALER_WEBUI);
+}
+
 function updateImageTaggerList() {   
     const taggerPath = path.join(appPath, 'models', 'tagger');
     console.log(CAT, 'Checking Image Tagger models in:', taggerPath);
@@ -57,8 +116,6 @@ function updateImageTaggerList() {
             IMAGE_TAGGER = ['none'];
         }
     }
-
-    console.log(CAT, 'Image Tagger models:', IMAGE_TAGGER);
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -66,7 +123,8 @@ function updateControlNetList(model_path_comfyui, model_path_webui, search_subfo
     const cnPathComfyUI = path.join(path.dirname(model_path_comfyui), 'controlnet');
     const clipVisionPathComfyUI = path.join(path.dirname(model_path_comfyui), 'clip_vision');
     const ipadapterPathComfyUI = path.join(path.dirname(model_path_comfyui), 'ipadapter');
-    const cnPathWebUI = path.join(path.dirname(model_path_webui), '..', 'extensions', 'sd-webui-controlnet', 'models');
+    const cnPathWebUI_A1111 = path.join(path.dirname(model_path_webui), '..', 'extensions', 'sd-webui-controlnet', 'models');
+    const cnPathWebUI_Forge = path.join(path.dirname(model_path_webui), 'ControlNet');
 
     if (fs.existsSync(cnPathComfyUI)) {
         CONTROLNET_COMFYUI = readDirectory(cnPathComfyUI, '', search_subfolder);
@@ -91,10 +149,16 @@ function updateControlNetList(model_path_comfyui, model_path_webui, search_subfo
                 CONTROLNET_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.controlnet]));
             }
         }
-    } 
+    } else {
+        CONTROLNET_COMFYUI = [];
+    }
     
-    if (fs.existsSync(cnPathWebUI)) {
-        CONTROLNET_WEBUI = readDirectory(cnPathWebUI, '', search_subfolder);
+    if (fs.existsSync(cnPathWebUI_A1111)) {
+        CONTROLNET_WEBUI = readDirectory(cnPathWebUI_A1111, '', search_subfolder);
+    } else if (fs.existsSync(cnPathWebUI_Forge)) {
+        CONTROLNET_WEBUI = readDirectory(cnPathWebUI_Forge, '', search_subfolder);
+    } else {
+        CONTROLNET_WEBUI = [];
     }
 
     if (CONTROLNET_COMFYUI.length > 0) {
@@ -121,13 +185,19 @@ function updateLoRAList(model_path_comfyui, model_path_webui, search_subfolder) 
             const baseList = Array.isArray(LORALIST_COMFYUI) ? LORALIST_COMFYUI : [];
             LORALIST_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.loras]));
         }
-    } 
+    } else {
+        LORALIST_COMFYUI = [];
+    }
     
     if (fs.existsSync(loraPathWebUI)) {
         LORALIST_WEBUI = readDirectory(loraPathWebUI, '', search_subfolder);
+    } else {
+        LORALIST_WEBUI = [];
     }
+
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function updateModelList(model_path_comfyui, model_path_webui, model_filter, enable_filter, search_subfolder) {
     if (fs.existsSync(model_path_comfyui)) {
         MODELLIST_ALL_COMFYUI = readDirectory(model_path_comfyui, '', search_subfolder);
@@ -136,10 +206,14 @@ function updateModelList(model_path_comfyui, model_path_webui, model_filter, ena
             const baseList = Array.isArray(MODELLIST_ALL_COMFYUI) ? MODELLIST_ALL_COMFYUI : [];
             MODELLIST_ALL_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.checkpoints]));
         }
+    } else {
+        MODELLIST_ALL_COMFYUI = [];
     }
     
     if (fs.existsSync(model_path_webui)) {
         MODELLIST_ALL_WEBUI = readDirectory(model_path_webui, '', search_subfolder);
+    } else {
+        MODELLIST_ALL_WEBUI = [];
     }
 
     if (enable_filter && model_filter) {
@@ -278,6 +352,10 @@ function setupModelList(settings) {
         return getControlNetList(args);
     });
 
+    ipcMain.handle('get-upscaler-list', async (event, args) => {
+        return getUpscalerList(args);
+    });    
+
     ipcMain.handle("get-image-tagger-models", async (event) => {
         return getImageTaggerModels();
     });
@@ -299,6 +377,12 @@ function setupModelList(settings) {
     );
 
     updateControlNetList(
+        settings.model_path_comfyui,
+        settings.model_path_webui,
+        settings.search_modelinsubfolder
+    );
+
+    updateUpscalerList(
         settings.model_path_comfyui,
         settings.model_path_webui,
         settings.search_modelinsubfolder
@@ -351,6 +435,15 @@ function getControlNetList(apiInterface) {
     }
 }
 
+function getUpscalerList(apiInterface) {
+    if (apiInterface === 'ComfyUI') {
+        return UPSCALER_COMFYUI;
+    } else if (apiInterface === 'WebUI') {
+        return UPSCALER_WEBUI;
+    } else {
+        return ['None'];
+    }    
+}
 
 function updateModelAndLoRAList(args) {
     // model_path, model_path_2nd, model_filter, enable_filter, search_subfolder
@@ -361,6 +454,7 @@ function updateModelAndLoRAList(args) {
     updateModelList(args[0], args[1], args[2], args[3], args[4]);
     updateLoRAList(args[0], args[1], args[4]);
     updateControlNetList(args[0], args[1], args[4]);
+    updateUpscalerList(args[0], args[1], args[4]);
     updateImageTaggerList();
 
     // This is the Skeleton Key to unlock the Mutex Lock
@@ -380,6 +474,7 @@ export {
     getModelListAll,
     getLoRAList,
     getControlNetList,
+    getUpscalerList,
     getImageTaggerModels,
     updateModelAndLoRAList,
     collectRelativePaths,

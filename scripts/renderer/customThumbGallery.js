@@ -8,7 +8,7 @@ async function decompressImageData(base64Data) {
                 if (globalThis.inBrowser) {                    
                     const response = await sendWebSocketMessage({ type: 'API', method: 'decompressGzip', params: [base64Data] });
                     // Check if the response is valid and contains the expected data
-                    if (response && response.type === 'Buffer' && Array.isArray(response.data)) {
+                    if (response?.type === 'Buffer' && Array.isArray(response.data)) {
                         decompressedData = new Uint8Array(response.data);
                         return resolve(decompressedData);
                     } else {

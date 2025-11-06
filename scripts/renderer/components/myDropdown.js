@@ -1,7 +1,7 @@
-import { updateLanguage } from './language.js';
-import { decodeThumb } from './customThumbGallery.js';
-import { callback_myCharacterList_updateThumb, callback_myViewList_Update } from './callbacks.js'
-import { generateGUID } from './myLoRASlot.js'
+import { updateLanguage } from '../language.js';
+import { decodeThumb } from '../customThumbGallery.js';
+import { callback_myCharacterList_updateThumb, callback_myViewList_Update } from '../callbacks.js'
+import { generateGUID } from '../slots/myLoRASlot.js'
 
 const CAT = '[myDropdown]'
 
@@ -319,7 +319,7 @@ function createDropdown({
         if(enableNumberInput){
             html += `
                 <div class="mydropdown-wrapper-with-text" data-index="${i}">
-                    <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
+                    <div class="mydropdown-input-container" title="${labelPrefixList[i]}">
                         <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${enableSearch ? '' : 'readonly'}>
                         <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
                     </div>
@@ -331,7 +331,7 @@ function createDropdown({
         } else {
             html += `
                 <div class="mydropdown-wrapper" data-index="${i}">
-                    <div class="mydropdown-input-container" title=${labelPrefixList[i]}>
+                    <div class="mydropdown-input-container" title="${labelPrefixList[i]}">
                         <input type="text" id="${textboxIds[i]}-overlay" class="mydropdown-input" placeholder="..." ${enableSearch ? '' : 'readonly'}>
                         <img class="mydropdown-arrow" src="scripts/svg/mydropdown-arrow.svg">
                     </div>
@@ -417,11 +417,9 @@ function createDropdown({
             const searchValue = value.toLowerCase();
             
             for (const optionArray of options) {
-                console.log('optionArray ', optionArray);
                 for (const option of optionArray) {                    
                     if (option.key.toLowerCase().includes(searchValue) || 
                         option.value.toLowerCase().includes(searchValue)) {
-                            console.log('hit ', option);
                         return true;
                     }
                 }
