@@ -299,6 +299,7 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1){
         positivePromptRight = globalThis.generate.lastPosR;
         positivePromptRightColored = globalThis.generate.lastPosRColored;
         negativePrompt = globalThis.generate.lastNeg;
+        charactersName = globalThis.generate.lastCharacter;
 
     } else {            
         const {thumb, character_left, character_right, information, seed, characters} = await getCharacters();
@@ -426,7 +427,10 @@ export async function generateRegionalImage(loops, runSame){
         globalThis.generate.lastPosColored = createPromptResult.positivePromptLeftColored;
         globalThis.generate.lastPosR = createPromptResult.positivePromptRight;
         globalThis.generate.lastPosRColored = createPromptResult.positivePromptRightColored;
-        globalThis.generate.lastNeg = createPromptResult.negativePrompt;        
+        globalThis.generate.lastNeg = createPromptResult.negativePrompt;
+        globalThis.generate.lastCharacter = createPromptResult.charactersName;
+        if(createPromptResult.thumbImage)
+            globalThis.generate.lastThumb = createPromptResult.thumbImage;
 
         const generateData = {
             addr: apiAddress,
@@ -456,7 +460,7 @@ export async function generateRegionalImage(loops, runSame){
                         n_predict:globalThis.ai.local_n_predict.getValue(),
                         timeout: globalThis.ai.remote_timeout.getValue() * 1000
                     },
-                thumb:createPromptResult.thumbImage,
+                thumb:createPromptResult.thumbImage || globalThis.generate.lastThumb,
                 id:`${createPromptResult.charactersName}`,
             },
 

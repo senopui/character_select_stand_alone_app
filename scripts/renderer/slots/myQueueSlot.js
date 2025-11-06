@@ -84,7 +84,7 @@ class QueueManager {
                 const generateData = this.getSlotValue(slotClass);
 
                 globalThis.overlay.custom.createCustomOverlay(
-                    (generateData.queueManager.thumb.length>0) ? generateData.queueManager.thumb : [globalThis.cachedFiles.privacyBall], 
+                    (generateData.queueManager.thumb?.length>0) ? generateData.queueManager.thumb : [globalThis.cachedFiles.privacyBall], 
                     `${generateData.queueManager.finalInfo || ''}`
                 );
             }

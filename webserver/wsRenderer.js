@@ -491,6 +491,8 @@ async function init() {
         globalThis.generate.lastPosR = '';
         globalThis.generate.lastPosRColored = '';
         globalThis.generate.lastNeg = '';
+        globalThis.generate.lastCharacter = '';
+        globalThis.generate.lastThumb = [];
 
         // Right Click Menu
         // globalThis.rightClick
