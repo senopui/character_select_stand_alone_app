@@ -23,7 +23,7 @@ Now supports 5328 (includes multiple costumes) Characters in list.
 
 ## Install and run
 > [!IMPORTANT]
-> Setup your [API Call](https://github.com/mirabarukaso/character_select_stand_alone_app#api-call-for-local-image-generator) before you start SAA.     
+> Setup your [Image API Interface](https://github.com/mirabarukaso/character_select_stand_alone_app#image-api-interface) before you start SAA.     
 > 
 > For ComfyUI, you need [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) for SAA.     
 
@@ -297,19 +297,19 @@ Local
 7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`   
 
 ------
-# API Call for Local Image Generator   
+# Image API Interface
 ComfyUI    
 1. Enable `DEV mode` in ComfyUI Settings, and load `examples\2025-05-03-022732_1775747588.png` into your ComfyUI, make sure you have install [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) **v0.4.9.2** or above from ComfyUI Custom Node Manager.         
     1.1. You might need install `opencv-python` by ComfyUI->Manager->Install PIP packages-> opencv-python     
-2. Select `Local Image Generator API` to `ComfyUI`   
-3. Make sure `Local Image Generator IP Address:Port` same as your ComfyUI page   
+2. Select `Image API Interface` to `ComfyUI`   
+3. Make sure `Image Interface IP Address:Port` same as your ComfyUI page   
 4. Have fun
 
 WebUI(A111/Forge)    
 1. Enable `API mode` by add ` --api` in `COMMANDLINE_ARGS` (webui-user.bat)   
 2. Start WebUI       
-3. Select `Local Image Generator API` to `WebUI`   
-4. Make sure `Local Image Generator IP Address:Port` same as your WerUI page   
+3. Select `Image API Interface` to `WebUI`   
+4. Make sure `Image Interface IP Address:Port` same as your WerUI page   
 5. Have fun    
 
 ## Folder path issue for Remote usage   
