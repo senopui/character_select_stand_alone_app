@@ -1,3 +1,8 @@
+2025.11.08 v1.16.3       
+Bug fix      
+ A1111/Forge Neo - ADetailer/Controlnet always on          
+
+
 2025.11.07 v1.16.2       
 Bug fix
  A fake `same prompt` error appears in the ComfyUI backend when the `Delete` button is clicked too frequently in queue manager.     

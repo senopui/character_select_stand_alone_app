@@ -23,77 +23,81 @@ function findControlNetModelByName(name) {
   return matchedModel || 'none';
 }
 
-function applyControlnet(payload, controlnet){
-    let newPayload = payload;
-    if (Array.isArray(controlnet)) {
-        newPayload["alwayson_scripts"]['controlnet']={};
-        newPayload["alwayson_scripts"]['controlnet']['args']=[];
-        for( const slot of controlnet) {
-            const controlNetArg = {};
-            // skip empty
-            if(slot.postModel === 'none') {
-                console.log(CAT,"[applyControlnet] Skip ", slot);
-                continue;
-            }
-            
-            controlNetArg["enabled"] = true;
-            if(slot.image) {
-                controlNetArg["module"] = slot.preModel;
-                controlNetArg["image"] = slot.image;
-            } else if(slot.imageAfter) {
-                controlNetArg["module"] = 'none';   // skip pre
-                controlNetArg["image"] = slot.imageAfter;
-            } else {  // should not here
-                continue;            
-            }            
-            controlNetArg["processor_res"] = Number.parseInt(slot.preRes);
-            controlNetArg["model"] = findControlNetModelByName(slot.postModel);
-            controlNetArg["weight"] = Number.parseFloat(slot.postStr);
-            controlNetArg["guidance_start"] = Number.parseFloat(slot.postStart);
-            controlNetArg["guidance_end"] = Number.parseFloat(slot.postEnd);
-
-            // Forge
-            controlNetArg["control_mode"] = "Balanced";
-            controlNetArg["resize_mode"] = "Just Resize";
-            controlNetArg["threshold_a"] = 0.5;
-            controlNetArg["threshold_b"] = 0.5;
-            controlNetArg["hr_option"] = "Both";
-            controlNetArg["pixel_perfect"] = true;
-
-            newPayload["alwayson_scripts"]["controlnet"]["args"].push(controlNetArg);
-        };                
+function applyControlnet(payload, controlnet){    
+    if(controlnet.length === 0) {
+        return payload;
     }
+
+    let newPayload = payload;
+    newPayload["alwayson_scripts"]['controlnet']={};
+    newPayload["alwayson_scripts"]['controlnet']['args']=[];
+    for( const slot of controlnet) {
+        const controlNetArg = {};
+        // skip empty
+        if(slot.postModel === 'none') {
+            console.log(CAT,"[applyControlnet] Skip ", slot);
+            continue;
+        }
+        
+        controlNetArg["enabled"] = true;
+        if(slot.image) {
+            controlNetArg["module"] = slot.preModel;
+            controlNetArg["image"] = slot.image;
+        } else if(slot.imageAfter) {
+            controlNetArg["module"] = 'none';   // skip pre
+            controlNetArg["image"] = slot.imageAfter;
+        } else {  // should not here
+            continue;            
+        }            
+        controlNetArg["processor_res"] = Number.parseInt(slot.preRes);
+        controlNetArg["model"] = findControlNetModelByName(slot.postModel);
+        controlNetArg["weight"] = Number.parseFloat(slot.postStr);
+        controlNetArg["guidance_start"] = Number.parseFloat(slot.postStart);
+        controlNetArg["guidance_end"] = Number.parseFloat(slot.postEnd);
+
+        // Forge
+        controlNetArg["control_mode"] = "Balanced";
+        controlNetArg["resize_mode"] = "Just Resize";
+        controlNetArg["threshold_a"] = 0.5;
+        controlNetArg["threshold_b"] = 0.5;
+        controlNetArg["hr_option"] = "Both";
+        controlNetArg["pixel_perfect"] = true;
+
+        newPayload["alwayson_scripts"]["controlnet"]["args"].push(controlNetArg);
+    };                
 
     return newPayload;
 }
 
-function applyADetailer(payload, adetailer) {
-    let newPayload = payload;
-    if (Array.isArray(adetailer)) {
-        newPayload["alwayson_scripts"]['ADetailer']={};
-        newPayload["alwayson_scripts"]['ADetailer']['args']=[
-            true,   // ad_enable
-            false,  // skip_img2img
-        ];
-        for( const slot of adetailer) {
-            const aDetailerArg = {};
+function applyADetailer(payload, adetailer) {    
+    if(adetailer.length === 0) {
+        return payload;
+    }
 
-            aDetailerArg['ad_model'] = slot.model;
-            aDetailerArg['ad_prompt'] = slot.prompt;
-            aDetailerArg['ad_negative_prompt'] = slot.negative_prompt;
-            // Detection
-            aDetailerArg['ad_confidence'] = slot.confidence;
-            aDetailerArg['ad_mask_k'] = slot.mask_k;
-            aDetailerArg['ad_mask_filter_method'] = slot.mask_filter_method;
-            // Mask Preprocessing
-            aDetailerArg['ad_dilate_erode'] = slot.dilate_erode;
-            aDetailerArg['ad_mask_merge_invert'] = slot.ask_merge_invert;
-            // Inpainting
-            aDetailerArg['ad_mask_blur'] = slot.mask_blur;
-            aDetailerArg['ad_denoising_strength'] = slot.denoise;                    
+    let newPayload = payload;    
+    newPayload["alwayson_scripts"]['ADetailer']={};
+    newPayload["alwayson_scripts"]['ADetailer']['args']=[
+        true,   // ad_enable
+        false,  // skip_img2img
+    ];
+    for( const slot of adetailer) {
+        const aDetailerArg = {};
 
-            newPayload['alwayson_scripts']['ADetailer']['args'].push(aDetailerArg);
-        }
+        aDetailerArg['ad_model'] = slot.model;
+        aDetailerArg['ad_prompt'] = slot.prompt;
+        aDetailerArg['ad_negative_prompt'] = slot.negative_prompt;
+        // Detection
+        aDetailerArg['ad_confidence'] = slot.confidence;
+        aDetailerArg['ad_mask_k'] = slot.mask_k;
+        aDetailerArg['ad_mask_filter_method'] = slot.mask_filter_method;
+        // Mask Preprocessing
+        aDetailerArg['ad_dilate_erode'] = slot.dilate_erode;
+        aDetailerArg['ad_mask_merge_invert'] = slot.ask_merge_invert;
+        // Inpainting
+        aDetailerArg['ad_mask_blur'] = slot.mask_blur;
+        aDetailerArg['ad_denoising_strength'] = slot.denoise;                    
+
+        newPayload['alwayson_scripts']['ADetailer']['args'].push(aDetailerArg);
     }
 
     return newPayload;
