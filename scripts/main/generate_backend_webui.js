@@ -697,7 +697,6 @@ async function runWebUI(generateData){
             setMutexBackendBusy(false); // Release the mutex lock
 
             if(cancelMark) {
-                console.log(CAT, 'Error: Cancelled');
                 return 'Error: Cancelled';
             }
 

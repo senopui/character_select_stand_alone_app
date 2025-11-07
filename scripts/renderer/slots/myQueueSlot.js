@@ -3,35 +3,40 @@ import { generateGUID } from './myLoRASlot.js';
 import { sendWebSocketMessage } from '../../../webserver/front/wsRequest.js';
 let instanceQueueManager = null;
 
+async function cancelGenerate(slotClass) {
+    const generateData = instanceQueueManager.getSlotValue(slotClass);
+    console.log(`Cancel current generate slot: ${slotClass} @ ${generateData.queueManager.apiInterface}`);
+
+    let method;
+    if (generateData.queueManager.apiInterface === 'ComfyUI') {
+        method = 'cancelComfyUI';
+    } else if (generateData.queueManager.apiInterface === 'WebUI') {
+        method = 'cancelWebUI';
+    }
+
+    if (method) {
+        if (globalThis.inBrowser) {
+            await sendWebSocketMessage({ type: 'API', method });
+        } else {
+            await globalThis.api[method]();
+        }
+    }
+}
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
 async function deleteSlot(slotClass) {
     const index = instanceQueueManager.getSlots().indexOf(slotClass);
     if(index === 0 && !instanceQueueManager.cancelFirst) {        
         instanceQueueManager.cancelFirst = true;
-        const generateData = instanceQueueManager.getSlotValue(slotClass);
-        console.log(`Cancel current generate slot: ${slotClass} @ ${generateData.queueManager.apiInterface}`);
-
-        if(globalThis.globalSettings.generate_auto_start) {
-            let method;
-            if (generateData.queueManager.apiInterface === 'ComfyUI') {
-                method = 'cancelComfyUI';
-            } else if (generateData.queueManager.apiInterface === 'WebUI') {
-                method = 'cancelWebUI';
-            }
-
-            if (method) {
-                if (globalThis.inBrowser) {
-                    await sendWebSocketMessage({ type: 'API', method });
-                } else {
-                    await globalThis.api[method]();
-                }
-            }
+       
+        if(globalThis.mainGallery.isLoading) {            
+            await cancelGenerate(slotClass);
         } else {
             instanceQueueManager.removeAt(0);
-            instanceQueueManager.cancelFirst = false;            
-        }                
+        }
     } else if (instanceQueueManager.cancelFirst){
-        // ignore
+        instanceQueueManager.removeAt(0);
+        instanceQueueManager.cancelFirst = false;    
     } else {
         console.log(`Remove slot: ${slotClass} at ${index}`);
         instanceQueueManager.removeAt(index);

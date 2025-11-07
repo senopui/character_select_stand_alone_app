@@ -1,4 +1,9 @@
-2025.11.06 v1.16.1       
+2025.11.07 v1.16.2       
+Bug fix
+ A fake `same prompt` error appears in the ComfyUI backend when the `Delete` button is clicked too frequently in queue manager.     
+
+
+2025.11.07 v1.16.1       
 Add `ADetailer` for ComfyUI #49         
 Add more clear `Pause marker` when `Enable Generate` unchecked      
 Adjust tabs order       

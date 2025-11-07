@@ -715,9 +715,13 @@ class ComfyUI {
                   finalize(`Error: ${err.message ?? err}`);
                   return;
               }
-            } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {                      
-              console.log(CAT, 'No result from backend, running same promot? message =', message);
-              finalize(`Error: No result from backend, running same promot?`);
+            } else if(msgData?.status.exec_info.queue_remaining === 0 && this.step === 0) {    
+              if(cancelMark) {
+                finalize('Error: Cancelled');                  
+              } else {
+                console.log(CAT, 'No result from backend, running same promot? message =', message);
+                finalize(`Error: No result from backend, running same promot?`);
+              }
               return;
             }
           } else if(message.type === 'progress'){
