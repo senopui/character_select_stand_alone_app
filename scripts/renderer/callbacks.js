@@ -290,9 +290,9 @@ export function setQueueAutoStart(trigger){
     const LANG = FILES.language[SETTINGS.language];
 
     if(trigger)
-        globalThis.generate.generate_single.setTitle(LANG.run_button_paused);
-    else 
         globalThis.generate.generate_single.setTitle(LANG.run_button);
+    else 
+        globalThis.generate.generate_single.setTitle(LANG.run_button_paused);
 
     globalThis.globalSettings.generate_auto_start=trigger;
     globalThis.generate.queueAutostart.setValue(trigger);
