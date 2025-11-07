@@ -16,6 +16,7 @@ const aDetailerWebUI = [
 ];
 
 let adetailerModels = [];
+let adetailerModelsComfyUISams = [];
 let instanceADetailerSlotManager = null;
 
 function createADetailerSlotsFromValues(slotManager, slotValues, options = {}) {
@@ -47,6 +48,8 @@ function createADetailerSlotsFromValues(slotManager, slotValues, options = {}) {
         const className = slotManager.addSlot();
         const slot = slotManager.slotIndex.get(className);
         if (!slot) continue;
+
+        const apiInterface = globalThis.generate.api_interface.getValue();
 
         requestAnimationFrame(() => {
             const adModelComponent = mySimpleList(
@@ -89,7 +92,7 @@ function createADetailerSlotsFromValues(slotManager, slotValues, options = {}) {
             const slotEnableComponent = mySimpleList(
                 slot.itemClasses.slot_enable,
                 LANG.api_adetailer_slot_enable,
-                ['Area', 'Confidence', 'Off'],
+                (apiInterface==='WebUI')?['Area', 'Confidence', 'Off']:[...adetailerModelsComfyUISams, 'Off'],
                 null,
                 3,
                 false,
@@ -126,7 +129,8 @@ function createADetailerSlotsFromValues(slotManager, slotValues, options = {}) {
             const adMaskMergeInvertComponent = mySimpleList(
                 slot.itemClasses.ad_mask_merge_invert,
                 LANG.api_adetailer_mask_merge_invert,
-                ['None', 'Merge', 'Merge and Invert'],
+                (apiInterface==='WebUI')?['None', 'Merge', 'Merge and Invert']:
+                ["center-1", "horizontal-2", "vertical-2", "rect-4", "diamond-4", "mask-area", "mask-points", "mask-point-bbox", "none"],
                 null,
                 3,
                 false,
@@ -256,6 +260,8 @@ class ADetailerSlotManager {
         const slot = this.slotIndex.get(className);
         if (!slot) return;
 
+        const apiInterface = globalThis.generate.api_interface.getValue();
+
         requestAnimationFrame(() => {
             const adModelComponent = mySimpleList(
                 slot.itemClasses.ad_model,
@@ -296,13 +302,13 @@ class ADetailerSlotManager {
             const slotEnableComponent = mySimpleList(
                 slot.itemClasses.slot_enable,
                 LANG.api_adetailer_slot_enable,
-                ['Area', 'Confidence', 'Off'],
+                (apiInterface==='WebUI')?['Area', 'Confidence', 'Off']:[...adetailerModelsComfyUISams],
                 null,
                 3,
                 false,
                 false
             );
-            slotEnableComponent.updateDefaults('Area');
+            slotEnableComponent.updateDefaults((apiInterface==='WebUI')?'Area':adetailerModelsComfyUISams[0]);
             slot.items.set(slot.itemClasses.slot_enable, () => slotEnableComponent);
             this.componentInstances.set(`${className}-${slot.itemClasses.slot_enable}`, slotEnableComponent);
 
@@ -333,13 +339,14 @@ class ADetailerSlotManager {
             const adMaskMergeInvertComponent = mySimpleList(
                 slot.itemClasses.ad_mask_merge_invert,
                 LANG.api_adetailer_mask_merge_invert,
-                ['None', 'Merge', 'Merge and Invert'],
+                (apiInterface==='WebUI')?['None', 'Merge', 'Merge and Invert']:
+                ["center-1", "horizontal-2", "vertical-2", "rect-4", "diamond-4", "mask-area", "mask-points", "mask-point-bbox", "none"],
                 null,
-                3,
+                10,
                 false,
                 false
             );
-            adMaskMergeInvertComponent.updateDefaults('None');
+            adMaskMergeInvertComponent.updateDefaults((apiInterface==='WebUI')?'None':"center-1");
             slot.items.set(slot.itemClasses.ad_mask_merge_invert, () => adMaskMergeInvertComponent);
             this.componentInstances.set(`${className}-${slot.itemClasses.ad_mask_merge_invert}`, adMaskMergeInvertComponent);
 
@@ -370,7 +377,7 @@ class ADetailerSlotManager {
             const adDenoiseComponent = setupTextbox(
                 slot.itemClasses.ad_denoise,
                 LANG.api_adetailer_denoise,
-                { value: 0.4, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
+                { value: 0.5, defaultTextColor: 'rgb(255,213,0)', maxLines: 1 },
                 false,
                 null,
                 false,
@@ -632,19 +639,22 @@ class ADetailerSlotManager {
     }
 }
 
-export function setADetailerModelList(modelList, flush=false) {
-    if (flush) {
-        if (modelList === 'WebUI') {
-            adetailerModels = [...aDetailerWebUI];
-            return;
-        }
-
-        adetailerModels = ['none'];
-        return;
-    }
-
+export function setADetailerModelList(modelList, addDef=false) {
     if(Array.isArray(modelList)) {
-        adetailerModels = modelList;
+        if(addDef) {
+            adetailerModels = [...aDetailerWebUI, ...modelList];
+        } else {            
+            adetailerModels = [];
+            adetailerModelsComfyUISams = [];
+            for (const model of modelList){
+                if(String(model).toLocaleLowerCase().startsWith('sam_vit_')){
+                    adetailerModelsComfyUISams.push(model);
+                } else {
+                    adetailerModels.push(model);
+                }                
+            }
+            adetailerModelsComfyUISams.push('Off');
+        }
     }
 }
 
@@ -655,10 +665,10 @@ export function getADetailerModelList() {
 export function setupADetailer(containerID) {
     if (!instanceADetailerSlotManager) {
         instanceADetailerSlotManager = new ADetailerSlotManager(containerID);
-        if(globalThis.globalSettings.api_interface === 'ComfyUI') {
-            adetailerModels = ['none'];
+        if(globalThis.globalSettings.api_interface === 'WebUI') {
+            setADetailerModelList(globalThis.cachedFiles.aDetailerList, true);
         } else {
-            adetailerModels = [...aDetailerWebUI];
+            setADetailerModelList(globalThis.cachedFiles.aDetailerList, false);
         }
     }
     return instanceADetailerSlotManager;

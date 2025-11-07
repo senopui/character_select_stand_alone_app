@@ -1,7 +1,6 @@
 import { setupTextbox } from '../components/myTextbox.js';
 import { generateGUID } from './myLoRASlot.js';
 import { sendWebSocketMessage } from '../../../webserver/front/wsRequest.js';
-import { callback_generate_start } from '../callbacks.js';
 let instanceQueueManager = null;
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -191,8 +190,8 @@ class QueueManager {
         });
     }
 
-    async handleAdd() {
-        await callback_generate_start(1, false);
+    async handleAdd() {        
+        globalThis.generate.generate_single.click();
     }
 
     getSlots() {

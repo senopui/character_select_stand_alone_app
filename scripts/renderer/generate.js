@@ -5,6 +5,7 @@ import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 import { setADetailerModelList } from './slots/myADetailerSlot.js';
 import { processRandomString } from './tools/nestedBraceParsing.js';
 import { convertToMultipleOfNFloor, checkNumberInRange } from './tools/numbers.js';
+import { setQueueAutoStart } from './callbacks.js';
 
 export const REPLACE_AI_MARK = '_|REPLACE_AI_PROMPT|_';
 
@@ -549,8 +550,8 @@ export function convertBase64ImageToUint8Array(image) {
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export function createControlNet() {
-    if (!globalThis.generate.controlnet.getValue())
-        return null;
+    if (!globalThis.globalSettings.api_controlnet_enable)
+        return [];
 
     let controlnetToBackend = [];
     let controlNetList = globalThis.controlnet.getValues(true);
@@ -596,13 +597,12 @@ export function createControlNet() {
     return controlnetToBackend;
 }
 
-export function createADetailer() {
-    const aDetailerList = globalThis.aDetailer.getValues(true);
-
-    if (aDetailerList.length === 0)
-        return null;
+export function createADetailer(apiInterface) {   
+    if (!globalThis.globalSettings.api_adetailer_enable)
+        return [];
 
     let aDetailerToBackend = [];
+    const aDetailerList = globalThis.aDetailer.getValues(true);    
     for (const [
         ad_model, ad_confidence, ad_mask_k, slot_enable,
         ad_prompt, ad_dilate_erode, ad_mask_merge_invert,
@@ -612,21 +612,44 @@ export function createADetailer() {
             continue;
         
         const mask_filter = slot_enable;
-        const adData = {
-            model: ad_model,
-            prompt: ad_prompt,
-            negative_prompt: ad_negative_prompt,            
-            // Detection
-            confidence: checkNumberInRange(ad_confidence, 0, 1, 0.3),
-            mask_k: checkNumberInRange(ad_mask_k, 0, 10, true),
-            mask_filter_method: mask_filter,            
-            // Mask Preprocessing
-            dilate_erode: convertToMultipleOfNFloor(ad_dilate_erode, 4),
-            mask_merge_invert: ad_mask_merge_invert,            
-            // Inpainting
-            mask_blur:checkNumberInRange(ad_mask_blur, 0, 64, 4, true),
-            denoise: checkNumberInRange(ad_denoise, 0, 1, 0.4),                                    
-        };
+        let adData = {};
+        if(apiInterface === 'WebUI') {
+            adData ={
+                model: ad_model,
+                prompt: ad_prompt,
+                negative_prompt: ad_negative_prompt,
+                // Detection
+                confidence: checkNumberInRange(ad_confidence, 0, 1, 0.3, false),
+                mask_k: checkNumberInRange(ad_mask_k, 0, 10, true),
+                mask_filter_method: mask_filter,
+                // Mask Preprocessing
+                dilate_erode: convertToMultipleOfNFloor(ad_dilate_erode, 4),
+                mask_merge_invert: ad_mask_merge_invert,
+                // Inpainting
+                mask_blur:checkNumberInRange(ad_mask_blur, 0, 64, 4, true),
+                denoise: checkNumberInRange(ad_denoise, 0, 1, 0.4, false),
+            };
+        } else {
+            adData ={
+                model: `bbox/${ad_model}`,
+                prompt: ad_prompt,
+                negative_prompt: ad_negative_prompt,
+                // bbox_threshold
+                confidence: checkNumberInRange(ad_confidence, 0, 1, 0.3, false),
+                // sam_dilation
+                mask_k: checkNumberInRange(ad_mask_k, -512, 512, 0, true),
+                // sam_modelname/Off
+                mask_filter_method: mask_filter,
+                // bbox_dilation
+                dilate_erode: checkNumberInRange(ad_dilate_erode, -512, 512, 4, true),
+                // sam_detection_hint
+                mask_merge_invert: ad_mask_merge_invert, 
+                // feather
+                mask_blur:checkNumberInRange(ad_dilate_erode, 0, 100, 4, true),
+                // denoise
+                denoise: checkNumberInRange(ad_denoise, 0, 1, 0.4, false),
+            };
+        }
         aDetailerToBackend.push(adData);
     }
 
@@ -839,7 +862,7 @@ export async function generateImage(loops, runSame){
             hifix: hifix,
             refiner: refiner,
             controlnet: createControlNet(),
-            adetailer: createADetailer(),
+            adetailer: createADetailer(apiInterface),
         }
 
         let finalInfo = `${createPromptResult.finalInfo}\n`;
@@ -942,11 +965,7 @@ export async function startQueue(){
 
             if(ret !== 'success') {
                 // Disable auto start, the error may solved in future
-                globalThis.globalSettings.generate_auto_start=false;
-                globalThis.generate.queueAutostart.setValue(globalThis.globalSettings.generate_auto_start);
-                globalThis.generate.queueAutostart_dummy.setValue(globalThis.globalSettings.generate_auto_start);
-                // Restore queue data
-                //generateData.queueManager = queueManager;
+                setQueueAutoStart(false);
             }
             break;
         }
@@ -1122,23 +1141,23 @@ async function runWebUI(apiInterface, generateData) {
         globalThis.api.stopPollingWebUI();
     }
 
-    if (globalThis.cachedFiles.controlnetProcessorListWebUI === 'none') {   // aDetailer might not installed  || globalThis.cachedFiles.aDetailerListWebUI === 'none'        
+    if (globalThis.cachedFiles.controlnetProcessorListWebUI === 'none') {   // aDetailer might not installed 
         if (globalThis.inBrowser) {
             globalThis.cachedFiles.controlnetProcessorListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getControlNetProcessorListWebUI'});
-            globalThis.cachedFiles.aDetailerListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getADetailerModelListWebUI'});
+            globalThis.cachedFiles.aDetailerList = await sendWebSocketMessage({ type: 'API', method: 'getADetailerModelListWebUI'});
             globalThis.cachedFiles.upscalerListWebUI = await sendWebSocketMessage({ type: 'API', method: 'getUpscalersModelListWebUI'});            
         } else {
             globalThis.cachedFiles.controlnetProcessorListWebUI = await globalThis.api.getControlNetProcessorListWebUI();
-            globalThis.cachedFiles.aDetailerListWebUI = await globalThis.api.getADetailerModelListWebUI();
+            globalThis.cachedFiles.aDetailerList = await globalThis.api.getADetailerModelListWebUI();
             globalThis.cachedFiles.upscalerListWebUI = await globalThis.api.getUpscalersModelListWebUI();            
         } 
 
         console.log("WebUI: Processor, Upscaler and aDetailer List updated!");
         console.log(globalThis.cachedFiles.controlnetProcessorListWebUI);
-        console.log(globalThis.cachedFiles.aDetailerListWebUI);
+        console.log(globalThis.cachedFiles.aDetailerList);
         console.log(globalThis.cachedFiles.upscalerListWebUI);
 
-        setADetailerModelList(globalThis.cachedFiles.aDetailerListWebUI, false);
+        setADetailerModelList(globalThis.cachedFiles.aDetailerList);
         
         const currentModelSelect = globalThis.hifix.model.getValue();        
         globalThis.cachedFiles.upscalerList = [...globalThis.cachedFiles.upscalerListWebUI];

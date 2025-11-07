@@ -1,8 +1,7 @@
-## SAA now supports browser UI for Chrome and Edge.
-For more information check [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
-
 # Character Select SAA
-### If you find a character that isn't show on the list but can be generated correctly, please don't hesitate to let me know.
+> [!TIP]
+> If you find a character that isn't show on the list but can be generated correctly, please don't hesitate to let me know.     
+> For browser based SAAC information, check [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
 
 This is a Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/WebUI(A1111) API support.    
 Now supports 5328 (includes multiple costumes) Characters in list.   
@@ -20,12 +19,13 @@ Now supports 5328 (includes multiple costumes) Characters in list.
 | ADetailer | No | Yes | Yes |
 | API authentication| No | Yes | Yes |
 
-Try Online Character Select Simple Advanced App [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)             
+*Try Online Character Select Simple Advanced App* [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)             
 
 ## Install and run
-Setup your [API Call](https://github.com/mirabarukaso/character_select_stand_alone_app#api-call-for-local-image-generator) before you start SAA.     
-
-Important: For ComfyUI, you need [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) for SAA.     
+> [!IMPORTANT]
+> Setup your [API Call](https://github.com/mirabarukaso/character_select_stand_alone_app#api-call-for-local-image-generator) before you start SAA.     
+> 
+> For ComfyUI, you need [ComfyUI_Mira](https://github.com/mirabarukaso/ComfyUI_Mira) for SAA.     
 
 Clone this repo into your local folder     
 ```
@@ -35,8 +35,9 @@ npm install
 npm start
 ```
 
-*One-Click package v1.15.2*    
-In case ... never mind, the full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)      
+> [!TIP]
+> *One-Click package v1.15.2*    
+> The full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)      
 
 ## Update
 The `One-Click package` may not the latest version. If you need to update, please use the GitHub clone version with following command instead.     
@@ -45,8 +46,10 @@ git fetch
 git pull
 npm install
 ```
-**REMINDER:Updating version from github will not update the database files `danbooru_e621_merged.csv` and `wai_character_thumbs.json`.**    
-Update to the latest version, then manually delete the `danbooru_e621_merged.csv` and `wai_character_thumbs.json` file. Restart the app to automatically download the latest thumbnail database from HF.      
+> [!IMPORTANT]
+> **Updating version from github will not update the database files `danbooru_e621_merged.csv` and `wai_character_thumbs.json`.**    
+> 
+> Update to the latest version, then manually delete the `danbooru_e621_merged.csv` and `wai_character_thumbs.json` file. Restart the app to automatically download the latest thumbnail database from HF.      
 
 # Chinese Translate and Character Verification       
 Many thanks to the following people for their selfless contributions, who gave up their valuable time to provide Chinese translation and character data verification. They are listed in no particular order.   
@@ -158,12 +161,25 @@ Support `*.json` and `*.csv` files, just drag and drop (or click `Add` then `Pas
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/json-csv.png" width=35%>   
 
-## ADetailer(A1111/Forge Neo)         
-Because I don't want to introduce too many custom nodes, ComfyUI might support in future.        
+## ADetailer
+> [!CAUTION]
+> Check before you download any .pt file from unknown/untrusted site!
+> https://github.com/ltdrdata/ComfyUI-Impact-Pack/issues/843
 
+> [!NOTE]
+> If the settings are too confusing, just remember to adjust the gold parameter in the bottom-right corner (Denoise).
+
+*For ComfyUI*      
+`ADetailer` requires [Impact Pack](https://github.com/ltdrdata/ComfyUI-Impact-Pack) and [Impact Subpack](https://github.com/ltdrdata/ComfyUI-Impact-Subpack)      
+Put your `ADetailer` models in `ComfyUI\\models\\\ultralytics\\\bbox`      
+Put your `SAM` models in `ComfyUI\\models\\adetailer`      
+
+*For A1111/Forge Neo*      
+`ADetailer` requires [ADetailer Plugin](https://github.com/Bing-su/adetailer/)             
 `Upscaler`, `Control Processor`, `ADetailer`  lists have to be read from the API.       
 The default ADetailer model list will be updated after the first generation. Simply start generating an image as normal.        
-*If the settings are too confusing, just remember to adjust the gold parameter in the bottom-right corner (Denoise).*         
+Put your `ADetailer` models in `sd-webui-forge-neo\\adetailer`      
+
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aDetailer.png" width=35%>   
 
 ## Queue Manager
@@ -179,7 +195,12 @@ Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wi
 By default, wildcards are randomly selected using the current seed. If `wildcard random seed` is `Checked`, a new random seed will be generated for every selection every time.      
 **Subfolder is not supported**     
 
-Random string selector with square bracket parsing #47      
+Random string selector with square bracket parsing #47 #50      
+'''
+{ standing | sitting | on stomach | on back }
+{ red | green | blue | blonde } { {long | short} hair | eyes}
+'''
+
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
 
@@ -298,8 +319,9 @@ There are two ways to solve this problem:
 2. `Symbolic link or Shared folder` - Create a `Symbolic link ` or simply setup your remote `models` folder as shared folder (read-only recommended), then setup SAA with that folder.     
 
 ## Advanced security settings (API authentication)    
-*DO NOT forward any UNSECURED local port to public internet*    
-*WebUI(A1111) ONLY, DO NOT forward Comfyui API to public internet until they create a proper and secured way*    
+> [!WARNING]
+> *DO NOT forward any UNSECURED local port to public internet*    
+> *WebUI(A1111) ONLY, DO NOT forward Comfyui API to public internet until they create a proper and secured way*    
 
 Check more WebUI(A1111) command args at [Command-Line-Arguments-and-Settings](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Command-Line-Arguments-and-Settings)     
 

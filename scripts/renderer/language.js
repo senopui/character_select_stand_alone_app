@@ -95,7 +95,9 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.generate.batch.setTitle(LANG.batch);
 
     globalThis.generate.hifix.setTitle(LANG.api_hf_enable);
+    globalThis.generate.hifix_dummy.setTitle(LANG.api_hf_enable);
     globalThis.generate.refiner.setTitle(LANG.api_refiner_enable);
+    globalThis.generate.refiner_dummy.setTitle(LANG.api_refiner_enable);
     globalThis.generate.controlnet.setTitle(LANG.api_controlnet_enable);
     globalThis.generate.adetailer.setTitle(LANG.api_adetailer_enable);
 
@@ -108,7 +110,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.generate.sampler.setTitle(LANG.api_model_sampler);
     globalThis.generate.scheduler.setTitle(LANG.api_model_scheduler);
 
-    globalThis.generate.generate_single.setTitle(LANG.run_button);
+    globalThis.generate.generate_single.setTitle(globalThis.globalSettings.generate_auto_start?LANG.run_button:LANG.run_button_paused);
     globalThis.generate.generate_batch.setTitle(LANG.run_random_button);
     globalThis.generate.generate_same.setTitle(LANG.run_same_button);
     globalThis.generate.generate_skip.setTitle(LANG.run_skip_button);
@@ -277,6 +279,7 @@ export function updateSettings() {
     globalThis.generate.api_address.setValue(SETTINGS.api_addr);
 
     globalThis.generate.hifix.setValue(SETTINGS.api_hf_enable);
+    globalThis.generate.hifix_dummy.setValue(SETTINGS.api_hf_enable);
     globalThis.hifix.scale.setValue(SETTINGS.api_hf_scale);
     globalThis.hifix.denoise.setValue(SETTINGS.api_hf_denoise);
     globalThis.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
@@ -286,6 +289,7 @@ export function updateSettings() {
     globalThis.hifix.model.setOptions(globalThis.cachedFiles.upscalerList, null, LANG.api_hf_upscaler_selected, SETTINGS.api_hf_upscaler_selected);
 
     globalThis.generate.refiner.setValue(SETTINGS.api_refiner_enable);
+    globalThis.generate.refiner_dummy.setValue(SETTINGS.api_refiner_enable);
     globalThis.refiner.addnoise.setValue(SETTINGS.api_refiner_add_noise);    
     globalThis.refiner.model.updateDefaults(SETTINGS.api_refiner_model);
     globalThis.refiner.vpred.updateDefaults(SETTINGS.api_refiner_model_vpred);

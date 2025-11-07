@@ -95,6 +95,7 @@ contextBridge.exposeInMainWorld('api', {
   getLoRAList: async (args) => ipcRenderer.invoke('get-lora-list-all', args),
   getControlNetList: async (args) => ipcRenderer.invoke('get-controlnet-list', args),
   getUpscalerList: async (args) => ipcRenderer.invoke('get-upscaler-list', args),
+  getADetailerList: async (args) => ipcRenderer.invoke('get-adetailer-list', args),
   getImageTaggerModels: async () => ipcRenderer.invoke('get-image-tagger-models'),
   // Tag Auto Complete
   tagReload: async () => ipcRenderer.invoke('tag-reload'),

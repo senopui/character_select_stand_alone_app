@@ -127,6 +127,51 @@
             <div class="gallery-thumb-main"></div>
           </div>
 
+          <div class="add-lora-container">            
+            <div class="add-lora-header">
+              <div class="generate-hires-fix-dummy"></div>
+              <div class="generate-refiner-dummy"></div>
+              <div class="add-lora-span">
+                <span id="add-lora-span">LoRA</span>
+                <img id="add-lora-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="add-lora-main"></div>
+          </div>
+
+          <div class="controlnet-container">
+            <div class="controlnet-header">
+              <div class="generate-controlnet"></div>
+              <div></div>
+              <div class="controlnet-header-span">
+                <span id="controlnet-span">ControlNet</span>
+                <img id="controlnet-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="controlnet-main"></div>
+          </div>
+
+          <div class="adetailer-container">
+            <div class="adetailer-header">
+              <div class="generate-adetailer"></div>
+              <div></div>
+              <div class="adetailer-header-span">
+                <span id="adetailer-span">ADetailer</span>
+                <img id="adetailer-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="adetailer-main"></div>
+          </div>
+
+          <div id="prompt-text-container">
+            <div class="prompt-common">common</div>
+            <div class="prompt-positive">positive</div>
+            <div class="prompt-positive-right">positive-right</div>
+            <div class="prompt-negative">negative</div>
+            <div class="prompt-ai">negative</div>
+            <div class="prompt-exclude">exclude</div>
+          </div>
+
           <div class="highres-fix-container">
             <div class="highres-fix-header">
               <div class="generate-hires-fix"></div>
@@ -167,85 +212,7 @@
                 <div class="refiner-ratio"></div>
               </div>
             </div>
-          </div>
-
-          <div class="controlnet-container">
-            <div class="controlnet-header">
-              <div class="generate-controlnet"></div>
-              <div></div>
-              <div class="controlnet-header-span">
-                <span id="controlnet-span">ControlNet</span>
-                <img id="controlnet-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
-              </div>
-            </div>
-            <div class="controlnet-main"></div>
-          </div>
-
-          <div class="regional-condition-container">
-            <div class="regional-condition-header">
-              <div class="regional-condition-trigger-dummy"></div>
-              <div class="regional-condition-swap"></div>
-              <div class="regional-condition-header-span">
-                <span id="regional-condition-span"></span>
-                <img id="regional-condition-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
-              </div>
-            </div>
-            <div class="regional-condition-main">
-              <div class="regional-condition-settings-1">
-                <div class="regional-condition-image-ratio"></div>
-                <div class="regional-condition-overlap-ratio"></div>
-                <div class="regional-condition-strength-left"></div>
-                <div class="regional-condition-strength-right"></div>
-                <div class="regional-condition-option-left"></div>
-                <div class="regional-condition-option-right"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="prompt-text-container">
-            <div class="prompt-common">common</div>
-            <div class="prompt-positive">positive</div>
-            <div class="prompt-positive-right">positive-right</div>
-            <div class="prompt-negative">negative</div>
-            <div class="prompt-ai">negative</div>
-            <div class="prompt-exclude">exclude</div>
-          </div>
-
-          <div class="add-lora-container">            
-            <div class="add-lora-header">
-              <div></div>
-              <div></div>
-              <div class="add-lora-span">
-                <span id="add-lora-span">LoRA</span>
-                <img id="add-lora-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
-              </div>
-            </div>
-            <div class="add-lora-main"></div>
-          </div>
-
-          <div class="jsonlist-container">
-            <div class="jsonlist-header">
-              <div></div>
-              <div></div>
-              <div class="jsonlist-header-span">
-                <span id="jsonlist-span">JSON/CSV</span>
-                <img id="jsonlist-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
-              </div>
-            </div>
-            <div class="jsonlist-main"></div>
-          </div>
-
-          <div class="adetailer-container">
-            <div class="adetailer-header">
-              <div class="generate-adetailer"></div>
-              <div></div>
-              <div class="adetailer-header-span">
-                <span id="adetailer-span">ADetailer(WebUI)</span>
-                <img id="adetailer-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
-              </div>
-            </div>
-            <div class="adetailer-main"></div>
-          </div>
+          </div>          
 
           <div class="system-settings-container">
             <div class="system-settings-header">
@@ -282,6 +249,39 @@
                 <div class="system-settings-ai-local-temperature"></div>
                 <div class="system-settings-ai-local-npredict"></div>
                 <div class="system-settings-ai-sysprompt"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="jsonlist-container">
+            <div class="jsonlist-header">
+              <div></div>
+              <div></div>
+              <div class="jsonlist-header-span">
+                <span id="jsonlist-span">JSON/CSV</span>
+                <img id="jsonlist-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="jsonlist-main"></div>
+          </div>
+
+          <div class="regional-condition-container">
+            <div class="regional-condition-header">
+              <div class="regional-condition-trigger-dummy"></div>
+              <div class="regional-condition-swap"></div>
+              <div class="regional-condition-header-span">
+                <span id="regional-condition-span"></span>
+                <img id="regional-condition-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="regional-condition-main">
+              <div class="regional-condition-settings-1">
+                <div class="regional-condition-image-ratio"></div>
+                <div class="regional-condition-overlap-ratio"></div>
+                <div class="regional-condition-strength-left"></div>
+                <div class="regional-condition-strength-right"></div>
+                <div class="regional-condition-option-left"></div>
+                <div class="regional-condition-option-right"></div>
               </div>
             </div>
           </div>

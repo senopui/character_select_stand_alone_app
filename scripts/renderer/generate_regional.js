@@ -481,7 +481,7 @@ export async function generateRegionalImage(loops, runSame){
             refiner: refiner,
             regional: regional,
             controlnet: createControlNet(),      
-            adetailer: createADetailer(),      
+            adetailer: createADetailer(apiInterface),      
         }
         
         let finalInfo = `${createPromptResult.finalInfo}\n`;

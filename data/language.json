@@ -50,7 +50,7 @@
         "regional_str_right": "Right Conditioning Strength",
         "regional_option_left": "Left Area",
         "regional_option_right": "Right Area",
-        "regional_error_not_comfyui": "Due to lack of API support, Regional Condition is only supported in ComfyUI.",
+        "regional_error_not_comfyui": "Regional Condition is only supported in ComfyUI.\nMight support A1111 in future.",
 
         "title_settings_save": "Save Settings",
         "title_settings_load": "Load Settings",
@@ -95,7 +95,7 @@
         "model_filter_keyword": "Model name filter keyword",
         "search_modelinsubfolder": "Search model subfolder",
 
-        "api_hf_enable": "Hires Fix",
+        "api_hf_enable": "Enable Hires Fix",
         "api_hf_scale": "Upscale by",
         "api_hf_denoise": "Denoising",
         "api_hf_upscaler_selected": "Upscaler",
@@ -104,7 +104,7 @@
         "api_hf_random_seed":"HF Random Seed (ComfyUI)",
         "api_hf_steps":"HF Steps",
         
-        "api_refiner_enable":"Refiner",
+        "api_refiner_enable":"Enable Refiner",
         "api_refiner_model":"Refiner Model",
         "api_refiner_ratio":"Ratio",
         "api_refiner_add_noise":"Refiner Add Noise(ComfyUI)",
@@ -118,14 +118,29 @@
         "api_controlnet_post_process_start": "Start percent (0~1)",
         "api_controlnet_post_process_end": "End percent (0~1)",
         "message_controlnet_custom_overlay": "Right click to copy image",
-        "message_controlnet_comfyui": "Note: ControlNet/IP Adapter for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color], [color=CornflowerBlue]comfyui-art-venture[/color] and [color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]和[color=CornflowerBlue]comfyui-art-venture[/color]和[color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]\n[color=CornflowerBlue]https://github.com/sipherxyz/comfyui-art-venture[/color]\n[color=CornflowerBlue]https://github.com/cubiq/ComfyUI_IPAdapter_plus[/color]",
-        "message_controlnet_webui": "Note: ControlNet/IP Adapter for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
+        "message_controlnet_comfyui": "Note: ControlNet/IP Adapter for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color], [color=CornflowerBlue]comfyui-art-venture[/color] and [color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color] must be installed. Click to copy the Custom Node download link.\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]\n[color=CornflowerBlue]https://github.com/sipherxyz/comfyui-art-venture[/color]\n[color=CornflowerBlue]https://github.com/cubiq/ComfyUI_IPAdapter_plus[/color]",
+        "message_controlnet_webui": "Note: ControlNet/IP Adapter for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
+
+        "api_adetailer_enable": "Enable ADetailer",
+        "api_adetailer_model": "ADetailer Model_Select",
+        "api_adetailer_prompt": "ADetailer Prompt",
+        "api_adetailer_negative_prompt": "ADetailer Negative Prompt",
+        "api_adetailer_confidence": "A1111  -  Detection model confidence threshold (0~1)\nComfyUI  -  bbox_threshold (0~1)",
+        "api_adetailer_mask_k": "A1111  -  Mask only the top k (0 to disable 0-10)\nComfyUI  -  sam_dilation (-512-512)",
+        "api_adetailer_slot_enable": "A1111  -  Method to filter top k masks by (confidence or area)\nComfyUI  -  Sam model_name/Off",
+        "api_adetailer_dilate_erode": "A1111  -  Mask erosion (-) / dilation (+) (-128-128)\nComfyUI  -  bbox_dilation (-512-512)",
+        "api_adetailer_mask_merge_invert": "A1111  -  Mask merge mode\nComfyUI  -  sam_detection_hint",
+        "api_adetailer_mask_blur": "A1111  -  Inpaint mask blur (0-64)\nComfyUI  -  feather (0-100)",
+        "api_adetailer_denoise": "A1111  -  Inpaint denoising strength (0~1)\nComfyUI  -  denoise (0~1)",
+        "message_adetailer_comfyui":  "Note: ADetailer for ComfyUI requires [color=CornflowerBlue]Impact Pack[/color] and [color=CornflowerBlue]Impact Subpack[/color]. Click to copy the Plugin download link.\n\n[color=CornflowerBlue]https://github.com/ltdrdata/ComfyUI-Impact-Pack[/color]\n[color=CornflowerBlue]https://github.com/ltdrdata/ComfyUI-Impact-Subpack[/color]", 
+        "message_adetailer_webui": "Note: ADetailer for A1111(WebUI) requires [color=CornflowerBlue]ADetailer[/color].  Click to copy the Plugin download link.\n\n[color=CornflowerBlue]https://github.com/Bing-su/adetailer[/color]",
         
-        "run_button": "Create Single Image",
+        "run_button": "Create Image",
+        "run_button_paused": "Create Image (Paused)",
         "run_random_button": "Batch (Random)",
         "run_same_button": "Batch (Last)",
-        "run_skip_button": "Skip follow-up",
-        "run_cancel_button": "Cancel current",
+        "run_skip_button": "Pause follow-up",
+        "run_cancel_button": "Cancel and Clear Queue",
         "save_settings_button": "Save Settings",
         "load_settings_button": "Load Settings",
         
@@ -137,7 +152,11 @@
         "overlay_sec": "seconds",
 
         "generate_ai": "Wait for AI promot ...",
-        "generate_start": "Now generating {0}/{1}...",
+        "generate_warmup": "Creating prompts {0}/{1}……",
+        "generate_start": "{0}\n{1}",
+        "generate_auto_start": "Enable Generate",
+        "generate_normal": "{0}",
+        "generate_regional": "Regional: {0}",
         
         "lora_info": "LoRA info",
         "lora_trigger_words": "Trigger Words (Top 10): ",
@@ -145,12 +164,12 @@
         "lora_no_metadata": "File read error or metadata was intentionally removed",
         "lora_model_strength": "Model strength",
         "lora_clip_strength": "CLIP strength",
-        "lora_enable_title": "Method:ALL,Base,HiFix,OFF",
+        "lora_enable_title": "Method: ALL,Base,HiFix,OFF",
 
         "jsonlist_name": "Name",
         "jsonlist_strength": "Strength",
-        "json_regional": "Position-for-Regional-Condition",
-        "jsonlist_position": "Insert-Position:Begin-Of-Prompts;Begin-Of-Character;End-Of-Character;End-Of-Prompts;Off",
+        "json_regional": "Position for Regional Condition",
+        "jsonlist_position": "Insert Position: Begin Of Prompts; Begin Of Character; End Of Character; End Of Prompts; Off",
 
         "image_info_add_controlnet": "Add ControlNet",
         "image_info_add_controlnet_processing": "Processing...",
@@ -203,7 +222,7 @@
         "setup_remote_ai_api_key": "Please enter your API key for the remote language model.",
         "setup_local_ai_addr": "Please enter the API address for your local language model.",
 
-        "setup_done": "Initial setup is complete, and the configuration has been saved as settings.json.\nIf you are using ComfyUI, please enable Dev Mode in the settings.\nIf you are using WebUI, modify webui-user.bat and add COMMANDLINE_ARGS= --api.",  
+        "setup_done": "Initial setup is complete, and the configuration has been saved as settings.json.\nIf you are using ComfyUI, please enable Dev Mode in the settings.\nIf you are using WebUI, modify webui-user.bat and add COMMANDLINE_ARGS= --api.\n\nImportant: Please ensure that the HighRes Fix model has been selected correctly. The initial default configuration may not select the correct model.",  
         "setup_skip_wizard": "Skip following setup?"
     },
     "zh-CN": {
@@ -257,7 +276,7 @@
         "regional_str_right": "右采样强度",
         "regional_option_left": "左采样区域",
         "regional_option_right": "右采样区域",
-        "regional_error_not_comfyui": "注意，由于缺少API支持，当前分区采样仅支持ComfyUI。",
+        "regional_error_not_comfyui": "注意，当前分区采样仅支持ComfyUI，未来或许会支持A1111",
 
         "title_settings_save": "保存设置",
         "title_settings_load": "读取设置",
@@ -302,7 +321,7 @@
         "model_filter_keyword": "模型名称过滤规则",
         "search_modelinsubfolder": "搜索模型文件夹子目录",
 
-        "api_hf_enable": "高清修复",
+        "api_hf_enable": "启用高清修复",
         "api_hf_scale": "放大倍率",
         "api_hf_denoise": "降噪强度",
         "api_hf_upscaler_selected": "高清修复模型",
@@ -311,7 +330,7 @@
         "api_hf_random_seed":"高修随机种子(ComfyUI)",
         "api_hf_steps":"高修步数",
         
-        "api_refiner_enable":"切换降噪 Refiner",
+        "api_refiner_enable":"启用切换降噪 Refiner",
         "api_refiner_model":"切换降噪模型",
         "api_refiner_ratio":"比例",
         "api_refiner_add_noise":"切换降噪添加噪点(ComfyUI)",
@@ -326,14 +345,30 @@
         "api_controlnet_post_process_start": "起始（步数）比例(0~1)",
         "api_controlnet_post_process_end": "停止（步数）比例(0~1)",
         "message_controlnet_custom_overlay": "右键点击图片复制",
-        "message_controlnet_comfyui": "Note: ControlNet/IP Adapter for ComfyUI requires [color=CornflowerBlue]ComfyUI_Mira version 0.4.9.6 or above.[/color] Additionally, [color=CornflowerBlue]comfyui_controlnet_aux[/color], [color=CornflowerBlue]comfyui-art-venture[/color] and [color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color] must be installed. Click to copy the Custom Node download link.\n\n注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]和[color=CornflowerBlue]comfyui-art-venture[/color]和[color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]\n[color=CornflowerBlue]https://github.com/sipherxyz/comfyui-art-venture[/color]\n[color=CornflowerBlue]https://github.com/cubiq/ComfyUI_IPAdapter_plus[/color]",
-        "message_controlnet_webui": "Note: ControlNet for A1111(WebUI) requires [color=CornflowerBlue]sd-webui-controlnet[/color].  Click to copy the Plugin download link.\n\n注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
+        "message_controlnet_comfyui": "注意：ControlNet ComryUI 需要[color=CornflowerBlue]ComfyUI_Mira版本高于0.4.9.6[/color]，同时还要装有[color=CornflowerBlue]comfyui_controlnet_aux[/color]和[color=CornflowerBlue]comfyui-art-venture[/color]和[color=CornflowerBlue]ComfyUI_IPAdapter_plus[/color]，点击复制Node下载连接。\n\n[color=CornflowerBlue]https://github.com/Fannovel16/comfyui_controlnet_aux[/color]\n[color=CornflowerBlue]https://github.com/sipherxyz/comfyui-art-venture[/color]\n[color=CornflowerBlue]https://github.com/cubiq/ComfyUI_IPAdapter_plus[/color]",
+        "message_controlnet_webui": "注意：ControlNet A1111(WebUI) 需要插件 [color=CornflowerBlue]sd-webui-controlnet[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Mikubill/sd-webui-controlnet[/color]",
         
+        "api_adetailer_enable": "启用 ADetailer",
+        "api_adetailer_model": "ADetailer 模型选择",
+        "api_adetailer_prompt": "提示词",
+        "api_adetailer_negative_prompt": "负面提示词",
+        "api_adetailer_confidence": "A1111  -  检测模型置信度阈值 (0~1)\nComfyUI  -  bbox_threshold (0~1)",
+        "api_adetailer_mask_k": "A1111  -  仅保留前 k 个蒙版（0 表示禁用 0-10）\nComfyUI  -  sam_dilation (-512-512)",
+        "api_adetailer_slot_enable": "A1111  -  筛选前 k 个蒙版的方法（按置信度Confidence或面积Area）\nComfyUI  -  Sam model_name/Off",        
+        "api_adetailer_dilate_erode": "A1111  -  蒙版腐蚀 (-) / 膨胀 (+) (-128-128)\nComfyUI  -  bbox_dilation (-512-512)",
+        "api_adetailer_mask_merge_invert": "A1111  -  蒙版合并模式\nComfyUI  -  sam_detection_hint",
+        "api_adetailer_mask_blur": "A1111  -  重绘蒙版模糊度 (0-64)\nComfyUI  -  feather (0-100)",
+        "api_adetailer_denoise": "A1111  -  重绘降噪强度 (0~1)\nComfyUI  -  denoise (0~1)",
+
+        "message_adetailer_comfyui":  "注意：ADetailer ComfyUI需要插件[color=CornflowerBlue]Impact Pack[/color]和[color=CornflowerBlue]Impact Subpack[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/ltdrdata/ComfyUI-Impact-Pack[/color]\n[color=CornflowerBlue]https://github.com/ltdrdata/ComfyUI-Impact-Subpack[/color]", 
+        "message_adetailer_webui": "注意：ADetailer A1111(WebUI) 需要插件 [color=CornflowerBlue]ADetailer[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/Bing-su/adetailer[/color]",
+
         "run_button": "单图生成",
+        "run_button_paused": "单图生成（暂停）",
         "run_random_button": "批量（随机）",
         "run_same_button": "批量（上次）",
-        "run_skip_button": "跳过后续",
-        "run_cancel_button": "取消生成",
+        "run_skip_button": "暂停后续",
+        "run_cancel_button": "取消并清除队列",
         "save_settings_button": "保存设置",
         "load_settings_button": "载入设置",
         
@@ -345,7 +380,11 @@
         "overlay_sec": "秒",
 
         "generate_ai": "等待AI返回题词……",
-        "generate_start": "正在生成{0}/{1}……",
+        "generate_warmup": "正在创建提示词 {0}/{1}……",
+        "generate_start": "{0}\n{1}",
+        "generate_auto_start": "启动生成",
+        "generate_normal": "{0}",
+        "generate_regional": "分区：{0}",
         
         "lora_info": "LoRA信息：",
         "lora_trigger_words": "触发词（热度前10）：",
@@ -411,7 +450,7 @@
         "setup_remote_ai_api_key": "请输入你的远程语言模型API密钥",
         "setup_local_ai_addr": "请输入你的本地语言模型API地址",
 
-        "setup_done": "初始化设置完成，相关配置已经存储为 settings.json\n如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api",        
+        "setup_done": "初始化设置完成，相关配置已经存储为 settings.json\n如果你使用ComfyUI，请在设置中开启Dev Mode\n如果你使用WebUI，请修改webui-user.bat，修改COMMANDLINE_ARGS= --api\n\n重要：请确认高清修复模型是否正确选择，默认的初始化配置可能无法选择正确的模型。",
         "setup_skip_wizard": "是否要跳过后续设置？"        
     }    
   }

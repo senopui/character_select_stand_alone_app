@@ -61,7 +61,7 @@ export async function callback_api_interface(index, selectedValue){
     globalThis.lora.reload();
     globalThis.controlnet.reload();
     globalThis.jsonlist.reload();
-    globalThis.aDetailer.reload();
+    globalThis.aDetailer.clear();
 
     if(globalThis.generate.api_interface.getValue() === 'ComfyUI') {
         globalThis.hifix.colorTransfer.setValue(LANG.api_hf_colortransfer, ['None', 'Mean', 'Lab']);
@@ -145,8 +145,7 @@ export function callback_generate_skip() {
     globalThis.generate.generate_skip.setClickable(false);
     globalThis.generate.skipClicked = true;
 
-    globalThis.globalSettings.generate_auto_start=false;
-    globalThis.generate.queueAutostart.setValue(globalThis.globalSettings.generate_auto_start);
+    setQueueAutoStart(false);
 }
 
 export async function callback_generate_cancel() {
@@ -247,19 +246,21 @@ export function callback_adetailer(trigger)  {
     const LANG = FILES.language[SETTINGS.language];
     const apiInterface = globalThis.generate.api_interface.getValue();
 
-    if(trigger && apiInterface === 'ComfyUI') {        
-        globalThis.overlay.custom.createErrorOverlay(LANG.message_adetailer_comfyui, LANG.message_adetailer_comfyui);
-        globalThis.generate.adetailer.setValue(false);
-        return;
-    }
-
     globalThis.globalSettings.api_adetailer_enable = trigger; 
+    if(trigger && apiInterface === 'ComfyUI') {        
+        globalThis.overlay.custom.createErrorOverlay(LANG.message_adetailer_comfyui, 'https://github.com/ltdrdata/ComfyUI-Impact-Pack\nhttps://github.com/ltdrdata/ComfyUI-Impact-Subpack');
+    }
+    
     if(trigger && apiInterface === 'WebUI') {
         globalThis.overlay.custom.createErrorOverlay(LANG.message_adetailer_webui , 'https://github.com/Bing-su/adetailer');         
     }    
 }
 
-export async function callback_queue_autostart(trigger, isDummy=false){
+export async function callback_queue_autostart(trigger, isDummy=false) {
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
+
     if(isDummy) {
         globalThis.generate.queueAutostart.setValue(trigger);
     } else {
@@ -271,10 +272,30 @@ export async function callback_queue_autostart(trigger, isDummy=false){
         globalThis.generate.cancelClicked = false;
         globalThis.generate.generate_skip.setClickable(true);
         globalThis.generate.generate_cancel.setClickable(true);
+        globalThis.generate.generate_single.setTitle(LANG.run_button);
+    } else {
+        globalThis.generate.generate_single.setTitle(LANG.run_button_paused);
     }
 
     globalThis.globalSettings.generate_auto_start = trigger;
+    globalThis.overlay.buttons.reload();
     if(trigger && globalThis.queueManager.getSlotsCount()>0) {
         await startQueue();
     }
+}
+
+export function setQueueAutoStart(trigger){
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
+
+    if(trigger)
+        globalThis.generate.generate_single.setTitle(LANG.run_button_paused);
+    else 
+        globalThis.generate.generate_single.setTitle(LANG.run_button);
+
+    globalThis.globalSettings.generate_auto_start=trigger;
+    globalThis.generate.queueAutostart.setValue(trigger);
+    globalThis.generate.queueAutostart_dummy.setValue(trigger);
+    globalThis.overlay.buttons.reload();
 }

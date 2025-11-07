@@ -50,39 +50,6 @@ export function setupButtonOverlay() {
     minimizeButton.style.left = '8px';
     minimizeButton.style.boxSizing = 'border-box';
 
-    const runButton = document.querySelector('.myButton-generate-button-single');
-    const runRandomButton = document.querySelector('.myButton-generate-button-batch');
-
-    const clonedRunButton = runButton.cloneNode(true);
-    const clonedRandomButton = runRandomButton.cloneNode(true);
-
-    for (const button of [clonedRunButton, clonedRandomButton]) {
-        button.classList.add('cg-overlay-button');
-        button.style.width = '200px';
-        button.style.height = '36px';
-        button.style.boxSizing = 'border-box';
-        button.style.padding = '10px 15px';
-        button.style.display = 'inline-block';
-        button.style.transition = 'background-color 0.3s ease';
-    }
-
-    clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
-    clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
-
-    clonedRunButton.addEventListener('mouseover', () => {
-        clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getHoverColor();
-    });
-    clonedRunButton.addEventListener('mouseout', () => {
-        clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
-    });
-
-    clonedRandomButton.addEventListener('mouseover', () => {
-        clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getHoverColor();
-    });
-    clonedRandomButton.addEventListener('mouseout', () => {
-        clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
-    });
-
     function preventClickIfDragged(clonedButton, type) {
         let hasMoved = false;
         const MOVE_THRESHOLD = 5;
@@ -116,12 +83,63 @@ export function setupButtonOverlay() {
             document.addEventListener('mouseup', onUp);
         });
     }
+    
+    function createClonedButtons() {
+        const runButton = document.querySelector('.myButton-generate-button-single');
+        const runRandomButton = document.querySelector('.myButton-generate-button-batch');
 
-    preventClickIfDragged(clonedRandomButton, 'batch');
-    preventClickIfDragged(clonedRunButton, 'single');
+        if (!runButton || !runRandomButton) {
+            console.warn('Source buttons not found');
+            return null;
+        }
 
-    buttonContainer.appendChild(clonedRandomButton);
-    buttonContainer.appendChild(clonedRunButton);
+        const clonedRunButton = runButton.cloneNode(true);
+        const clonedRandomButton = runRandomButton.cloneNode(true);
+
+        for (const button of [clonedRunButton, clonedRandomButton]) {
+            button.classList.add('cg-overlay-button');
+            button.style.width = '200px';
+            button.style.height = '36px';
+            button.style.boxSizing = 'border-box';
+            button.style.padding = '10px 15px';
+            button.style.display = 'inline-block';
+            button.style.transition = 'background-color 0.3s ease';
+        }
+
+        const singleDefaultColor = globalThis.generate.generate_single.getDefaultColor();
+        const singleHoverColor = globalThis.generate.generate_single.getHoverColor();
+        const batchDefaultColor = globalThis.generate.generate_batch.getDefaultColor();
+        const batchHoverColor = globalThis.generate.generate_batch.getHoverColor();
+
+        clonedRunButton.style.backgroundColor = singleDefaultColor;
+        clonedRandomButton.style.backgroundColor = batchDefaultColor;
+
+        clonedRunButton.addEventListener('mouseover', () => {
+            clonedRunButton.style.backgroundColor = singleHoverColor;
+        });
+        clonedRunButton.addEventListener('mouseout', () => {
+            clonedRunButton.style.backgroundColor = singleDefaultColor;
+        });
+
+        clonedRandomButton.addEventListener('mouseover', () => {
+            clonedRandomButton.style.backgroundColor = batchHoverColor;
+        });
+        clonedRandomButton.addEventListener('mouseout', () => {
+            clonedRandomButton.style.backgroundColor = batchDefaultColor;
+        });        
+
+        preventClickIfDragged(clonedRandomButton, 'batch');
+        preventClickIfDragged(clonedRunButton, 'single');
+
+        return { clonedRunButton, clonedRandomButton };
+    }
+
+    const initialButtons = createClonedButtons();
+    if (initialButtons) {
+        buttonContainer.appendChild(initialButtons.clonedRandomButton);
+        buttonContainer.appendChild(initialButtons.clonedRunButton);
+    }
+
     buttonOverlay.appendChild(buttonContainer);
     buttonOverlay.appendChild(minimizeButton);
     document.body.appendChild(buttonOverlay);
@@ -262,48 +280,17 @@ export function setupButtonOverlay() {
     const observer = new MutationObserver(toggleButtonOverlayVisibility);
     observer.observe(document.body, { childList: true, subtree: false });
 
-
     return { 
-        reload: () =>{
+        reload: () => {            
             buttonContainer.innerHTML = '';
 
-            const runButton = document.querySelector('.myButton-generate-button-single');
-            const runRandomButton = document.querySelector('.myButton-generate-button-batch');
-            const clonedRunButton = runButton.cloneNode(true);
-            const clonedRandomButton = runRandomButton.cloneNode(true);
-
-            for (const button of [clonedRunButton, clonedRandomButton]) {
-                button.classList.add('cg-overlay-button');
-                button.style.width = '200px';
-                button.style.height = '36px';
-                button.style.boxSizing = 'border-box';
-                button.style.padding = '10px 15px';
-                button.style.display = 'inline-block';
-                button.style.transition = 'background-color 0.3s ease';
+            const newButtons = createClonedButtons();            
+            if (newButtons) {
+                buttonContainer.appendChild(newButtons.clonedRandomButton);
+                buttonContainer.appendChild(newButtons.clonedRunButton);
+            } else {
+                console.error('Failed to reload buttons - source buttons not found');
             }
-
-            clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
-            clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
-
-            clonedRunButton.addEventListener('mouseover', () => {
-                clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getHoverColor();
-            });
-            clonedRunButton.addEventListener('mouseout', () => {
-                clonedRunButton.style.backgroundColor = globalThis.generate.generate_single.getDefaultColor();
-            });
-
-            clonedRandomButton.addEventListener('mouseover', () => {
-                clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getHoverColor();
-            });
-            clonedRandomButton.addEventListener('mouseout', () => {
-                clonedRandomButton.style.backgroundColor = globalThis.generate.generate_batch.getDefaultColor();
-            });
-
-            preventClickIfDragged(clonedRandomButton, 'batch');
-            preventClickIfDragged(clonedRunButton, 'single');
-
-            buttonContainer.appendChild(clonedRandomButton);
-            buttonContainer.appendChild(clonedRunButton);
         }
     };
 }

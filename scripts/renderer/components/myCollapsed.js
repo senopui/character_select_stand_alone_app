@@ -130,6 +130,7 @@ export async function reloadFiles(){
         globalThis.cachedFiles.loraList = await sendWebSocketMessage({ type: 'API', method: 'getLoRAList', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.controlnetList = await sendWebSocketMessage({ type: 'API', method: 'getControlNetList', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.upscalerList = await sendWebSocketMessage({ type: 'API', method: 'getUpscalerList', params: [SETTINGS.api_interface] });
+        globalThis.cachedFiles.aDetailerList = await sendWebSocketMessage({ type: 'API', method: 'getADetailerList', params: [SETTINGS.api_interface] });
         globalThis.cachedFiles.settingList = await sendWebSocketMessage({ type: 'API', method: 'updateSettingFiles' });
         globalThis.cachedFiles.imageTaggerModels = await sendWebSocketMessage({ type: 'API', method: 'getImageTaggerModels' });
         if (SETTINGS.api_interface === 'WebUI')
@@ -144,22 +145,21 @@ export async function reloadFiles(){
         globalThis.cachedFiles.loraList = await globalThis.api.getLoRAList(SETTINGS.api_interface);
         globalThis.cachedFiles.controlnetList = await globalThis.api.getControlNetList(SETTINGS.api_interface);
         globalThis.cachedFiles.upscalerList = await globalThis.api.getUpscalerList(SETTINGS.api_interface);
+        globalThis.cachedFiles.aDetailerList = await globalThis.api.getADetailerList(SETTINGS.api_interface);
         globalThis.cachedFiles.settingList = await globalThis.api.updateSettingFiles();
         globalThis.cachedFiles.imageTaggerModels = await globalThis.api.getImageTaggerModels();
         if (SETTINGS.api_interface === 'WebUI') {
             await globalThis.api.resetModelListsWebUI();
         }
     }
-    
-    // reset few list for A1111
+        
     if (SETTINGS.api_interface === 'WebUI') {
+        // reset few list for A1111
         globalThis.cachedFiles.controlnetProcessorListWebUI = 'none';
-        globalThis.cachedFiles.aDetailerListWebUI = 'none';
-        globalThis.cachedFiles.upscalerListWebUI = 'none';        
-        setADetailerModelList(SETTINGS.api_interface, true);
+        globalThis.cachedFiles.upscalerListWebUI = 'none';
+        setADetailerModelList(globalThis.cachedFiles.aDetailerList, true);
     } else {
-        // Flush ADetailer since ComfyUI is not support
-        setADetailerModelList(null, true);
+        setADetailerModelList(globalThis.cachedFiles.aDetailerList);
     }
 
     globalThis.dropdownList.model.setValue(LANG.api_model_file_select, globalThis.cachedFiles.modelList);

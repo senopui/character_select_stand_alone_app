@@ -88,13 +88,7 @@ const defaultSettings = {
     "api_hf_enable": false,
     "api_hf_scale": 1.5,
     "api_hf_denoise": 0.4,
-    "api_hf_upscaler_list": [
-        "Latent(W)","Latent (antialiased)(W)","Latent (bicubic antialiased)(W)","Latent (nearest-exact)(W)",
-        "ESRGAN_4x(W)", "R-ESRGAN 2x+(W)", "R-ESRGAN 4x+(W)", "R-ESRGAN 4x+ Anime6B(W)", 
-        "Latent (nearest-exact)(C)","Latent (bilinear)(C)","Latent (area)(C)","Latent (bicubic)(C)","Latent (bislerp)(C)",
-        "4x_NMKD-Siax_200k(C)", "8x_NMKD-Superscale_150000_G(C)", "4x-AnimeSharp(C)", "4x-UltraSharp(C)", "ESRGAN_4x(C)","RealESRGAN_x2(C)","RealESRGAN_x4(C)","RealESRGAN_x4plus_anime_6B(C)"
-    ],
-    "api_hf_upscaler_selected": "4x-UltraSharp(C)",
+    "api_hf_upscaler_selected": "RealESRGAN_x4plus_anime_6B.pth",
     "api_hf_colortransfer": "Mean",
     "api_hf_random_seed": false,
     "api_hf_steps": 20,

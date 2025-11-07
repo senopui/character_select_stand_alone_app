@@ -50,10 +50,11 @@ function processImage(imageData) {
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function applyControlnet(workflow, controlnet, workflowInfo){
   let {startIndex, now_pos, now_neg, refiner, ref_pos, ref_neg, hiresfix} = workflowInfo;
+  let index = startIndex;
 
   if (Array.isArray(controlnet)) {
     let ipaActived = false;
-    let index = startIndex + 1;
+    index = index + 1;
     for( const slot of controlnet) {
       // skip missing
       if(slot.postModel === 'none') {
@@ -387,6 +388,146 @@ function applyControlnet(workflow, controlnet, workflowInfo){
         continue;
       }
     }
+  }
+
+  return {workflowCN:workflow, indexCN:index};
+}
+
+function applyADetailer(workflow, adetailers, workflowInfo){
+  const {startIndex, refiner, hiresfix} = workflowInfo;
+  let index =startIndex + 1;
+  const modelUSE = refiner?43:45; // 45: default   43: refiner
+  let imageVAED = hiresfix?28:6;
+  const randomSeed = Math.floor(Math.random() * 4294967296); // 4294967296 = 2^32
+
+  for(const adetailer of adetailers) {
+    if(adetailer.mask_filter_method === 'Off')
+      continue;    
+
+    workflow[`${index}`] = {
+      "inputs": {
+        "model_name": adetailer.mask_filter_method,
+        "device_mode": "AUTO"
+      },
+      "class_type": "SAMLoader",
+      "_meta": {
+        "title": "SAMLoader (Impact)"
+      }
+    };
+
+    workflow[`${index + 1}`] = {
+      "inputs": {
+        "model_name": adetailer.model
+      },
+      "class_type": "UltralyticsDetectorProvider",
+      "_meta": {
+        "title": "UltralyticsDetectorProvider"
+      }
+    };
+
+    workflow[`${index + 2}`] = {
+      "inputs": {
+        "text": adetailer.prompt,
+        "clip": [
+          `${modelUSE}`,
+          1
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    };
+
+    workflow[`${index + 3}`] = {
+      "inputs": {
+        "text": adetailer.negative_prompt,
+        "clip": [
+          `${modelUSE}`,
+          1
+        ]
+      },
+      "class_type": "CLIPTextEncode",
+      "_meta": {
+        "title": "CLIP Text Encode (Prompt)"
+      }
+    };
+
+    workflow[`${index + 4}`] = {
+      "inputs": {
+        "guide_size": 512,
+        "guide_size_for": true,
+        "max_size": 1024,
+        "seed": randomSeed,
+        "steps": 20,
+        "cfg": 8,
+        "sampler_name": "euler_ancestral",
+        "scheduler": "normal",
+        "denoise": adetailer.denoise,
+        "feather": adetailer.mask_blur,
+        "noise_mask": true,
+        "force_inpaint": true,
+        "bbox_threshold": adetailer.confidence,
+        "bbox_dilation": adetailer.dilate_erode,
+        "bbox_crop_factor": 3,
+        "sam_detection_hint": `${adetailer.mask_merge_invert}`,
+        "sam_dilation": 0,
+        "sam_threshold": 0.93,
+        "sam_bbox_expansion": 0,
+        "sam_mask_hint_threshold": 0.7,
+        "sam_mask_hint_use_negative": "False",
+        "drop_size": 10,
+        "wildcard": "",
+        "cycle": 1,
+        "inpaint_model": false,
+        "noise_mask_feather": 20,
+        "tiled_encode": false,
+        "tiled_decode": false,
+        "image": [
+          `${imageVAED}`,
+          0
+        ],
+        "model": [
+          `${modelUSE}`,
+          0
+        ],
+        "clip": [
+          `${modelUSE}`,
+          1
+        ],
+        "vae": [
+          `${modelUSE}`,
+          2
+        ],
+        "positive": [
+          `${index + 2}`,
+          0
+        ],
+        "negative": [
+          `${index + 3}`,
+          0
+        ],
+        "bbox_detector": [
+          `${index + 1}`,
+          0
+        ],
+        "sam_model_opt": [
+          `${index}`,
+          0
+        ]
+      },
+      "class_type": "FaceDetailer",
+      "_meta": {
+        "title": "FaceDetailer"
+      }
+    };
+
+    // set output to imagesaver
+    workflow["29"].inputs.images = [`${index + 4}`, 0];
+
+    // move next
+    imageVAED = index + 4;
+    index = index + 4 + 1;    
   }
 
   return workflow;
@@ -758,7 +899,9 @@ class ComfyUI {
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   createWorkflow(generateData) {
-    const {addr, auth, uuid, model, vpred, positive, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, controlnet} = generateData;
+    const {addr, auth, uuid, model, vpred, positive, negative, 
+      width, height, cfg, step, seed, sampler, scheduler, refresh, 
+      hifix, refiner, controlnet, adetailer} = generateData;
     this.addr = addr;
     this.refresh = refresh;
     this.auth = auth;
@@ -883,7 +1026,7 @@ class ComfyUI {
     }
 
     // default pos and neg to ksampler
-    const workflowInfo = {
+    let workflowInfo = {
       startIndex: 46,
       now_pos:    2,
       now_neg:    3,
@@ -892,13 +1035,22 @@ class ComfyUI {
       ref_neg:    40,
       hiresfix:   hifix.enable
     };
-    workflow = applyControlnet(workflow, controlnet, workflowInfo);
+    const { workflowCN, indexCN } = applyControlnet(workflow, controlnet, workflowInfo);
+
+    workflowInfo = {
+      startIndex: indexCN,
+      refiner:    refiner.enable,
+      hiresfix:   hifix.enable
+    };
+    workflow = applyADetailer(workflowCN, adetailer, workflowInfo);
     return workflow;
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
   createWorkflowRegional(generateData) {      
-    const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional, controlnet} = generateData;
+    const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, 
+      width, height, cfg, step, seed, sampler, scheduler, refresh, 
+      hifix, refiner, regional, controlnet, adetailer} = generateData;
     this.addr = addr;
     this.refresh = refresh;
     this.auth = auth;
@@ -1041,7 +1193,7 @@ class ComfyUI {
     }
 
     // default pos and neg to ksampler
-    const workflowInfo = {
+    let workflowInfo = {
       startIndex: 58,
       now_pos:    53,
       now_neg:    3,
@@ -1050,7 +1202,14 @@ class ComfyUI {
       ref_neg:    40,
       hiresfix:   hifix.enable
     };
-    workflow = applyControlnet(workflow, controlnet, workflowInfo);                                         
+    const { workflowCN, indexCN } = applyControlnet(workflow, controlnet, workflowInfo);
+
+    workflowInfo = {
+      startIndex: indexCN,
+      refiner:    refiner.enable,
+      hiresfix:   hifix.enable
+    };
+    workflow = applyADetailer(workflowCN, adetailer, workflowInfo);
     return workflow;
   }
 

@@ -1,3 +1,10 @@
+2025.11.06 v1.16.1       
+Add `ADetailer` for ComfyUI #49         
+Add more clear `Pause marker` when `Enable Generate` unchecked      
+Adjust tabs order       
+Bugs fix      
+
+
 2025.11.06 v1.16.0       
 Add `ADetailer` for A1111(WebUI/Forge Neo) #49       
 Add `Queue Manager` slot #48       

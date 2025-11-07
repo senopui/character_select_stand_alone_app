@@ -14,7 +14,7 @@ import { WebSocketServer } from 'ws';
 import { getGlobalSettings, getSettingFiles, updateSettingFiles, loadSettings, saveSettings } from '../../scripts/main/globalSettings.js';
 import { getCachedFilesWithoutThumb, getCharacterThumb } from '../../scripts/main/cachedFiles.js';
 import { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updateModelAndLoRAList, getControlNetList,
-    getUpscalerList } from '../../scripts/main/modelList.js';
+    getUpscalerList, getADetailerList } from '../../scripts/main/modelList.js';
 import { updateWildcards, loadWildcard } from '../../scripts/main/wildCards.js';
 import { tagReload, tagGet } from '../../scripts/main/tagAutoComplete_backend.js';
 import { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, openWsComfyUI, closeWsComfyUI, cancelComfyUI } from '../../scripts/main/generate_backend_comfyui.js';
@@ -396,6 +396,7 @@ const methodHandlers = {
   'getLoRAList': (params)=> getLoRAList(...params),
   'getControlNetList': (params)=> getControlNetList(...params),
   'getUpscalerList': (params)=> getUpscalerList(...params),
+  'getADetailerList': (params)=> getADetailerList(...params),
   'getImageTaggerModels': ()=> getImageTaggerModels(),
   'updateModelList': (params)=> updateModelAndLoRAList(...params),
 
