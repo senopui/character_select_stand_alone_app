@@ -36,7 +36,7 @@ npm start
 ```
 
 > [!TIP]
-> *One-Click package v1.15.2*    
+> *One-Click package v1.16.1*    
 > The full package [embeded_env_for_SAA](https://huggingface.co/datasets/flagrantia/character_select_stand_alone_app/resolve/main/embeded_env_for_SAA.zip)      
 
 ## Update
@@ -154,13 +154,6 @@ Also support check LoRA info by click the 'i' button in LoRA Slot. And, if there
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/loraSlot.png" width=45%>   
 
-## JSON/CSV List
-Support `*.json` and `*.csv` files, just drag and drop (or click `Add` then `Paste`) those file info `Image Info` window. File format please refer to `wai_characters.csv` and `wai_tag_assist.json`, try drag them into SAA.     
-`__Random__`, randomly selects an item from the list without a seed bound, works for `Single` and `Batch (Random)`  generate mode.          
-`__Enumerate__`, enumerates every item one by one and only works in `Batch (Random)` mode, in `Single` it downgrade to `__Random__`             
-
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/json-csv.png" width=35%>   
-
 ## ADetailer
 > [!CAUTION]
 > Check before you download any .pt file from unknown/untrusted site!
@@ -189,6 +182,13 @@ You can `delete` or `view details` of tasks within the queue. Deleting the first
 *Recommended that the length of the queue should not exceed 10,000.*         
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/queueManager.png" width=35%>   
+
+## JSON/CSV List
+Support `*.json` and `*.csv` files, just drag and drop (or click `Add` then `Paste`) those file info `Image Info` window. File format please refer to `wai_characters.csv` and `wai_tag_assist.json`, try drag them into SAA.     
+`__Random__`, randomly selects an item from the list without a seed bound, works for `Single` and `Batch (Random)`  generate mode.          
+`__Enumerate__`, enumerates every item one by one and only works in `Batch (Random)` mode, in `Single` it downgrade to `__Random__`             
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/json-csv.png" width=35%>   
 
 ## Wildcards    
 Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wildcards`      
