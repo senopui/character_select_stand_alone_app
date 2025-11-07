@@ -195,11 +195,11 @@ Supports `*.txt` wildcard files, copy your wildcards into `resources\app\data\wi
 By default, wildcards are randomly selected using the current seed. If `wildcard random seed` is `Checked`, a new random seed will be generated for every selection every time.      
 **Subfolder is not supported**     
 
-Random string selector with square bracket parsing #47 #50      
-'''
+In case you didn't like wildcards file or json/csv wildcard, try the following in your prompts:            
+```
 { standing | sitting | on stomach | on back }
 { red | green | blue | blonde } { {long | short} hair | eyes}
-'''
+```
 
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
