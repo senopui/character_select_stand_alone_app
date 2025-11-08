@@ -1,0 +1,46 @@
+name: Build Windows x64 Release
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Windows x64 package
+        run: npm run package
+      
+      - name: Create ZIP archive
+        run: |
+          cd release
+          Compress-Archive -Path saa-win32-x64 -DestinationPath saa-win32-x64.zip
+        shell: pwsh
+      
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: saa-win32-x64
+          path: release/saa-win32-x64.zip
+      
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release/saa-win32-x64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
