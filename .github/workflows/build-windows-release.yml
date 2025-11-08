@@ -9,6 +9,9 @@ name: Build Windows x64 Release
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
+      packages: read
 
     steps:
       - name: Checkout code
