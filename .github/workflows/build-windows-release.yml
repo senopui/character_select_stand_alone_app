@@ -23,6 +23,24 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Verify package-lock.json is up-to-date
+        run: |
+          if (-not (Test-Path package-lock.json)) {
+            Write-Error "package-lock.json is missing"
+            exit 1
+          }
+          Copy-Item package-lock.json package-lock.json.bak
+          npm install --package-lock-only
+          $diff = Compare-Object `
+            (Get-Content package-lock.json) `
+            (Get-Content package-lock.json.bak)
+          Remove-Item package-lock.json.bak
+          if ($diff) {
+            Write-Error "package-lock.json is not in sync with package.json"
+            exit 1
+          }
+        shell: pwsh
+
       - name: Install dependencies
         run: npm ci
 
@@ -32,20 +50,30 @@ jobs:
       - name: Create ZIP archive
         run: |
           cd release
-          Compress-Archive -Path saa-win32-x64 `
-            -DestinationPath saa-win32-x64.zip
+          $dir = Get-ChildItem -Directory -Filter "saa-win32-*" `
+            | Select-Object -First 1
+          if (-not $dir) {
+            Write-Error "No output directory matching 'saa-win32-*' found"
+            exit 1
+          }
+          Compress-Archive -Path $dir.Name `
+            -DestinationPath "$($dir.Name).zip"
         shell: pwsh
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
           name: saa-win32-x64
-          path: release/saa-win32-x64.zip
+          path: release/saa-win32-*.zip
 
+      # This step uploads the artifact to the GitHub Release only when
+      # triggered by a 'release' event. When triggered manually via
+      # 'workflow_dispatch', the artifact is only uploaded to the
+      # workflow run above.
       - name: Upload to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: release/saa-win32-x64.zip
+          files: release/saa-win32-*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
