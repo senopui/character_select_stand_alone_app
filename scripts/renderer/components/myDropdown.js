@@ -448,6 +448,13 @@ function createDropdown({
             }
             return 1;
         },
+
+        setTextValue: function(index, value) {
+            if (enableNumberInput && numberInputs[index]) {
+                const parsedNumber = Number.parseFloat(value) || 1;
+                numberInputs[index].value =  (parsedNumber===1)?"1.0":parsedNumber;
+            }
+        },
         
         setValueOnly: function(trigger) {
             valueOnly = trigger;
@@ -717,7 +724,7 @@ function createDropdown({
             numberInput.addEventListener('blur', (e) => {
             let value = e.target.value.trim();
             if (value === '' || !/^\d*\.?\d*$/.test(value)) {
-                value = '1.0'; 
+                value = '1'; 
             } else {
                 let numValue = Number.parseFloat(value);
                 if (Number.isNaN(numValue) || numValue < 0.1) {
