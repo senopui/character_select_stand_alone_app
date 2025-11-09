@@ -214,11 +214,20 @@ export function updateSettings() {
     globalThis.generate.queueAutostart_dummy.setValue(SETTINGS.generate_auto_start);
 
     globalThis.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
+    globalThis.characterList.setTextValue(0, SETTINGS.weights4dropdownlist[4]);
+    globalThis.characterList.setTextValue(1, SETTINGS.weights4dropdownlist[5]);
+    globalThis.characterList.setTextValue(2, SETTINGS.weights4dropdownlist[6]);
     globalThis.characterListRegional.updateDefaults(SETTINGS.character_left, SETTINGS.character_right, 'None', 'None');
+    globalThis.characterListRegional.setTextValue(0, SETTINGS.weights4dropdownlist[7]);
+    globalThis.characterListRegional.setTextValue(1, SETTINGS.weights4dropdownlist[8]);
     globalThis.generate.tag_assist.setValue(SETTINGS.tag_assist);
     globalThis.generate.wildcard_random.setValue(SETTINGS.wildcard_random);
 
     globalThis.viewList.updateDefaults(SETTINGS.view_angle, SETTINGS.view_camera, SETTINGS.view_background, SETTINGS.view_style);
+    globalThis.viewList.setTextValue(0, SETTINGS.weights4dropdownlist[0]);  // tag_angle
+    globalThis.viewList.setTextValue(1, SETTINGS.weights4dropdownlist[1]);  // tag_camera
+    globalThis.viewList.setTextValue(2, SETTINGS.weights4dropdownlist[2]);  // tag_background
+    globalThis.viewList.setTextValue(3, SETTINGS.weights4dropdownlist[3]);  // tag_style
 
     // need more careful for sampler and scheduler due to different list
     if (SETTINGS.api_interface==='ComfyUI') {

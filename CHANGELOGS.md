@@ -1,3 +1,8 @@
+2025.11.09 v1.16.4       
+Bug fix       
+ Views and Characters weight not stored in settings file       
+ 
+
 2025.11.08 v1.16.3       
 Bug fix      
  A1111/Forge Neo - ADetailer/Controlnet always on          
