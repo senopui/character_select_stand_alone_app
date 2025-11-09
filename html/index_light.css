@@ -27,7 +27,6 @@ body {
     filter: invert(30%) sepia(50%) saturate(200%) hue-rotate(10deg) brightness(95%) contrast(100%); /* Soft coral */
     opacity: 0.6;
 }
-
 #settings-save-icon:hover, #model-refresh-icon:hover, 
 #global-refresh-icon:hover, #global-settings-swap-layout-icon:hover, #global-settings-theme-icon:hover {
     opacity: 1;
@@ -304,30 +303,19 @@ body {
 
 #image-infobox-toggle, #gallery-main-toggle,
 #gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #controlnet-toggle, 
-#regional-condition-toggle, #add-lora-toggle, #jsonlist-toggle, 
-#adetailer-toggle, #queue-toggle, #system-settings-toggle {
+#regional-condition-toggle, #add-lora-toggle, #system-settings-toggle, #jsonlist-toggle, 
+#adetailer-toggle, #queue-toggle {
     margin-top: 2px;
     width: 12px;
     height: 12px;
     order: 2;
     position: static;
     opacity: 0.4;
+    background: #E8B090; /* Soft coral */
+    border: 2px solid #E8B090; /* Soft coral */
     border-radius: 8px;
     z-index: 1000;
     transition: opacity 0.3s ease;
-}
-
-#image-infobox-toggle, #gallery-main-toggle,
-#gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #controlnet-toggle, 
-#regional-condition-toggle, #add-lora-toggle, #jsonlist-toggle, 
-#adetailer-toggle, #queue-toggle {
-    background: #E8B090; /* Soft coral */
-    border: 2px solid #E8B090; /* Soft coral */
-}
-
-#system-settings-toggle {
-    background: #1ce088;
-    border: 2px solid #1ce088;
 }
 
 #image-infobox-toggle:hover, #gallery-main-toggle:hover,

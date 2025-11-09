@@ -105,10 +105,6 @@ const defaultSettings = {
     "lora_slot": [],
 
     "generate_auto_start": true,
-    // Array indices mapping: [0-3] = view weights (angle, camera, background, style),
-    //                        [4-6] = character weights (c1, c2, c3),
-    //                        [7-8] = regional character weights (r1, r2)
-    "weights4dropdownlist": [1,1,1,1, 1,1,1, 1,1], 
 }
 
 function setupGlobalSettings() { 
