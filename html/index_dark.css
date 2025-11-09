@@ -304,19 +304,30 @@ body {
 
 #image-infobox-toggle, #gallery-main-toggle,
 #gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #controlnet-toggle, 
-#regional-condition-toggle, #add-lora-toggle, #system-settings-toggle, #jsonlist-toggle, 
-#adetailer-toggle, #queue-toggle {
+#regional-condition-toggle, #add-lora-toggle, #jsonlist-toggle, 
+#adetailer-toggle, #queue-toggle, #system-settings-toggle {
     margin-top: 2px;
     width: 12px;
     height: 12px;
     order: 2;
-    position: static; 
-    opacity: 0.4; 
-    background: #1ce088;
-    border: 2px solid #1ce088;
+    position: static;
+    opacity: 0.4;
     border-radius: 8px;
     z-index: 1000;
     transition: opacity 0.3s ease;
+}
+
+#image-infobox-toggle, #gallery-main-toggle,
+#gallery-thumb-toggle, #highres-fix-toggle, #refiner-toggle, #controlnet-toggle, 
+#regional-condition-toggle, #add-lora-toggle, #jsonlist-toggle, 
+#adetailer-toggle, #queue-toggle {
+    background: #1ce088;
+    border: 2px solid #1ce088;
+}
+
+#system-settings-toggle {
+    background: #E8B090;
+    border: 2px solid #E8B090;
 }
 
 #image-infobox-toggle:hover, #gallery-main-toggle:hover,

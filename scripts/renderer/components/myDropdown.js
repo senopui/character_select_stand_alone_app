@@ -448,6 +448,13 @@ function createDropdown({
             }
             return 1;
         },
+
+        setTextValue: function(index, value) {
+            if (enableNumberInput && numberInputs[index]) {
+                const parsedNumber = Number.parseFloat(value) || 1;
+                numberInputs[index].value =  (parsedNumber===1)?"1.0":parsedNumber;
+            }
+        },
         
         setValueOnly: function(trigger) {
             valueOnly = trigger;
