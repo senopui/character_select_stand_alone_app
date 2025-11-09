@@ -142,7 +142,7 @@ export function setupImageUploadOverlay() {
             showImagePreview(file);
             displayFormattedMetadata(metadata, fallbackMetadata);
         } catch (err) {
-            console.error('Failed to process pasted image metadata:', err);            
+            console.error('Failed to process pasted image metadata:', err);
             showImagePreview(file);
             displayFormattedMetadata(fallbackMetadata);
         }
@@ -254,8 +254,8 @@ export function setupImageUploadOverlay() {
                     showImagePreview(file);
                     displayFormattedMetadata(metadata, fallbackMetadata);
                 } catch (err) {
-                    console.error('Failed to process image metadata:', err);                    
-                    showImagePreview(file);                    
+                    console.error('Failed to process image metadata:', err);
+                    showImagePreview(file);
                     displayFormattedMetadata(fallbackMetadata);
                 }
             } else if (files[0].type === `application/json` 
@@ -442,7 +442,7 @@ export function setupImageUploadOverlay() {
         if (parsedMetadata.positivePrompt) {
             metadataText += `\nPositive prompt: ${parsedMetadata.positivePrompt}\n`;
         } else if (!parsedMetadata.error) {
-            metadataText += '\nNo prompt metadata found\n';         
+            metadataText += '\nNo prompt metadata found\n';
         }
         
         if (parsedMetadata.negativePrompt) {

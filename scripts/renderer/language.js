@@ -215,6 +215,12 @@ export function updateSettings() {
 
     globalThis.characterList.updateDefaults(SETTINGS.character1, SETTINGS.character2, SETTINGS.character3, 'None');
     // Ensure weights4dropdownlist is present and has at least 9 elements
+    // The array stores weight values for 9 dropdown number inputs:
+    // [0-3] = view weights (angle, camera, background, style)
+    // [4-6] = character weights (c1, c2, c3)
+    // [7-8] = regional character weights (r1, r2)
+    // If the array is missing or too short (e.g., from older settings files),
+    // fall back to default weights of 1 for all elements.
     const DEFAULT_WEIGHTS = [1,1,1,1,1,1,1,1,1];
     const weights = Array.isArray(SETTINGS.weights4dropdownlist) && SETTINGS.weights4dropdownlist.length >= 9
         ? SETTINGS.weights4dropdownlist
