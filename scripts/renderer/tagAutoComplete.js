@@ -182,6 +182,7 @@ export function setupSuggestionSystem() {
                 suggestionBox.style.display = 'none';
                 return;
             }
+            wordToSend = wordToSend.replaceAll(' ', '_');
             lastWordSent = wordToSend;
 
             try {            
