@@ -130,19 +130,19 @@ export function setupImageUploadOverlay() {
         const file = item.getAsFile();
         if (!file) return false;
         cachedImage = file;
-        const fallbackMetadata = {
-            fileName: file.name || 'pasted_image.png',
-            fileSize: file.size,
-            fileType: file.type,
-            lastModified: file.lastModified || Date.now(),
-            error: 'Metadata extraction failed'
-        };
         try {
             const metadata = await extractImageMetadata(file);
             showImagePreview(file);
-            displayFormattedMetadata(metadata, fallbackMetadata);
+            displayFormattedMetadata(metadata);
         } catch (err) {
             console.error('Failed to process pasted image metadata:', err);
+            const fallbackMetadata = {
+                fileName: file.name || 'pasted_image.png',
+                fileSize: file.size,
+                fileType: file.type,
+                lastModified: file.lastModified || Date.now(),
+                error: 'Metadata extraction failed'
+            };
             showImagePreview(file);
             displayFormattedMetadata(fallbackMetadata);
         }
@@ -242,20 +242,20 @@ export function setupImageUploadOverlay() {
             if(files[0].type.startsWith('image/')) {
                 const file = files[0];
                 cachedImage = file;
-                const fallbackMetadata = {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type,
-                    lastModified: file.lastModified,
-                    error: 'Metadata extraction failed'
-                };
                 try {
                     const metadata = await extractImageMetadata(file);                    
                     showImagePreview(file);
-                    displayFormattedMetadata(metadata, fallbackMetadata);
+                    displayFormattedMetadata(metadata);
                 } catch (err) {
                     console.error('Failed to process image metadata:', err);
-                    showImagePreview(file);
+                    const fallbackMetadata = {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type,
+                        lastModified: file.lastModified,
+                        error: 'Metadata extraction failed'
+                    };
+                    showImagePreview(file);                    
                     displayFormattedMetadata(fallbackMetadata);
                 }
             } else if (files[0].type === `application/json` 
@@ -404,7 +404,7 @@ export function setupImageUploadOverlay() {
         globalThis.generate.height.setValue(extractedData.height);    
     }
 
-    function displayFormattedMetadata(metadata, fallbackMetadata=null) {
+    function displayFormattedMetadata(metadata) {
         const apiInterface = globalThis.generate.api_interface.getValue();
         const parsedMetadata = parseGenerationParameters(metadata);
         globalThis.currentImageMetadata = parsedMetadata;
@@ -434,9 +434,6 @@ export function setupImageUploadOverlay() {
         metadataText += `File name: ${parsedMetadata.fileName}\n`;
         if (parsedMetadata.width && parsedMetadata.height) {
             metadataText += `Size: ${parsedMetadata.width}x${parsedMetadata.height}\n`;
-        } else if (fallbackMetadata) {
-            metadataText += `Size: ${(fallbackMetadata.fileSize/1024).toFixed(2)} kb\n`;
-            metadataText += `Type: ${fallbackMetadata.fileType}\n`;
         }
         
         if (parsedMetadata.positivePrompt) {

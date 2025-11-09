@@ -10,21 +10,19 @@ import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 export async function callback_mySettingList(index, selectedValue) {    
     if(!globalThis.initialized)
         return;
-    
+
+    console.log('Loading settings file:', selectedValue);
     const lastApiInterface = globalThis.globalSettings.api_interface;
+
     const value = selectedValue[0];
-    console.log('Loading settings file:', value);
     const old_css = globalThis.globalSettings.css_style;
     setBlur();
     globalThis.initialized = false;
-    let globalSettings;
     if (globalThis.inBrowser) {
-        globalSettings = await sendWebSocketMessage({ type: 'API', method: 'loadSettingFile', params: [value] });
+        globalThis.globalSettings = await sendWebSocketMessage({ type: 'API', method: 'loadSettingFile', params: [value] });
     } else {
-        globalSettings = await globalThis.api.loadSettingFile(value);
-    }    
-    globalThis.globalSettings = structuredClone(globalSettings);
-
+        globalThis.globalSettings = await globalThis.api.loadSettingFile(value);
+    }
     doSwap(globalThis.globalSettings.rightToleft);    
     await reloadFiles()
     updateLanguage(true, globalThis.inBrowser); 
