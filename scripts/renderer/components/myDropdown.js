@@ -724,7 +724,7 @@ function createDropdown({
             numberInput.addEventListener('blur', (e) => {
             let value = e.target.value.trim();
             if (value === '' || !/^\d*\.?\d*$/.test(value)) {
-                value = '1'; 
+                value = '1.0'; 
             } else {
                 let numValue = Number.parseFloat(value);
                 if (Number.isNaN(numValue) || numValue < 0.1) {
