@@ -130,19 +130,19 @@ export function setupImageUploadOverlay() {
         const file = item.getAsFile();
         if (!file) return false;
         cachedImage = file;
+        const fallbackMetadata = {
+            fileName: file.name || 'pasted_image.png',
+            fileSize: file.size,
+            fileType: file.type,
+            lastModified: file.lastModified || Date.now(),
+            error: 'Metadata extraction failed'
+        };
         try {
             const metadata = await extractImageMetadata(file);
             showImagePreview(file);
-            displayFormattedMetadata(metadata);
+            displayFormattedMetadata(metadata, fallbackMetadata);
         } catch (err) {
-            console.error('Failed to process pasted image metadata:', err);
-            const fallbackMetadata = {
-                fileName: file.name || 'pasted_image.png',
-                fileSize: file.size,
-                fileType: file.type,
-                lastModified: file.lastModified || Date.now(),
-                error: 'Metadata extraction failed'
-            };
+            console.error('Failed to process pasted image metadata:', err);            
             showImagePreview(file);
             displayFormattedMetadata(fallbackMetadata);
         }
@@ -242,19 +242,19 @@ export function setupImageUploadOverlay() {
             if(files[0].type.startsWith('image/')) {
                 const file = files[0];
                 cachedImage = file;
+                const fallbackMetadata = {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    fileType: file.type,
+                    lastModified: file.lastModified,
+                    error: 'Metadata extraction failed'
+                };
                 try {
                     const metadata = await extractImageMetadata(file);                    
                     showImagePreview(file);
-                    displayFormattedMetadata(metadata);
+                    displayFormattedMetadata(metadata, fallbackMetadata);
                 } catch (err) {
-                    console.error('Failed to process image metadata:', err);
-                    const fallbackMetadata = {
-                        fileName: file.name,
-                        fileSize: file.size,
-                        fileType: file.type,
-                        lastModified: file.lastModified,
-                        error: 'Metadata extraction failed'
-                    };
+                    console.error('Failed to process image metadata:', err);                    
                     showImagePreview(file);                    
                     displayFormattedMetadata(fallbackMetadata);
                 }
@@ -404,7 +404,7 @@ export function setupImageUploadOverlay() {
         globalThis.generate.height.setValue(extractedData.height);    
     }
 
-    function displayFormattedMetadata(metadata) {
+    function displayFormattedMetadata(metadata, fallbackMetadata=null) {
         const apiInterface = globalThis.generate.api_interface.getValue();
         const parsedMetadata = parseGenerationParameters(metadata);
         globalThis.currentImageMetadata = parsedMetadata;
@@ -434,12 +434,15 @@ export function setupImageUploadOverlay() {
         metadataText += `File name: ${parsedMetadata.fileName}\n`;
         if (parsedMetadata.width && parsedMetadata.height) {
             metadataText += `Size: ${parsedMetadata.width}x${parsedMetadata.height}\n`;
+        } else if (fallbackMetadata) {
+            metadataText += `Size: ${Math.round(fallbackMetadata.fileSize/1024, 2)} kb\n`;
+            metadataText += `Type: ${fallbackMetadata.fileType}\n`;
         }
         
         if (parsedMetadata.positivePrompt) {
             metadataText += `\nPositive prompt: ${parsedMetadata.positivePrompt}\n`;
         } else if (!parsedMetadata.error) {
-            metadataText += '\nNo prompt metadata found\n';
+            metadataText += '\nNo prompt metadata found\n';         
         }
         
         if (parsedMetadata.negativePrompt) {

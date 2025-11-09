@@ -105,6 +105,8 @@ const defaultSettings = {
     "lora_slot": [],
 
     "generate_auto_start": true,
+    //4:3:2=9 views 0-3, characters 4-6, regional characters 7-8
+    "weights4dropdownlist": [1,1,1,1, 1,1,1, 1,1], 
 }
 
 function setupGlobalSettings() { 

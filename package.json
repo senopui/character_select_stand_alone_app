@@ -5,16 +5,15 @@
   "keywords": [],
   "main": "./main.js",
   "type": "module",
-  "version": "1.16.3",
+  "version": "1.16.4",
   "author": "oOkami",
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager ./ saa --platform=win32 --arch=x64 --out=release --overwrite --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem",
-    "package_mac": "electron-packager ./ saa --platform=darwin --arch=x64,arm64 --out=release --overwrite"
+    "package": "electron-packager ./ saa --platform=win32 --out=release --overwrite --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem",
+    "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite"
   },
   "devDependencies": {
-    "electron": "^38.3.0",
-    "electron-packager": "^17.1.2"
+    "electron": "^38.3.0"
   },
   "dependencies": {
     "async-mutex": "^0.5.0",

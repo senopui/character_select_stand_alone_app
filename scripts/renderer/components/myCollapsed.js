@@ -63,11 +63,31 @@ export async function setupSaveSettingsToggle(){
         });
         if(inputResult){
             globalThis.globalSettings.lora_slot = globalThis.lora.getValues();
+
+            const tag_angle = globalThis.viewList.getTextValue(0);
+            const tag_camera = globalThis.viewList.getTextValue(1);
+            const tag_background =  globalThis.viewList.getTextValue(2);
+            const tag_style = globalThis.viewList.getTextValue(3);
+            const c1 = globalThis.characterList.getTextValue(0);
+            const c2 = globalThis.characterList.getTextValue(1);
+            const c3 = globalThis.characterList.getTextValue(2);
+            const r1 = globalThis.characterListRegional.getTextValue(0);
+            const r2 = globalThis.characterListRegional.getTextValue(1);
+
+            const globalSettings = structuredClone(globalThis.globalSettings);
+            delete globalSettings["lastLoadedSettings"];
+
+            globalSettings["weights4dropdownlist"] = [ 
+                tag_angle, tag_camera, tag_background, tag_style, // 0, 1, 2, 3
+                c1, c2, c3, // 4, 5, 6
+                r1, r2      // 7, 8
+            ];
+
             let result;
             if (globalThis.inBrowser) {
-                result = await sendWebSocketMessage({ type: 'API', method: 'saveSettingFile', params: [`${inputResult}.json`, globalThis.globalSettings] });
+                result = await sendWebSocketMessage({ type: 'API', method: 'saveSettingFile', params: [`${inputResult}.json`, globalSettings] });
             } else {
-                result = await globalThis.api.saveSettingFile(`${inputResult}.json`, globalThis.globalSettings);
+                result = await globalThis.api.saveSettingFile(`${inputResult}.json`, globalSettings);
             }
 
             if(result === true) {
