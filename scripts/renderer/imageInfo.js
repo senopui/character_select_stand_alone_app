@@ -435,7 +435,7 @@ export function setupImageUploadOverlay() {
         if (parsedMetadata.width && parsedMetadata.height) {
             metadataText += `Size: ${parsedMetadata.width}x${parsedMetadata.height}\n`;
         } else if (fallbackMetadata) {
-            metadataText += `Size: ${Math.round(fallbackMetadata.fileSize/1024, 2)} kb\n`;
+            metadataText += `Size: ${(fallbackMetadata.fileSize/1024).toFixed(2)} kb\n`;
             metadataText += `Type: ${fallbackMetadata.fileType}\n`;
         }
         
