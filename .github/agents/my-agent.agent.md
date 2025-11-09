@@ -139,4 +139,4 @@ npm run package_mac
 - Model info display with preview images
 
 ### ControlNet/IP Adapter
-- ComfyUI: Requires comfyui_controlnet_aux and Co
+- ComfyUI: Requires `comfyui_controlnet_aux` and `ComfyUI_IPAdapter_plus` plugins
