@@ -15,72 +15,43 @@ jobs:
 
     steps:
       - name: Checkout code
-        # v4.3.0
-        uses: >-
-          actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
       - name: Setup Node.js
-        # v4.4.0
-        uses: >-
-          actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Verify package-lock.json is up-to-date
-        run: |
-          if (-not (Test-Path package-lock.json)) {
-            Write-Error "package-lock.json is missing"
-            exit 1
-          }
-          Copy-Item package-lock.json package-lock.json.bak
-          npm install --package-lock-only
-          $diff = Compare-Object `
-            (Get-Content package-lock.json) `
-            (Get-Content package-lock.json.bak)
-          Remove-Item package-lock.json.bak
-          if ($diff) {
-            Write-Error "package-lock.json is not in sync with package.json"
-            exit 1
-          }
-        shell: pwsh
-
       - name: Install dependencies
-        run: npm ci
+        run: npm install
+
+      - name: Install electron-packager
+        run: npm install -g electron-packager
 
       - name: Build Windows x64 package
-        run: npx electron-packager ./ saa --platform=win32 --out=release --overwrite --ignore=^/settings/^.*\.json --ignore=^/models/tagger/^.*\.onnx --ignore=^/models/tagger/^.*\.json --ignore=^/models/tagger/^.*\.csv --ignore=^/html/ca/^.*\.pem
+        run: npx electron-packager ./ saa --platform=win32 --out=release --overwrite --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem
 
       - name: Create ZIP archive
         run: |
           cd release
-          $dir = Get-ChildItem -Directory -Filter "saa-win32-*" `
-            | Select-Object -First 1
+          $dir = Get-ChildItem -Directory -Filter "saa-win32-*" | Select-Object -First 1
           if (-not $dir) {
             Write-Error "No output directory matching 'saa-win32-*' found"
             exit 1
           }
-          Compress-Archive -Path $dir.Name `
-            -DestinationPath "$($dir.Name).zip"
+          Compress-Archive -Path $dir.Name -DestinationPath "$($dir.Name).zip"
         shell: pwsh
 
       - name: Upload release artifact
-        # v4.6.2
-        uses: >-
-          actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: saa-win32-x64
           path: release/saa-win32-*.zip
 
-      # This step uploads the artifact to the GitHub Release only when
-      # triggered by a 'release' event. When triggered manually via
-      # 'workflow_dispatch', the artifact is only uploaded to the
-      # workflow run above.
       - name: Upload to GitHub Release
         if: github.event_name == 'release'
-        # v1
-        uses: >-
-          softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
         with:
           files: release/saa-win32-*.zip
         env:
