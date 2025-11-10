@@ -387,7 +387,7 @@ function createDropdown({
                     if (!valueExists) {
                         // Try without extension for compatibility
                         const valueWithoutExt = value.replace(/\.(pth|safetensors)$/i, '');
-                        const matchesWithoutExt = valueExists || options[index].some(opt => 
+                        const matchesWithoutExt = options[index].some(opt => 
                             opt.value.replace(/\.(pth|safetensors)$/i, '') === valueWithoutExt ||
                             opt.key.replace(/\.(pth|safetensors)$/i, '') === valueWithoutExt
                         );

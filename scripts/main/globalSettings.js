@@ -234,9 +234,9 @@ function loadSettings(fineName) {
             console.log(CAT, `Migrated api_hf_colortransfer from array to string: ${globalSettings.api_hf_colortransfer}`);
         }
         
-        // Remove obsolete api_hf_upscaler_list key if present
+        // Log if obsolete api_hf_upscaler_list key is present (it won't be copied to globalSettings)
         if (mySettings.api_hf_upscaler_list) {
-            console.log(CAT, `Removed obsolete api_hf_upscaler_list from settings`);
+            console.log(CAT, `Ignored obsolete api_hf_upscaler_list from settings (key will not be saved on next save)`);
         }
     } else {
         console.error(CAT, `Failed to load settings directory: ${settingsDir}`);
