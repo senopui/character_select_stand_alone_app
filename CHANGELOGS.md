@@ -1,3 +1,11 @@
+2025.11.10 v1.16.7        
+Fix Empty upscaler dropdown for ComfyUI backend
+- ComfyUI upscaler list now includes built-in Latent upscale methods (nearest-exact, bilinear, area, bicubic, bislerp)
+- These Latent methods are always available even without physical upscaler models
+- Physical upscaler models from `upscale_models` directory are still scanned and appended to the list
+- Fixes issue where upscaler dropdown was empty causing generation failures
+
+
 2025.11.10 v1.16.6        
 Add `extra_model_paths.yaml` from ComfyUI root now supports `upscale_models`[#58]           
 
