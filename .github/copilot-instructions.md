@@ -1,95 +1,103 @@
 # Copilot Instructions for Character Select SAA
 
-## Project Overview
-This is a Stand Alone App (SAA) for character selection with AI prompt generation, built using Electron, Node.js, and Express. The application provides a GUI for managing character selections, LoRA models, and image generation through ComfyUI or WebUI (A1111/Forge) APIs.
+## Overview
+Character Select Stand Alone App (SAA) is an Electron desktop application for AI-powered image generation with character selection, LoRA management, and prompt generation. It interfaces with ComfyUI and WebUI (A1111/Forge) backends via their APIs.
 
-## Technology Stack
-- **Runtime**: Electron (v38.3.0) - Desktop application framework
-- **Backend**: Node.js with Express (v5.1.0)
-- **Key Dependencies**:
-  - `onnxruntime-node` (v1.23.0) - For image tagging with AI models
-  - `sharp` (v0.34.4) - Image processing
-  - `ws` (v8.18.3) - WebSocket communication
-  - `bcrypt` (v6.0.0) - Security
-  - `helmet` (v8.1.0) - Security middleware
-  - `express-rate-limit` (v8.0.1) - Rate limiting
+## Tech Stack
+- **Frontend**: Electron (v38.3.0) with renderer process
+- **Backend**: Node.js + Express (v5.1.0) + WebSocket (ws v8.18.3)
+- **Image Processing**: onnxruntime-node (v1.23.0), sharp (v0.34.4)
+- **Security**: helmet (v8.1.0), bcrypt (v6.0.0), express-rate-limit (v8.0.1)
 
-## Project Structure
-- `/scripts/main/` - Backend IPC handlers and business logic
-- `/scripts/renderer/` - Frontend rendering logic
-- `/webserver/` - WebSocket server and HTTP API handlers
-- `/models/` - AI models for image tagging
-- `/data/` - Character data, wildcards, and configuration files
-- `/html/` - Frontend HTML and assets
-- `main.js` - Electron main process entry point
-- `main-common.js` - Shared utilities between main process and webserver
+## Key Directories
+```
+/scripts/main/       # Backend IPC handlers and business logic
+/scripts/renderer/   # Frontend rendering logic
+/webserver/          # WebSocket server and HTTP API
+/models/tagger/      # ONNX models for image tagging
+/data/               # Character data, wildcards, configs
+/html/               # Frontend HTML and assets
+/settings/           # User settings (JSON files)
+main.js              # Electron main process
+main-common.js       # Shared IPC setup
+```
 
 ## Coding Standards
 
-### JavaScript/Node.js
-- Use ES6+ module syntax (`import`/`export`)
-- Prefer `const` over `let`, avoid `var`
-- Use async/await for asynchronous operations
-- Handle errors appropriately with try-catch blocks
-- Follow existing code style and formatting
+**JavaScript/Node.js**
+- ES6+ modules (`import`/`export`), prefer `const` over `let`
+- async/await for async operations, proper error handling
+- Follow existing code style
 
-### File Handling
-- Use absolute paths when accessing files
-- Always use `path.join()` for cross-platform compatibility
-- Handle file system errors gracefully
+**File Operations**
+- Use `path.join()` for cross-platform paths (Windows/macOS/Linux)
+- Wrap file operations in try-catch blocks
+- Validate paths before accessing
 
-### Security
-- Sanitize all user inputs
-- Use helmet middleware for HTTP security headers
-- Implement rate limiting on API endpoints
-- Never commit API keys or sensitive credentials
-- Use bcrypt for password hashing
+**Security**
+- Sanitize inputs, use helmet + rate limiting
+- Never commit API keys or credentials
+- Validate all IPC messages and WebSocket data
 
-### IPC Communication
-- Use Electron's IPC for main-renderer communication
-- Use WebSockets for real-time updates
-- Validate all IPC messages before processing
+**Communication**
+- IPC: Electron main ↔ renderer process
+- WebSocket: Real-time frontend ↔ backend updates
+- HTTP: External API calls (ComfyUI/WebUI)
 
-## Build and Test Commands
+## Commands
 ```bash
-# Install dependencies
-npm install
-
-# Start the application
-npm start
-
-# Package for Windows
-npm run package
-
-# Package for macOS
-npm run package_mac
+npm install        # Install dependencies
+npm start          # Run in development
+npm run package    # Package for Windows (x64)
+npm run package_mac # Package for macOS
 ```
 
-## Important Notes
-- This app interfaces with external APIs (ComfyUI, WebUI/A1111, Forge)
-- Image tagger runs on CPU using ONNX models
-- ControlNet and IP Adapter support requires specific backend plugins
-- Queue management system for batch processing
-- Regional conditioning feature for ComfyUI only
-- Authentication support for WebUI API endpoints
+## Architecture Notes
+- **Dual Backend Support**: ComfyUI (requires ComfyUI_Mira plugin) and WebUI (A1111/Forge)
+- **Image Tagger**: CPU-based ONNX inference (no GPU acceleration in Node.js)
+- **ControlNet/IP Adapter**: Requires backend-specific plugins
+- **Queue System**: Batch processing with auto-resume on errors
+- **Regional Conditioning**: ComfyUI-only feature
+- **API Auth**: Supported for WebUI backends only
 
-## When Making Changes
-1. **Test with both backends**: Changes should work with ComfyUI and WebUI APIs
-2. **Preserve backwards compatibility**: Many users rely on specific features
-3. **Update documentation**: Keep README.md in sync with code changes
-4. **Handle edge cases**: Remote vs local setups, missing models, API failures
-5. **Minimize dependencies**: Only add new packages if absolutely necessary
-6. **Consider performance**: Image processing can be resource-intensive
+## Development Guidelines
 
-## Common Patterns
-- IPC handlers are registered in `main-common.js` and individual setup functions
-- Settings are saved to JSON files in `settings/` directory
-- WebSocket communication pattern: client request → backend processing → response
-- Model lists are dynamically loaded from file system or API endpoints
+**Core Principles**
+1. Test with both ComfyUI and WebUI backends
+2. Maintain backwards compatibility with existing user settings
+3. Update README.md for significant changes
+4. Handle edge cases: remote/local APIs, missing models, API failures
+5. Minimize dependencies (consider bundle size and native module complexity)
 
-## Testing Guidelines
-- Test Electron IPC communication between main and renderer processes
-- Verify file system operations work cross-platform
-- Test error handling for missing files and API failures
-- Validate security measures (rate limiting, input sanitization)
-- Test with different backend configurations (ComfyUI vs WebUI)
+**Common Patterns**
+- IPC registration: `main-common.js` + feature-specific setup functions
+- Settings persistence: JSON files in `settings/` directory
+- WebSocket flow: Client request → backend process → response
+- Model discovery: Filesystem scan or API endpoint queries
+
+**Testing**
+- IPC communication between main and renderer
+- Cross-platform file operations (Windows/macOS/Linux)
+- Error handling: missing files, API failures, invalid inputs
+- Security: input sanitization, rate limiting
+- Both backends: ComfyUI and WebUI configurations
+
+**Error Handling**
+- Wrap file I/O in try-catch with context logging
+- Provide actionable error messages for users
+- Graceful degradation for optional features
+- Validate API responses before processing
+
+**Performance**
+- Lazy load models and large data files
+- Cache model lists and frequently accessed data
+- Stream large files, debounce UI input events
+- Clean up image buffers after processing
+- Consider worker threads for CPU-intensive tasks
+
+**Platform Compatibility**
+- Windows: Handle `\` paths, case-insensitive files
+- macOS: App signing and notarization for distribution
+- Linux: File permissions and executable flags
+- Use `process.platform` to detect OS
+- Test native modules (bcrypt, sharp, onnxruntime-node) on all targets
