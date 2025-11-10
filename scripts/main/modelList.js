@@ -89,19 +89,31 @@ function updateUpscalerList(model_path_comfyui, model_path_webui, search_subfold
     const upPathComfyUI = path.join(path.dirname(model_path_comfyui), 'upscale_models');
     const upPathWebUI = path.join(path.dirname(model_path_webui), 'upscale_models');
 
+    // ComfyUI: Start with Latent upscale options
+    const latentUpscaleOptions = [
+        'Latent (nearest-exact)',
+        'Latent (bilinear)',
+        'Latent (area)',
+        'Latent (bicubic)',
+        'Latent (bislerp)'
+    ];
+    
+    UPSCALER_COMFYUI = [...latentUpscaleOptions];
+
+    // ComfyUI: Add physical upscaler models from upscale_models directory
     if (fs.existsSync(upPathComfyUI)) {
         const pthList = readDirectory(upPathComfyUI, '', search_subfolder, Infinity, 0, '.pth');
         const safetensorsList = readDirectory(upPathComfyUI, '', search_subfolder, Infinity, 0, '.safetensors');
-        UPSCALER_COMFYUI = [...pthList, ...safetensorsList];
-    } else {
-        UPSCALER_COMFYUI = [];
+        UPSCALER_COMFYUI = [...UPSCALER_COMFYUI, ...pthList, ...safetensorsList];
     }
 
+    // ComfyUI: Add extra models from extra_model_paths.yaml
     if (EXTRA_MODELS.exist && Array.isArray(EXTRA_MODELS.upscale) && EXTRA_MODELS.upscale.length > 0) {
         const baseList = Array.isArray(UPSCALER_COMFYUI) ? UPSCALER_COMFYUI : [];
         UPSCALER_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.upscale]));
     }
 
+    // WebUI: Scan for physical upscaler models
     if (fs.existsSync(upPathWebUI)) {
         const pthList = readDirectory(upPathWebUI, '', search_subfolder, Infinity, 0, '.pth');
         const safetensorsList = readDirectory(upPathWebUI, '', search_subfolder, Infinity, 0, '.safetensors');
@@ -110,12 +122,7 @@ function updateUpscalerList(model_path_comfyui, model_path_webui, search_subfold
         UPSCALER_WEBUI = [];
     }
 
-    if (UPSCALER_COMFYUI.length > 0) {
-        // do nothing
-    } else {
-        UPSCALER_COMFYUI = ['None'];
-    }
-
+    // WebUI: Process the list (remove extensions)
     if (UPSCALER_WEBUI.length > 0) {
         let newList = [];
         for(const item of UPSCALER_WEBUI) {
