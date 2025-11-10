@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -29,29 +30,31 @@ jobs:
       - name: Package application for Windows x64
         run: npm run package
 
-      - name: Get next version number
+      - name: Get version number from package.json and commit hash
         id: version
         run: |
-          $tags = git tag -l "v*" | ForEach-Object {
-            [PSCustomObject]@{
-              Tag = $_; Num = [int]($_ -replace 'v', '')
-            }
-          } | Sort-Object -Property Num -Descending |
-            Select-Object -ExpandProperty Tag
-          if ($tags.Count -eq 0) {
-            $nextVersion = "v1"
-          } else {
-            $latestTag = $tags[0]
-            $versionNum = 0
-            if (-not [int]::TryParse(
-              $latestTag -replace 'v', '', [ref]$versionNum)) {
-              Write-Error "Invalid tag format: $latestTag"
-              exit 1
-            }
-            $nextVersion = "v$($versionNum + 1)"
+          # Get version from package.json
+          $packageJson = Get-Content -Path "package.json" -Raw | ConvertFrom-Json
+          $version = $packageJson.version
+          if (-not $version) {
+            Write-Error "Version not found in package.json"
+            exit 1
           }
-          echo "tag=$nextVersion" >> $env:GITHUB_OUTPUT
-          echo "Next version: $nextVersion"
+
+          # Get short commit hash (7 characters)
+          $commitHash = git rev-parse --short=7 HEAD
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commitHash)) {
+            Write-Error "Failed to get commit hash"
+            exit 1
+          }
+
+          # Create version tag (e.g., v1.16.6-abc1234)
+          $versionTag = "v$version-$commitHash"
+
+          echo "tag=$versionTag" >> $env:GITHUB_OUTPUT
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "commit=$commitHash" >> $env:GITHUB_OUTPUT
+          echo "Version tag: $versionTag"
         shell: pwsh
 
       - name: Create and push new tag
@@ -62,29 +65,58 @@ jobs:
           git push origin ${{ steps.version.outputs.tag }}
         shell: pwsh
 
-      - name: Find executable file
-        id: find_exe
+      - name: Create 7z archive
+        id: create_archive
         run: |
-          $exePath = Get-ChildItem -Path "release/saa-win32-x64" `
-            -Filter "*.exe" -Recurse |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $exePath) {
-            Write-Error "No .exe file found in release/saa-win32-x64/"
+          $archiveName = "saa-${{ steps.version.outputs.tag }}-win32-x64.7z"
+          $archivePath = Join-Path $pwd $archiveName
+
+          # Find 7z.exe in PATH, fail fast if not found
+          $sevenZipPath = (Get-Command 7z.exe -ErrorAction Stop).Source
+
+          # Verify source directory exists before compression
+          if (-not (Test-Path ".\release\saa-win32-x64")) {
+            Write-Error "Source directory not found: .\release\saa-win32-x64"
             exit 1
           }
-          $exeName = Split-Path $exePath -Leaf
-          echo "path=$exePath" >> $env:GITHUB_OUTPUT
-          echo "name=$exeName" >> $env:GITHUB_OUTPUT
-          echo "Found executable: $exePath"
+
+          # Create 7z archive of the entire packaged directory
+          # This preserves the saa-win32-x64 folder structure
+          # Using -mx=7 (high compression) for better balance between size and build time
+          & $sevenZipPath a -t7z -mx=7 "$archivePath" ".\release\saa-win32-x64"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "7z archive creation failed with exit code: $LASTEXITCODE"
+            exit 1
+          }
+
+          if (-not (Test-Path $archivePath)) {
+            Write-Error "Failed to create archive: $archivePath"
+            exit 1
+          }
+
+          # Verify archive meets minimum expected size
+          # Minimum archive size threshold (MB) - set to 100 MB based on typical ~300 MB compressed size
+          $minArchiveSizeMB = 100
+          $minSizeBytes = $minArchiveSizeMB * 1MB
+          $archiveSizeBytes = (Get-Item $archivePath).Length
+          if ($archiveSizeBytes -lt $minSizeBytes) {
+            $sizeMB = [math]::Round($archiveSizeBytes / 1MB, 2)
+            Write-Error "Archive size ($sizeMB MB) is below minimum expected size ($minArchiveSizeMB MB). Package may be incomplete."
+            exit 1
+          }
+
+          echo "path=$archivePath" >> $env:GITHUB_OUTPUT
+          echo "Created archive: $archivePath (Size: $([math]::Round($archiveSizeBytes / 1MB, 2)) MB)"
         shell: pwsh
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Release ${{ steps.version.outputs.tag }}
+          name: Character Select SAA ${{ steps.version.outputs.version }} (${{ steps.version.outputs.commit }})
           draft: false
           prerelease: false
-          files: ${{ steps.find_exe.outputs.path }}
+          files: ${{ steps.create_archive.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
