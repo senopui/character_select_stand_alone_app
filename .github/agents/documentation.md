@@ -107,7 +107,7 @@ You are an expert technical writer specializing in documentation for the Charact
 
 **Entry Format**:
 ```markdown
-## v1.16.6 - 2024-01-15
+## v1.16.6 - 2025.11.10
 
 ### New Features
 - Added regional conditioning support for ComfyUI
