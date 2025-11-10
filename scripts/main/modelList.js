@@ -23,7 +23,8 @@ let EXTRA_MODELS = {
     yamlContent: null,
     checkpoints: [],
     loras: [],
-    controlnet: []
+    controlnet: [],
+    upscale: []
 };
 let IMAGE_TAGGER = ['none'];
 
@@ -94,6 +95,11 @@ function updateUpscalerList(model_path_comfyui, model_path_webui, search_subfold
         UPSCALER_COMFYUI = [...pthList, ...safetensorsList];
     } else {
         UPSCALER_COMFYUI = [];
+    }
+
+    if (EXTRA_MODELS.exist && Array.isArray(EXTRA_MODELS.upscale) && EXTRA_MODELS.upscale.length > 0) {
+        const baseList = Array.isArray(UPSCALER_COMFYUI) ? UPSCALER_COMFYUI : [];
+        UPSCALER_COMFYUI = Array.from(new Set([...baseList, ...EXTRA_MODELS.upscale]));
     }
 
     if (fs.existsSync(upPathWebUI)) {
@@ -286,6 +292,7 @@ function cleanupExtraModelPaths(reload=false) {
     EXTRA_MODELS.checkpoints = [];
     EXTRA_MODELS.loras = [];
     EXTRA_MODELS.controlnet = [];
+    EXTRA_MODELS.upscale = [];
     
     // reload extra model paths
     if (EXTRA_MODELS.exist && reload) {
@@ -324,12 +331,13 @@ function readExtraModelPaths(model_path_comfyui) {
         return false;
     }
 
-    function collectFromRelativeList(relList, targetArray) {
+    //function readDirectory(directory='', basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0, extName = '.safetensors')
+    function collectFromRelativeList(relList, targetArray, ext) {
         for (const rel of relList) {
             const absPath = path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
             if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
                 try {
-                    const items = readDirectory(absPath, '', true);
+                    const items = readDirectory(absPath, '', true, false, Infinity, ext);
                     if (items?.length) {
                         targetArray.push(...items);
                     }
@@ -341,20 +349,24 @@ function readExtraModelPaths(model_path_comfyui) {
     }
 
     // checkpoints
-    collectFromRelativeList(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints);
+    collectFromRelativeList(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
     // loras
-    collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras);
+    collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors');
     // controlnet
-    collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet);
+    collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
+    // upscale_models
+    collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
 
     EXTRA_MODELS.checkpoints = Array.from(new Set(EXTRA_MODELS.checkpoints));
     EXTRA_MODELS.loras = Array.from(new Set(EXTRA_MODELS.loras));
     EXTRA_MODELS.controlnet = Array.from(new Set(EXTRA_MODELS.controlnet));
+    EXTRA_MODELS.upscale = Array.from(new Set(EXTRA_MODELS.upscale));
 
     console.log(CAT, 'readExtraModelPaths: found extra models:', {
         checkpoints: EXTRA_MODELS.checkpoints.length,
         loras: EXTRA_MODELS.loras.length,
-        controlnet: EXTRA_MODELS.controlnet.length
+        controlnet: EXTRA_MODELS.controlnet.length,
+        upscale: EXTRA_MODELS.upscale.length
     });
 
     return true;

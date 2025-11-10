@@ -1,3 +1,7 @@
+2025.11.10 v1.16.6        
+Add `extra_model_paths.yaml` from ComfyUI root now supports `upscale_models`[#58]           
+
+
 2025.11.10 v1.16.5        
 Add `Seed info` to queue slot       
 Change CombyUI Backend Auto select 1st upscaler model in list when loading elder settings.json        
@@ -19,19 +23,19 @@ Bug fix
 
 
 2025.11.07 v1.16.1       
-Add `ADetailer` for ComfyUI #49         
+Add `ADetailer` for ComfyUI [#49]         
 Add more clear `Pause marker` when `Enable Generate` unchecked      
 Adjust tabs order       
 Bugs fix      
 
 
 2025.11.06 v1.16.0       
-Add `ADetailer` for A1111(WebUI/Forge Neo) #49       
-Add `Queue Manager` slot #48       
+Add `ADetailer` for A1111(WebUI/Forge Neo) [#49]       
+Add `Queue Manager` slot [#48]       
 Change `Skip/Cancel` buttons' position to `Thumb Preview`           
 Change `Hires Fix` now uses real model name for both backend       
  To update the previous version configuration file, first select your preferred upscaler model and then save the configuration file.             
-Improved nested random #50            
+Improved nested random [#50]            
 Improved generate preview display       
 Bugs fix      
 
@@ -58,11 +62,11 @@ Forge uses a file-based upscaler model list. But it's messy!
 
 
 2025.11.02 v1.15.5       
-Add random string selector with square bracket parsing #47       
+Add random string selector with square bracket parsing [#47]       
 
 
 2025.10.30 v1.15.4       
-Improved reload Model/LoRA/ControlNet trigger #45          
+Improved reload Model/LoRA/ControlNet trigger [#45]          
  Model list will not reset to `Default` if selected model exist        
  All exist LoRA/ControlNet slots will update their list to latest       
  Missing model LoRA/ControlNet slots will automatically remove after reload         
@@ -143,7 +147,7 @@ Add `Enumerate` for `JSON/CSV`
 
 
 2025.09.24 v1.13.0       
-Add test function for ComfyUI backend #39      
+Add test function for ComfyUI backend [#39]      
   Load `extra_model_paths.yaml` from ComfyUI root folder to add more Models/LoRAs/ControlNets from A1111       
 
 
@@ -302,7 +306,7 @@ Error in console when switching settings from LoRAs to empty
 2025.05.23 v1.5.3
 Bugfix:
 WebUI backend generate always report error with `imageData.startsWith.......`                
-Search subfolder from only 1 depth to infinity depth #18        
+Search subfolder from only 1 depth to infinity depth [#18]               
 
 2025.05.23 v1.5.1        
 Improvements:     
@@ -360,7 +364,7 @@ WebUI Folder setup error in wizard
 2025.05.06 v1.2.5      
 Bugfix:     
 Index error after clear gallery      
-#10 Forge High-res fix doesn't work      
+[#10] Forge High-res fix doesn't work      
 Comfyui High-res fix error if you don't have `waiNSFWIllustrious_v120.safetensors`       
 
 Improvements:       
