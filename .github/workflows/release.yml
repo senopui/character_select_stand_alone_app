@@ -1,0 +1,67 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Package application for Windows x64
+        run: npm run package
+
+      - name: Get next version number
+        id: version
+        run: |
+          $tags = git tag -l "v*" | Sort-Object -Descending
+          if ($tags.Count -eq 0) {
+            $nextVersion = "v1"
+          } else {
+            $latestTag = $tags[0]
+            $versionNum = [int]($latestTag -replace 'v', '')
+            $nextVersion = "v$($versionNum + 1)"
+          }
+          echo "tag=$nextVersion" >> $env:GITHUB_OUTPUT
+          echo "Next version: $nextVersion"
+        shell: pwsh
+
+      - name: Find executable file
+        id: find_exe
+        run: |
+          $exePath = Get-ChildItem -Path "release/saa-win32-x64" `
+            -Filter "*.exe" -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $exePath) {
+            Write-Error "No .exe file found in release/saa-win32-x64/"
+            exit 1
+          }
+          $exeName = Split-Path $exePath -Leaf
+          echo "path=$exePath" >> $env:GITHUB_OUTPUT
+          echo "name=$exeName" >> $env:GITHUB_OUTPUT
+          echo "Found executable: $exePath"
+        shell: pwsh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: ${{ steps.find_exe.outputs.path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
