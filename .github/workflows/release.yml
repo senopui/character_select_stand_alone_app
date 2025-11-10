@@ -47,8 +47,8 @@ jobs:
             exit 1
           }
 
-          # Create version tag (e.g., 1.16.6-abc1234)
-          $versionTag = "$version-$commitHash"
+          # Create version tag (e.g., v1.16.6-abc1234)
+          $versionTag = "v$version-$commitHash"
 
           echo "tag=$versionTag" >> $env:GITHUB_OUTPUT
           echo "version=$version" >> $env:GITHUB_OUTPUT
@@ -67,13 +67,16 @@ jobs:
       - name: Create 7z archive
         id: create_archive
         run: |
-          $archiveName = "saa-${{ steps.version.outputs.version }}-win32-x64.7z"
+          $archiveName = "saa-${{ steps.version.outputs.tag }}-win32-x64.7z"
           $archivePath = Join-Path $pwd $archiveName
 
-          # Find 7z.exe in PATH, fallback to default install location
-          $7zipPath = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
-          if (-not $7zipPath) {
-            $7zipPath = "C:\Program Files\7-Zip\7z.exe"
+          # Find 7z.exe in PATH, fail fast if not found
+          $7zipPath = (Get-Command 7z.exe -ErrorAction Stop).Source
+
+          # Verify source directory exists before compression
+          if (-not (Test-Path ".\release\saa-win32-x64")) {
+            Write-Error "Source directory not found: .\release\saa-win32-x64"
+            exit 1
           }
 
           # Create 7z archive of the entire packaged directory
@@ -90,20 +93,18 @@ jobs:
             exit 1
           }
 
-          # Verify archive is not empty
+          # Verify archive meets minimum expected size (e.g., 100 MB)
           $archiveSizeBytes = (Get-Item $archivePath).Length
-          if ($archiveSizeBytes -eq 0) {
-            Write-Error "Archive is empty: $archivePath"
+          $minSizeBytes = 100MB
+          if ($archiveSizeBytes -lt $minSizeBytes) {
+            $sizeMB = [math]::Round($archiveSizeBytes / 1MB, 2)
+            Write-Error "Archive size ($sizeMB MB) is below minimum expected size (100 MB). Package may be incomplete."
             exit 1
           }
 
-          # Get archive size for logging
-          $archiveSize = $archiveSizeBytes / 1MB
-
           echo "path=$archivePath" >> $env:GITHUB_OUTPUT
           echo "name=$archiveName" >> $env:GITHUB_OUTPUT
-          $sizeRounded = [math]::Round($archiveSize, 2)
-          echo "Created archive: $archivePath (Size: $sizeRounded MB)"
+          echo "Created archive: $archivePath (Size: $([math]::Round($archiveSizeBytes / 1MB, 2)) MB)"
         shell: pwsh
 
       - name: Create GitHub Release
