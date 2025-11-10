@@ -93,3 +93,25 @@ npm run package_mac
 - Test error handling for missing files and API failures
 - Validate security measures (rate limiting, input sanitization)
 - Test with different backend configurations (ComfyUI vs WebUI)
+
+## Error Handling Patterns
+- Always wrap file system operations in try-catch blocks
+- Provide meaningful error messages that help users troubleshoot
+- Log errors with context (what operation failed, what file, etc.)
+- Gracefully degrade when optional features fail
+- Validate API responses before processing
+
+## Performance Considerations
+- Lazy load large models and data files
+- Cache frequently accessed data (model lists, settings)
+- Use streaming for large file operations
+- Debounce user input events (search, autocomplete)
+- Implement proper memory cleanup for image processing
+- Use worker threads for CPU-intensive operations when possible
+
+## Platform-Specific Considerations
+- **Windows**: Handle backslashes in paths, case-insensitive file systems
+- **macOS**: Handle app signing and notarization for distribution
+- **Linux**: Ensure proper permissions for file operations
+- Use `process.platform` to detect OS and adjust behavior accordingly
+- Test native modules (bcrypt, sharp, onnxruntime-node) on all platforms
