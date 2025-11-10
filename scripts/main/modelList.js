@@ -337,7 +337,7 @@ function readExtraModelPaths(model_path_comfyui) {
             const absPath = path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
             if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
                 try {
-                    const items = readDirectory(absPath, '', true, false, Infinity, ext);
+                    const items = readDirectory(absPath, '', true, Infinity, 0, ext);
                     if (items?.length) {
                         targetArray.push(...items);
                     }
@@ -354,8 +354,9 @@ function readExtraModelPaths(model_path_comfyui) {
     collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors');
     // controlnet
     collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
-    // upscale_models
+    // upscale_models - collect both .pth and .safetensors
     collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
+    collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
 
     EXTRA_MODELS.checkpoints = Array.from(new Set(EXTRA_MODELS.checkpoints));
     EXTRA_MODELS.loras = Array.from(new Set(EXTRA_MODELS.loras));

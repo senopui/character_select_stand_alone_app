@@ -9,7 +9,7 @@
   "author": "oOkami",
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager ./ saa --platform=win32 --out=release --overwrite --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem",
+    "package": "electron-packager ./ saa --platform=win32 --arch=x64 --out=release --overwrite --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem",
     "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite"
   },
   "devDependencies": {
