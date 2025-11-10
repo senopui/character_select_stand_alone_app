@@ -41,18 +41,20 @@ GitHub Copilot automatically suggests custom agents for relevant tasks. You can 
 
 ## Creating New Agents
 
-1. Create a new `.yml` file in this directory (e.g., `feature-name.yml`)
-2. Define the agent structure:
-   ```yaml
+1. Create a new `.md` file in this directory (e.g., `feature-name.md`)
+2. Define the agent structure with YAML frontmatter:
+   ```markdown
+   ---
    name: agent-name
    description: Brief description of agent's purpose
-   instructions: |
-     Detailed instructions for the agent
-   environment:
-     setup: |
-       # Setup commands if needed
+   ---
+   
+   Detailed instructions for the agent in markdown format...
+   
+   ## Section 1
+   Content...
    ```
-3. Include: responsibilities, common issues, best practices, key files
+3. Include: responsibilities, common issues, best practices, key files, environment setup
 4. Update this README with the new agent information
 
 ## References
