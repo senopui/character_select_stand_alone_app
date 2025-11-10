@@ -382,7 +382,7 @@ Error HTTP 400 ...... Cannot xecute because node StepAndCfg does not exist .....
 2. Restart your ComfyUI
 
 Upscale Model list is empty or shows only `None` (ComfyUI)      
-**Note:** Starting from version 1.16.2, ComfyUI upscaler list includes built-in Latent upscale methods (nearest-exact, bilinear, area, bicubic, bislerp) in addition to physical upscaler models.
+**Note:** Starting from version 1.16.7, ComfyUI upscaler list includes built-in Latent upscale methods (nearest-exact, bilinear, area, bicubic, bislerp) in addition to physical upscaler models.
 
 If you still see issues:
 1. Have you modified the default directory configuration?       
