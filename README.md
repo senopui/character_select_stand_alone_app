@@ -381,10 +381,14 @@ Error HTTP 400 ...... Cannot xecute because node StepAndCfg does not exist .....
 1. Install `ComfyUI_Mira`     
 2. Restart your ComfyUI
 
-Upscale Model list is `None` (ComfyUI)      
+Upscale Model list is empty or shows only `None` (ComfyUI)      
+**Note:** Starting from version 1.16.2, ComfyUI upscaler list includes built-in Latent upscale methods (nearest-exact, bilinear, area, bicubic, bislerp) in addition to physical upscaler models.
+
+If you still see issues:
 1. Have you modified the default directory configuration?       
 2. A non-official version?      
-3. Check [#58](https://github.com/mirabarukaso/character_select_stand_alone_app/issues/58)
+3. Ensure your ComfyUI `upscale_models` directory exists at `ComfyUI/models/upscale_models`
+4. Check [#58](https://github.com/mirabarukaso/character_select_stand_alone_app/issues/58)
 
 
 ComfyUI/WebUI is busy, cannot run new generation, please try again later.       
