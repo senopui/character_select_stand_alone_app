@@ -174,8 +174,7 @@ export async function callback_generate_cancel() {
     }
 }
 
-export function callback_keep_gallery() {
-    const keepGallery = globalThis.generate.keepGallery.getValue();
+export function callback_keep_gallery(keepGallery) {
     if(!keepGallery) {
         globalThis.mainGallery.clearGallery();
     }

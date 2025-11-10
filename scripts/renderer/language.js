@@ -179,6 +179,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
         globalThis.rightClick.updateLanguage();
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function updateSettings() {
     if(!safeCheck)
         return;    
@@ -291,7 +292,11 @@ export function updateSettings() {
     globalThis.generate.hifix_dummy.setValue(SETTINGS.api_hf_enable);
     globalThis.hifix.scale.setValue(SETTINGS.api_hf_scale);
     globalThis.hifix.denoise.setValue(SETTINGS.api_hf_denoise);
-    globalThis.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
+    if(globalThis.hifix.model.isValueExist(SETTINGS.api_hf_upscaler_selected)){
+        globalThis.hifix.model.updateDefaults(SETTINGS.api_hf_upscaler_selected);
+    } else {
+        globalThis.hifix.model.updateDefaults(globalThis.cachedFiles.upscalerList[0]);
+    }
     globalThis.hifix.colorTransfer.updateDefaults(SETTINGS.api_hf_colortransfer);
     globalThis.hifix.randomSeed.setValue(SETTINGS.api_hf_random_seed);
     globalThis.hifix.steps.setValue(SETTINGS.api_hf_steps);    

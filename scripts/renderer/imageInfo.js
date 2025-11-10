@@ -1,7 +1,7 @@
-import { createControlNetButtons } from './imageInfoControlNet.js';
-import { createImageTagger } from './imageInfoTagger.js';
-import { handlePastedJsonOrCsvFile, handlePastedPlainTextItem } from './imageInfoDataFiles.js';
-import { extractImageMetadata, parseGenerationParameters } from './imageInfoMetadata.js';
+import { createControlNetButtons } from './components/imageInfoControlNet.js';
+import { createImageTagger } from './components/imageInfoTagger.js';
+import { handlePastedJsonOrCsvFile, handlePastedPlainTextItem } from './components/imageInfoDataFiles.js';
+import { extractImageMetadata, parseGenerationParameters } from './components/imageInfoMetadata.js';
 
 let cachedImage = '';
 

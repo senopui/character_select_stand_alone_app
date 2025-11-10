@@ -844,7 +844,7 @@ export async function generateImage(loops, runSame){
                         timeout: globalThis.ai.remote_timeout.getValue() * 1000
                     },
                 thumb:createPromptResult.thumbImage || globalThis.generate.lastThumb,
-                id:`${createPromptResult.charactersName}`,
+                id:createPromptResult.charactersName,
             },
             
             model: globalThis.dropdownList.model.getValue(),
@@ -879,8 +879,10 @@ export async function generateImage(loops, runSame){
 
         generateData.queueManager.finalInfo = finalInfo;
         
+        const nameList = generateData.queueManager.id.replaceAll('\n', ' | ');
         globalThis.queueManager.attach(
-            [   LANG.generate_normal.replace('{0}', generateData.queueManager.id.replaceAll('\n', ' | ')),
+            [   (nameList === '') ? LANG.generate_normal.replace('{0}', `${createPromptResult.randomSeed} | ${createPromptResult.positivePrompt}`) : 
+                LANG.generate_normal.replace('{0}', `${createPromptResult.randomSeed} | ${nameList}`), 
                 createPromptResult.positivePrompt
             ], 
             generateData

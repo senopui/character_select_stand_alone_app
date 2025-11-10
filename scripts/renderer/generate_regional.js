@@ -461,7 +461,7 @@ export async function generateRegionalImage(loops, runSame){
                         timeout: globalThis.ai.remote_timeout.getValue() * 1000
                     },
                 thumb:createPromptResult.thumbImage || globalThis.generate.lastThumb,
-                id:`${createPromptResult.charactersName}`,
+                id:createPromptResult.charactersName,
             },
 
             model: globalThis.dropdownList.model.getValue(),
@@ -503,7 +503,8 @@ export async function generateRegionalImage(loops, runSame){
         const nameList = generateData.queueManager.id.replaceAll('\n', ' | ');
         const fullPrompt = `${createPromptResult.positivePromptLeft}\n${createPromptResult.positivePromptRight}`;
         globalThis.queueManager.attach(
-            [   (nameList === '') ? LANG.generate_regional.replace('{0}', fullPrompt) : LANG.generate_regional.replace('{0}', nameList), 
+            [   (nameList === '') ? LANG.generate_regional.replace('{0}', `${createPromptResult.randomSeed} | ${fullPrompt}`) : 
+                LANG.generate_regional.replace('{0}', `${createPromptResult.randomSeed} | ${nameList}`), 
                 fullPrompt
             ],
             generateData

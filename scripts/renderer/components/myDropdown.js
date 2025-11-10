@@ -414,7 +414,7 @@ function createDropdown({
         isValueExist: function(value) {
             if (!value) return false;
             
-            const searchValue = value.toLowerCase();
+            const searchValue = String(value).toLowerCase();
             
             for (const optionArray of options) {
                 for (const option of optionArray) {                    

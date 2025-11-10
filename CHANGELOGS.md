@@ -1,3 +1,8 @@
+2025.11.10 v1.16.5        
+Add `Seed info` to queue slot       
+Change CombyUI Backend Auto select 1st upscaler model in list when loading elder settings.json        
+
+
 2025.11.09 v1.16.4       
 Bug fix       
  Views and Characters weight not stored in settings file       
