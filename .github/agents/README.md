@@ -1,59 +1,63 @@
 # Custom Copilot Agents
 
-This directory contains custom GitHub Copilot agents for the Character Select SAA project.
+Custom agents for the Character Select SAA project that provide specialized expertise for specific development tasks.
 
 ## Available Agents
 
 ### bug-fixer
+**Specialization**: Bug fixing, debugging, testing, performance optimization, build/packaging, releases
 
-**Purpose**: Expert agent specialized in bug fixing, debugging, testing, improvements, enhancements, optimizations, building, compiling, packaging, and releasing.
+**Use for**: Electron IPC bugs, WebSocket issues, ComfyUI/WebUI connection problems, image processing errors, performance optimization, build/packaging issues, test creation, release preparation
 
-**When to use**:
-- Fixing bugs in Electron IPC, WebSocket communication, or API integrations
-- Debugging issues with ComfyUI/WebUI connections or image processing
-- Creating or improving tests
-- Optimizing performance (image processing, memory usage, model loading)
-- Resolving build or packaging issues
-- Preparing releases and updating changelogs
+**Expertise**: Electron architecture, IPC patterns, ONNX inference, cross-platform compatibility, security
 
-**Key expertise**:
-- Electron application architecture and IPC patterns
-- Integration with ComfyUI and WebUI (A1111/Forge) APIs
-- ONNX model inference and image processing
-- Cross-platform compatibility issues
-- Security best practices
-- Performance optimization
+### api-integration
+**Specialization**: ComfyUI and WebUI (A1111/Forge) API integration and workflow management
 
-## How to Use Custom Agents
+**Use for**: API communication issues, ComfyUI workflow construction, WebUI endpoint integration, model list synchronization, authentication problems, API error handling
 
-When working on issues related to the agent's expertise, GitHub Copilot will automatically suggest using the custom agent. You can also explicitly invoke the agent when:
+**Expertise**: ComfyUI_Mira plugin, WebUI REST API, workflow execution, model management, remote backend configuration
 
-1. Creating new issues or pull requests related to bugs
-2. Asking Copilot for help with debugging
-3. Requesting code reviews focused on specific areas
-4. Seeking guidance on best practices
+### frontend-ui
+**Specialization**: Electron renderer process, UI/UX development, and frontend features
 
-## Agent Configuration
+**Use for**: UI component development, character browser/search, tag autocomplete, drag-and-drop, image gallery, settings panel, IPC client-side, WebSocket client
 
-Each agent is configured with:
-- **Name and description**: Clear identification of the agent's purpose
-- **Instructions**: Detailed guidance on technical context, responsibilities, and best practices
-- **Environment setup**: Dependencies and tools needed (npm packages)
+**Expertise**: Renderer process architecture, context isolation, DOM manipulation, user interaction patterns, performance optimization
 
-## Contributing
+### documentation
+**Specialization**: Technical writing, documentation maintenance, changelogs, user guides
 
-When adding new custom agents:
-1. Create a new `.yml` file in this directory
-2. Follow the structure of existing agents
-3. Include comprehensive instructions that cover:
-   - Primary responsibilities
-   - Technical context
-   - Common issues and solutions
-   - Best practices and pitfalls to avoid
-4. Update this README with information about the new agent
+**Use for**: README updates, changelog entries, code comments, setup instructions, troubleshooting guides, API documentation, feature documentation
+
+**Expertise**: Technical writing, user-focused documentation, markdown formatting, version documentation
+
+## Usage
+
+GitHub Copilot automatically suggests custom agents for relevant tasks. You can also explicitly request an agent when:
+- Creating issues or PRs for bugs/features
+- Asking for debugging help or code reviews
+- Seeking architecture or best practice guidance
+
+## Creating New Agents
+
+1. Create a new `.md` file in this directory (e.g., `agent-name.md`)
+2. Define the agent structure with YAML frontmatter:
+   ```markdown
+   ---
+   name: agent-name
+   description: Brief description of agent's purpose
+   ---
+   
+   Detailed instructions for the agent in markdown format...
+   
+   ## Section 1
+   Content...
+   ```
+3. Include: responsibilities, common issues, best practices, key files, environment setup
+4. Update this README with the new agent information
 
 ## References
 
-- [GitHub Copilot Custom Agents Documentation](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents)
-- [About Custom Agents](https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-custom-agents)
+- [Create Custom Agents](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents)
 - [Customize Agent Environment](https://docs.github.com/en/enterprise-cloud@latest/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment)
