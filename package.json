@@ -13,6 +13,7 @@
     "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite"
   },
   "devDependencies": {
+    "@electron/packager": "^19.0.1",
     "electron": "^38.3.0"
   },
   "dependencies": {
