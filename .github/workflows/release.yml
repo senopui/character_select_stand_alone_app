@@ -42,7 +42,7 @@ jobs:
 
           # Get short commit hash (7 characters)
           $commitHash = git rev-parse --short=7 HEAD
-          if ($LASTEXITCODE -ne 0 -or -not $commitHash) {
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commitHash)) {
             Write-Error "Failed to get commit hash"
             exit 1
           }
