@@ -104,7 +104,6 @@ jobs:
           }
 
           echo "path=$archivePath" >> $env:GITHUB_OUTPUT
-          echo "name=$archiveName" >> $env:GITHUB_OUTPUT
           echo "Created archive: $archivePath (Size: $([math]::Round($archiveSizeBytes / 1MB, 2)) MB)"
         shell: pwsh
 
@@ -112,7 +111,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Release ${{ steps.version.outputs.tag }}
+          name: Character Select SAA ${{ steps.version.outputs.version }} (${{ steps.version.outputs.commit }})
           draft: false
           prerelease: false
           files: ${{ steps.create_archive.outputs.path }}
