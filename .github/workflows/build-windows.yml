@@ -1,0 +1,30 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Package application for Windows
+      run: npm run package
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: character-select-saa-windows-x64
+        path: release-builds/character-select-stand-alone-app-win32-x64/

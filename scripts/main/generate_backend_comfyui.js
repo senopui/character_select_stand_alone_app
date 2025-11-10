@@ -996,7 +996,7 @@ class ComfyUI {
 
       // Latent or Model hifix
       if (hifix?.model.includes('Latent')) {
-        const match = hifix.model.match(/\(([^)]+)\)/);
+        const match = hifix.model ? hifix.model.match(/\(([^)]+)\)/) : null;
         const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
 
         workflow["46"].inputs.upscale_method = latentMethod;
@@ -1014,7 +1014,7 @@ class ComfyUI {
         workflow["17"].inputs.HiResMultiplier = hifix.scale;
 
         // Set Hires fix model name
-        workflow["27"].inputs.model_name = `${hifix.model}`;
+        workflow["27"].inputs.model_name = hifix.model ? `${hifix.model.replace(/\s*\([^)]*\)/g, '')}`: "None";
       }
 
       if(hifix.colorTransfer === 'None'){
@@ -1163,7 +1163,7 @@ class ComfyUI {
 
       // Latent or Model hifix
       if (hifix?.model.includes('Latent')) {
-          const match = hifix.model.match(/\(([^)]+)\)/);
+          const match = hifix.model ? hifix.model.match(/\(([^)]+)\)/) : null;
           const latentMethod = match ? match[1].trim() : 'nearest-exact'; // Default nearest-exact
 
           workflow["58"].inputs.upscale_method = latentMethod;
@@ -1181,7 +1181,7 @@ class ComfyUI {
         workflow["17"].inputs.HiResMultiplier = hifix.scale;
 
         // Set Hires fix model name
-        workflow["27"].inputs.model_name = `${hifix.model}`;
+        workflow["27"].inputs.model_name = hifix.model ? `${hifix.model.replace(/\s*\([^)]*\)/g, '')}`: "None";
       }
 
       if(hifix.colorTransfer === 'None'){
@@ -2512,6 +2512,7 @@ const WORKFLOW_REGIONAL = {
       "text": [
         "46",
         0
+     
       ],
       "clip": [
         "39",
