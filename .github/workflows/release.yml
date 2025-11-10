@@ -33,8 +33,7 @@ jobs:
         id: version
         run: |
           # Get version from package.json
-          $packageJson = Get-Content -Path "package.json" -Raw | `
-            ConvertFrom-Json
+          $packageJson = Get-Content -Path "package.json" -Raw | ConvertFrom-Json
           $version = $packageJson.version
           if (-not $version) {
             Write-Error "Version not found in package.json"
@@ -65,11 +64,6 @@ jobs:
           git push origin ${{ steps.version.outputs.tag }}
         shell: pwsh
 
-      - name: Install 7-Zip
-        run: |
-          choco install 7zip -y
-        shell: pwsh
-
       - name: Create 7z archive
         id: create_archive
         run: |
@@ -84,8 +78,7 @@ jobs:
 
           # Create 7z archive of the entire packaged directory
           # This preserves the saa-win32-x64 folder structure
-          & $7zipPath a -t7z -mx=9 `
-            "$archivePath" ".\release\saa-win32-x64"
+          & $7zipPath a -t7z -mx=9 "$archivePath" ".\release\saa-win32-x64"
 
           if ($LASTEXITCODE -ne 0) {
             Write-Error "7z archive creation failed with exit code: $LASTEXITCODE"
