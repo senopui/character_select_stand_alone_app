@@ -14,11 +14,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
@@ -29,16 +32,34 @@ jobs:
       - name: Get next version number
         id: version
         run: |
-          $tags = git tag -l "v*" | Sort-Object -Descending
+          $tags = git tag -l "v*" | ForEach-Object {
+            [PSCustomObject]@{
+              Tag = $_; Num = [int]($_ -replace 'v', '')
+            }
+          } | Sort-Object -Property Num -Descending |
+            Select-Object -ExpandProperty Tag
           if ($tags.Count -eq 0) {
             $nextVersion = "v1"
           } else {
             $latestTag = $tags[0]
-            $versionNum = [int]($latestTag -replace 'v', '')
+            $versionNum = 0
+            if (-not [int]::TryParse(
+              $latestTag -replace 'v', '', [ref]$versionNum)) {
+              Write-Error "Invalid tag format: $latestTag"
+              exit 1
+            }
             $nextVersion = "v$($versionNum + 1)"
           }
           echo "tag=$nextVersion" >> $env:GITHUB_OUTPUT
           echo "Next version: $nextVersion"
+        shell: pwsh
+
+      - name: Create and push new tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
         shell: pwsh
 
       - name: Find executable file
