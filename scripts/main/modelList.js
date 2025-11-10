@@ -354,8 +354,9 @@ function readExtraModelPaths(model_path_comfyui) {
     collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors');
     // controlnet
     collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
-    // upscale_models
+    // upscale_models - collect both .pth and .safetensors
     collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
+    collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
 
     EXTRA_MODELS.checkpoints = Array.from(new Set(EXTRA_MODELS.checkpoints));
     EXTRA_MODELS.loras = Array.from(new Set(EXTRA_MODELS.loras));
