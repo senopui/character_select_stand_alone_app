@@ -71,7 +71,7 @@ jobs:
           $archivePath = Join-Path $pwd $archiveName
 
           # Find 7z.exe in PATH, fail fast if not found
-          $7zipPath = (Get-Command 7z.exe -ErrorAction Stop).Source
+          $sevenZipPath = (Get-Command 7z.exe -ErrorAction Stop).Source
 
           # Verify source directory exists before compression
           if (-not (Test-Path ".\release\saa-win32-x64")) {
@@ -81,7 +81,7 @@ jobs:
 
           # Create 7z archive of the entire packaged directory
           # This preserves the saa-win32-x64 folder structure
-          & $7zipPath a -t7z -mx=9 "$archivePath" ".\release\saa-win32-x64"
+          & $sevenZipPath a -t7z -mx=9 "$archivePath" ".\release\saa-win32-x64"
 
           if ($LASTEXITCODE -ne 0) {
             Write-Error "7z archive creation failed with exit code: $LASTEXITCODE"
@@ -93,7 +93,8 @@ jobs:
             exit 1
           }
 
-          # Verify archive meets minimum expected size (e.g., 100 MB)
+          # Verify archive meets minimum expected size
+          # Based on typical compressed size of ~300 MB, 100 MB minimum catches incomplete packages
           $archiveSizeBytes = (Get-Item $archivePath).Length
           $minSizeBytes = 100MB
           if ($archiveSizeBytes -lt $minSizeBytes) {
