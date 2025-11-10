@@ -1,5 +1,4 @@
 name: Build Windows App
-
 on:
   push:
     branches: [ main ]
