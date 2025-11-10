@@ -29,29 +29,23 @@ jobs:
       - name: Package application for Windows x64
         run: npm run package
 
-      - name: Get next version number
+      - name: Get version number from package.json and commit hash
         id: version
         run: |
-          $tags = git tag -l "v*" | ForEach-Object {
-            [PSCustomObject]@{
-              Tag = $_; Num = [int]($_ -replace 'v', '')
-            }
-          } | Sort-Object -Property Num -Descending |
-            Select-Object -ExpandProperty Tag
-          if ($tags.Count -eq 0) {
-            $nextVersion = "v1"
-          } else {
-            $latestTag = $tags[0]
-            $versionNum = 0
-            if (-not [int]::TryParse(
-              $latestTag -replace 'v', '', [ref]$versionNum)) {
-              Write-Error "Invalid tag format: $latestTag"
-              exit 1
-            }
-            $nextVersion = "v$($versionNum + 1)"
-          }
-          echo "tag=$nextVersion" >> $env:GITHUB_OUTPUT
-          echo "Next version: $nextVersion"
+          # Get version from package.json
+          $packageJson = Get-Content -Path "package.json" -Raw | ConvertFrom-Json
+          $version = $packageJson.version
+          
+          # Get short commit hash (7 characters)
+          $commitHash = git rev-parse --short=7 HEAD
+          
+          # Create version tag (e.g., 1.16.6+abc1234)
+          $versionTag = "$version+$commitHash"
+          
+          echo "tag=$versionTag" >> $env:GITHUB_OUTPUT
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "commit=$commitHash" >> $env:GITHUB_OUTPUT
+          echo "Version tag: $versionTag"
         shell: pwsh
 
       - name: Create and push new tag
@@ -62,20 +56,32 @@ jobs:
           git push origin ${{ steps.version.outputs.tag }}
         shell: pwsh
 
-      - name: Find executable file
-        id: find_exe
+      - name: Install 7-Zip
         run: |
-          $exePath = Get-ChildItem -Path "release/saa-win32-x64" `
-            -Filter "*.exe" -Recurse |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $exePath) {
-            Write-Error "No .exe file found in release/saa-win32-x64/"
+          choco install 7zip -y
+        shell: pwsh
+
+      - name: Create 7z archive
+        id: create_archive
+        run: |
+          $archiveName = "saa-${{ steps.version.outputs.version }}-win32-x64.7z"
+          $archivePath = Join-Path $pwd $archiveName
+          
+          # Create 7z archive of the entire packaged directory
+          # This preserves the saa-win32-x64 folder structure inside the archive
+          & "C:\Program Files\7-Zip\7z.exe" a -t7z -mx=9 "$archivePath" ".\release\saa-win32-x64"
+          
+          if (-not (Test-Path $archivePath)) {
+            Write-Error "Failed to create archive: $archivePath"
             exit 1
           }
-          $exeName = Split-Path $exePath -Leaf
-          echo "path=$exePath" >> $env:GITHUB_OUTPUT
-          echo "name=$exeName" >> $env:GITHUB_OUTPUT
-          echo "Found executable: $exePath"
+          
+          # Get archive size for logging
+          $archiveSize = (Get-Item $archivePath).Length / 1MB
+          
+          echo "path=$archivePath" >> $env:GITHUB_OUTPUT
+          echo "name=$archiveName" >> $env:GITHUB_OUTPUT
+          echo "Created archive: $archivePath (Size: $([math]::Round($archiveSize, 2)) MB)"
         shell: pwsh
 
       - name: Create GitHub Release
@@ -85,6 +91,6 @@ jobs:
           name: Release ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false
-          files: ${{ steps.find_exe.outputs.path }}
+          files: ${{ steps.create_archive.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
