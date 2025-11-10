@@ -88,7 +88,7 @@ const defaultSettings = {
     "api_hf_enable": false,
     "api_hf_scale": 1.5,
     "api_hf_denoise": 0.4,
-    "api_hf_upscaler_selected": "RealESRGAN_x4plus_anime_6B.pth",
+    "api_hf_upscaler_selected": "None",
     "api_hf_colortransfer": "Mean",
     "api_hf_random_seed": false,
     "api_hf_steps": 20,
@@ -197,6 +197,46 @@ function loadSettings(fineName) {
             } else {
                 console.warn(CAT, `Key "${key}" not found in globalSettings. Ignoring.`);
             }
+        }
+        
+        // Migrate old upscaler settings format (pre-1.16.0)
+        // Old format: api_hf_upscaler_selected was an array like ["RealESRGAN_x4plus_anime_6B(C)"]
+        // New format: api_hf_upscaler_selected is a string like "RealESRGAN_x4plus_anime_6B.pth"
+        if (globalSettings.api_hf_upscaler_selected) {
+            if (Array.isArray(globalSettings.api_hf_upscaler_selected)) {
+                // Convert array to string (take first element)
+                const oldValue = globalSettings.api_hf_upscaler_selected[0] || defaultSettings.api_hf_upscaler_selected;
+                globalSettings.api_hf_upscaler_selected = oldValue;
+                console.log(CAT, `Migrated api_hf_upscaler_selected from array to string: ${globalSettings.api_hf_upscaler_selected}`);
+            }
+            
+            // Remove old (C) or (W) suffixes from upscaler names
+            if (typeof globalSettings.api_hf_upscaler_selected === 'string') {
+                const cleanValue = globalSettings.api_hf_upscaler_selected.replace(/\s*\([CW]\)\s*$/, '');
+                if (cleanValue !== globalSettings.api_hf_upscaler_selected) {
+                    console.log(CAT, `Removed (C)/(W) suffix from upscaler: ${globalSettings.api_hf_upscaler_selected} -> ${cleanValue}`);
+                    globalSettings.api_hf_upscaler_selected = cleanValue;
+                }
+                
+                // Ensure .pth extension is present if not 'None'
+                if (globalSettings.api_hf_upscaler_selected !== 'None' && 
+                    !globalSettings.api_hf_upscaler_selected.endsWith('.pth') && 
+                    !globalSettings.api_hf_upscaler_selected.endsWith('.safetensors')) {
+                    globalSettings.api_hf_upscaler_selected += '.pth';
+                    console.log(CAT, `Added .pth extension to upscaler: ${globalSettings.api_hf_upscaler_selected}`);
+                }
+            }
+        }
+        
+        // Migrate color transfer if it's an array (old format)
+        if (Array.isArray(globalSettings.api_hf_colortransfer)) {
+            globalSettings.api_hf_colortransfer = globalSettings.api_hf_colortransfer[0] || defaultSettings.api_hf_colortransfer;
+            console.log(CAT, `Migrated api_hf_colortransfer from array to string: ${globalSettings.api_hf_colortransfer}`);
+        }
+        
+        // Remove obsolete api_hf_upscaler_list key if present
+        if (mySettings.api_hf_upscaler_list) {
+            console.log(CAT, `Removed obsolete api_hf_upscaler_list from settings`);
         }
     } else {
         console.error(CAT, `Failed to load settings directory: ${settingsDir}`);

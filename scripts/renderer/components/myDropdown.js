@@ -376,7 +376,40 @@ function createDropdown({
             }
     
             for (const [index, input] of inputs.entries()) {
-                const value = defaults[index] || '';
+                let value = defaults[index] || '';
+                
+                // Validate that the value exists in options, fallback to first option if not
+                if (value && options[index] && options[index].length > 0) {
+                    const valueExists = options[index].some(opt => 
+                        opt.value === value || opt.key === value
+                    );
+                    
+                    if (!valueExists) {
+                        // Try without extension for compatibility
+                        const valueWithoutExt = value.replace(/\.(pth|safetensors)$/i, '');
+                        const matchesWithoutExt = valueExists || options[index].some(opt => 
+                            opt.value.replace(/\.(pth|safetensors)$/i, '') === valueWithoutExt ||
+                            opt.key.replace(/\.(pth|safetensors)$/i, '') === valueWithoutExt
+                        );
+                        
+                        if (matchesWithoutExt) {
+                            // Find the matching option with extension
+                            const match = options[index].find(opt => 
+                                opt.value.replace(/\.(pth|safetensors)$/i, '') === valueWithoutExt ||
+                                opt.key.replace(/\.(pth|safetensors)$/i, '') === valueWithoutExt
+                            );
+                            if (match) {
+                                value = match.value;
+                                console.log(`[myDropdown] Matched upscaler without extension: ${defaults[index]} -> ${value}`);
+                            }
+                        } else {
+                            // Fallback to first option
+                            value = options[index][0].value;
+                            console.warn(`[myDropdown] Value "${defaults[index]}" not found in options for dropdown ${index}, using fallback: ${value}`);
+                        }
+                    }
+                }
+                
                 selectedValues[index] = value;
                 selectedKeys[index] = value;
                 input.value = value;

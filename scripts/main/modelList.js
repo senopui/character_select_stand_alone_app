@@ -105,21 +105,20 @@ function updateUpscalerList(model_path_comfyui, model_path_webui, search_subfold
     }
 
     if (UPSCALER_COMFYUI.length > 0) {
-        // do nothing
+        UPSCALER_COMFYUI.unshift('None');
     } else {
         UPSCALER_COMFYUI = ['None'];
     }
 
     if (UPSCALER_WEBUI.length > 0) {
-        let newList = [];
-        for(const item of UPSCALER_WEBUI) {
-            newList.push(path.parse(item).name);
-        }
-        UPSCALER_WEBUI = newList
+        // Keep the full filename with extension for WebUI to maintain consistency
+        // This matches the default setting format and ComfyUI behavior
+        UPSCALER_WEBUI.unshift('None');
     } else {
         // For A1111
         // Use static value
         UPSCALER_WEBUI = [
+            "None",
             "R-ESRGAN 4x+ Anime6B",
             "DAT x2",
             "DAT x3",
