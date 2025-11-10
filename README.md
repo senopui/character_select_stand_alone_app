@@ -381,5 +381,11 @@ Error HTTP 400 ...... Cannot xecute because node StepAndCfg does not exist .....
 1. Install `ComfyUI_Mira`     
 2. Restart your ComfyUI
 
+Upscale Model list is `None` (ComfyUI)      
+1. Have you modified the default directory configuration?       
+2. A non-official version?      
+3. Check [#58](https://github.com/mirabarukaso/character_select_stand_alone_app/issues/58)
+
+
 ComfyUI/WebUI is busy, cannot run new generation, please try again later.       
 Refer to 5, 6 in [README_SAAC.md](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/README_SAAC.md)     
