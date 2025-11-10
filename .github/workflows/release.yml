@@ -82,7 +82,8 @@ jobs:
 
           # Create 7z archive of the entire packaged directory
           # This preserves the saa-win32-x64 folder structure
-          & $sevenZipPath a -t7z -mx=9 "$archivePath" ".\release\saa-win32-x64"
+          # Using -mx=7 (high compression) for better balance between size and build time
+          & $sevenZipPath a -t7z -mx=7 "$archivePath" ".\release\saa-win32-x64"
 
           if ($LASTEXITCODE -ne 0) {
             Write-Error "7z archive creation failed with exit code: $LASTEXITCODE"
@@ -95,12 +96,13 @@ jobs:
           }
 
           # Verify archive meets minimum expected size
-          # Based on typical compressed size of ~300 MB, 100 MB minimum catches incomplete packages
+          # Minimum archive size threshold (MB) - set to 100 MB based on typical ~300 MB compressed size
+          $minArchiveSizeMB = 100
+          $minSizeBytes = $minArchiveSizeMB * 1MB
           $archiveSizeBytes = (Get-Item $archivePath).Length
-          $minSizeBytes = 100MB
           if ($archiveSizeBytes -lt $minSizeBytes) {
             $sizeMB = [math]::Round($archiveSizeBytes / 1MB, 2)
-            Write-Error "Archive size ($sizeMB MB) is below minimum expected size (100 MB). Package may be incomplete."
+            Write-Error "Archive size ($sizeMB MB) is below minimum expected size ($minArchiveSizeMB MB). Package may be incomplete."
             exit 1
           }
 
