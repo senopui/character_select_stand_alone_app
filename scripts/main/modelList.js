@@ -321,41 +321,81 @@ function readExtraModelPaths(model_path_comfyui) {
         return false;
     }
 
-    if (!EXTRA_MODELS.yamlContent?.a111?.base_path) {
-        return false;
-    }
+    // For a111 format
+    const a111Section = EXTRA_MODELS.yamlContent?.a111;
+    if (a111Section?.base_path && fs.existsSync(a111Section.base_path)) {
+        const a111Base = a111Section.base_path;
 
-    const a111Base = EXTRA_MODELS.yamlContent.a111.base_path;
-    if (!fs.existsSync(a111Base)) {
-        console.log(CAT, 'readExtraModelPaths: a111 base_path does not exist:', a111Base);
-        return false;
-    }
-
-    //function readDirectory(directory='', basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0, extName = '.safetensors')
-    function collectFromRelativeList(relList, targetArray, ext) {
-        for (const rel of relList) {
-            const absPath = path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
-            if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
-                try {
-                    const items = readDirectory(absPath, '', true, false, Infinity, ext);
-                    if (items?.length) {
-                        targetArray.push(...items);
+        //function readDirectory(directory='', basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0, extName = '.safetensors')
+        function collectFromRelativeList(relList, targetArray, ext) {
+            for (const rel of relList) {
+                const absPath = path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
+                if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
+                    try {
+                        const items = readDirectory(absPath, '', true, Infinity, 0, ext);
+                        if (items?.length) {
+                            targetArray.push(...items);
+                        }
+                    } catch (e) {
+                        console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
                     }
-                } catch (e) {
-                    console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
                 }
             }
         }
+
+        // checkpoints
+        collectFromRelativeList(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
+        // loras
+        collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors');
+        // controlnet
+        collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
+        // upscale_models - collect both .pth and .safetensors
+        collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
+        collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
+
+        EXTRA_MODELS.exist = true;
     }
 
-    // checkpoints
-    collectFromRelativeList(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
-    // loras
-    collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors');
-    // controlnet
-    collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
-    // upscale_models
-    collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
+    // For stability_matrix format (absolute paths)
+    const smSection = EXTRA_MODELS.yamlContent?.stability_matrix;
+    if (smSection) {
+        function getSMPaths(fieldName) {
+            const raw = smSection[fieldName];
+            if (!raw) return [];
+            if (Array.isArray(raw)) {
+                return raw.map(r => String(r).trim()).filter(Boolean);
+            } else {
+                return String(raw).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+            }
+        }
+
+        function collectFromAbsoluteList(pathList, targetArray, ext) {
+            for (const absPath of pathList) {
+                if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
+                    try {
+                        const items = readDirectory(absPath, '', true, Infinity, 0, ext);
+                        if (items?.length) {
+                            targetArray.push(...items);
+                        }
+                    } catch (e) {
+                        console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
+                    }
+                }
+            }
+        }
+
+        // checkpoints
+        collectFromAbsoluteList(getSMPaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
+        // loras
+        collectFromAbsoluteList(getSMPaths('loras'), EXTRA_MODELS.loras, '.safetensors');
+        // controlnet
+        collectFromAbsoluteList(getSMPaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
+        // upscale_models - collect both .pth and .safetensors
+        collectFromAbsoluteList(getSMPaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
+        collectFromAbsoluteList(getSMPaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
+
+        EXTRA_MODELS.exist = true;
+    }
 
     EXTRA_MODELS.checkpoints = Array.from(new Set(EXTRA_MODELS.checkpoints));
     EXTRA_MODELS.loras = Array.from(new Set(EXTRA_MODELS.loras));
@@ -369,7 +409,7 @@ function readExtraModelPaths(model_path_comfyui) {
         upscale: EXTRA_MODELS.upscale.length
     });
 
-    return true;
+    return EXTRA_MODELS.exist;
 }
 
 function setupModelList(settings) {
