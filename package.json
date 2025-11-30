@@ -5,27 +5,27 @@
   "keywords": [],
   "main": "./main.js",
   "type": "module",
-  "version": "1.16.6",
+  "version": "1.16.9",
   "author": "oOkami",
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager ./ saa --platform=win32 --arch=x64 --out=release --overwrite --asar=false --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem",
-    "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite --asar=false"
+    "package": "electron-packager ./ saa --platform=win32 --out=release --overwrite --ignore=^/settings/^.*\\.json --ignore=^/models/tagger/^.*\\.onnx --ignore=^/models/tagger/^.*\\.json --ignore=^/models/tagger/^.*\\.csv --ignore=^/html/ca/^.*\\.pem",
+    "package_mac": "electron-packager ./ saa --platform=darwin --out=release --overwrite"
   },
   "devDependencies": {
     "@electron/packager": "^19.0.1",
-    "electron": "^38.3.0"
+    "electron": "^38.7.1"
   },
   "dependencies": {
     "async-mutex": "^0.5.0",
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.0.1",
+    "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
     "https": "^1.0.0",
-    "js-yaml": "^4.1.0",
-    "onnxruntime-node": "^1.23.0",
-    "sharp": "^0.34.4",
+    "js-yaml": "^4.1.1",
+    "onnxruntime-node": "^1.23.2",
+    "sharp": "^0.34.5",
     "ws": "^8.18.3"
   }
 }

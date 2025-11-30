@@ -1,3 +1,16 @@
+2025.11.28 v1.16.9       
+Bugfix ComfyUI incorrectly selected the EPS method when performing Hires-fix with Vpred model     
+Bugfix Hires-fix models list is not reset properly when switching API interface     
+
+
+2025.11.22 v1.16.8       
+Add `Show Metadata` display image metadata in a more readable format        
+
+
+2025.11.19 v1.16.7       
+Bugs fix         
+
+
 2025.11.10 v1.16.6        
 Add `extra_model_paths.yaml` from ComfyUI root now supports `upscale_models`[#58]           
 
