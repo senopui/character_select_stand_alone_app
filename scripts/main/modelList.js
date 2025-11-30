@@ -277,14 +277,45 @@ function updateModelList(model_path_comfyui, model_path_webui, model_filter, ena
     }
 }
 
-function collectRelativePaths(fieldName) {
-    const raw = EXTRA_MODELS.yamlContent.a111[fieldName];
+/**
+ * Parse a YAML path field that can be either an array or a multi-line string
+ * @param {*} raw - Raw YAML field value
+ * @returns {string[]} Array of path strings
+ */
+function parseYamlPathField(raw) {
     if (!raw) return [];
     if (Array.isArray(raw)) {
         return raw.map(r => String(r).trim()).filter(Boolean);
     } else {
         return String(raw).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
     }
+}
+
+/**
+ * Collect models from a list of paths using a path resolver
+ * @param {string[]} pathList - List of paths to scan
+ * @param {string[]} targetArray - Array to push found models into
+ * @param {string} ext - File extension to look for
+ * @param {function} basePathResolver - Function to resolve paths (default: identity)
+ */
+function collectModelsFromPaths(pathList, targetArray, ext, basePathResolver = (p) => p) {
+    for (const pathItem of pathList) {
+        const absPath = basePathResolver(pathItem);
+        if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
+            try {
+                const items = readDirectory(absPath, '', true, Infinity, 0, ext);
+                if (items?.length) {
+                    targetArray.push(...items);
+                }
+            } catch (e) {
+                console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
+            }
+        }
+    }
+}
+
+function collectRelativePaths(fieldName) {
+    return parseYamlPathField(EXTRA_MODELS.yamlContent.a111[fieldName]);
 }
 
 function cleanupExtraModelPaths(reload=false) {
@@ -321,37 +352,21 @@ function readExtraModelPaths(model_path_comfyui) {
         return false;
     }
 
-    // For a111 format
+    // For a111 format (relative paths to base_path)
     const a111Section = EXTRA_MODELS.yamlContent?.a111;
     if (a111Section?.base_path && fs.existsSync(a111Section.base_path)) {
         const a111Base = a111Section.base_path;
-
-        //function readDirectory(directory='', basePath = '', search_subfolder = false, maxDepth = Infinity, currentDepth = 0, extName = '.safetensors')
-        function collectFromRelativeList(relList, targetArray, ext) {
-            for (const rel of relList) {
-                const absPath = path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
-                if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
-                    try {
-                        const items = readDirectory(absPath, '', true, Infinity, 0, ext);
-                        if (items?.length) {
-                            targetArray.push(...items);
-                        }
-                    } catch (e) {
-                        console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
-                    }
-                }
-            }
-        }
+        const a111PathResolver = (rel) => path.isAbsolute(rel) ? rel : path.join(a111Base, rel);
 
         // checkpoints
-        collectFromRelativeList(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
+        collectModelsFromPaths(collectRelativePaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors', a111PathResolver);
         // loras
-        collectFromRelativeList(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors');
+        collectModelsFromPaths(collectRelativePaths('loras'), EXTRA_MODELS.loras, '.safetensors', a111PathResolver);
         // controlnet
-        collectFromRelativeList(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
+        collectModelsFromPaths(collectRelativePaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors', a111PathResolver);
         // upscale_models - collect both .pth and .safetensors
-        collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
-        collectFromRelativeList(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
+        collectModelsFromPaths(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.pth', a111PathResolver);
+        collectModelsFromPaths(collectRelativePaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors', a111PathResolver);
 
         EXTRA_MODELS.exist = true;
     }
@@ -359,40 +374,17 @@ function readExtraModelPaths(model_path_comfyui) {
     // For stability_matrix format (absolute paths)
     const smSection = EXTRA_MODELS.yamlContent?.stability_matrix;
     if (smSection) {
-        function getSMPaths(fieldName) {
-            const raw = smSection[fieldName];
-            if (!raw) return [];
-            if (Array.isArray(raw)) {
-                return raw.map(r => String(r).trim()).filter(Boolean);
-            } else {
-                return String(raw).split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-            }
-        }
-
-        function collectFromAbsoluteList(pathList, targetArray, ext) {
-            for (const absPath of pathList) {
-                if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
-                    try {
-                        const items = readDirectory(absPath, '', true, Infinity, 0, ext);
-                        if (items?.length) {
-                            targetArray.push(...items);
-                        }
-                    } catch (e) {
-                        console.log(CAT, 'readExtraModelPaths: readDirectory failed for', absPath, e);
-                    }
-                }
-            }
-        }
+        const getSMPaths = (fieldName) => parseYamlPathField(smSection[fieldName]);
 
         // checkpoints
-        collectFromAbsoluteList(getSMPaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
+        collectModelsFromPaths(getSMPaths('checkpoints'), EXTRA_MODELS.checkpoints, '.safetensors');
         // loras
-        collectFromAbsoluteList(getSMPaths('loras'), EXTRA_MODELS.loras, '.safetensors');
+        collectModelsFromPaths(getSMPaths('loras'), EXTRA_MODELS.loras, '.safetensors');
         // controlnet
-        collectFromAbsoluteList(getSMPaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
+        collectModelsFromPaths(getSMPaths('controlnet'), EXTRA_MODELS.controlnet, '.safetensors');
         // upscale_models - collect both .pth and .safetensors
-        collectFromAbsoluteList(getSMPaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
-        collectFromAbsoluteList(getSMPaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
+        collectModelsFromPaths(getSMPaths('upscale_models'), EXTRA_MODELS.upscale, '.pth');
+        collectModelsFromPaths(getSMPaths('upscale_models'), EXTRA_MODELS.upscale, '.safetensors');
 
         EXTRA_MODELS.exist = true;
     }
