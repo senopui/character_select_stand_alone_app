@@ -86,7 +86,8 @@ npm run package_mac # Package for macOS
 
 **Configuration**
 - `settings/*.json` - User settings (gitignored)
-- `data/characters/` - Character definitions
+- `data/wai_characters.csv` - Character definitions (CSV format)
+- `data/original_character.json` - Original character definitions
 - `data/wildcards/` - Wildcard text files
 
 ## Architecture Notes
