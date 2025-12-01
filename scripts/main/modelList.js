@@ -303,7 +303,7 @@ function collectModelsFromPaths(pathList, targetArray, ext, basePathResolver = (
         const absPath = basePathResolver(pathItem);
         if (fs.existsSync(absPath) && fs.statSync(absPath).isDirectory()) {
             try {
-                const items = readDirectory(absPath, '', true, Infinity, 0, ext);
+                const items = readDirectory(absPath, '', true, false, Infinity, ext);
                 if (items?.length) {
                     targetArray.push(...items);
                 }
