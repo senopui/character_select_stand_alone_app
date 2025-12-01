@@ -279,7 +279,7 @@ function updateModelList(model_path_comfyui, model_path_webui, model_filter, ena
 
 /**
  * Parse a YAML path field that can be either an array or a multi-line string
- * @param {*} raw - Raw YAML field value
+ * @param {string|string[]|undefined} raw - Raw YAML field value
  * @returns {string[]} Array of path strings
  */
 function parseYamlPathField(raw) {
@@ -296,7 +296,7 @@ function parseYamlPathField(raw) {
  * @param {string[]} pathList - List of paths to scan
  * @param {string[]} targetArray - Array to push found models into
  * @param {string} ext - File extension to look for
- * @param {function} basePathResolver - Function to resolve paths (default: identity)
+ * @param {function(string): string} basePathResolver - Function to resolve paths (default: identity)
  */
 function collectModelsFromPaths(pathList, targetArray, ext, basePathResolver = (p) => p) {
     for (const pathItem of pathList) {
