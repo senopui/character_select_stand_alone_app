@@ -116,7 +116,7 @@ ws.onmessage = (event) => {
 ## Key Files
 - `scripts/renderer.js` - Renderer entry point
 - `scripts/renderer/tagAutoComplete.js` - Tag autocomplete
-- `scripts/renderer/components/` - UI components (character selection distributed here)
+- `scripts/renderer/components/` - UI components (dropdowns, dialogs, sliders, etc.)
 - `html/index.html` - Main UI markup
 - `html/css/` - Stylesheets
 
