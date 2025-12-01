@@ -52,6 +52,44 @@ npm run package    # Package for Windows (x64)
 npm run package_mac # Package for macOS
 ```
 
+## Build & Packaging
+
+**CRITICAL: ASAR Packaging**
+- This app MUST be packaged with `--asar=false` to work correctly
+- Native modules (bcrypt, sharp, onnxruntime-node) and dynamic file operations require uncompressed app folder
+- The `resources/app/` folder must contain uncompressed files, NOT `app.asar`
+
+**Output**
+- `release/saa-{platform}-{arch}/`
+
+**Native Modules**
+- bcrypt, sharp, onnxruntime-node require platform-specific binaries
+- These are automatically rebuilt during `npm install` on the target platform
+- GitHub Actions builds on `windows-latest` for Windows releases
+
+## Key Files Reference
+
+**Main Process (Electron)**
+- `main.js` - Entry point, window creation, app lifecycle
+- `main-common.js` - IPC handler registration, shared setup
+
+**Backend Handlers** (`/scripts/main/`)
+- `modelList.js` - Model discovery, extra_model_paths.yaml parsing
+- `generate_backend_comfyui.js` - ComfyUI API client
+- `generate_backend_webui.js` - WebUI/A1111/Forge API client
+- `imageTagger.js` - ONNX-based image tagging
+
+**Frontend** (`/scripts/renderer/`)
+- `renderer.js` - Renderer entry point
+- `tagAutoComplete.js` - Tag autocomplete system
+- Character selection functionality: distributed across multiple files in `components/`
+
+**Configuration**
+- `settings/*.json` - User settings (gitignored)
+- `data/wai_characters.csv` - Character definitions (CSV format)
+- `data/original_character.json` - Original character definitions
+- `data/wildcards/` - Wildcard text files
+
 ## Architecture Notes
 - **Dual Backend Support**: ComfyUI (requires ComfyUI_Mira plugin) and WebUI (A1111/Forge)
 - **Image Tagger**: CPU-based ONNX inference (no GPU acceleration in Node.js)
@@ -101,3 +139,20 @@ npm run package_mac # Package for macOS
 - Linux: File permissions and executable flags
 - Use `process.platform` to detect OS
 - Test native modules (bcrypt, sharp, onnxruntime-node) on all targets
+
+## Common Pitfalls
+
+**Model Path Handling**
+- `extra_model_paths.yaml` supports both `a111` and `stability_matrix` formats
+- Stability Matrix uses absolute paths, a111 uses relative paths with base_path
+- Always check for both `.pth` and `.safetensors` extensions for upscalers
+
+**Cross-Platform Paths**
+- Always use `path.join()` for file paths
+- Windows uses `\`, Unix uses `/`
+- `app.getPath('exe')` behavior differs between dev and packaged modes
+
+**IPC Patterns**
+- Register handlers in `main-common.js` or feature-specific setup functions
+- Use `ipcMain.handle()` for async operations with return values
+- Use `ipcMain.on()` for fire-and-forget messages

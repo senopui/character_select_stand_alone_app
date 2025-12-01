@@ -114,9 +114,9 @@ ws.onmessage = (event) => {
 - **Performance**: Debounce, throttle, virtualize large lists
 
 ## Key Files
-- `scripts/renderer/main.js` - Main renderer logic
-- `scripts/renderer/autocomplete.js` - Tag autocomplete
-- `scripts/renderer/character-select.js` - Character browser
+- `scripts/renderer.js` - Renderer entry point
+- `scripts/renderer/tagAutoComplete.js` - Tag autocomplete
+- `scripts/renderer/components/` - UI components (dropdowns, dialogs, sliders, etc.)
 - `html/index.html` - Main UI markup
 - `html/css/` - Stylesheets
 

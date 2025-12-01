@@ -78,11 +78,23 @@ You are an expert in integrating external image generation APIs (ComfyUI and Web
 
 ## Key Files
 - `webserver/back/wsService.js` - WebSocket server and API routing
-- `scripts/main/comfyui.js` - ComfyUI API client
-- `scripts/main/webui.js` - WebUI API client
-- `scripts/main/model-loader.js` - Model list management
+- `scripts/main/generate_backend_comfyui.js` - ComfyUI API client
+- `scripts/main/generate_backend_webui.js` - WebUI API client
+- `scripts/main/modelList.js` - Model list management
 
 ## Environment Setup
 ```bash
 npm install
 ```
+
+## Model Path Handling
+
+**extra_model_paths.yaml Formats**
+- `a111` format: Uses `base_path` + relative paths
+- `stability_matrix` format: Uses absolute paths directly
+- Must support both formats for compatibility
+
+**Upscaler Model Discovery**
+- Check both `.pth` and `.safetensors` extensions
+- Multiple directories possible (ESRGAN, RealESRGAN, SwinIR)
+- Function: `readExtraModelPaths()` in `scripts/main/modelList.js`

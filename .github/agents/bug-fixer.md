@@ -60,3 +60,20 @@ You are an expert developer specializing in the Character Select SAA (Electron +
 ```bash
 npm install
 ```
+
+## Build & Packaging Issues
+
+**ASAR Packaging**
+- App MUST use `--asar=false` flag - native modules don't work in asar
+- Symptoms: App crashes on startup, "module not found" errors
+- Fix: Ensure package scripts have `--asar=false`
+
+**Native Module Errors**
+- bcrypt/sharp/onnxruntime-node are platform-specific
+- Must be rebuilt on target platform
+- CI builds on windows-latest for Windows releases
+
+**GitHub Actions Workflow**
+- `.github/workflows/release.yml` handles automated builds
+- Creates 7z archive of packaged app
+- Tags releases with version + commit hash
