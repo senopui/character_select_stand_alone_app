@@ -82,7 +82,7 @@ npm run package_mac # Package for macOS
 **Frontend** (`/scripts/renderer/`)
 - `renderer.js` - Renderer entry point
 - `tagAutoComplete.js` - Tag autocomplete system
-- Character selection functionality: distributed across multiple files (e.g., `components/myDropdown.js`, etc.)
+- Character selection functionality: distributed across multiple files in `components/`
 
 **Configuration**
 - `settings/*.json` - User settings (gitignored)
