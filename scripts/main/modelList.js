@@ -315,24 +315,19 @@ function collectModelsFromPaths(pathList, targetArray, ext, basePathResolver = (
 }
 
 function collectRelativePaths(fieldName) {
-    return parseYamlPathField(EXTRA_MODELS.yamlContent.a111[fieldName]);
+    return parseYamlPathField(EXTRA_MODELS.yamlContent?.a111?.[fieldName]);
 }
 
-function cleanupExtraModelPaths(reload=false) {
+function cleanupExtraModelPaths() {
     // release EXTRA_MODELS
     EXTRA_MODELS.checkpoints = [];
     EXTRA_MODELS.loras = [];
     EXTRA_MODELS.controlnet = [];
     EXTRA_MODELS.upscale = [];
-    
-    // reload extra model paths
-    if (EXTRA_MODELS.exist && reload) {
-        readExtraModelPaths(model_path_comfyui);
-    }
 }
 
 function readExtraModelPaths(model_path_comfyui) {
-    cleanupExtraModelPaths(false);
+    cleanupExtraModelPaths();
     
     const basePath = path.dirname(path.dirname(model_path_comfyui));
     const extraModelPathsFile = path.join(basePath, 'extra_model_paths.yaml');
