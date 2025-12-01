@@ -59,10 +59,8 @@ npm run package_mac # Package for macOS
 - Native modules (bcrypt, sharp, onnxruntime-node) and dynamic file operations require uncompressed app folder
 - The `resources/app/` folder must contain uncompressed files, NOT `app.asar`
 
-**Packaging Commands**
-- `npm run package` - Windows x64 build
-- `npm run package_mac` - macOS build
-- Output: `release/saa-{platform}-{arch}/`
+**Output**
+- `release/saa-{platform}-{arch}/`
 
 **Native Modules**
 - bcrypt, sharp, onnxruntime-node require platform-specific binaries
@@ -77,14 +75,14 @@ npm run package_mac # Package for macOS
 
 **Backend Handlers** (`/scripts/main/`)
 - `modelList.js` - Model discovery, extra_model_paths.yaml parsing
-- `comfyui.js` - ComfyUI API client
-- `webui.js` - WebUI/A1111/Forge API client
+- `generate_backend_comfyui.js` - ComfyUI API client
+- `generate_backend_webui.js` - WebUI/A1111/Forge API client
 - `imageTagger.js` - ONNX-based image tagging
 
 **Frontend** (`/scripts/renderer/`)
-- `main.js` - Renderer entry point
-- `autocomplete.js` - Tag autocomplete system
-- `character-select.js` - Character browser
+- `renderer.js` - Renderer entry point
+- `tagAutoComplete.js` - Tag autocomplete system
+- Character selection functionality: distributed across multiple files (e.g., `components/myDropdown.js`, etc.)
 
 **Configuration**
 - `settings/*.json` - User settings (gitignored)
