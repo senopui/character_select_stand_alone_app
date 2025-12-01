@@ -39,6 +39,17 @@ GitHub Copilot automatically suggests custom agents for relevant tasks. You can 
 - Asking for debugging help or code reviews
 - Seeking architecture or best practice guidance
 
+### When to Use Each Agent
+
+| Task | Agent |
+|------|-------|
+| App crashes on startup | bug-fixer |
+| Build/packaging issues | bug-fixer |
+| API connection problems | api-integration |
+| Model not showing up | api-integration |
+| UI not responding | frontend-ui |
+| README/changelog updates | documentation |
+
 ## Creating New Agents
 
 1. Create a new `.md` file in this directory (e.g., `agent-name.md`)

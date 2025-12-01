@@ -86,3 +86,15 @@ You are an expert in integrating external image generation APIs (ComfyUI and Web
 ```bash
 npm install
 ```
+
+## Model Path Handling
+
+**extra_model_paths.yaml Formats**
+- `a111` format: Uses `base_path` + relative paths
+- `stability_matrix` format: Uses absolute paths directly
+- Must support both formats for compatibility
+
+**Upscaler Model Discovery**
+- Check both `.pth` and `.safetensors` extensions
+- Multiple directories possible (ESRGAN, RealESRGAN, SwinIR)
+- Function: `readExtraModelPaths()` in `scripts/main/modelList.js`
