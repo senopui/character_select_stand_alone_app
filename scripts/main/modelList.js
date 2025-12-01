@@ -352,6 +352,9 @@ function readExtraModelPaths(model_path_comfyui) {
         return false;
     }
 
+    // Reset exist flag before processing sections
+    EXTRA_MODELS.exist = false;
+
     // For a111 format (relative paths to base_path)
     const a111Section = EXTRA_MODELS.yamlContent?.a111;
     if (a111Section?.base_path && fs.existsSync(a111Section.base_path)) {
