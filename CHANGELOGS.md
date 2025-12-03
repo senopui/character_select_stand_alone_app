@@ -1,14 +1,11 @@
-2025.12.03 v1.17.0       
+2025.12.02 v1.17.0       
 Add `Regional Condition` support for A1111/Forge       
-   - Requires `sd-webui-regional-prompter` extension       
-   - Regional Condition now available for both ComfyUI and WebUI backends       
-Extract `refreshModelLists()` function from `runWebUI()` for reuse       
-Add `updateADetailerModelList()` export function       
+  Requires [sd-webui-regional-prompter](https://github.com/hako-mikan/sd-webui-regional-prompter)         
 
 
 2025.11.28 v1.16.9       
-Bugfix ComfyUI incorrectly selected the EPS method when performing Hires-fix with Vpred model     
-Bugfix Hires-fix models list is not reset properly when switching API interface     
+Bugfix ComfyUI incorrectly selected the EPS method when performing Hires-fix with Vpred model      
+Bugfix Hires-fix models list is not reset properly when switching API interface      
 
 
 2025.11.22 v1.16.8       

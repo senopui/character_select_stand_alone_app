@@ -192,12 +192,11 @@ export function callback_regional_condition(trigger, dummy = false) {
     const SETTINGS = globalThis.globalSettings;
     const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
-    const apiInterface = globalThis.generate.api_interface.getValue();
-    
-    // Show plugin notice when enabling Regional Condition for A1111/Forge
+
+    const apiInterface = globalThis.generate.api_interface.getValue();    
     if(apiInterface !== 'ComfyUI' && trigger) {
-        const noticeMessage = LANG.message_regional_webui || 'Note: Regional Condition for A1111/Forge requires the sd-webui-regional-prompter extension.';
-        globalThis.overlay.custom.createErrorOverlay(noticeMessage, 'https://github.com/hako-mikan/sd-webui-regional-prompter');
+        const errorMessage = LANG.regional_a1111;
+        globalThis.overlay.custom.createErrorOverlay(errorMessage, 'https://github.com/hako-mikan/sd-webui-regional-prompter');
     }
 
     if (dummy) {
@@ -237,6 +236,7 @@ export function callback_controlnet(trigger)  {
     const apiInterface = globalThis.generate.api_interface.getValue();
 
     globalThis.globalSettings.api_controlnet_enable = trigger; 
+    
     if(trigger && apiInterface === 'ComfyUI') 
         globalThis.overlay.custom.createErrorOverlay(LANG.message_controlnet_comfyui , 'Links:\nhttps://github.com/Fannovel16/comfyui_controlnet_aux\nhttps://github.com/sipherxyz/comfyui-art-venture'); 
     if(trigger && apiInterface === 'WebUI') 

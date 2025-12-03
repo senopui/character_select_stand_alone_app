@@ -18,7 +18,7 @@ import { getModelList, getModelListAll, getLoRAList, getImageTaggerModels, updat
 import { updateWildcards, loadWildcard } from '../../scripts/main/wildCards.js';
 import { tagReload, tagGet } from '../../scripts/main/tagAutoComplete_backend.js';
 import { runComfyUI, runComfyUI_Regional, runComfyUI_ControlNet, openWsComfyUI, closeWsComfyUI, cancelComfyUI } from '../../scripts/main/generate_backend_comfyui.js';
-import { runWebUI, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet, runWebUI_Regional,
+import { runWebUI, runWebUI_Regional, cancelWebUI, startPollingWebUI, stopPollingWebUI, runWebUI_ControlNet, 
     getControlNetProcessorList, getADetailerModelList, getUpscalersModelList, resetModelLists } from '../../scripts/main/generate_backend_webui.js';
 import { remoteAI, localAI } from '../../scripts/main/remoteAI_backend.js';
 import { loadFile, readImage, readSafetensors, readBase64Image } from '../../scripts/main/fileHandlers.js';
