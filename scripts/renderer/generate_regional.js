@@ -537,7 +537,7 @@ export async function seartGenerateRegional(apiInterface, generateData){
         breakNow = result.breakNow;
     }
 
-    return {ret, retCopy, breakNow}
+    return {ret, retCopy, breakNow};
 }
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
