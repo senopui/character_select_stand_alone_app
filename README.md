@@ -14,10 +14,12 @@ Now supports 5327 (includes multiple costumes) Characters in list.
 | BREAK | No | Yes | Yes |
 | Refiner | Yes | Yes | Yes |
 | Image Color Transfer | Yes | No | No |
-| Regional Condition | Yes | No | No |
+| Regional Condition | Yes | Yes* | Yes* |
 | ControlNet/IPA | Yes | Yes | Yes |
 | ADetailer | Yes | Yes | Yes |
 | API authentication| No | Yes | Yes |
+
+**Regional Condition for A1111/Forge requires the [sd-webui-regional-prompter](https://github.com/hako-mikan/sd-webui-regional-prompter) extension.*
 
 *Try Online Character Select Simple Advanced App* [Hugging Face Space](https://huggingface.co/spaces/flagrantia/character_select_saa)             
 
@@ -204,12 +206,14 @@ In case you didn't like wildcards file or json/csv wildcard, try the following i
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/wildcards.png" width=35%>   
 
-## Regional Condition (ComfyUI only)
+## Regional Condition
 Get tired of [complex workflow](https://github.com/mirabarukaso/ComfyUI_Mira/issues/12#issuecomment-2727190727)?      
 Try SAA Regional Condition with only 3 steps:     
 1. Click the `Regional Condition` Checkbox     
 2. Choose listed character or your OC      
 3. Start `common prompt` with `duo, masterpiece, best quality, amazing quality`(Don't forget quality words like me), have fun!     
+
+**For A1111/Forge users:** Regional Condition requires the [sd-webui-regional-prompter](https://github.com/hako-mikan/sd-webui-regional-prompter) extension. Install it from the Extensions tab in WebUI.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/regionalCondition.png" width=35%>   
 

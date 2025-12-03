@@ -369,11 +369,6 @@ export async function generateRegionalImage(loops, runSame){
     const LANG = FILES.language[SETTINGS.language];
 
     const apiInterface = globalThis.generate.api_interface.getValue();
-    if(apiInterface !== 'ComfyUI') {
-        const errorMessage = LANG.regional_error_not_comfyui;
-        globalThis.mainGallery.hideLoading(errorMessage, errorMessage);
-        return;
-    }
     const apiAddress = extractHostPort(globalThis.generate.api_address.getValue());
     const apiAuth = extractAPISecure(apiInterface);
     const browserUUID = (globalThis.inBrowser)?globalThis.clientUUID:'none';
@@ -518,7 +513,14 @@ export async function generateRegionalImage(loops, runSame){
 }
 
 export async function seartGenerateRegional(apiInterface, generateData){    
-    const result = await runComfyUI(apiInterface, generateData);
+    let result;
+    if(apiInterface === 'ComfyUI') {
+        result = await runComfyUI(apiInterface, generateData);
+    } else if(apiInterface === 'WebUI') {
+        result = await runWebUI(apiInterface, generateData);
+    } else {
+        result = { ret: 'Error: Unknown API interface', retCopy: 'Unknown API interface', breakNow: true };
+    }
     const ret = result.ret;
     const retCopy = result.retCopy;
     const breakNow = result.breakNow
@@ -604,6 +606,70 @@ async function runComfyUI(apiInterface, generateData){
         ret = LANG.gr_error_creating_image.replace('{0}',error.message).replace('{1}', apiInterface)
         retCopy = error.message;
         breakNow = true;
+    }
+
+    return {ret, retCopy, breakNow }
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+async function runWebUI(apiInterface, generateData){
+    function sendToGallery(image, generateData){
+        if(!image)  // same prompts from backend will return null
+            return;
+
+        if(!keepGallery)
+            globalThis.mainGallery.clearGallery();
+        globalThis.mainGallery.appendImageData(image, `${generateData.seed}`, `${generateData.positive_left}\n${generateData.positive_right}`, keepGallery, globalThis.globalSettings.scroll_to_last);
+    }
+
+    const SETTINGS = globalThis.globalSettings;
+    const FILES = globalThis.cachedFiles;
+    const LANG = FILES.language[SETTINGS.language];
+
+    globalThis.generate.nowAPI = apiInterface;
+    const keepGallery = globalThis.generate.keepGallery.getValue();
+    let ret = 'success';
+    let retCopy = '';
+    let breakNow = false;
+
+    try {
+        let result;
+        if (globalThis.inBrowser) {
+            result = await sendWebSocketMessage({ type: 'API', method: 'runWebUI_Regional', params: [generateData] });
+        } else {
+            result = await globalThis.api.runWebUI_Regional(generateData);
+        }        
+        
+        if(globalThis.generate.cancelClicked) {
+            breakNow = true;
+        } else {
+            const typeResult = typeof result;
+            if(typeResult === 'string'){
+                if(result.startsWith('Error')){
+                    if(result.endsWith('Cancelled')) {
+                        console.log('Generate cancelled from queue manager');
+                    } else {
+                        ret = LANG.gr_error_creating_image.replace('{0}',result).replace('{1}', apiInterface)
+                        retCopy = result;
+                        breakNow = true;
+                    }
+                } else {
+                    sendToGallery(result, generateData);
+                }
+            }
+        }
+    } catch (error) {
+        ret = LANG.gr_error_creating_image.replace('{0}',error.message).replace('{1}', apiInterface)
+        retCopy = error.message;
+        breakNow = true;
+    }
+
+    if(ret.includes('cannot run new generation,')) {
+        // not stop polling due to WebUI is busy
+    } else if (globalThis.inBrowser) {
+        sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
+    } else {
+        globalThis.api.stopPollingWebUI();
     }
 
     return {ret, retCopy, breakNow }

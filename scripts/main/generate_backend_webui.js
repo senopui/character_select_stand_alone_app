@@ -304,6 +304,157 @@ class WebUI {
         });
     }
 
+    async runRegional (generateData) {
+        return new Promise((resolve, reject) => {
+            const {addr, auth, uuid, model, vpred, positive_left, positive_right, negative, width, height, cfg, step, seed, sampler, scheduler, refresh, hifix, refiner, regional, controlnet, adetailer} = generateData;
+            this.addr = addr;
+            this.refresh = refresh;
+            this.lastProgress = -1;
+            this.vpred = vpred;
+            this.auth = auth;
+            this.uuid = uuid;
+
+            backendWebUI.startPolling();
+
+            // Build Regional Prompter configuration
+            // Regional Prompter uses ADDCOMM syntax for regional conditioning
+            const { ratio, str_left, str_right, option_left, option_right } = regional;
+            
+            // ADDCOMM syntax: prompt1 ADDCOMM prompt2
+            // The regional_prompter extension expects prompts separated by ADDCOMM
+            const regionalPrompt = `${positive_left} ADDCOMM ${positive_right}`;
+
+            let payload = {        
+                "prompt": regionalPrompt,
+                "negative_prompt": negative,
+                "steps": step,
+                "width": width,
+                "height": height,
+                "sampler_index": sampler,
+                "scheduler": scheduler,
+                "batch_size" : 1,
+                "seed": seed,
+                "cfg_scale": cfg,
+                "save_images": true,
+                "alwayson_scripts": {
+                    "Regional Prompter": {
+                        "args": [
+                            true,           // active
+                            false,          // debug
+                            "Columns",      // mode - horizontal split
+                            "Prompt",       // split mode
+                            ratio,          // split ratio (e.g., "1,0.01,1")
+                            "",             // base ratio
+                            false,          // use base
+                            false,          // use common
+                            "",             // common prompt
+                            `${str_left},${str_right}`, // conditioning strengths
+                            false,          // disable convert
+                            option_left,    // left area option
+                            option_right,   // right area option
+                            false,          // overlap
+                        ]
+                    }
+                },
+            }
+
+            if (hifix.enable){
+                payload = {
+                    ...payload,
+                    "enable_hr": true,
+                    "denoising_strength": hifix.denoise,
+                    "firstphase_width": width,
+                    "firstphase_height": height,
+                    "hr_scale": hifix.scale,
+                    "hr_upscaler": hifix.model,
+                    "hr_second_pass_steps": hifix.steps,
+                    "hr_sampler_name": sampler,
+                    "hr_scheduler": scheduler,
+                    "hr_prompt": regionalPrompt,
+                    "hr_negative_prompt": negative,
+                    "hr_additional_modules": [],        //Fix Forge Error #10
+                }
+            }
+
+            if (refiner.enable && model !== refiner.model) {
+                payload = {
+                    ...payload,
+                    "refiner_checkpoint": refiner.model,
+                    "refiner_switch_at": refiner.ratio,
+                }
+            }
+            // ControlNet
+            if(controlnet) {
+                payload = applyControlnet(payload, controlnet);
+            }
+
+            // aDetailer
+            if(adetailer) {
+                payload = applyADetailer(payload, adetailer);
+            }
+            
+            const body = JSON.stringify(payload);
+            const apiUrl = `http://${this.addr}/sdapi/v1/txt2img`;
+            
+            let headers = {
+                'Content-Type': 'application/json'
+            };
+            if (auth?.includes(':')) {
+                const encoded = Buffer.from(auth).toString('base64');
+                headers['Authorization'] = `Basic ${encoded}`;
+            }
+
+            let request = net.request({
+                method: 'POST',
+                url: apiUrl,
+                headers: headers,
+                timeout: this.timeout,
+            });
+
+            const chunks = [];
+
+            request.on('response', (response) => {
+                response.on('data', (chunk) => {
+                    chunks.push(Buffer.from(chunk));
+                });
+
+                response.on('end', () => {
+                    if (response.statusCode !== 200) {
+                        console.error(`${CAT} HTTP error: ${response.statusCode}`);
+                        resolve(`Error: HTTP error ${response.statusCode}`);
+                        return;
+                    }
+                    
+                    const buffer = Buffer.concat(chunks);
+                    resolve(buffer);
+                })
+            });
+            
+            request.on('error', (error) => {
+                let ret = '';
+                if (error.code === 'ECONNABORTED') {
+                    console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                    ret = `Error: Request timed out after ${this.timeout}ms`;
+                } else {
+                    console.error(CAT, 'Request failed:', error.message);
+                    ret = `Error: Request failed:, ${error.message}`;
+                }
+                setMutexBackendBusy(false); // Release the mutex lock
+                resolve(ret);
+            });
+    
+            request.on('timeout', () => {
+                request.destroy();
+                console.error(`${CAT} Request timed out after ${this.timeout}ms`);
+                setMutexBackendBusy(false); // Release the mutex lock
+                resolve(`Error: Request timed out after ${this.timeout}ms`);
+            });
+
+            request.write(body);
+            request.end(); 
+        });
+    }
+
     cancelGenerate() {
         const auth = this.auth;
         const apiUrl = `http://${this.addr}/sdapi/v1/interrupt`;
@@ -560,6 +711,10 @@ async function setupGenerateBackendWebUI() {
         return await runWebUI_ControlNet(generateData);
     });
 
+    ipcMain.handle('generate-backend-webui-run-regional', async (event, generateData) => {
+        return await runWebUI_Regional(generateData);
+    });
+
     ipcMain.handle('generate-backend-webui-start-polling', async (event) => {
         startPollingWebUI();
     });
@@ -659,15 +814,7 @@ async function updateUpscalerModelList(generateData) {
     return upscalersModelList;
 }
 
-async function runWebUI(generateData){
-    const isBusy = await getMutexBackendBusy();
-    if (isBusy) {
-        console.warn(CAT, '[runWebUI] WebUI is busy, cannot run new generation, please try again later.');
-        return 'Error: WebUI is busy, cannot run new generation, please try again later.';
-    }
-    setMutexBackendBusy(true); // Acquire the mutex lock
-    cancelMark = false;
-
+async function refreshModelLists(generateData) {
     if (contronNetModelHashList === 'none') {
         console.log(CAT, "Refresh controlNet model hash list:");
         const result = await updateControlNetHashList(generateData);
@@ -691,6 +838,18 @@ async function runWebUI(generateData){
         upscalersModelList = await updateUpscalerModelList(generateData);
         console.log(upscalersModelList);
     }
+}
+
+async function runWebUI(generateData){
+    const isBusy = await getMutexBackendBusy();
+    if (isBusy) {
+        console.warn(CAT, '[runWebUI] WebUI is busy, cannot run new generation, please try again later.');
+        return 'Error: WebUI is busy, cannot run new generation, please try again later.';
+    }
+    setMutexBackendBusy(true); // Acquire the mutex lock
+    cancelMark = false;
+
+    await refreshModelLists(generateData);
     
     const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
     if(result === '200') {
@@ -723,6 +882,49 @@ async function runWebUI(generateData){
     console.log(CAT, 'result is not 200', result);
     return result;
 } 
+
+async function runWebUI_Regional(generateData){
+    const isBusy = await getMutexBackendBusy();
+    if (isBusy) {
+        console.warn(CAT, '[runWebUI_Regional] WebUI is busy, cannot run new generation, please try again later.');
+        return 'Error: WebUI is busy, cannot run new generation, please try again later.';
+    }
+    setMutexBackendBusy(true); // Acquire the mutex lock
+    cancelMark = false;
+
+    await refreshModelLists(generateData);
+    
+    const result = await backendWebUI.setModel(generateData.addr, generateData.model, generateData.auth);
+    if(result === '200') {
+        try {
+            if(backendWebUI.uuid !== 'none')
+                console.log(CAT, 'Running A1111 Regional with uuid:', generateData.uuid);
+            const imageData = await backendWebUI.runRegional(generateData);
+            setMutexBackendBusy(false); // Release the mutex lock
+
+            if(cancelMark) {
+                return 'Error: Cancelled';
+            }
+
+            if (typeof imageData === 'string' && imageData.startsWith('Error:')) {
+                console.error(CAT, imageData);
+                return `${imageData}`;
+            }
+
+            const jsonData =  JSON.parse(imageData);
+            sendToRenderer(backendWebUI.uuid, `updateProgress`, `100`, '100%');
+            const image = jsonData.images[0];
+            // parameters info
+            return `data:image/png;base64,${image}`;
+        } catch (error) {            
+            console.error(CAT, 'Image not found or invalid:', error);
+            return `Error: Image not found or invalid: ${error}`;
+        }
+    }
+
+    console.log(CAT, 'result is not 200', result);
+    return result;
+}
 
 async function runWebUI_ControlNet(generateData) {
     const isBusy = await getMutexBackendBusy();
@@ -806,6 +1008,7 @@ function resetModelLists() {
 export {
     setupGenerateBackendWebUI,
     runWebUI,
+    runWebUI_Regional,
     runWebUI_ControlNet,
     cancelWebUI,
     startPollingWebUI,
