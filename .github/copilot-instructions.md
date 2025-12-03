@@ -95,7 +95,9 @@ npm run package_mac # Package for macOS
 - **Image Tagger**: CPU-based ONNX inference (no GPU acceleration in Node.js)
 - **ControlNet/IP Adapter**: Requires backend-specific plugins
 - **Queue System**: Batch processing with auto-resume on errors
-- **Regional Conditioning**: ComfyUI-only feature
+- **Regional Conditioning**: Supported by both ComfyUI and A1111/Forge backends
+  - A1111/Forge requires the [`sd-webui-regional-prompter`](https://github.com/hako-mikan/sd-webui-regional-prompter) plugin
+  - ComfyUI-only parameters: Overlap ratio, Conditioning strength (left/right), Area options (left/right)
 - **API Auth**: Supported for WebUI backends only
 
 ## Development Guidelines
