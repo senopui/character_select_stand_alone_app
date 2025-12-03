@@ -193,15 +193,11 @@ export function callback_regional_condition(trigger, dummy = false) {
     const FILES = globalThis.cachedFiles;
     const LANG = FILES.language[SETTINGS.language];
     const apiInterface = globalThis.generate.api_interface.getValue();
+    
+    // Show plugin notice when enabling Regional Condition for A1111/Forge
     if(apiInterface !== 'ComfyUI' && trigger) {
-        const errorMessage = LANG.regional_error_not_comfyui;
-        globalThis.overlay.custom.createErrorOverlay(errorMessage, errorMessage);
-        if (dummy) {
-            globalThis.generate.regionalCondition_dummy.setValue(false);
-        } else {
-            globalThis.generate.regionalCondition.setValue(false);
-        }
-        return;
+        const noticeMessage = LANG.message_regional_webui || 'Note: Regional Condition for A1111/Forge requires the sd-webui-regional-prompter extension.';
+        globalThis.overlay.custom.createErrorOverlay(noticeMessage, 'https://github.com/hako-mikan/sd-webui-regional-prompter');
     }
 
     if (dummy) {

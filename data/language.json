@@ -35,7 +35,7 @@
         "api_neg_prompt": "Negative Prompt",
         "batch_generate_rule": "AI rule for Batch generate: ",
 
-        "regional_condition": "Regional Condition (ComfyUI)",
+        "regional_condition": "Regional Condition",
         "regional_swap": "Swap Character",
         "regional_custom_prompt": "Common Prompt (Both Side Header)",
         "regional_api_prompt": "Left Character (Left Tail)",        
@@ -51,6 +51,7 @@
         "regional_option_left": "Left Area",
         "regional_option_right": "Right Area",
         "regional_error_not_comfyui": "Regional Condition is only supported in ComfyUI.\nMight support A1111 in future.",
+        "message_regional_webui": "Note: Regional Condition for A1111/Forge requires [color=CornflowerBlue]sd-webui-regional-prompter[/color]. Click to copy the Plugin download link.\n\n[color=CornflowerBlue]https://github.com/hako-mikan/sd-webui-regional-prompter[/color]",
 
         "title_settings_save": "Save Settings",
         "title_settings_load": "Load Settings",
@@ -262,7 +263,7 @@
         "api_neg_prompt": "负面提示词",
         "batch_generate_rule": "AI填词规则：",
 
-        "regional_condition": "双人分区采样（ComfyUI）",
+        "regional_condition": "双人分区采样",
         "regional_swap": "交换角色位置",
         "regional_custom_prompt": "通用提示词（两侧最前）",
         "regional_api_prompt": "左侧角色提示词（左侧末尾）",        
@@ -278,6 +279,7 @@
         "regional_option_left": "左采样区域",
         "regional_option_right": "右采样区域",
         "regional_error_not_comfyui": "注意，当前分区采样仅支持ComfyUI，未来或许会支持A1111",
+        "message_regional_webui": "注意：分区采样 A1111/Forge 需要插件 [color=CornflowerBlue]sd-webui-regional-prompter[/color]，点击复制\n\n[color=CornflowerBlue]https://github.com/hako-mikan/sd-webui-regional-prompter[/color]",
 
         "title_settings_save": "保存设置",
         "title_settings_load": "读取设置",
