@@ -522,17 +522,19 @@ export async function seartGenerateRegional(apiInterface, generateData){
     let breakNow = false;
 
     if(apiInterface === 'None') {
-        console.warn('apiInterface', apiInterface);
+        console.warn('apiInterface is None - no backend configured');
+        ret = 'Error: No API interface configured';
+        breakNow = true;
     } else if(apiInterface === 'ComfyUI') {
         const result = await runComfyUI(apiInterface, generateData);
         ret = result.ret;
         retCopy = result.retCopy;
-        breakNow = result.breakNow
+        breakNow = result.breakNow;
     } else if(apiInterface === 'WebUI') {
         const result = await runWebUI(apiInterface, generateData);
         ret = result.ret;
         retCopy = result.retCopy;
-        breakNow = result.breakNow
+        breakNow = result.breakNow;
     }
 
     return {ret, retCopy, breakNow}

@@ -67,7 +67,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.characterList.setValueOnly(globalThis.globalSettings.language === 'en-US');
 
     // Regional Condition
-    setDropdownLanguage('dropdown-character-regional', [LANG.regional_character_left, LANG.regional_character_right, LANG.regional_origina_character_left, LANG.regional_origina_character_right]);
+    setDropdownLanguage('dropdown-character-regional', [LANG.regional_character_left, LANG.regional_character_right, LANG.regional_original_character_left, LANG.regional_original_character_right]);
     globalThis.characterListRegional.setValueOnly(globalThis.globalSettings.language === 'en-US');
 
     // View List
