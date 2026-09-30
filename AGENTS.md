@@ -33,6 +33,7 @@ Load references conditionally, not all before every task:
 ## Worktree and validation discipline
 
 - Inspect `git status` and the current branch/HEAD first. Preserve pre-existing edits and untracked environment files. Do not reset, clean, change remotes, commit, or push without task authorization.
+- `origin` is the user's fork (`senopui`); `upstream` is the original project (`mirabarukaso`). Verify `git remote -v` and branch tracking before synchronization. Use explicit remote names; authorized downstream publishing targets `origin`. See DEVELOPMENT for the worktree and upstream-update workflow.
 - Normally exclude `node_modules/`, `release/`, runtime settings/layout JSON, downloaded thumbnails/tag data, model weights, certificates, logs, and Python utility outputs. Consult [.gitignore](.gitignore) and tracked files: some data, MiraITU presets, and wildcard examples are intentional source assets. Do not blanket-delete or ignore whole data/settings trees.
 - Never commit real API keys, authentication data, or private local paths. Check new runtime outputs even when Git does not ignore them.
 - No formal automated test suite is currently provided. Use the relevant validation ladder and smoke matrix in DEVELOPMENT; do not report syntax checks as application tests. Add focused behavioral checks for meaningful new logic when practical.

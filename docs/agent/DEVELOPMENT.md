@@ -2,18 +2,58 @@
 
 ## Audit snapshot (version-specific)
 
-Audited on **2026-09-30**, application **2.9.6**, commit
-`4d9e945ba3254ad1ef74bc6595490799b1c36993`, **detached HEAD**.
-`origin` is `https://github.com/mirabarukaso/character_select_stand_alone_app.git`;
-the live `origin` main branch advertised the same commit during the audit.
-Tracked files were clean before this documentation task. An untracked local
-`.codex/environments/environment.toml` and ignored `node_modules/` already existed.
+Revalidated on **2026-09-30**, application **2.9.6**, commit
+`8e78e9c336c227f986bd4efd9ce5adde10d21646`, branch
+`codex/document-repository-for-ai-agents`.
+Application source and manifests are unchanged from the original audit at
+`4d9e945ba3254ad1ef74bc6595490799b1c36993`. The intervening commit adds the five
+agent documents and the now-tracked `.codex/environments/environment.toml`.
+This worktree was clean before the refresh, with ignored `node_modules/` present.
+
+Both live remote `main` branches and local `main` pointed to `4d9e945` during
+the refresh. This documentation branch was one commit ahead, with no missing
+upstream commits. The primary checkout was on `main`; this worktree was on the
+documentation branch. No application changes from an upstream update required
+an architecture or ComfyUI rewrite.
 Recheck Git state before future work; this is not an assertion about later checkouts.
 
 The newest [changelog](../../CHANGELOGS.md) entries are 2.9.6 (SAAC read-only
 policy and favorite hotkeys) and 2.9.5 (per-address generation locks, request-owner
 preview/result routing, SAAC service controls, backend log). These areas deserve
 regression coverage when touching settings, generation, or SAAC.
+
+## Fork, upstream, and worktrees
+
+| Remote | Repository | Role |
+| --- | --- | --- |
+| `origin` | `https://github.com/senopui/character_select_stand_alone_app` | User's downstream fork; destination for authorized downstream publishing. |
+| `upstream` | `https://github.com/mirabarukaso/character_select_stand_alone_app.git` | Original project; source of upstream updates. |
+
+At the refresh, local `main` still tracked `upstream/main` after the remote rename;
+the documentation branch had no tracking branch. Tracking is distinct from a
+remote's name. Use explicit remote names for synchronization/publishing instead
+of assuming a bare `git pull` or `git push` selects the fork.
+
+Worktrees share remotes and branch refs, but have separate checked-out HEADs,
+indexes, and working files. Pulling in the primary checkout does not update a
+different branch in this worktree. Inspect before deciding whether to integrate:
+
+```sh
+git status --short
+git remote -v
+git branch -vv
+git worktree list
+git log --oneline HEAD..upstream/main
+git log --oneline upstream/main..HEAD
+git diff --stat upstream/main...HEAD
+```
+
+These comparisons use locally stored refs. `git ls-remote --heads upstream`
+checks the live remote without updating them; `git fetch upstream` refreshes refs
+without merging into the checkout. Merge/rebase only as part of authorized sync
+work, preserving downstream edits. After integrating source changes, compare
+against the documented source snapshot and update only affected agent references;
+a remote rename by itself does not change application architecture.
 
 ## Dependencies and commands
 
@@ -114,9 +154,9 @@ images out of commits. Important exceptions to a blanket directory rule:
 
 Use Cloud for source inspection, isolated implementation, dependency installation,
 syntax checks, pure-module tests, review, refactoring, and documentation. Configure
-its own setup to run `npm ci` with a compatible Node version. The local generated
+its own setup to run `npm ci` with a compatible Node version. The tracked, generated
 `.codex/environments/environment.toml` already uses `npm ci` for all listed
-platforms; **no change is needed for this bootstrap**. Its presence does not
+platforms; **the remote rename requires no setup change**. Its presence does not
 establish that a separate cloud environment is configured.
 For cloud setup controls, consult the [official environment documentation](https://learn.chatgpt.com/docs/environments/cloud-environment).
 
@@ -192,10 +232,16 @@ modules, JSON workflow validity against ComfyUI, or renderer script ordering.
 | Concurrency/regression | SAA and SAAC request/result ownership; same-address busy handling versus distinct backends; read-only behavior. Smoke Forge Neo if shared backend abstractions changed and that backend is available. | Local; unavailable paths must be reported as untested. |
 | Packaging | Build only when packaging is touched; inspect bundled files, then launch package and verify settings/data writes. | Target platform after resolving missing packaging tool. |
 
-Audit checks actually performed: all **72 tracked JavaScript files** passed
+Initial source-audit checks: all **72 tracked JavaScript files** passed
 `node --check`; all **6 tracked Python files** passed AST parsing; root manifest
 and lock metadata/dependency maps matched; `npm ls --depth=0` passed. The host was
 Node 26.8.1 / npm 11.17.0 / Python 3.14.7. These are observations, not required
 version pins. Dependency installation, GUI startup, Python app execution,
 packaging, and real ComfyUI/Forge Neo generation were not run for this
 documentation-only audit.
+
+The follow-up refresh confirmed unchanged application source/manifests by Git
+comparison, rechecked manifest/lock agreement and local documentation links, and
+passed `git diff --check`. The syntax checks above belong to the initial audit;
+they were not repeated for this Git-context-only documentation update. Local
+GUI/ComfyUI verification remains pending.

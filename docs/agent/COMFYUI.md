@@ -1,6 +1,6 @@
 # ComfyUI integration reference
 
-Audited 2026-09-30 at detached HEAD `4d9e945ba3254ad1ef74bc6595490799b1c36993`. This is a source audit, not evidence of successful generation on the user's installation. Recheck the source after upstream changes. Statements below are **verified from this snapshot** unless labeled recommendation or **Needs runtime verification**. For process boundaries see [ARCHITECTURE.md](ARCHITECTURE.md); for executable checks see [DEVELOPMENT.md](DEVELOPMENT.md).
+Revalidated 2026-09-30 at `8e78e9c336c227f986bd4efd9ce5adde10d21646` on `codex/document-repository-for-ai-agents`. Application source is unchanged from the original audit at `4d9e945ba3254ad1ef74bc6595490799b1c36993`. This is a source audit, not evidence of successful generation on the user's installation. Recheck the source after upstream changes. Statements below are **verified from this snapshot** unless labeled recommendation or **Needs runtime verification**. For process boundaries see [ARCHITECTURE.md](ARCHITECTURE.md); for executable checks see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Entry points and ownership
 

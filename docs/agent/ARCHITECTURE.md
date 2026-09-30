@@ -1,6 +1,7 @@
 # Architecture and change navigation
 
-Audited 2026-09-30 at `4d9e945ba3254ad1ef74bc6595490799b1c36993` (detached HEAD).
+Revalidated 2026-09-30 at `8e78e9c336c227f986bd4efd9ce5adde10d21646` on `codex/document-repository-for-ai-agents`.
+Application source is unchanged from the original audit at `4d9e945ba3254ad1ef74bc6595490799b1c36993`.
 This is a source-verified snapshot, not evidence of a successful GUI or generation run.
 Statements below describe inspected code; recommendations and interpretations are explicitly labeled.
 For backend workflow details use [COMFYUI.md](COMFYUI.md); for commands and validation use [DEVELOPMENT.md](DEVELOPMENT.md).
