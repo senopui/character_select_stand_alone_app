@@ -1,3 +1,8 @@
+2026.10.16 v2.9.7      
+Change, Enable `SandBox`      
+Bump dependency version      
+
+
 2026.09.30 v2.9.6      
 Add, configurable `Add/Remove favorite` hotkeys in `Settings`      
 Add, hint in `Settings`: type `@` in character list to show `Favorite List`      

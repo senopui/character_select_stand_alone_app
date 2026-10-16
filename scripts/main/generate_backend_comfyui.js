@@ -2790,24 +2790,30 @@ function closeWsComfyUI(prompt_id) {
 
 async function cancelComfyUI(owner = 'none') {
   console.log(CAT, 'Processing interrupted for', owner);
-  for (const backend of comfyBackends.values()) {
-    if (backend.uuid === owner) {
-      backend.cancelMark = true;
-      await backend.cancelGenerate();
-    }
+  const backends = [...comfyBackends.values()].filter((backend) => backend.uuid === owner);
+
+  for (const backend of backends) {
+    backend.cancelMark = true;
   }
+
+  await Promise.all(backends.map((backend) => backend.cancelGenerate()));
 }
 
 async function cancelAllComfyUI() {
   console.log(CAT, 'Cancelling all ComfyUI jobs');
-  for (const backend of comfyBackends.values()) {
+  const backends = [...comfyBackends.values()];
+
+  for (const backend of backends) {
     backend.cancelMark = true;
+  }
+
+  await Promise.all(backends.map(async (backend) => {
     try {
       await backend.cancelGenerate();
     } catch (error) {
       console.warn(CAT, 'Failed to cancel ComfyUI job:', error);
     }
-  }
+  }));
 }
 
 export {

@@ -4,10 +4,11 @@
  * Electron's renderer process modules and some polyfilled
  * Node.js functions.
  *
+ * Sandboxed preload has no ESM context, so this file is CommonJS.
  * https://www.electronjs.org/docs/latest/tutorial/sandbox
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+const { contextBridge, ipcRenderer } = require('electron');
 
 // main to render
 let okm = {
@@ -196,4 +197,3 @@ globalThis.addEventListener('DOMContentLoaded', () => {
     replaceText(`${type}-version`, process.versions[type])
   }
 })
-

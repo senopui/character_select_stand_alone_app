@@ -116,12 +116,11 @@ function createWindow () {
     height: fit.height,
     icon: path.join(__dirname, './html/icon.png'),
     webPreferences: {
-      preload: path.join(__dirname, './scripts/preload.js'),
+      preload: path.join(__dirname, './scripts/preload.cjs'),
       contextIsolation: true, // Enable context isolation
       nodeIntegration: false, // Disable Node.js integration
-      nodeIntegrationInWorker: true, // Enable multithread
       spellcheck: true, // Enable spellcheck
-      sandbox: false, // Disable sandbox for ES modules
+      sandbox: true,
       webSecurity: true, //Enable web security
       zoomFactor: fit.zoomFactor,
     }
@@ -146,7 +145,9 @@ function createWindow () {
   });
 
   // and load the index_electron.html of the app.
-  mainWindow.loadFile('index_electron.html');
+  mainWindow.loadFile('index_electron.html').catch((error) => {
+    console.error('[Main] Failed to load index_electron.html:', error);
+  });
 
   mainWindow.on('close', (event) => {
     if (allowQuit || countConnectedSaacClients() <= 0) {
@@ -189,8 +190,8 @@ async function initializeApp() {
 
   const tacSuccess = await setupTagAutoCompleteBackend();
   setupModelApi();
-  setupGenerateBackendComfyUI();
-  setupGenerateBackendWebUI();  
+  await setupGenerateBackendComfyUI();
+  await setupGenerateBackendWebUI();
   setupTagger();
 
   if (downloadSuccess && cacheSuccess && tacSuccess) {
@@ -232,25 +233,13 @@ function registerWsServiceIpc() {
     return { success, ...status };
   });
 
-  ipcMain.handle('ws-service-stop', () => {
-    return Promise.resolve(closeWebSocketServer()).then(() => {
-      const status = getWsServiceStatus();
-      setWsServiceListenInfo(`none`);
-      return { success: !status.running, ...status };
-    });
+  ipcMain.handle('ws-service-stop', async () => {
+    await closeWebSocketServer();
+    const status = getWsServiceStatus();
+    setWsServiceListenInfo(`none`);
+    return { success: !status.running, ...status };
   });
 }
-
-// Initialize the app
-// eslint-disable-next-line unicorn/prefer-top-level-await
-(async () => { 
-  await app.whenReady();  
-  await initializeApp();
-  
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  });
-})();
 
 app.on('before-quit', (event) => {
   if (allowQuit || countConnectedSaacClients() <= 0) {
@@ -264,9 +253,29 @@ app.on('before-quit', (event) => {
 });
 
 // Quit when all windows are closed
-app.on('window-all-closed', function () {
-  Promise.resolve(closeWebSocketServer()).finally(() => {
-    allowQuit = true;
-    app.quit();
-  });
-})
+app.on('window-all-closed', () => {
+  void closeWebSocketServer()
+    .catch((error) => {
+      console.error('[Main] Failed to close WebSocket server:', error);
+    })
+    .finally(() => {
+      allowQuit = true;
+      app.quit();
+    });
+});
+
+// Top-level await of app.whenReady() deadlocks ESM main: Electron waits
+// for the entry module to finish evaluating before emitting ready.
+// eslint-disable-next-line unicorn/prefer-top-level-await
+void (async () => {
+  try {
+    await app.whenReady();
+    await initializeApp();
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    });
+  } catch (error) {
+    console.error('[Main] App initialization failed:', error);
+  }
+})();
