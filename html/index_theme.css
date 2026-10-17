@@ -186,6 +186,7 @@ body {
 :where([data-theme="light"]) #refiner-toggle,
 :where([data-theme="light"]) #controlnet-toggle,
 :where([data-theme="light"]) #regional-condition-toggle,
+:where([data-theme="light"]) #bounding-toggle,
 :where([data-theme="light"]) #add-lora-toggle,
 :where([data-theme="light"]) #model-settings-toggle,
 :where([data-theme="light"]) #jsonlist-toggle,
@@ -405,6 +406,7 @@ body.right-to-left #cg-info-button {
 .refiner-header,
 .controlnet-header,
 .regional-condition-header,
+.bounding-header,
 .jsonlist-header,
 .adetailer-header,
 .queue-header {
@@ -468,6 +470,7 @@ body.right-to-left #cg-info-button {
 .refiner-header,
 .controlnet-header,
 .regional-condition-header,
+.bounding-header,
 .add-lora-header,
 .adetailer-header,
 .queue-header {
@@ -480,6 +483,7 @@ body.right-to-left #cg-info-button {
 .refiner-header-span,
 .controlnet-header-span,
 .regional-condition-header-span,
+.bounding-header-span,
 .system-settings-header-span,
 .gallery-main-header-span,
 .gallery-thumb-header-span,
@@ -499,6 +503,7 @@ body.right-to-left #cg-info-button {
 #refiner-span,
 #controlnet-span,
 #regional-condition-span,
+#bounding-span,
 #model-settings-span,
 #add-lora-span,
 #system-settings-span,
@@ -517,6 +522,7 @@ body.right-to-left #cg-info-button {
 #refiner-toggle,
 #controlnet-toggle,
 #regional-condition-toggle,
+#bounding-toggle,
 #model-settings-toggle,
 #add-lora-toggle,
 #jsonlist-toggle,
@@ -556,6 +562,7 @@ body.right-to-left #cg-info-button {
 #refiner-toggle:hover,
 #controlnet-toggle:hover,
 #regional-condition-toggle:hover,
+#bounding-toggle:hover,
 #model-settings-toggle:hover,
 #add-lora-toggle:hover,
 #jsonlist-toggle:hover,
@@ -572,6 +579,7 @@ body.right-to-left #cg-info-button {
 #refiner-toggle.collapsed,
 #controlnet-toggle.collapsed,
 #regional-condition-toggle.collapsed,
+#bounding-toggle.collapsed,
 #model-settings-toggle.collapsed,
 #add-lora-toggle.collapsed,
 #jsonlist-toggle.collapsed,
@@ -753,6 +761,7 @@ body.right-to-left #cg-info-button {
 .refiner-container,
 .controlnet-container,
 .regional-condition-container,
+.bounding-container,
 .model-settings-container,
 .add-lora-container,
 .system-settings-container,
@@ -763,6 +772,7 @@ body.right-to-left #cg-info-button {
 .refiner-main,
 .controlnet-main,
 .regional-condition-main,
+.bounding-main,
 .model-settings-main,
 .add-lora-main,
 .system-settings-main,
@@ -996,7 +1006,8 @@ body.right-to-left #cg-info-button {
 .generate-refiner,
 .generate-controlnet,
 .generate-tag-assist,
-.queue-autostart-generate {
+.queue-autostart-generate,
+.bounding-enable {
     position: relative;
     margin-top: 1px;
 }
@@ -1006,7 +1017,8 @@ body.right-to-left #cg-info-button {
 :where([data-theme="light"]) .generate-refiner,
 :where([data-theme="light"]) .generate-controlnet,
 :where([data-theme="light"]) .generate-tag-assist,
-:where([data-theme="light"]) .queue-autostart-generate {
+:where([data-theme="light"]) .queue-autostart-generate,
+:where([data-theme="light"]) .bounding-enable {
     margin-right: 20px;
 }
 
@@ -1121,6 +1133,7 @@ body.right-to-left #cg-info-button {
 .refiner-main,
 .controlnet-main,
 .regional-condition-main,
+.bounding-main,
 .model-settings-main,
 .add-lora-main,
 .system-settings-main,
@@ -1141,6 +1154,7 @@ body.right-to-left #cg-info-button {
 .refiner-main.collapsed,
 .controlnet-main.collapsed,
 .regional-condition-main.collapsed,
+.bounding-main.collapsed,
 .model-settings-main.collapsed,
 .add-lora-main.collapsed,
 .system-settings-main.collapsed,
@@ -1160,6 +1174,7 @@ body.right-to-left #cg-info-button {
 #refiner-toggle,
 #controlnet-toggle,
 #regional-condition-toggle,
+#bounding-toggle,
 #model-settings-toggle,
 #add-lora-toggle,
 #system-settings-toggle,
