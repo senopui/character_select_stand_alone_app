@@ -1460,6 +1460,28 @@ class ComfyUI {
       workflow["50"].inputs.device = unet.clip_device;
     }
 
+    // Moss SkipLayerGuidanceDiTSimple (22)
+    if(unet.clip_type == 'moss_image') {
+      workflow["1"] = {
+        "inputs": {
+          "model": [
+            "51",
+            0
+          ],
+          "double_layers": "",
+          "single_layers": "22",
+          "start_percent": 0,
+          "end_percent": 1
+        },
+        "class_type": "SkipLayerGuidanceDiTSimple",
+        "_meta": {
+          "title": "SkipLayerGuidanceDiTSimple (uncond skips block 22)"
+        }
+      };
+
+      workflow["34"].inputs.model = ["1", 0];
+    }
+
     // Set VAE model
     workflow["52"].inputs.vae_name = unet.vae_model;
 
@@ -1788,6 +1810,28 @@ class ComfyUI {
       workflow["60"].inputs.clip_name = unet.clip_model;
       workflow["60"].inputs.type = unet.clip_type;
       workflow["60"].inputs.device = unet.clip_device;
+    }
+
+    // Moss SkipLayerGuidanceDiTSimple (22)
+    if(unet.clip_type == 'moss_image') {
+      workflow["1"] = {
+        "inputs": {
+          "model": [
+            "51",
+            0
+          ],
+          "double_layers": "",
+          "single_layers": "22",
+          "start_percent": 0,
+          "end_percent": 1
+        },
+        "class_type": "SkipLayerGuidanceDiTSimple",
+        "_meta": {
+          "title": "SkipLayerGuidanceDiTSimple (uncond skips block 22)"
+        }
+      };
+
+      workflow["34"].inputs.model = ["1", 0];
     }
 
     // Load VAE

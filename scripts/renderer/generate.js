@@ -10,6 +10,7 @@ import { convertToMultipleOfNFloor, checkNumberInRange } from './tools/numbers.j
 import { setQueueAutoStart } from './callbacks.js';
 import { filterPrompts } from './tools/promptFilter.js';
 import { isAutoRetryRunning, startAutoRetry } from './tools/autoRetry.js';
+import { finalizePositivePrompt } from './bounding.js';
 
 
 export const REPLACE_AI_MARK = '_|REPLACE_AI_PROMPT|_';
@@ -461,8 +462,9 @@ async function getCharacters(seedOverride = null) {
     let negativeTags = '';
     let character_name_for_image_prefix = '';
 
-    for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info, weight, characterName, neg_tags} = await createCharacters(index, seeds);
+    const characterSlots = await Promise.all([0, 1, 2, 3].map((index) => createCharacters(index, seeds)));
+    for(let index=0; index < characterSlots.length; index++) {
+        let {tag, tag_assist, thumb, info, weight, characterName, neg_tags} = characterSlots[index];
         let seperate = ', ';
         // Should not happen
         if(tag.startsWith('✨ ')) {            
@@ -606,6 +608,62 @@ function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {
     return {pos:positivePrompt, posc:positivePromptColored, lora:loraPromot}
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function previewCharacterTags() {
+    const list = globalThis.characterList;
+    const files = globalThis.cachedFiles;
+    if (!list?.getKey || !files?.characterList) return '';
+    const useAssist = Boolean(globalThis.generate?.tag_assist?.getValue?.());
+    let character = '';
+    const keys = list.getKey();
+    for (let index = 0; index < 4; index += 1) {
+        const key = keys[index];
+        if (!key || String(key).toLowerCase() === 'none' || characterRandomMode(key)) continue;
+        const weight = list.getTextValue(index);
+        if (index === 3) {
+            const raw = String(files.ocList?.[key] || '');
+            const { tag } = splitTagNegativePrompt(raw);
+            let seperate = ', ';
+            if (tag.endsWith('.')) seperate = ' ';
+            else if (tag.endsWith('\n')) seperate = '';
+            character = packWeight(character, tag, weight, seperate);
+        } else {
+            const raw = String(files.characterList?.[key] || '');
+            const { tag: parsed } = splitTagNegativePrompt(raw);
+            const tag = parsed.replaceAll('\\', '\\\\').replaceAll('(', String.raw`\(`).replaceAll(')', String.raw`\)`);
+            let seperate = ', ';
+            if (tag.endsWith(',')) seperate = ' ';
+            character = packWeight(character, tag, weight, seperate);
+            const assist = getTagAssist(parsed, useAssist, files, index, '');
+            if (assist.tas) character += assist.tas;
+        }
+    }
+    return character;
+}
+
+// Wildcards, random braces, and the AI reply stay unresolved here.
+// Generation replaces them, then setPreview shows the string that was sent.
+export function composePositivePreview() {
+    try {
+        if (!globalThis.prompt?.common?.getValue || !globalThis.prompt?.positive?.getValue) {
+            return globalThis.generate?.lastPos || '';
+        }
+        const seedValue = Number(globalThis.generate?.seed?.getValue?.());
+        const seed = Number.isFinite(seedValue) && seedValue >= 0 ? seedValue : 0;
+        const views = globalThis.viewList?.getValue ? getViewTags(seed) : '';
+        const aiRole = globalThis.ai?.ai_select?.getValue?.();
+        const ai = (aiRole === 0 || String(aiRole ?? '').toLowerCase() === 'none') ? '' : REPLACE_AI_MARK;
+        const api = globalThis.generate?.api_interface?.getValue?.() || 'None';
+        const { pos, lora } = getPrompts(previewCharacterTags(), views, ai, api, -1);
+        return lora ? `${pos}\n${lora}` : pos;
+    } catch (error) {
+        console.error('[bounding] preview failed', error);
+        return globalThis.generate?.lastPos || '';
+    }
+}
+
+globalThis.composePositivePreview = composePositivePreview;
+
 export function getLoRAs(apiInterface) {
     const loraData = globalThis.lora.getValues();
     if (!Array.isArray(loraData) || loraData.length === 0 || apiInterface === 'None') {
@@ -665,18 +723,18 @@ export async function replaceWildcardsAsync(pos, seed) {
     while ((match = wildcardRegex.exec(pos)) !== null) {
         matches.push(match[1]);
     }
-    // replace each wildcard with its corresponding value
-    for (const wildcardName of matches) {
+    // Seeds stay in match order. The file reads themselves do not depend on each other.
+    const replacements = await Promise.all(matches.map((wildcardName) => {
         if (globalThis.generate.wildcard_random.getValue()) {
             random_seed = generateRandomSeed();
         }
-        let replacement;
         if (globalThis.inBrowser) {
-            replacement = await sendWebSocketMessage({ type: 'API', method: 'loadWildcard', params: [wildcardName, random_seed] }); 
-        } else {
-            replacement = await globalThis.api.loadWildcard(wildcardName, random_seed);
+            return sendWebSocketMessage({ type: 'API', method: 'loadWildcard', params: [wildcardName, random_seed] });
         }
-        pos = pos.replaceAll(new RegExp(`__${wildcardName}__`, 'g'), `${replacement}`);
+        return globalThis.api.loadWildcard(wildcardName, random_seed);
+    }));
+    for (let index = 0; index < matches.length; index++) {
+        pos = pos.replaceAll(new RegExp(`__${matches[index]}__`, 'g'), `${replacements[index]}`);
     }
     return pos;
 }
@@ -732,6 +790,16 @@ async function createPrompt(runSame, aiPromot, apiInterface, loop=-1, seedOverri
     }
 
     return {finalInfo, randomSeed, positivePrompt, positivePromptColored, negativePrompt, thumbImage, charactersName, img_prefix}
+}
+
+function appendBoundingInfo(text) {
+    if (!globalThis.infoBox?.image?.appendValue) return;
+    const safe = String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('[', '&#91;');
+    globalThis.infoBox.image.appendValue(`Bounding:\n${safe}`);
 }
 
 export function formatQueueJobSeed(seed, hifixEnabled, lang) {
@@ -1111,7 +1179,9 @@ export async function generateImage(dataPack){
         if(!globalThis.inGenerating)
             globalThis.generate.loadingMessage = LANG.generate_warmup.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1, seedOverride);
+        // One job at a time: each pass reads the live UI, and cancel/skip must be able to stop the batch.
+        // eslint-disable-next-line no-await-in-loop
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1, seedOverride); // NOSONAR
         const landscape = globalThis.generate.landscape.getValue();
         const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
         const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
@@ -1292,10 +1362,18 @@ export async function startQueue(){
 
             if(queueManager.isRegional) {
                 generateData.positive_left = String(generateData.positive_left).replaceAll(REPLACE_AI_MARK, aiPrompt);
-                generateData.positive_right = String(generateData.positive_right).replaceAll(REPLACE_AI_MARK, aiPrompt);            
+                generateData.positive_right = String(generateData.positive_right).replaceAll(REPLACE_AI_MARK, aiPrompt);
                 result = await seartGenerateRegional(queueManager.apiInterface, generateData);
             } else {
                 generateData.positive = String(generateData.positive).replaceAll(REPLACE_AI_MARK, aiPrompt);
+                const beforePack = generateData.positive;
+                if (!generateData.boundingApplied) {
+                    finalizePositivePrompt(generateData);
+                    if (generateData.positive !== beforePack) {
+                        appendBoundingInfo(`${generateData.positive}\n`);
+                    }
+                }
+                globalThis.bounding?.setPreview?.(generateData.positive);
                 result = await seartGenerate(queueManager.apiInterface, generateData);
             }
         } else if(queueManager.genType === 'miraITU') {
@@ -1321,7 +1399,7 @@ export async function startQueue(){
 
             if(ret !== 'success') {
                 // Disable auto start, the error may solved in future
-                setQueueAutoStart(false);
+                await setQueueAutoStart(false);
                 
                 if( retCopy.includes('is busy, cannot run new generation, please try again later.') && !isAutoRetryRunning()) {
                     startAutoRetry(() => setQueueAutoStart(true));
@@ -1438,10 +1516,14 @@ async function runComfyUI(apiInterface, generateData){
                     retCopy = error.message;
                     breakNow = true;
                 } finally {
-                    if (globalThis.inBrowser) {
-                        sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI', params: [parsedResult.prompt_id] });
-                    } else {
-                        globalThis.api.closeWsComfyUI(parsedResult.prompt_id);
+                    try {
+                        if (globalThis.inBrowser) {
+                            await sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI', params: [parsedResult.prompt_id] });
+                        } else {
+                            await globalThis.api.closeWsComfyUI(parsedResult.prompt_id);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to close ComfyUI websocket:', error);
                     }
                 }                
             } else {
@@ -1504,10 +1586,16 @@ async function runWebUI(apiInterface, generateData) {
 
     if(ret.includes('cannot run new generation,')) {
         // not stop polling due to WebUI is busy
-    } else if (globalThis.inBrowser) {
-        sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
     } else {
-        globalThis.api.stopPollingWebUI();
+        try {
+            if (globalThis.inBrowser) {
+                await sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
+            } else {
+                await globalThis.api.stopPollingWebUI();
+            }
+        } catch (error) {
+            console.warn('Failed to stop WebUI polling:', error);
+        }
     }
 
     if (globalThis.cachedFiles.controlnetProcessorListWebUI === 'none') {   // aDetailer might not installed 

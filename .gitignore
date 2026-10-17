@@ -1,6 +1,7 @@
 .vscode
 node_modules
 release
+tests
 data/wai_character_thumbs.json
 data/waiIllustriousSDXL_v160_thumbs.json
 data/waiNSFWIllustrious_v120_thumbs.json

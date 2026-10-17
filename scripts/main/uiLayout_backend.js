@@ -21,6 +21,7 @@ export const DEFAULT_UI_LAYOUT = {
         'highres-fix',
         'refiner',
         'regional-condition',
+        'bounding',
         'image-infobox'
     ],
     right: [
@@ -80,7 +81,7 @@ function writeLayoutFile(filePath, data) {
 }
 
 function normalizeTabHost(entry, used) {
-    if (!entry || entry.type !== 'tab-host' || !Array.isArray(entry.pages)) {
+    if (entry?.type !== 'tab-host' || !Array.isArray(entry.pages)) {
         return null;
     }
     const pages = [];
@@ -117,7 +118,7 @@ function stripCharacterEntries(list) {
         if (item === 'character') {
             continue;
         }
-        if (item && item.type === 'tab-host') {
+        if (item?.type === 'tab-host') {
             const pages = (item.pages || []).filter((id) => id !== 'character');
             if (pages.length === 0) {
                 continue;
@@ -180,7 +181,7 @@ function insertMissingInDefaultOrder(current, defaultList, used) {
                 break;
             }
             const idx = result.findIndex((item) => item === prev
-                || (item && item.type === 'tab-host' && item.pages?.includes(prev)));
+                || (item?.type === 'tab-host' && item.pages?.includes(prev)));
             if (idx !== -1) {
                 insertAt = idx + 1;
                 foundPrev = true;

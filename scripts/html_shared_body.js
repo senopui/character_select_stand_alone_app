@@ -255,7 +255,46 @@ export const sharedBodyHTML = `
                 <div class="regional-condition-option-right"></div>                
               </div>
             </div>
-          </div>          
+          </div>
+
+          <div class="bounding-container" data-layout-id="bounding">
+            <div class="bounding-header">
+              <div class="bounding-enable"></div>
+              <div></div>
+              <div class="bounding-header-span">
+                <span id="bounding-span">Bounding</span>
+                <img id="bounding-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="bounding-main">
+              <div class="bounding-toolbar">
+                <span id="bounding-count">0/64</span>
+                <span id="bounding-size"></span>
+                <div class="bounding-mode">
+                  <button type="button" id="bounding-mode-object">object</button>
+                  <button type="button" id="bounding-mode-text">text</button>
+                </div>
+              </div>
+              <div class="bounding-options">
+                <div class="bounding-grid-snap"></div>
+                <div class="bounding-grid-size"></div>
+                <button type="button" id="bounding-clear"></button>
+              </div>
+              <div class="bounding-colors">
+                <div id="bounding-swatches"></div>
+                <input type="color" id="bounding-color" value="#3498db">
+              </div>
+              <div class="bounding-stage">
+                <canvas id="bounding-canvas"></canvas>
+                <textarea id="bounding-editor" class="bounding-editor" hidden></textarea>
+              </div>
+              <div id="bounding-hint" class="bounding-hint"></div>
+              <div class="bounding-preview">
+                <span id="bounding-preview-label"></span>
+                <textarea id="bounding-preview" spellcheck="false" readonly></textarea>
+              </div>
+            </div>
+          </div>
 
           <div class="image-infobox-container" data-layout-id="image-infobox">
             <div class="image-infobox-header">

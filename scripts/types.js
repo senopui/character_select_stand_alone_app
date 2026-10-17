@@ -2,7 +2,7 @@ export const CLIP_TYPE = [
     "stable_diffusion", "stable_cascade", "sd3", "stable_audio", "mochi", "ltxv", 
     "pixart", "cosmos", "lumina2", "wan", "hidream", "chroma", "ace", "omnigen2", "qwen_image", 
     "hunyuan_image", "flux2", "ovis", "longcat_image", "cogvideox", "lens" , "pixeldit", 
-    "ideogram4", "boogu", "krea2"];
+    "ideogram4", "boogu", "krea2", "jiyimage", "mage", "nubunax", "yue2", "flux3", "moss_image"];
 
 export const CLIP_DEVICE = ['default', 'cpu'];
 

@@ -34,6 +34,7 @@ import { set_prompt_textBox_Heights } from './renderer/components/componentsMana
 import { hiresCalculate } from './renderer/tools/hiresCalculation.js';
 import { resetAutoRetry } from './renderer/tools/autoRetry.js';
 import { setupUiLayout } from './renderer/uiLayout.js';
+import { setupBounding } from './renderer/bounding.js';
 
 function afterDOMinit() {
     (async () => {
@@ -143,10 +144,12 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         lora: setupCollapsed('add-lora', true),
         settings: setupCollapsed('system-settings', true),
         regional: setupCollapsed('regional-condition', true),
+        bounding: setupCollapsed('bounding', true),
         jsonlist: setupCollapsed('jsonlist', true),
         aDetailer: setupCollapsed('adetailer', true),
         queueManager: setupCollapsed('queue', false),
     }
+    globalThis.bounding = setupBounding();
 
     await setupUiLayout();
 }
@@ -174,8 +177,8 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         seed: setupSlider('generate-random-seed', LANG.random_seed, {min:-1, max:4294967295, step:1, defaultValue:SETTINGS.random_seed, fullGradient: true}, (value) =>{globalThis.globalSettings.random_seed = value;}),
         cfg: setupSlider('generate-cfg', LANG.cfg, {min:0, max:20, step:0.01, defaultValue:SETTINGS.cfg}, (value) =>{globalThis.globalSettings.cfg = value;}),
         step: setupSlider('generate-step', LANG.step, {min:1, max:100, step:1, defaultValue:SETTINGS.step}, (value) =>{globalThis.globalSettings.step = value;}),
-        width: setupSlider('generate-width', LANG.width, {min:512, max:2048, step:8, defaultValue:SETTINGS.width}, (value) =>{globalThis.globalSettings.width = value; hiresCalculate(); }),
-        height: setupSlider('generate-height', LANG.height, {min:512, max:2048, step:8, defaultValue:SETTINGS.height}, (value) =>{globalThis.globalSettings.height = value; hiresCalculate(); }),
+        width: setupSlider('generate-width', LANG.width, {min:512, max:2048, step:8, defaultValue:SETTINGS.width}, (value) =>{globalThis.globalSettings.width = value; hiresCalculate(); globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
+        height: setupSlider('generate-height', LANG.height, {min:512, max:2048, step:8, defaultValue:SETTINGS.height}, (value) =>{globalThis.globalSettings.height = value; hiresCalculate(); globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
         batch: setupSlider('generate-batch', LANG.batch, {min:1, max:2038, step:1, defaultValue:SETTINGS.batch}, (value) =>{globalThis.globalSettings.batch = value;}),
         hifix: setupCheckbox('generate-hires-fix', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; globalThis.generate.hifix_dummy.setValue(value);}),
         hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; globalThis.generate.hifix.setValue(value);}),
@@ -183,8 +186,12 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         refiner_dummy: setupCheckbox('generate-refiner-dummy', LANG.api_refiner_enable, SETTINGS.api_refiner_enable, true, (value) => { globalThis.globalSettings.api_refiner_enable = value; globalThis.generate.refiner.setValue(value);}),
         controlnet: setupCheckbox('generate-controlnet', LANG.api_controlnet_enable, SETTINGS.api_controlnet_enable, true, callback_controlnet),
         adetailer: setupCheckbox('generate-adetailer', LANG.api_adetailer_enable, SETTINGS.api_adetailer_enable, true, callback_adetailer),
+        boundingEnable: setupCheckbox('bounding-enable', LANG.bounding_enable, SETTINGS.bounding_enable, true, (value) => {
+            globalThis.globalSettings.bounding_enable = value;
+            globalThis.bounding?.invalidatePreview?.();
+        }),
 
-        landscape: setupCheckbox('generate-landscape', LANG.api_image_landscape, SETTINGS.api_image_landscape, true, (value) =>{globalThis.globalSettings.api_image_landscape = value;}),
+        landscape: setupCheckbox('generate-landscape', LANG.api_image_landscape, SETTINGS.api_image_landscape, true, (value) =>{globalThis.globalSettings.api_image_landscape = value; globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
         tag_assist: setupCheckbox('generate-tag-assist', LANG.tag_assist, SETTINGS.tag_assist, true, (value) =>{ globalThis.globalSettings.tag_assist = value; }),
         wildcard_random: setupCheckbox('generate-wildcard-random', LANG.wildcard_random, SETTINGS.wildcard_random, true, (value) =>{ globalThis.globalSettings.wildcard_random = value; }),
         sampler: mySimpleList('generate-sampler', LANG.api_model_sampler, ['Auto'], (index, value) =>{ globalThis.globalSettings.api_model_sampler = value; }, 20, false, false),
@@ -241,18 +248,18 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
                 hidden: false,
                 clickable: true,
                 title: LANG.run_skip_current_button
-            }, () =>{
-                callback_generate_skip_current();
+            }, async () =>{
+                await callback_generate_skip_current();
             }, [{
                 text: LANG.run_cancel_button,
                 destructive: true,
-                callback: () => {
-                    callback_generate_cancel();
+                callback: async () => {
+                    await callback_generate_cancel();
                 }
             }, {
                 text: LANG.run_skip_button,
-                callback: () => {
-                    callback_generate_skip();
+                callback: async () => {
+                    await callback_generate_skip();
                 }
             }]),
         api_interface: mySimpleList('system-settings-api-interface', LANG.api_interface, ['None', 'ComfyUI', 'WebUI'], callback_api_interface, 5, false, true),
@@ -352,8 +359,8 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
             height: '32px',
             hidden: false,
             clickable: true
-        }, () => {
-            showBackendLogOverlay();
+        }, async () => {
+            await showBackendLogOverlay();
         }),
         backend_log_copy: setupButtons('system-settings-backend-log-copy', LANG.backend_log_copy, {
             defaultColor: 'rgb(47, 111, 93)',
@@ -363,8 +370,8 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
             height: '32px',
             hidden: false,
             clickable: true
-        }, () => {
-            copyBackendLog();
+        }, async () => {
+            await copyBackendLog();
         }),
         ...createFavoriteHotkeyControls(),
 
@@ -670,7 +677,7 @@ async function init(){
             await setupWizard();
             await setupModelReloadToggle();
 
-            callback_mySettingList(0, `settings.json`);  // Reload default settings
+            await callback_mySettingList(0, `settings.json`);  // Reload default settings
         } else {
             doSwap(globalThis.globalSettings.rightToleft);   //default is right to left
 

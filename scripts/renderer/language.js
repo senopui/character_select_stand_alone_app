@@ -113,6 +113,8 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.generate.refiner_dummy.setTitle(LANG.api_refiner_enable);
     globalThis.generate.controlnet.setTitle(LANG.api_controlnet_enable);
     globalThis.generate.adetailer.setTitle(LANG.api_adetailer_enable);
+    globalThis.generate.boundingEnable?.setTitle(LANG.bounding_enable);
+    globalThis.bounding?.setLanguage();
 
     globalThis.generate.landscape.setTitle(LANG.api_image_landscape);
     globalThis.generate.tag_assist.setTitle(LANG.tag_assist);
@@ -332,6 +334,10 @@ export function updateSettings() {
     globalThis.generate.height.setValue(SETTINGS.height);
     globalThis.generate.batch.setValue(SETTINGS.batch);    
     globalThis.generate.landscape.setValue(SETTINGS.api_image_landscape);
+    globalThis.generate.boundingEnable?.setValue(Boolean(SETTINGS.bounding_enable));
+    globalThis.bounding?.setBoxes(SETTINGS.bounding_boxes);
+    globalThis.bounding?.applyToolSettings?.();
+    globalThis.bounding?.syncCanvas();
     globalThis.generate.scrollToLatest.setValue(SETTINGS.scroll_to_last);
     globalThis.generate.gridSize.setValue(SETTINGS.gallery_grid_size ?? GRID_SIZE_DEFAULT);
 
@@ -373,7 +379,7 @@ export function updateSettings() {
     globalThis.refiner.vpred.updateDefaults(SETTINGS.api_refiner_model_vpred);
     globalThis.refiner.ratio.setValue(SETTINGS.api_refiner_ratio);
 
-    callback_api_model_type(0, [globalThis.dropdownList.model_type.getValue()]); //Model Type
+    void callback_api_model_type(0, [globalThis.dropdownList.model_type.getValue()]); //Model Type
     callback_regional_condition(globalThis.generate.regionalCondition.getValue(), false); //Regional Condition
     callback_ai_promot_role(globalThis.globalSettings.ai_prompt_role);  //AI Prompt Role
     

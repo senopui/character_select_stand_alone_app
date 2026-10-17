@@ -3,7 +3,7 @@ import { sendWebSocketMessage, isSaacReadonlyClient } from '../../webserver/fron
 import { setADetailerModelList } from '../slots/myADetailerSlot.js';
 import { addFavorites, delFavorites } from './favoriteCharacters.js';
 import { get_prompt_textBox_Heights } from './componentsManager.js';
-import { persistIndependentLayoutFor, deleteIndependentLayoutFor } from '../uiLayout.js';
+import { saveLayoutWithSettings, deleteIndependentLayoutFor } from '../uiLayout.js';
 import { setupButtons } from './myButtons.js';
 import {
     DEFAULT_HOTKEY_FAVORITE_ADD,
@@ -78,7 +78,6 @@ export async function setupSaveSettingsToggle() {
         const LANG = globalThis.cachedFiles.language[globalThis.globalSettings.language];
         const readonlySaac = isSaacReadonlyClient();
         setBlur();
-        const previousSettingsName = globalThis.globalSettings.lastLoadedSettings;
         let inputResult;
         if (readonlySaac) {
             const confirmed = await showDialog('confirm', {
@@ -137,11 +136,9 @@ export async function setupSaveSettingsToggle() {
                 globalThis.dropdownList.settings.setOptions(globalThis.cachedFiles.settingList);
                 globalThis.dropdownList.settings.updateDefaults(`${inputResult}.json`);
 
-                // Save As / new config name: bind current independent layout to the new settings name
-                const prevName = String(previousSettingsName ?? '').replace(/\.json$/i, '').trim();
                 const nextName = String(inputResult).replace(/\.json$/i, '').trim();
-                if (!readonlySaac && nextName !== '' && nextName !== prevName) {
-                    await persistIndependentLayoutFor(nextName);
+                if (!readonlySaac && nextName !== '') {
+                    await saveLayoutWithSettings(nextName);
                 }
             } else {
                 await showDialog('info', { message: LANG.save_settings_failed.replace('{0}', inputResult) });

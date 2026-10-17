@@ -37,6 +37,7 @@ const PANEL_IDS = [
     'highres-fix',
     'refiner',
     'regional-condition',
+    'bounding',
     'image-infobox',
     'generate-settings-static-right',
     'gallery-thumb',
@@ -499,6 +500,24 @@ async function persistLayout() {
         refreshLayoutModeToggle();
     }
     await layoutApi('saveUiLayout', [getSettingsName(), readCurrentLayout(), layoutMode]);
+}
+
+/** Save the on-screen layout with a settings file and use it the next time that file loads. */
+export async function saveLayoutWithSettings(settingsName) {
+    if (isSaacReadonlyClient()) {
+        return false;
+    }
+    const name = String(settingsName ?? '').replace(/\.json$/i, '').trim();
+    if (!name || name === '_global') {
+        return false;
+    }
+    const saved = await layoutApi('saveUiLayout', [name, readCurrentLayout(), 'independent']);
+    if (!saved) {
+        return false;
+    }
+    layoutMode = 'independent';
+    refreshLayoutModeToggle();
+    return true;
 }
 
 /** Persist current on-screen layout as the independent sidecar for a settings name. */
@@ -1223,11 +1242,11 @@ function bindHostDrag(host) {
             beginPotentialDrag(host, event, false, { armed: true });
         }
     }, true);
-    host.addEventListener('layout-tab-renamed', () => {
-        persistLayout();
+    host.addEventListener('layout-tab-renamed', async () => {
+        await persistLayout();
     });
-    host.addEventListener('layout-tab-folded', () => {
-        persistLayout();
+    host.addEventListener('layout-tab-folded', async () => {
+        await persistLayout();
     });
 }
 
@@ -1730,8 +1749,8 @@ function bindIndependentToggle() {
         console.error(CAT, 'Independent layout toggle not found');
         return;
     }
-    button.addEventListener('click', () => {
-        cycleLayoutMode();
+    button.addEventListener('click', async () => {
+        await cycleLayoutMode();
     });
 }
 

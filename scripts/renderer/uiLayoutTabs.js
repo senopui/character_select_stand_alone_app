@@ -25,6 +25,7 @@ const COLLAPSE_KEYS = {
     'add-lora': 'lora',
     'system-settings': 'settings',
     'regional-condition': 'regional',
+    'bounding': 'bounding',
     'jsonlist': 'jsonlist',
     'adetailer': 'aDetailer',
     'queue': 'queueManager'
@@ -44,6 +45,7 @@ const SPAN_IDS = {
     'highres-fix': 'highres-fix-span',
     'refiner': 'refiner-span',
     'regional-condition': 'regional-condition-span',
+    'bounding': 'bounding-span',
     'image-infobox': 'image-infobox-span',
     'gallery-main': 'gallery-main-span',
     'gallery-thumb': 'gallery-thumb-span',
@@ -207,6 +209,8 @@ export function getTabLabelHint(panelId) {
             return settingOn('api_refiner_enable', () => globalThis.generate?.refiner?.getValue()) ? 'on' : '';
         case 'regional-condition':
             return settingOn('regional_condition', () => globalThis.generate?.regionalCondition?.getValue()) ? 'on' : '';
+        case 'bounding':
+            return settingOn('bounding_enable', () => globalThis.generate?.boundingEnable?.getValue()) ? 'on' : '';
         case 'adetailer':
             return settingOn('api_adetailer_enable', () => globalThis.generate?.adetailer?.getValue()) ? 'on' : '';
         case 'controlnet':
@@ -231,6 +235,7 @@ const TAB_ENABLE_SWITCH = {
     'highres-fix': '.generate-hires-fix input',
     'refiner': '.generate-refiner input',
     'regional-condition': '.regional-condition-trigger-dummy input',
+    'bounding': '.bounding-enable input',
     'controlnet': '.generate-controlnet input',
     'adetailer': '.generate-adetailer input',
     'queue': '.queue-autostart-generate input',

@@ -59,6 +59,10 @@ const defaultSettings = {
     "regional_str_right": 1,
     "regional_option_left": "default",
     "regional_option_right": "default",
+    "bounding_enable": false,
+    "bounding_boxes": [],
+    "bounding_grid_snap": false,
+    "bounding_grid_size": 64,
     "character_left": "None",
     "character_right": "None",
     

@@ -13,7 +13,7 @@ import { compareAndMergeFavoriteLists } from './components/favoriteCharacters.js
 import { changeFontSize } from './components/myTextbox.js';
 import { set_prompt_textBox_Heights } from './components/componentsManager.js';
 import { applySavedLayout } from './uiLayout.js';
-import { refreshPromptViewToggles } from './uiLayoutTabs.js';
+import { refreshPromptViewToggles, refreshTabLabelHints } from './uiLayoutTabs.js';
 import { SAMPLER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_COMFYUI, SCHEDULER_WEBUI } from '../types.js';
 import { cancelAutoRetry, isAutoRetryRunning } from './tools/autoRetry.js';
 
@@ -211,7 +211,7 @@ export async function callback_api_interface(index, selectedValue){
 
         if(modelType !== 'Checkpoint') {
             globalThis.dropdownList.model_type.updateDefaults('Checkpoint');
-            callback_api_model_type(0, ['Checkpoint']);
+            await callback_api_model_type(0, ['Checkpoint']);
         }
     }
 
@@ -323,14 +323,14 @@ async function cancelBackendIfNeeded() {
     return true;
 }
 
-export function callback_generate_skip() {
+export async function callback_generate_skip() {
     globalThis.generate.generate_skip.setClickable(false);
     globalThis.generate.skipClicked = true;
 
     const bak_autoStart = globalThis.globalSettings.generate_auto_start;
-    setQueueAutoStart(false);
+    await setQueueAutoStart(false);
     globalThis.queueManager.removeFollowings();
-    setQueueAutoStart(bak_autoStart);
+    await setQueueAutoStart(bak_autoStart);
 }
 
 export async function callback_generate_skip_current() {
@@ -408,6 +408,20 @@ export function callback_regional_condition(trigger, dummy = false) {
         globalThis.prompt.common.setTitle(LANG.custom_prompt);
         globalThis.prompt.positive.setTitle(LANG.api_prompt);
     }
+    syncBoundingWithRegional(trigger);
+}
+
+function syncBoundingWithRegional(regionalOn) {
+    const box = globalThis.generate?.boundingEnable;
+    if (regionalOn) {
+        if (globalThis.globalSettings) globalThis.globalSettings.bounding_enable = false;
+        box?.setValue(false);
+        box?.setEnable(false);
+    } else {
+        box?.setEnable(true);
+    }
+    globalThis.bounding?.invalidatePreview?.();
+    refreshTabLabelHints();
 }
 
 export function callback_controlnet(trigger)  {                
