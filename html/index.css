@@ -762,6 +762,10 @@ body.layout-is-resizing-full * {
     touch-action: none;
 }
 
+#bounding-canvas:focus {
+    outline: none;
+}
+
 .bounding-editor {
     position: absolute;
     z-index: 3;

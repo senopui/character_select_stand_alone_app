@@ -314,6 +314,29 @@ function boxRect(box, viewW, viewH) {
     };
 }
 
+function boxContainsPoint(box, x, y, viewW, viewH) {
+    const rect = boxRect(box, viewW, viewH);
+    return x >= rect.x && y >= rect.y && x <= rect.x + rect.w && y <= rect.y + rect.h;
+}
+
+// Smallest box under the point wins. Equal areas keep the later box on top.
+export function boxesAtPoint(boxes, x, y, viewW, viewH) {
+    const hits = [];
+    for (let index = 0; index < boxes.length; index += 1) {
+        if (boxContainsPoint(boxes[index], x, y, viewW, viewH)) hits.push({ box: boxes[index], index });
+    }
+    hits.sort((a, b) => (a.box.nw * a.box.nh) - (b.box.nw * b.box.nh) || b.index - a.index);
+    return hits.map((hit) => hit.box);
+}
+
+export function cycleBoxId(ids, selectedId, direction) {
+    if (!ids.length) return null;
+    const step = direction < 0 ? -1 : 1;
+    const index = ids.indexOf(selectedId);
+    if (index < 0) return step < 0 ? ids[ids.length - 1] : ids[0];
+    return ids[(index + step + ids.length) % ids.length];
+}
+
 function handlePoint(rect, name) {
     const midX = rect.x + rect.w / 2;
     const midY = rect.y + rect.h / 2;
@@ -370,9 +393,11 @@ export function setupBounding() {
 
     const ctx = canvas.getContext('2d');
     let boxes = normalizeBoundingBoxes(globalThis.globalSettings?.bounding_boxes);
+    canvas.tabIndex = 0;
     let selectedId = null;
     let editingId = null;
     let drag = null;
+    let nestPoint = null;
     let syncing = false;
     let fullTimer = 0;
 
@@ -500,13 +525,29 @@ export function setupBounding() {
 
     function hitBox(x, y) {
         const { viewW, viewH } = viewSize();
-        for (let index = boxes.length - 1; index >= 0; index -= 1) {
-            const rect = boxRect(boxes[index], viewW, viewH);
-            if (x >= rect.x && y >= rect.y && x <= rect.x + rect.w && y <= rect.y + rect.h) {
-                return boxes[index];
-            }
+        return boxesAtPoint(boxes, x, y, viewW, viewH)[0] || null;
+    }
+
+    function nestIdsAt(point) {
+        if (!point) return [];
+        const { viewW, viewH } = viewSize();
+        return boxesAtPoint(boxes, point.x, point.y, viewW, viewH).map((box) => box.id);
+    }
+
+    function cycleNested(direction) {
+        let ids = nestIdsAt(nestPoint);
+        const selected = selectedBox();
+        if (ids.length < 2 && selected) {
+            const { viewW, viewH } = viewSize();
+            const rect = boxRect(selected, viewW, viewH);
+            ids = nestIdsAt({ x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 });
         }
-        return null;
+        if (ids.length < 2) ids = boxes.map((box) => box.id);
+        const nextId = cycleBoxId(ids, selectedId, direction);
+        if (nextId == null) return;
+        selectedId = nextId;
+        syncModeButtons();
+        draw();
     }
 
     function localPoint(event) {
@@ -792,7 +833,9 @@ export function setupBounding() {
     canvas.addEventListener('pointerdown', (event) => {
         if (event.button !== 0) return;
         if (editingId != null && event.target !== editor) closeEditor(true);
+        canvas.focus({ preventScroll: true });
         const point = localPoint(event);
+        nestPoint = point;
         const norm = normPoint(point);
         const handle = hitHandle(point.x, point.y);
         if (handle && selectedBox()) {
@@ -885,6 +928,7 @@ export function setupBounding() {
 
     canvas.addEventListener('pointermove', (event) => {
         const point = localPoint(event);
+        nestPoint = point;
         if (drag?.pointerId !== event.pointerId) {
             hoverCursor(point);
             return;
@@ -960,6 +1004,7 @@ export function setupBounding() {
             closeEditor(false);
         } else if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
+            event.stopPropagation();
             closeEditor(true);
         }
     });
@@ -976,12 +1021,30 @@ export function setupBounding() {
         setMode('text');
     });
 
+    function isTypingTarget(el) {
+        if (!el) return false;
+        const tag = el.tagName;
+        return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
+    }
+
     window.addEventListener('keydown', (event) => {
-        if (event.key !== 'Delete' || selectedId == null) return;
-        const tag = document.activeElement?.tagName;
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return;
-        event.preventDefault();
-        deleteSelected();
+        if (isTypingTarget(event.target) || isTypingTarget(document.activeElement)) return;
+        if (event.key === 'Delete') {
+            if (selectedId == null) return;
+            event.preventDefault();
+            deleteSelected();
+            return;
+        }
+        if (document.activeElement !== canvas) return;
+        if (event.key === 'Tab') {
+            event.preventDefault();
+            cycleNested(event.shiftKey ? -1 : 1);
+            return;
+        }
+        if (event.key === 'Enter' && selectedBox()) {
+            event.preventDefault();
+            openEditor(selectedBox());
+        }
     });
 
     const previewSource = '.prompt-common, .prompt-positive, .prompt-exclude, .prompt-ai, .jsonlist-container, .add-lora-container, .dropdown-character, .dropdown-view, .generate-tag-assist, .system-settings-ai-select';

@@ -11,7 +11,7 @@ A Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/Forge Neo(W
 
 | Verified | [ComfyUI](https://github.com/comfyanonymous/ComfyUI)  | [Forge Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo) |
 | --- | --- | --- | 
-| Release | 0.41.1 | 2.29.1 |
+| Release | 0.41.1 | 2.30.0 |
 | Refiner (SDXL) | Yes | Yes |
 | Image Color Transfer (ALL) | Yes | No |
 | Regional Condition / Couple (SDXL/Anima) | Yes | Yes |
@@ -93,8 +93,51 @@ npm install
 ```
 ------
 # Highlights
+## Bounding Box for Moss Image
+Draw rectangles on a canvas that follows the current `Width` and `Height`, then submit the merged positive prompt as one JSON payload. Turn on the header switch to enable it. `Regional Condition` keeps this switch off.     
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/bounding.png" width=45%>
+
+<details>
+<summary>More about Bounding Box</summary>
+The canvas uses the current generation size, including landscape swap, and fits the panel. It stays at or below 1:1, so a smaller generation size is shown at its native pixel size.     
+
+Drag on empty space to create a box. Drag inside a box to move it, and drag an edge to resize it. A selected box is solid; the others stay semi-transparent. Boxes are numbered from `01`, up to 64. Deleting one renumbers the rest from `01` in list order, and a new box is appended at the end.     
+
+Click selects the smallest box under the pointer. The area outside that box still selects the larger one. After the canvas has focus, `Tab` walks outward through the nested boxes under the pointer, and `Shift+Tab` walks back. If the pointer is not over two or more boxes, `Tab` uses the boxes around the selected box, then the full list in number order. `Enter` or a double-click edits the description. Inside the editor, `Enter` saves, `Shift+Enter` adds a line, and `Esc` cancels. `Delete` removes the selection.     
+
+Each box is `object` or `text`. `object` is the default.     
+* An empty `object` uses its number as `caption` and has no `text` field.     
+* An `object` with a description uses that text as `caption` and has no `text` field.     
+* A `text` box keeps the number as `caption` and puts the description in `text`.     
+
+The background grid follows the grid-size slider. `Snap` is optional and uses that same size. Pick a color from 16 swatches or the color picker. Color is only drawn on the canvas and is left out of the payload. `Clear` asks before removing every box. The preview under the canvas shows the positive prompt that will be sent.     
+
+Coordinates use the full generation pixels. The origin is the canvas center, `x` points right, `y` points down, and each box is `[y_min, x_min, y_max, x_max]`. On a 1024×1024 canvas the packed prompt looks like this:     
+
+```json
+{
+  "summary": { "caption": "1girl, masterpiece, best quality" },
+  "items": [
+    { "label": "object", "caption": "01", "bbox": [-512, -512, 0, 0] },
+    { "label": "object", "caption": "red cup", "bbox": [-128, 64, 256, 384] },
+    { "label": "text", "caption": "03", "text": "hello", "bbox": [128, -256, 400, 128] }
+  ],
+  "bbox_coord_space": "abs_centralized",
+  "bbox_format": "yxyx"
+}
+```
+
+`summary.caption` is the merged positive prompt after replacement and AI. The JSON is written onto the positive prompt that is actually submitted.     
+</details>
+
 ## UI Layout
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/uiLayout.png" width=25%>
+
+Drag panels between the left and right columns. The icon next to `Save Settings` chooses a shared layout, a layout stored with this settings file, or the original default.     
+
+<details>
+<summary>How to drag panels and how the layout icon works</summary>
 
 Drag a panel by its collapse dot (the small circle on the header) to reorder it up/down, or drop it on the other column to swap left/right.     
 Click the collapse dot to fold/unfold as before. To move a panel, hover the drag area for about 1 second until the border turns green, then drag. A quick pass or click will not start a layout move.     
@@ -108,10 +151,13 @@ The layout icon next to `Save Settings` cycles how the layout is stored:
 * Green - Independent UI layout for the current settings file only     
 * Orange - Restore the original default layout. Drag any panel afterwards to save it as an Independent layout (Green)     
 
+</details>
+
 ## Diffusion Models (UNET/CLIP/VAE) for ComfyUI and Forge Neo 
 > [!NOTE]      
-> Test and Verified: Anima / Qwen Image / Z Image / Flux / Krea2
+> Test and Verified: Moss / Anima / Qwen Image / Z Image / Flux / Krea2
 > Supports ComfyUI and Forge neo, NOT support original A1111.         
+> Moss is not supported by Forge neo (v2.30.0) for now.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/diffusion_models.png" width=25%>
 

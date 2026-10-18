@@ -1,3 +1,7 @@
+2026.10.18 v2.10.1      
+Add, `Bounding Box` now supports `Keyboard Select`        
+
+
 2026.10.17 v2.10.0      
 Add `Moss Image` support      
 Add `Bounding Box` for `Moss Image`       
