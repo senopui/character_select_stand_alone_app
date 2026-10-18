@@ -106,22 +106,28 @@ Drag on empty space to create a box. Drag inside a box to move it, and drag an e
 
 Click selects the smallest box under the pointer. The area outside that box still selects the larger one. After the canvas has focus, `Tab` walks outward through the nested boxes under the pointer, and `Shift+Tab` walks back. If the pointer is not over two or more boxes, `Tab` uses the boxes around the selected box, then the full list in number order. `Enter` or a double-click edits the description. Inside the editor, `Enter` saves, `Shift+Enter` adds a line, and `Esc` cancels. `Delete` removes the selection.     
 
-Each box is `object` or `text`. `object` is the default.     
-* An empty `object` uses its number as `caption` and has no `text` field.     
-* An `object` with a description uses that text as `caption` and has no `text` field.     
-* A `text` box keeps the number as `caption` and puts the description in `text`.     
+Each box is `object` or `text`. `object` is the default. For Moss, `object` generates the description as an item inside the box, and `text` generates the description as annotation text inside the box.     
+* An empty `object` sends its number as `caption` and has no `text` field.     
+* An `object` with a description sends that item text as `caption` and has no `text` field. In the example below, `burger` and `price list` are generated as items.     
+* A `text` box keeps the number as `caption` and sends the description in `text`, so Moss generates that description as annotation text.     
 
 The background grid follows the grid-size slider. `Snap` is optional and uses that same size. Pick a color from 16 swatches or the color picker. Color is only drawn on the canvas and is left out of the payload. `Clear` asks before removing every box. The preview under the canvas shows the positive prompt that will be sent.     
 
-Coordinates use the full generation pixels. The origin is the canvas center, `x` points right, `y` points down, and each box is `[y_min, x_min, y_max, x_max]`. On a 1024×1024 canvas the packed prompt looks like this:     
+Coordinates use the full generation pixels. The origin is the canvas center, `x` points right, `y` points down, and each box is `[y_min, x_min, y_max, x_max]`. On a 1024×1360 canvas the packed prompt looks like this:     
 
 ```json
 {
-  "summary": { "caption": "1girl, masterpiece, best quality" },
+  "summary": {
+    "caption": "japanese anime style, solo anthro, aged down, fluffy,\nrestaurant, huge burger,two-tone fur, (grey fur:1.1), white cheek fur, white paws, grey wolf ears, grey wolf tail, blonde hair, grey eyes, wolf girl, hair between eyes, long sidelocks, short hair, (fluffy, chest fluff:1.4), cheek fluff, furry, petite, fangs, ear fluff, claws, sitting,"
+  },
   "items": [
-    { "label": "object", "caption": "01", "bbox": [-512, -512, 0, 0] },
-    { "label": "object", "caption": "red cup", "bbox": [-128, 64, 256, 384] },
-    { "label": "text", "caption": "03", "text": "hello", "bbox": [128, -256, 400, 128] }
+    { "label": "object", "caption": "furry", "bbox": [-680, -96, 680, 512] },
+    { "label": "object", "caption": "burger", "bbox": [-238, -173, 101, 182] },
+    { "label": "object", "caption": "price list", "bbox": [-619, -480, -234, -224] },
+    { "label": "object", "caption": "table", "bbox": [124, -512, 363, 224] },
+    { "label": "object", "caption": "soda drink", "bbox": [-69, -313, 168, -221] },
+    { "label": "object", "caption": "Seasoning", "bbox": [98, -484, 166, -320] },
+    { "label": "object", "caption": "Dinner Plate", "bbox": [204, -277, 273, 179] }
   ],
   "bbox_coord_space": "abs_centralized",
   "bbox_format": "yxyx"
