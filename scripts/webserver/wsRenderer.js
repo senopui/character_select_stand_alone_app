@@ -61,7 +61,8 @@ async function init() {
     globalThis.custom_message = {
         controlnet: false,
         adetailer: false,
-        regional_forge_neo: false
+        regional_forge_neo: false,
+        sage_fp16: false
     };
 
     // Init Global Settings

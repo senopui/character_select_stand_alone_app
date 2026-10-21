@@ -513,6 +513,18 @@ async function getCharacters(seedOverride = null) {
     }
 }
 
+function appendPromptGroups(groups) {
+    let prompt = '';
+    let promptColored = '';
+    for (const group of groups) {
+        const text = group.text == null ? '' : String(group.text);
+        if (!text) continue;
+        prompt += text;
+        promptColored += group.color ? `[color=${group.color}]${text}[/color]` : text;
+    }
+    return { prompt, promptColored };
+}
+
 // eslint-disable-next-line sonarjs/cognitive-complexity
 function appendPrompts(characters, views, ai, BOP, BOC, EOC, EOP) {
     const commonColor = (globalThis.globalSettings.css_style==='dark')?'darkorange':'Sienna';
@@ -529,15 +541,6 @@ function appendPrompts(characters, views, ai, BOP, BOC, EOC, EOP) {
     if(aiPrompt !== '' && !aiPrompt.endsWith(','))
         aiPrompt += ', ';
 
-    let prompt = ``;
-    let promptColored = ``;
-
-    // Attach every block if EXIST
-    if(BOP) {
-        prompt += `${BOP}`;
-        promptColored += `${BOP}`;
-    }
-
     if (common) {
         const trimmedCommon = common.trim();
         if (trimmedCommon === '') {
@@ -545,6 +548,8 @@ function appendPrompts(characters, views, ai, BOP, BOC, EOC, EOP) {
         } else if (globalThis.globalSettings.api_model_type === 'Diffusion') {
             if (trimmedCommon.endsWith('.')) {
                 common = `${trimmedCommon} `;
+            } else if (trimmedCommon.endsWith('|')) {
+                common = trimmedCommon.slice(0, -1);
             } else if (!trimmedCommon.endsWith(',') && !trimmedCommon.endsWith('\n')) {
                 common = `${trimmedCommon}, `;
             } else {
@@ -553,49 +558,20 @@ function appendPrompts(characters, views, ai, BOP, BOC, EOC, EOP) {
         } else {
             common = trimmedCommon.endsWith(',') ? trimmedCommon : `${trimmedCommon}, `;
         }
-
-        if (common) {
-            prompt += `${common}`;
-            promptColored += `[color=${commonColor}]${common}[/color]`;
-        }
     }
 
-    if(views) {
-        prompt += `${views}`;
-        promptColored += `[color=${viewColor}]${views}[/color]`;
-    }
-
-    if(aiPrompt) {
-        prompt += `${aiPrompt}`;
-        promptColored += `[color=${aiColor}]${aiPrompt}[/color]`;
-    }
-
-    if (BOC) {
-        prompt += `${BOC}`;
-        promptColored += `${BOC}`;
-    }
-
-    if(characters) {
-        prompt += `${characters}`;
-        promptColored += `[color=${characterColor}]${characters}[/color]`;
-    }
-
-    if (EOC) {
-        prompt += `${EOC}`;
-        promptColored += `${EOC}`;
-    }
-
-    if(positive) {
-        prompt += `${positive}`;
-        promptColored += `[color=${positiveColor}]${positive}[/color]`;
-    }
-
-    if (EOP) {
-        prompt += `${EOP}`;
-        promptColored += `${EOP}`;
-    }
-    
-    return {tmpPositivePrompt: prompt, tmpPositivePromptColored: promptColored};
+    const built = appendPromptGroups([
+        { text: BOP },
+        { text: common, color: commonColor },
+        { text: views, color: viewColor },
+        { text: aiPrompt, color: aiColor },
+        { text: BOC },
+        { text: characters, color: characterColor },
+        { text: EOC },
+        { text: positive, color: positiveColor },
+        { text: EOP },
+    ]);
+    return { tmpPositivePrompt: built.prompt, tmpPositivePromptColored: built.promptColored };
 }
 
 function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {       
@@ -1117,6 +1093,16 @@ function check_character(character){
     return '';
 }
 
+export function readSkipLayer() {
+    const skip = globalThis.skipLayer;
+    return {
+        double_layers: skip?.double_layers?.getValue?.() ?? '',
+        single_layers: skip?.single_layers?.getValue?.() ?? '22',
+        start_percent: skip?.start_percent?.getFloat?.() ?? 0,
+        end_percent: skip?.end_percent?.getFloat?.() ?? 1,
+    };
+}
+
 export function getImageSavePrefix(apiInterface, character_prefix) {
     let embed_character = character_prefix;
     if(!globalThis.globalSettings.image_save_embed_character_name) {
@@ -1251,6 +1237,7 @@ export async function generateImage(dataPack){
             hifix: hifix,
             adetailer: createADetailer(apiInterface),
             vae: {vae_override: vae_override, vae: vae},
+            skip_layer: readSkipLayer(),
             ...(SETTINGS.api_model_type === 'Checkpoint' ? {
                 model: globalThis.dropdownList.model.getValue(),
                 vpred: checkVpred(),                
@@ -1431,6 +1418,7 @@ export async function startQueue(){
     if(globalThis.queueManager.getSlotsCount() === 0)
         globalThis.generate.showCancelButtons(false);
     globalThis.inGenerating = false;
+    globalThis.mainGallery.syncGalleryStatus?.();
 
     return { ret, retCopy };
 }
@@ -1632,4 +1620,3 @@ export async function updateADetailerModelList() {
     globalThis.hifix.model.setValue(LANG.api_hf_upscaler_selected, globalThis.cachedFiles.upscalerList);
     globalThis.hifix.model.updateDefaults(currentModelSelect);
 }
-

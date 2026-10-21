@@ -22,6 +22,16 @@ function safeCheck(){
     return true;
 }
 
+export function syncSkipDoubleLayerInput() {
+    const box = globalThis.skipLayer?.double_layers;
+    if (!box?.setEnable) return;
+    const settings = globalThis.globalSettings || {};
+    const lang = globalThis.cachedFiles?.language?.[settings.language] || {};
+    const webui = settings.api_interface === 'WebUI';
+    box.setEnable(!webui);
+    box.setTitle(webui ? lang.skip_double_layers_webui : lang.skip_double_layers);
+}
+
 export function setDropdownLanguage(containerID, labelPrefixList){
   const labels = document.querySelectorAll(`.${containerID} .mydropdown-input-container`);
   for (const [index, label] of labels.entries()) {
@@ -59,6 +69,10 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.dropdownList.textencoder.setTitle(LANG.api_text_encoder);
     globalThis.dropdownList.textencoder_type.setTitle(LANG.api_text_encoder_type);
     globalThis.dropdownList.textencoder_device.setTitle(LANG.api_text_encoder_device);
+    globalThis.skipLayer?.single_layers?.setTitle(LANG.skip_single_layers);
+    globalThis.skipLayer?.start_percent?.setTitle(LANG.skip_start_percent);
+    globalThis.skipLayer?.end_percent?.setTitle(LANG.skip_end_percent);
+    syncSkipDoubleLayerInput();
 
     globalThis.dropdownList.vpred.setTitle(LANG.vpred);
     globalThis.dropdownList.vpred.setValue(LANG.vpred, [LANG.vpred_auto, LANG.vpred_on, LANG.vpred_on_zsnr,LANG.vpred_off]);
@@ -323,7 +337,11 @@ export function updateSettings() {
     globalThis.dropdownList.diffusion_model_weight_dtype.updateDefaults(SETTINGS.api_model_file_diffusion_weight_dtype);
     globalThis.dropdownList.textencoder.updateDefaults(SETTINGS.api_model_file_text_encoder);
     globalThis.dropdownList.textencoder_type.updateDefaults(SETTINGS.api_model_file_text_encoder_type);
-    globalThis.dropdownList.textencoder_device.updateDefaults(SETTINGS.api_model_file_text_encoder_device);    
+    globalThis.dropdownList.textencoder_device.updateDefaults(SETTINGS.api_model_file_text_encoder_device);
+    globalThis.skipLayer?.double_layers?.setValue(SETTINGS.skip_double_layers ?? '');
+    globalThis.skipLayer?.single_layers?.setValue(SETTINGS.skip_single_layers ?? '22');
+    globalThis.skipLayer?.start_percent?.setValue(SETTINGS.skip_start_percent ?? 0);
+    globalThis.skipLayer?.end_percent?.setValue(SETTINGS.skip_end_percent ?? 1);    
 
     globalThis.dropdownList.vpred.updateDefaults(SETTINGS.api_model_file_vpred);
     globalThis.dropdownList.thumb_select.updateDefaults(SETTINGS.thumb_select);

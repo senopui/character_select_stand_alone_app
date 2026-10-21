@@ -40,6 +40,7 @@ export function setupCollapsed(containerId, collapsed = false) {
     
     toggleArrow.addEventListener('click', () => {
         setCollapsed(!container.classList.contains('collapsed'));
+        document.dispatchEvent(new CustomEvent('layout-panel-collapsed'));
     });
 
     setCollapsed(collapsed);
@@ -208,6 +209,19 @@ export async function setupDeleteSettingsToggle() {
     return deleteSettingsButton;
 }
 
+function readDropdownValue(dropdown) {
+    if (!dropdown?.getValue) return '';
+    const value = dropdown.getValue();
+    if (Array.isArray(value)) return value[0] ?? '';
+    return value ?? '';
+}
+
+function restoreDropdownValue(dropdown, previous) {
+    if (!dropdown?.selectOrFirst) return previous ?? '';
+    const restored = dropdown.selectOrFirst(previous);
+    return Array.isArray(restored) ? (restored[0] ?? '') : (restored ?? '');
+}
+
 export async function setupModelReloadToggle() {
     const refreshButton = document.getElementById('model-refresh-toggle');
     if (!refreshButton) {
@@ -216,12 +230,35 @@ export async function setupModelReloadToggle() {
     }
 
     refreshButton.addEventListener('click', async () => {
-        const currentModelSelect = globalThis.dropdownList.model.getValue();
+        const lists = globalThis.dropdownList;
+        const previous = {
+            model: readDropdownValue(lists.model),
+            vaeUnet: readDropdownValue(lists.vae_unet),
+            vaeSdxl: readDropdownValue(lists.vae_sdxl),
+            textEncoder: readDropdownValue(lists.textencoder),
+        };
+
         await reloadFiles(true, true);
-        globalThis.dropdownList.model.updateDefaults(currentModelSelect);
+
+        const restored = {
+            model: restoreDropdownValue(lists.model, previous.model),
+            vaeUnet: restoreDropdownValue(lists.vae_unet, previous.vaeUnet),
+            vaeSdxl: restoreDropdownValue(lists.vae_sdxl, previous.vaeSdxl),
+            textEncoder: restoreDropdownValue(lists.textencoder, previous.textEncoder),
+        };
+        const settings = globalThis.globalSettings;
+        if (settings.api_model_type === 'Checkpoint') {
+            settings.api_model_file_select = restored.model;
+        } else {
+            settings.api_model_file_diffusion_select = restored.model;
+        }
+        settings.api_vae_unet_model = restored.vaeUnet;
+        settings.api_vae_sdxl_model = restored.vaeSdxl;
+        settings.api_model_file_text_encoder = restored.textEncoder;
+
         globalThis.lora.reload();
         globalThis.controlnet.reload();
-        globalThis.aDetailer.reload();        
+        globalThis.aDetailer.reload();
     });
 
     return refreshButton;

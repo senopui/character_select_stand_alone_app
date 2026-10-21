@@ -142,7 +142,35 @@ export function createImageTagger(metadataContainer, cachedImage) {
         }
     });
     buttonContainer.appendChild(imageTaggerButton);
-    
     metadataContainer.appendChild(buttonContainer);
+
+    const plateRow = document.createElement('div');
+    plateRow.className = 'image-tagger-plate';
+    const plateButton = document.createElement('button');
+    plateButton.type = 'button';
+    plateButton.className = 'image-tagger-plate-send';
+    plateButton.textContent = LANG.image_tagger_send_plate || 'To Bounding';
+    plateButton.addEventListener('click', async () => {
+        if (plateButton.disabled) return;
+        plateButton.disabled = true;
+        plateButton.style.cursor = 'not-allowed';
+        try {
+            const src = await fileToBase64(cachedImage);
+            const sent = globalThis.bounding?.setPlate?.(src) === true;
+            plateButton.textContent = sent
+                ? (LANG.image_tagger_send_plate_sent || 'Sent')
+                : (LANG.image_tagger_send_plate_error || 'Error');
+        } catch (err) {
+            console.error('Send plate failed:', err);
+            plateButton.textContent = LANG.image_tagger_send_plate_error || 'Error';
+        }
+        setTimeout(() => {
+            plateButton.textContent = LANG.image_tagger_send_plate || 'To Bounding';
+            plateButton.style.cursor = 'pointer';
+            plateButton.disabled = false;
+        }, 2000);
+    });
+    plateRow.appendChild(plateButton);
+    metadataContainer.appendChild(plateRow);
 }
 

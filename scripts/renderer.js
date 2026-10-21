@@ -1,10 +1,10 @@
-import { updateLanguage, updateSettings, applyWsServiceSettings, applyWsServiceLock, applySaacReadonlyUi } from './renderer/language.js';
+import { updateLanguage, updateSettings, applyWsServiceSettings, applyWsServiceLock, applySaacReadonlyUi, syncSkipDoubleLayerInput } from './renderer/language.js';
 import { setupGallery, GRID_SIZE_MIN, GRID_SIZE_MAX, GRID_SIZE_STEP, GRID_SIZE_DEFAULT } from './renderer/customGallery.js';
 import { setupThumbOverlay, setupThumb } from './renderer/customThumbGallery.js';
 import { setupSuggestionSystem } from './renderer/tagAutoComplete.js';
 import { setupButtonOverlay, customCommonOverlay } from './renderer/customOverlay.js';
 import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, mySimpleList } from './renderer/components/myDropdown.js';
-import { callback_mySettingList, callback_api_model_select, callback_api_model_type, callback_api_interface, 
+import { callback_mySettingList, callback_api_model_select, callback_api_model_type, callback_api_interface, notifySageFp16Cast, 
     callback_generate_start, callback_generate_skip, callback_generate_skip_current, callback_generate_cancel,
     callback_regional_condition, callback_controlnet, callback_adetailer, callback_queue_autostart,
     callback_thumb_select, callback_ptompt_textbox_autoresize, callback_ptompt_textbox_fontsize, 
@@ -29,6 +29,7 @@ import { setupThemeToggle } from './renderer/theme.js';
 import { setupRightClickMenu, addSpellCheckSuggestions } from './renderer/components/myRightClickMenu.js';
 import { extractHostPort, hashHiresSubmit, rememberHiresSubmit } from './renderer/generate.js';
 import { CLIP_TYPE, CLIP_DEVICE, DIFFUSION_DTYPE, SAMPLER_COMFYUI, SCHEDULER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_WEBUI } from './types.js';
+import { normalizeDiffusionDtype } from './main/sageFp16Switch.js';
 import { flushSlots } from './renderer/slots/slotsManager.js';
 import { set_prompt_textBox_Heights } from './renderer/components/componentsManager.js';
 import { hiresCalculate } from './renderer/tools/hiresCalculation.js';
@@ -83,7 +84,11 @@ export async function setupHeader(SETTINGS, FILES, LANG){
 
         diffusion_model_weight_dtype: mySimpleList('diffusion-model-weight-dtype', LANG.api_diffusion_model_weight_dtype,
             DIFFUSION_DTYPE,
-            (index, value) => { globalThis.globalSettings.diffusion_model_weight_dtype = value; }, 5, false, true),
+            (index, value) => {
+                const dtype = normalizeDiffusionDtype(value);
+                globalThis.globalSettings.api_model_file_diffusion_weight_dtype = dtype;
+                notifySageFp16Cast(dtype);
+            }, 8, false, true),
 
         textencoder: mySimpleList('text-encoder', LANG.api_text_encoder, FILES.textEncoderList,
             (index, value) => { globalThis.globalSettings.api_model_file_text_encoder = value; }, 20, true, true),
@@ -103,6 +108,24 @@ export async function setupHeader(SETTINGS, FILES, LANG){
     }
     globalThis.dropdownList.languageList.updateDefaults(LANG.language);
     globalThis.dropdownList.vpred.updateDefaults(SETTINGS.api_model_file_vpred);
+
+    globalThis.skipLayer = {
+        double_layers: setupTextbox('skip-double-layers', LANG.skip_double_layers, {
+            value: SETTINGS.skip_double_layers ?? '',
+            maxLines: 1,
+        }, true, (value) => { globalThis.globalSettings.skip_double_layers = value; }),
+        single_layers: setupTextbox('skip-single-layers', LANG.skip_single_layers, {
+            value: SETTINGS.skip_single_layers ?? '22',
+            maxLines: 1,
+        }, true, (value) => { globalThis.globalSettings.skip_single_layers = value; }),
+        start_percent: setupSlider('skip-start-percent', LANG.skip_start_percent,
+            { min: 0, max: 1, step: 0.01, defaultValue: SETTINGS.skip_start_percent ?? 0 },
+            (value) => { globalThis.globalSettings.skip_start_percent = value; }),
+        end_percent: setupSlider('skip-end-percent', LANG.skip_end_percent,
+            { min: 0, max: 1, step: 0.01, defaultValue: SETTINGS.skip_end_percent ?? 1 },
+            (value) => { globalThis.globalSettings.skip_end_percent = value; }),
+    };
+    syncSkipDoubleLayerInput();
 
     // Setup Header button
     globalThis.headerIcon = {
@@ -177,8 +200,8 @@ export async function createGenerate(SETTINGS, FILES, LANG) {
         seed: setupSlider('generate-random-seed', LANG.random_seed, {min:-1, max:4294967295, step:1, defaultValue:SETTINGS.random_seed, fullGradient: true}, (value) =>{globalThis.globalSettings.random_seed = value;}),
         cfg: setupSlider('generate-cfg', LANG.cfg, {min:0, max:20, step:0.01, defaultValue:SETTINGS.cfg}, (value) =>{globalThis.globalSettings.cfg = value;}),
         step: setupSlider('generate-step', LANG.step, {min:1, max:100, step:1, defaultValue:SETTINGS.step}, (value) =>{globalThis.globalSettings.step = value;}),
-        width: setupSlider('generate-width', LANG.width, {min:512, max:2048, step:8, defaultValue:SETTINGS.width}, (value) =>{globalThis.globalSettings.width = value; hiresCalculate(); globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
-        height: setupSlider('generate-height', LANG.height, {min:512, max:2048, step:8, defaultValue:SETTINGS.height}, (value) =>{globalThis.globalSettings.height = value; hiresCalculate(); globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
+        width: setupSlider('generate-width', LANG.width, {min:512, max:4096, step:8, defaultValue:SETTINGS.width}, (value) =>{globalThis.globalSettings.width = value; hiresCalculate(); globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
+        height: setupSlider('generate-height', LANG.height, {min:512, max:4096, step:8, defaultValue:SETTINGS.height}, (value) =>{globalThis.globalSettings.height = value; hiresCalculate(); globalThis.bounding?.syncCanvas(); globalThis.bounding?.invalidatePreview?.(); }),
         batch: setupSlider('generate-batch', LANG.batch, {min:1, max:2038, step:1, defaultValue:SETTINGS.batch}, (value) =>{globalThis.globalSettings.batch = value;}),
         hifix: setupCheckbox('generate-hires-fix', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; globalThis.generate.hifix_dummy.setValue(value);}),
         hifix_dummy: setupCheckbox('generate-hires-fix-dummy', LANG.api_hf_enable, SETTINGS.api_hf_enable, true, (value) => { globalThis.globalSettings.api_hf_enable = value; globalThis.generate.hifix.setValue(value);}),
@@ -569,7 +592,8 @@ async function init(){
     globalThis.custom_message = {
         controlnet: false,
         adetailer: false,
-        regional_forge_neo: false
+        regional_forge_neo: false,
+        sage_fp16: false
     };    
 
     try {

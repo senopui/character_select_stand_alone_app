@@ -838,6 +838,14 @@ body.right-to-left #cg-info-button {
     gap: 16px;
 }
 
+.skip-layer-fields {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: end;
+}
+
 .system-settings-main-saac {
     display: grid;
     grid-template-columns: 1fr 1.2fr 0.8fr;
@@ -1126,6 +1134,11 @@ body.right-to-left #cg-info-button {
     display: flex;
     flex-direction: column;
     width: 100%;
+}
+
+.myTextbox-disabled textarea {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .image-infobox-main,

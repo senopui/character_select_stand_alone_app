@@ -3,7 +3,7 @@ import { generateImage, startQueue, clearHiresSubmitHash } from './generate.js';
 import { generateRegionalImage } from './generate_regional.js';
 import { generateMiraITU } from './generate_miraITU.js';
 import { doSwap, reloadFiles } from './components/myCollapsed.js';
-import { updateLanguage, updateSettings, setDropdownLanguage } from './language.js';
+import { updateLanguage, updateSettings, setDropdownLanguage, syncSkipDoubleLayerInput } from './language.js';
 import { setBlur, setNormal, showDialog } from './components/myDialog.js';
 import { applyTheme } from './theme.js';
 import { sendWebSocketMessage, isSaacReadonlyClient } from '../webserver/front/wsRequest.js';
@@ -14,7 +14,8 @@ import { changeFontSize } from './components/myTextbox.js';
 import { set_prompt_textBox_Heights } from './components/componentsManager.js';
 import { applySavedLayout } from './uiLayout.js';
 import { refreshPromptViewToggles, refreshTabLabelHints } from './uiLayoutTabs.js';
-import { SAMPLER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_COMFYUI, SCHEDULER_WEBUI } from '../types.js';
+import { DIFFUSION_DTYPE, SAMPLER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_COMFYUI, SCHEDULER_WEBUI } from '../types.js';
+import { isFp16CastDtype, visibleDiffusionDtype } from '../main/sageFp16Switch.js';
 import { cancelAutoRetry, isAutoRetryRunning } from './tools/autoRetry.js';
 
 export async function callback_mySettingList(index, selectedValue) {    
@@ -132,13 +133,42 @@ export async function callback_api_model_select(index, selectedValue) {
     }
 }
 
+export function notifySageFp16Cast(value) {
+    if (!isFp16CastDtype(value)) return;
+    if (globalThis.globalSettings?.api_model_type === 'Checkpoint') return;
+    if (!globalThis.custom_message || globalThis.custom_message.sage_fp16) return;
+
+    const lang = globalThis.cachedFiles?.language?.[globalThis.globalSettings.language];
+    if (!lang?.message_sage_fp16 || !globalThis.overlay?.custom?.createErrorOverlay) return;
+
+    globalThis.custom_message.sage_fp16 = true;
+    globalThis.overlay.custom.createErrorOverlay(lang.message_sage_fp16, lang.message_sage_fp16_link);
+}
+
+function syncDiffusionDtypeMenu(modelType) {
+    const dropdown = globalThis.dropdownList?.diffusion_model_weight_dtype;
+    if (!dropdown?.setOptions) return;
+
+    const settings = globalThis.globalSettings;
+    const lang = globalThis.cachedFiles?.language?.[settings.language];
+    const menu = visibleDiffusionDtype(settings.api_model_file_diffusion_weight_dtype, modelType, DIFFUSION_DTYPE);
+    if (settings.api_model_file_diffusion_weight_dtype !== menu.saved) {
+        settings.api_model_file_diffusion_weight_dtype = menu.saved;
+    }
+    dropdown.setOptions(menu.choices, null, lang?.api_diffusion_model_weight_dtype || 'Weight Dtype', menu.visible);
+    if (modelType === 'Diffusion') {
+        notifySageFp16Cast(menu.saved);
+    }
+}
+
 export async function callback_api_model_type(index, selectedValue) {
     const SETTINGS = globalThis.globalSettings;
     const LANG = globalThis.cachedFiles.language[SETTINGS.language];
 
     const value = selectedValue[0];
     console.log('Selected model type:', value);
-    globalThis.globalSettings.api_model_type = value; 
+    globalThis.globalSettings.api_model_type = value;
+    syncDiffusionDtypeMenu(value); 
 
     if (value === 'Checkpoint') {
         globalThis.dropdownList.model.setValue(LANG.api_model_file_select, globalThis.cachedFiles.modelList);
@@ -174,6 +204,7 @@ export async function callback_api_model_type(index, selectedValue) {
 
 export async function callback_api_interface(index, selectedValue){
     globalThis.globalSettings.api_interface = selectedValue[0];
+    syncSkipDoubleLayerInput();
 
     const SETTINGS = globalThis.globalSettings;
     const LANG = globalThis.cachedFiles.language[SETTINGS.language];
@@ -496,8 +527,13 @@ export async function callback_queue_autostart(trigger, isDummy=false) {
     globalThis.globalSettings.generate_auto_start = trigger;
     updateQueuePausedBorder();
     globalThis.overlay.buttons.reload();
+    if (trigger) {
+        globalThis.mainGallery?.syncGalleryStatus?.({ dismissHold: true });
+    }
     if(trigger && globalThis.queueManager.getSlotsCount()>0) {
         await startQueue();
+    } else if (!trigger) {
+        globalThis.mainGallery?.syncGalleryStatus?.();
     }
 }
 
@@ -517,8 +553,16 @@ export async function setQueueAutoStart(trigger) {
     updateQueuePausedBorder();
     globalThis.overlay.buttons.reload();
 
+    if (trigger) {
+        globalThis.mainGallery?.syncGalleryStatus?.({ dismissHold: true });
+    }
+
     if(trigger && globalThis.queueManager.getSlotsCount() > 0 && !globalThis.inGenerating) {
         return await startQueue();
+    }
+
+    if (!trigger) {
+        globalThis.mainGallery?.syncGalleryStatus?.();
     }
 
     return { ret: 'success', retCopy: '' };

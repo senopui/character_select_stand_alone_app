@@ -135,6 +135,41 @@ export function setStoredTitle(host, panelId, title) {
     host.dataset.tabTitles = JSON.stringify(titles);
 }
 
+export function readCollapsedPanels() {
+    const tabs = globalThis.collapsedTabs;
+    if (!tabs) {
+        return null;
+    }
+    const collapsed = {};
+    for (const [layoutId, key] of Object.entries(COLLAPSE_KEYS)) {
+        const control = tabs[key];
+        if (typeof control?.getCollapsed !== 'function') {
+            continue;
+        }
+        collapsed[layoutId] = control.getCollapsed() === true;
+    }
+    return Object.keys(collapsed).length > 0 ? collapsed : null;
+}
+
+export function applyCollapsedPanels(collapsed) {
+    if (!collapsed || typeof collapsed !== 'object' || Array.isArray(collapsed)) {
+        return;
+    }
+    const tabs = globalThis.collapsedTabs;
+    if (!tabs) {
+        return;
+    }
+    for (const [layoutId, value] of Object.entries(collapsed)) {
+        if (typeof value !== 'boolean') {
+            continue;
+        }
+        const control = tabs[COLLAPSE_KEYS[layoutId]];
+        if (typeof control?.setCollapsed === 'function') {
+            control.setCollapsed(value);
+        }
+    }
+}
+
 export function expandPanel(panel) {
     const id = panel?.dataset?.layoutId;
     const key = COLLAPSE_KEYS[id];

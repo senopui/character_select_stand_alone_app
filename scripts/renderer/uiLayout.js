@@ -18,6 +18,8 @@ import {
     setHostActive,
     unwrapHost,
     pruneTabHosts,
+    readCollapsedPanels,
+    applyCollapsedPanels,
     zoneOfColumn
 } from './uiLayoutTabs.js';
 
@@ -275,6 +277,10 @@ export function readCurrentLayout() {
         layout.galleryHeight = galleryHeight;
     }
     layout.buttonOverlayMinimized = document.getElementById('cg-button-overlay')?.dataset.minimized === 'true';
+    const collapsed = readCollapsedPanels();
+    if (collapsed) {
+        layout.collapsed = collapsed;
+    }
     return layout;
 }
 
@@ -417,6 +423,9 @@ export function applyLayout(layout) {
         resetGalleryHeight();
     }
     applyButtonOverlayMinimized(layout.buttonOverlayMinimized === true);
+    if (layout.collapsed && typeof layout.collapsed === 'object') {
+        applyCollapsedPanels(layout.collapsed);
+    }
     syncFullWidthBehavior();
 
     if (typeof globalThis.mainGallery?.updateMetaButtonsLayout === 'function') {
@@ -1754,7 +1763,23 @@ function bindIndependentToggle() {
     });
 }
 
+let collapsePersistBound = false;
+
+function bindCollapsedPersist() {
+    if (collapsePersistBound) {
+        return;
+    }
+    collapsePersistBound = true;
+    document.addEventListener('layout-panel-collapsed', async () => {
+        if (layoutMode === 'factory') {
+            return;
+        }
+        await persistLayout();
+    });
+}
+
 export async function setupUiLayout() {
+    bindCollapsedPersist();
     if (!handlesBound) {
         for (const id of PANEL_IDS) {
             if (EMPTY_DRAG_IDS.has(id)) {

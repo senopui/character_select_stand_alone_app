@@ -40,6 +40,24 @@ export const DEFAULT_UI_LAYOUT = {
 
 const KNOWN_PANELS = new Set([...DEFAULT_UI_LAYOUT.left, ...DEFAULT_UI_LAYOUT.right, 'character']);
 
+// Optional per-panel collapse. Absent on older files, which keep the on-screen state.
+const COLLAPSIBLE_PANELS = new Set([
+    'image-infobox',
+    'gallery-main',
+    'gallery-thumb',
+    'highres-fix',
+    'refiner',
+    'controlnet',
+    'model-settings',
+    'add-lora',
+    'system-settings',
+    'regional-condition',
+    'bounding',
+    'jsonlist',
+    'adetailer',
+    'queue'
+]);
+
 function sanitizeLayoutName(name) {
     const raw = String(name || 'settings').replace(/\.json$/i, '');
     const cleaned = raw.replaceAll(/[/|\\:*?"<>]/g, ' ').trim();
@@ -197,6 +215,19 @@ function insertMissingInDefaultOrder(current, defaultList, used) {
     return result;
 }
 
+function normalizeCollapsed(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return null;
+    }
+    const collapsed = {};
+    for (const [id, value] of Object.entries(raw)) {
+        if (COLLAPSIBLE_PANELS.has(id) && typeof value === 'boolean') {
+            collapsed[id] = value;
+        }
+    }
+    return Object.keys(collapsed).length > 0 ? collapsed : null;
+}
+
 function normalizeLayout(raw) {
     const source = raw && typeof raw === 'object' ? raw : {};
     const used = new Set();
@@ -223,6 +254,10 @@ function normalizeLayout(raw) {
     }
     if (typeof source.buttonOverlayMinimized === 'boolean') {
         layout.buttonOverlayMinimized = source.buttonOverlayMinimized;
+    }
+    const collapsed = normalizeCollapsed(source.collapsed);
+    if (collapsed) {
+        layout.collapsed = collapsed;
     }
     if (typeof source.enabled === 'boolean') {
         layout.enabled = source.enabled;
@@ -295,6 +330,9 @@ function persistNormalizedLayout(filePath, original, normalized, extra = {}) {
     }
     if (typeof normalized.buttonOverlayMinimized === 'boolean') {
         stored.buttonOverlayMinimized = normalized.buttonOverlayMinimized;
+    }
+    if (normalized.collapsed) {
+        stored.collapsed = normalized.collapsed;
     }
     if (typeof extra.enabled !== 'boolean' && typeof original?.enabled === 'boolean') {
         stored.enabled = original.enabled;
@@ -424,6 +462,9 @@ export function saveUiLayout(settingsName, layout, mode) {
             if (typeof kept.buttonOverlayMinimized === 'boolean') {
                 stored.buttonOverlayMinimized = kept.buttonOverlayMinimized;
             }
+            if (kept.collapsed) {
+                stored.collapsed = kept.collapsed;
+            }
         }
         return writeSidecar(sidecarPath, stored);
     }
@@ -442,6 +483,7 @@ export function saveUiLayout(settingsName, layout, mode) {
     return writeLayoutFile(layoutFilePath(GLOBAL_FILE), normalized);
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export function setUiLayoutMode(settingsName, mode, currentLayout, persist = true) {
     if (persist === false) {
         return resolveUiLayoutForMode(settingsName, mode, currentLayout);
@@ -481,6 +523,9 @@ export function setUiLayoutMode(settingsName, mode, currentLayout, persist = tru
             stored.full = kept.full || [];
             if (typeof kept.buttonOverlayMinimized === 'boolean') {
                 stored.buttonOverlayMinimized = kept.buttonOverlayMinimized;
+            }
+            if (kept.collapsed) {
+                stored.collapsed = kept.collapsed;
             }
         }
         writeSidecar(sidecarPath, stored);

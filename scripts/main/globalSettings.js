@@ -63,6 +63,7 @@ const defaultSettings = {
     "bounding_boxes": [],
     "bounding_grid_snap": false,
     "bounding_grid_size": 64,
+    "bounding_plate_opacity": 50,
     "character_left": "None",
     "character_right": "None",
     
@@ -85,6 +86,10 @@ const defaultSettings = {
     "api_model_file_text_encoder": "None",
     "api_model_file_text_encoder_type": "stable_diffusion",
     "api_model_file_text_encoder_device": "default",
+    "skip_double_layers": "",
+    "skip_single_layers": "22",
+    "skip_start_percent": 0,
+    "skip_end_percent": 1,
 
     "random_seed": -1,
     "cfg": 7,

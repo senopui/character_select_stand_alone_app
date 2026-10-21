@@ -9,6 +9,10 @@ function updateGalleryPreviewProgress() {
     }
 }
 
+export function resetGalleryPreviewProgress() {
+    galleryPreviewProgress = 0;
+}
+
 export function from_main_updateGallery(base64, seed, tagsString, info){
     globalThis.mainGallery.appendImageData(base64, seed, tagsString, globalThis.globalSettings.scroll_to_last, info);
 }
@@ -16,31 +20,8 @@ export function from_main_updateGallery(base64, seed, tagsString, info){
 export function from_main_updatePreview(base64){
     const buttonOverlay = document.getElementById('cg-button-overlay');
     if (buttonOverlay?.dataset.minimized === 'true' || globalThis.globalSettings.gallery_preview) {
-        const galleryContainer = document.querySelector('.gallery-main-main');
-        if (!galleryContainer) return;
-
-        let previewContainer = galleryContainer.querySelector('.cg-minimized-generation-preview-container');
-        if (!previewContainer) {
-            galleryPreviewProgress = 0;
-            previewContainer = document.createElement('div');
-            previewContainer.className = 'cg-minimized-generation-preview-container';
-            previewContainer.innerHTML = `
-                <div class="cg-minimized-generation-preview-track">
-                    <div class="cg-minimized-generation-preview-progress"></div>
-                </div>
-                <img class="cg-minimized-generation-preview" alt="Generation preview">
-            `;
-        }
-        galleryContainer.appendChild(previewContainer);
-
-        const preview = previewContainer.querySelector('.cg-minimized-generation-preview');
-        if (preview) {
-            preview.src = base64;
-            preview.onerror = () => {
-                preview.src = globalThis.cachedFiles.loadingWait;
-                preview.onerror = null;
-            };
-        }
+        const created = globalThis.mainGallery?.attachGalleryPreview?.(base64) === true;
+        if (created) galleryPreviewProgress = 0;
         updateGalleryPreviewProgress();
         return;
     }

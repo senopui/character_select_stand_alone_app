@@ -5,6 +5,7 @@ import { makeBackendLockKey, tryAcquireBackendBusy, releaseBackendBusy, forceRel
 import { WORKFLOW, WORKFLOW_REGIONAL, WORKFLOW_CONTROLNET, 
   WORKFLOW_MIRA_ITU, WORKFLOW_UNET, WORKFLOW_REIONAL_UNET, 
   WORKFLOW_MIRA_ITU_UNET, WORKFLOW_MIRA_ITU_UNET_PREBAKE, VAE_LOADER} from './comfyui_workflow.js';
+import { applySageFp16Switch, diffusionLoaderDtype } from './sageFp16Switch.js';
 
 const CAT = '[ComfyUI]';
 const TIMEOUT = 5000; // 5 seconds timeout for backend response
@@ -831,6 +832,41 @@ function checkHttpAlive(addr, timeout = TIMEOUT) {
   });
 }
 
+function mossSkipText(value, fallback) {
+  if (value == null) return fallback;
+  return String(value);
+}
+
+function mossSkipPercent(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  const clamped = Math.min(1, Math.max(0, number));
+  return Math.round(clamped * 100) / 100;
+}
+
+function mossSkipLayerInputs(modelNodeId, skipLayer) {
+  const source = skipLayer && typeof skipLayer === 'object' ? skipLayer : {};
+  return {
+    model: [String(modelNodeId), 0],
+    double_layers: mossSkipText(source.double_layers, ''),
+    single_layers: mossSkipText(source.single_layers, '22'),
+    start_percent: mossSkipPercent(source.start_percent, 0),
+    end_percent: mossSkipPercent(source.end_percent, 1),
+  };
+}
+
+function applyMossSkipLayer(workflow, modelNodeId, loraNodeId, skipLayer, skipNodeId = '1') {
+  const nodeId = String(skipNodeId);
+  workflow[nodeId] = {
+    inputs: mossSkipLayerInputs(modelNodeId, skipLayer),
+    class_type: 'SkipLayerGuidanceDiTSimple',
+    _meta: {
+      title: 'SkipLayerGuidanceDiTSimple',
+    },
+  };
+  workflow[loraNodeId].inputs.model = [nodeId, 0];
+}
+
 class ComfyUI {
   constructor(clientID) {
     this.clientID = clientID;
@@ -1438,7 +1474,7 @@ class ComfyUI {
       };
     } else {
       workflow["51"].inputs.unet_name = unet.model;
-      workflow["51"].inputs.weight_dtype = unet.dtype;
+      workflow["51"].inputs.weight_dtype = diffusionLoaderDtype(unet.dtype);
     }
     
     // Set Text Encoder CLIP model
@@ -1460,26 +1496,8 @@ class ComfyUI {
       workflow["50"].inputs.device = unet.clip_device;
     }
 
-    // Moss SkipLayerGuidanceDiTSimple (22)
-    if(unet.clip_type == 'moss_image') {
-      workflow["1"] = {
-        "inputs": {
-          "model": [
-            "51",
-            0
-          ],
-          "double_layers": "",
-          "single_layers": "22",
-          "start_percent": 0,
-          "end_percent": 1
-        },
-        "class_type": "SkipLayerGuidanceDiTSimple",
-        "_meta": {
-          "title": "SkipLayerGuidanceDiTSimple (uncond skips block 22)"
-        }
-      };
-
-      workflow["34"].inputs.model = ["1", 0];
+    if (unet.clip_type == 'moss_image') {
+      applyMossSkipLayer(workflow, '51', '34', generateData.skip_layer, '1');
     }
 
     // Set VAE model
@@ -1566,6 +1584,7 @@ class ComfyUI {
     };
 
     workflow = applyADetailerUnet(workflow, adetailer, workflowInfo);
+    applySageFp16Switch(workflow, '51', unet.dtype);
     return workflow;
   }
 
@@ -1790,7 +1809,7 @@ class ComfyUI {
       };
     } else {
       workflow["59"].inputs.unet_name = unet.model;
-      workflow["59"].inputs.weight_dtype = unet.dtype;
+      workflow["59"].inputs.weight_dtype = diffusionLoaderDtype(unet.dtype);
     }
 
     // Set Text Encoder CLIP model
@@ -1812,26 +1831,8 @@ class ComfyUI {
       workflow["60"].inputs.device = unet.clip_device;
     }
 
-    // Moss SkipLayerGuidanceDiTSimple (22)
-    if(unet.clip_type == 'moss_image') {
-      workflow["1"] = {
-        "inputs": {
-          "model": [
-            "51",
-            0
-          ],
-          "double_layers": "",
-          "single_layers": "22",
-          "start_percent": 0,
-          "end_percent": 1
-        },
-        "class_type": "SkipLayerGuidanceDiTSimple",
-        "_meta": {
-          "title": "SkipLayerGuidanceDiTSimple (uncond skips block 22)"
-        }
-      };
-
-      workflow["34"].inputs.model = ["1", 0];
+    if (unet.clip_type == 'moss_image') {
+      applyMossSkipLayer(workflow, '59', '39', generateData.skip_layer, '1');
     }
 
     // Load VAE
@@ -1943,7 +1944,7 @@ class ComfyUI {
     };
 
     workflow = applyADetailerUnet(workflow, adetailer, workflowInfo);
-
+    applySageFp16Switch(workflow, '59', unet.dtype);
     return workflow;
   }
 

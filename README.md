@@ -7,11 +7,15 @@ A Stand Alone App with AI prompt, Semi-auto Tag Complete and ComfyUI/Forge Neo(W
 > The default thumbList is based on `waiIllustriousSDXL_v160`. There are two alternative thumbList: `waiANIMA_v10Base10` and `waiNSFWIllustrious_v120`. Will download automatically from `HuggingFace` once you have selected it. 
 > Create your own thumbList with [SAA Thumb Generator](https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/scripts/python/thumb-generator/README.md)
 
+> [!TIP]
+> Diffusion `Weight Dtype` adds `PyTorch_FP16` and `Sage_FP16` for Turing GPUs (RTX 20 series). Newer cards can keep using bf16 or fp8.      
+> Parameter details are in the [ComfyUI_MiraSubPack README](https://github.com/mirabarukaso/ComfyUI_MiraSubPack/blob/main/README.md).
+
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall01.png" width=45%><img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/overall03.png" width=45%>
 
 | Verified | [ComfyUI](https://github.com/comfyanonymous/ComfyUI)  | [Forge Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo) |
 | --- | --- | --- | 
-| Release | 0.41.1 | 2.30.0 |
+| Release | 0.42.3 | 2.31.0 |
 | Refiner (SDXL) | Yes | Yes |
 | Image Color Transfer (ALL) | Yes | No |
 | Regional Condition / Couple (SDXL/Anima) | Yes | Yes |
@@ -111,7 +115,13 @@ Each box is `object` or `text`. `object` is the default. For Moss, `object` gene
 * An `object` with a description sends that item text as `caption` and has no `text` field. In the example below, `burger` and `price list` are generated as items.     
 * A `text` box keeps the number as `caption` and sends the description in `text`, so Moss generates that description as annotation text.     
 
-The background grid follows the grid-size slider. `Snap` is optional and uses that same size. Pick a color from 16 swatches or the color picker. Color is only drawn on the canvas and is left out of the payload. `Clear` asks before removing every box. The preview under the canvas shows the positive prompt that will be sent.     
+The background grid follows the grid-size slider. `Snap` is optional and uses that same size. Pick a color from 16 swatches or the color picker. Color is only drawn on the canvas and is left out of the payload. The preview under the canvas shows the positive prompt that will be sent.     
+
+A long description wraps to the box width. Lines that do not fit stay hidden. The editor opened by `Enter` or a double-click grows with the text and stays inside the canvas.     
+
+`Plate` loads the image currently shown in the gallery. Image Info can also send its loaded picture with `To Bounding`, under the tagger row. In the split view that is the large image. In grid view it is the opened image, or the newest image when none is opened. Click `Plate` again to clear it. A matching aspect ratio scales to the canvas. A different ratio scales by the short side and stays centered, and the canvas clips the overflow. `Opacity` runs from 0 to 100 and stays disabled until a plate is loaded. The opacity is saved with settings. The image itself lasts for the current session. While a plate is loaded, box fills follow that slider and thin out as the image gets stronger, so the picture, the region edge, and the description stay visible together.     
+
+`Lock` keeps the selected box from being moved or resized. A locked box can still be selected, recolored, and edited, and `Delete` still removes it. `Clear` asks first. It removes unlocked boxes and leaves locked ones. When every remaining box is locked, `Clear` removes those too.     
 
 Coordinates use the full generation pixels. The origin is the canvas center, `x` points right, `y` points down, and each box is `[y_min, x_min, y_max, x_max]`. On a 1024×1360 canvas the packed prompt looks like this:     
 
@@ -163,7 +173,6 @@ The layout icon next to `Save Settings` cycles how the layout is stored:
 > [!NOTE]      
 > Test and Verified: Moss / Anima / Qwen Image / Z Image / Flux / Krea2
 > Supports ComfyUI and Forge neo, NOT support original A1111.         
-> Moss is not supported by Forge neo (v2.30.0) for now.
 
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/diffusion_models.png" width=25%>
 

@@ -500,6 +500,20 @@ function createDropdown({
             return this;
         },
 
+        selectOrFirst: function(value) {
+            const wanted = value === undefined || value === null ? '' : String(value);
+            for (let index = 0; index < inputs.length; index++) {
+                if (isEditing[index]) continue;
+                const list = options[index] || [];
+                const found = wanted !== '' && list.some((option) => option.value === wanted || option.key === wanted);
+                const next = found ? wanted : (list[0]?.value ?? '');
+                selectedValues[index] = next;
+                selectedKeys[index] = next;
+                inputs[index].value = next;
+            }
+            return this.getValue();
+        },
+
         isValueExist: function(value) {
             if (!value) return false;
             

@@ -7,13 +7,13 @@ import csv
 # ================= Config and Constants =================
 PAGE_SIZE = 20
 IMAGE_DIR_160 = "thumb_image_v160"
-IMAGE_DIR_NEW = "thumb_image_anima"
-FILE_MD5 = "data/waiANIMA_v10Base10_character_md5.json"
-FILE_TAG = "data/waiANIMA_v10Base10_tag_assist.json"
-FILE_CSV = "data/waiANIMA_v10Base10_characters.csv"
+IMAGE_DIR_NEW = "thumb_image_v180"
+FILE_MD5 = "data/waiIllustriousSDXL_v160_character_md5_v160.json"
+FILE_TAG = "data/waiIllustriousSDXL_v160_tag_assist.json"
+FILE_CSV = "data/waiIllustriousSDXL_v160_characters.csv"
 FILE_REWORK = "output/rework.json"
 
-OPTIONS = ["Keep", "Rework", "Remove", "NSFW", "TagChange", "Other"]
+OPTIONS = ["Keep", "Rework", "Missig", "NSFW", "Remove", "Other"]
 
 # ================= Core Functions =================
 

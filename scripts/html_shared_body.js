@@ -268,9 +268,10 @@ export const sharedBodyHTML = `
             </div>
             <div class="bounding-main">
               <div class="bounding-toolbar">
-                <span id="bounding-count">0/64</span>
+                <span id="bounding-count">0/128</span>
                 <span id="bounding-size"></span>
                 <div class="bounding-mode">
+                  <button type="button" id="bounding-lock"></button>
                   <button type="button" id="bounding-mode-object">object</button>
                   <button type="button" id="bounding-mode-text">text</button>
                 </div>
@@ -279,6 +280,10 @@ export const sharedBodyHTML = `
                 <div class="bounding-grid-snap"></div>
                 <div class="bounding-grid-size"></div>
                 <button type="button" id="bounding-clear"></button>
+              </div>
+              <div class="bounding-plate">
+                <button type="button" id="bounding-plate"></button>
+                <div class="bounding-plate-opacity"></div>
               </div>
               <div class="bounding-colors">
                 <div id="bounding-swatches"></div>
@@ -363,7 +368,7 @@ export const sharedBodyHTML = `
             </div>
             <div class="model-settings-main">
               <div class="system-settings-main-1">
-                <div><p>Diffusion: Anima/Z Image/Qwen Image/Flux</p></div>
+                <div><p>Diffusion: Moss/Anima/Z Image/Qwen Image/Flux</p></div>
                 <div class="diffusion-model-weight-dtype"></div>
               </div>
               <div class="system-settings-main-2">                
@@ -375,6 +380,14 @@ export const sharedBodyHTML = `
                 <div class="text-encoder-type"></div>
                 <div></div>
                 <div class="text-encoder-device"></div>
+                <div class="skip-layer-fields">
+                  <div><p>Moss Image: Uncond skip (empty = off)</p></div>
+                  <div></div>
+                  <div class="skip-double-layers"></div>
+                  <div class="skip-single-layers"></div>
+                  <div class="skip-start-percent"></div>
+                  <div class="skip-end-percent"></div>
+                </div>
                 <div><p>Checkpoint: SDXL/Noob/IL/Pony/SD15</p></div>
                 <div class="vae-override"></div>
               </div>              

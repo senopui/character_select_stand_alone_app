@@ -2,7 +2,7 @@ import { setupCheckbox } from './components/myCheckbox.js';
 import { setupSlider } from './components/mySlider.js';
 import { showDialog } from './components/myDialog.js';
 
-const MAX_BOXES = 64;
+const MAX_BOXES = 128;
 const HANDLE_PX = 7;
 const DRAG_PX = 4;
 const OBJECT_RGB = [52, 152, 219];
@@ -42,6 +42,22 @@ export function clampGridSize(value) {
 
 function rgba(rgb, alpha) {
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+function isPositive(value) {
+    return Number.isFinite(value) && value > 0;
+}
+
+function trimTrailingSpace(value) {
+    let end = value.length;
+    while (end > 0 && (value[end - 1] === ' ' || value[end - 1] === '\t')) end -= 1;
+    return end === value.length ? value : value.slice(0, end);
+}
+
+function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
 }
 
 function normalizeColor(value) {
@@ -198,7 +214,55 @@ function normalizeBoundingBox(item, used) {
     };
     const color = normalizeColor(item.color);
     if (color) box.color = color;
+    if (item.locked === true) box.locked = true;
     return box;
+}
+
+export function clampPlateOpacity(value) {
+    if (value === undefined || value === null || value === '') return 50;
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 50;
+    return clamp(Math.round(number), 0, 100);
+}
+
+// Without a plate, selected boxes stay solid. As the plate opacity rises, fills open
+// on an ease-out curve so the image, the region edge, and the description stay visible.
+export function boxPlatePaint(plateOpacity, selected, hasPlate) {
+    const on = Boolean(selected);
+    const fillBase = on ? 0.92 : 0.32;
+    const strokeBase = on ? 1 : 0.95;
+    if (!hasPlate) return { fill: fillBase, stroke: strokeBase, lightText: !on };
+    const strength = clampPlateOpacity(plateOpacity) / 100;
+    const open = 1 - (1 - strength) * (1 - strength);
+    const fill = fillBase + ((on ? 0.24 : 0.1) - fillBase) * open;
+    const stroke = on ? 1 : strokeBase + (0.78 - strokeBase) * open;
+    return {
+        fill: Math.round(fill * 1000) / 1000,
+        stroke: Math.round(stroke * 1000) / 1000,
+        lightText: !on || fill < 0.62
+    };
+}
+
+// Same aspect scales to the stage. A different aspect fills the short side and stays centered.
+export function coverPlateRect(imageW, imageH, viewW, viewH) {
+    const srcW = Number(imageW);
+    const srcH = Number(imageH);
+    const dstW = Number(viewW);
+    const dstH = Number(viewH);
+    if (!isPositive(srcW) || !isPositive(srcH) || !isPositive(dstW) || !isPositive(dstH)) {
+        return { x: 0, y: 0, w: 0, h: 0 };
+    }
+    const scale = Math.max(dstW / srcW, dstH / srcH);
+    const w = srcW * scale;
+    const h = srcH * scale;
+    return { x: (dstW - w) / 2, y: (dstH - h) / 2, w, h };
+}
+
+// Locked boxes stay until a clear happens while every remaining box is locked.
+export function boxesAfterClear(boxes) {
+    if (!Array.isArray(boxes) || boxes.length === 0) return [];
+    if (boxes.some((box) => !box?.locked)) return boxes.filter((box) => box?.locked);
+    return [];
 }
 
 export function normalizeBoundingBoxes(raw) {
@@ -337,6 +401,80 @@ export function cycleBoxId(ids, selectedId, direction) {
     return ids[(index + step + ids.length) % ids.length];
 }
 
+// Canvas fillText does not wrap. Break on the caller's measured width.
+export function wrapCanvasText(text, maxWidth, measure) {
+    const width = Number(maxWidth);
+    if (!isPositive(width) || typeof measure !== 'function') return [];
+    const source = String(text ?? '');
+    if (!source) return [];
+    const lines = [];
+    for (const part of source.split('\n')) {
+        if (part === '') {
+            lines.push('');
+            continue;
+        }
+        lines.push(...wrapMeasuredLine(part, width, measure));
+    }
+    return lines;
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
+function wrapMeasuredLine(line, maxWidth, measure) {
+    const chars = Array.from(line);
+    const lines = [];
+    let start = 0;
+    while (start < chars.length) {
+        if (lines.length > 0) {
+            while (start < chars.length && chars[start] === ' ') start += 1;
+            if (start >= chars.length) break;
+        }
+        if (measure(chars[start]) > maxWidth) break;
+        let lo = start + 1;
+        let hi = chars.length;
+        let best = start + 1;
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            if (measure(chars.slice(start, mid).join('')) <= maxWidth) {
+                best = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        if (best <= start) break;
+        let breakAt = best;
+        if (best < chars.length) {
+            let spaceAt = -1;
+            for (let index = best - 1; index > start; index -= 1) {
+                if (chars[index] === ' ') {
+                    spaceAt = index;
+                    break;
+                }
+            }
+            if (spaceAt > start) breakAt = spaceAt;
+        }
+        const piece = trimTrailingSpace(chars.slice(start, breakAt).join(''));
+        if (piece) lines.push(piece);
+        if (breakAt <= start) break;
+        start = breakAt;
+    }
+    return lines;
+}
+
+// Height follows the measured text, stays at least one short field, and remains inside the stage.
+export function fitEditorBox(rect, viewW, viewH, neededHeight) {
+    const width = Math.max(1, Number(viewW) || 0);
+    const height = Math.max(1, Number(viewH) || 0);
+    const editW = Math.max(120, Math.min(Math.max(Number(rect?.w) || 0, 160), width - 8));
+    const left = clamp(Number(rect?.x) || 0, 0, Math.max(0, width - editW));
+    const minH = 52;
+    const maxH = Math.max(minH, height - 8);
+    const content = Number(neededHeight);
+    const editH = Math.min(maxH, Math.max(minH, Number.isFinite(content) ? content : minH));
+    const top = clamp(Number(rect?.y) || 0, 0, Math.max(0, height - editH));
+    return { left, top, width: editW, height: editH };
+}
+
 function handlePoint(rect, name) {
     const midX = rect.x + rect.w / 2;
     const midY = rect.y + rect.h / 2;
@@ -415,7 +553,7 @@ export function setupBounding() {
     function updateCount() {
         if (!countEl) return;
         const lang = currentLang();
-        const template = lang.bounding_count || '{0}/64';
+        const template = lang.bounding_count || '{0}/128';
         countEl.textContent = template.replace('{0}', String(boxes.length));
     }
 
@@ -432,9 +570,12 @@ export function setupBounding() {
         if (objectButton) objectButton.textContent = lang.bounding_mode_object || 'object';
         if (textButton) textButton.textContent = lang.bounding_mode_text || 'text';
         if (clearButton) clearButton.textContent = lang.bounding_clear || 'Clear';
+        if (lockButton) lockButton.textContent = lang.bounding_lock || 'Lock';
         snapBox?.setTitle(lang.bounding_grid_snap || 'Snap');
         gridSlider?.setTitle(lang.bounding_grid_size || 'Grid');
+        plateSlider?.setTitle(lang.bounding_plate_opacity || 'Opacity');
         if (colorInput) colorInput.title = lang.bounding_color || 'Color';
+        syncPlateControls();
         updateCount();
         refreshPreview();
     }
@@ -449,6 +590,10 @@ export function setupBounding() {
             textButton.disabled = !box;
             textButton.classList.toggle('is-on', box?.mode === 'text');
         }
+        if (lockButton) {
+            lockButton.disabled = !box;
+            lockButton.classList.toggle('is-on', Boolean(box?.locked));
+        }
         syncColorControl();
     }
 
@@ -460,6 +605,10 @@ export function setupBounding() {
 
     let snapBox = null;
     let gridSlider = null;
+    let plateSlider = null;
+    let plateImage = null;
+    let plateToken = 0;
+    let platePending = false;
 
     function gridSnapOn() {
         return Boolean(snapBox?.getValue?.() ?? globalThis.globalSettings?.bounding_grid_snap);
@@ -513,7 +662,7 @@ export function setupBounding() {
 
     function hitHandle(x, y) {
         const box = selectedBox();
-        if (!box) return null;
+        if (!box || box.locked) return null;
         const { viewW, viewH } = viewSize();
         const rect = boxRect(box, viewW, viewH);
         for (const name of HANDLES) {
@@ -572,6 +721,7 @@ export function setupBounding() {
     function paintField(viewW, viewH, scheme) {
         ctx.fillStyle = fieldColor(scheme);
         ctx.fillRect(0, 0, viewW, viewH);
+        paintPlate(viewW, viewH);
         ctx.strokeStyle = scheme === 'light' ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.2)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -582,10 +732,16 @@ export function setupBounding() {
         ctx.stroke();
     }
 
-    function paintBoxBody(box, rect, selected) {
+    function currentBoxPaint(selected) {
+        const hasPlate = Boolean(plateImage && plateImage.naturalWidth > 0 && plateImage.naturalHeight > 0);
+        const opacity = clampPlateOpacity(plateSlider?.getValue?.() ?? globalThis.globalSettings?.bounding_plate_opacity);
+        return boxPlatePaint(opacity, selected, hasPlate);
+    }
+
+    function paintBoxBody(box, rect, selected, paint) {
         const rgb = boxColor(box);
-        ctx.fillStyle = rgba(rgb, selected ? 0.92 : 0.32);
-        ctx.strokeStyle = selected ? '#ffffff' : rgba(rgb, 0.95);
+        ctx.fillStyle = rgba(rgb, paint.fill);
+        ctx.strokeStyle = selected ? `rgba(255,255,255,${paint.stroke})` : rgba(rgb, paint.stroke);
         ctx.lineWidth = selected ? 2 : 1.5;
         ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
         ctx.strokeRect(rect.x + 0.5, rect.y + 0.5, Math.max(0, rect.w - 1), Math.max(0, rect.h - 1));
@@ -601,19 +757,22 @@ export function setupBounding() {
         ctx.fillText(label, rect.x + 6, rect.y + 14);
     }
 
-    function paintBoxText(box, rect, selected) {
+    function paintBoxText(box, rect, paint) {
+        const maxWidth = rect.w - 12;
+        if (maxWidth < 4) return;
         ctx.save();
         ctx.beginPath();
         ctx.rect(rect.x + 4, rect.y + 20, Math.max(0, rect.w - 8), Math.max(0, rect.h - 24));
         ctx.clip();
         ctx.font = '12px "Segoe UI", "Microsoft YaHei", sans-serif';
-        ctx.fillStyle = selected ? '#111' : '#fff';
-        ctx.shadowColor = selected ? 'transparent' : 'rgba(0,0,0,0.75)';
-        ctx.shadowBlur = selected ? 0 : 3;
+        ctx.fillStyle = paint.lightText ? '#fff' : '#111';
+        ctx.shadowColor = paint.lightText ? 'rgba(0,0,0,0.85)' : 'transparent';
+        ctx.shadowBlur = paint.lightText ? 3 : 0;
+        const lines = wrapCanvasText(box.text, maxWidth, (value) => ctx.measureText(value).width);
         let lineY = rect.y + 34;
-        for (const line of String(box.text).split('\n')) {
+        for (const line of lines) {
             if (lineY > rect.y + rect.h) break;
-            ctx.fillText(line, rect.x + 6, lineY);
+            if (line) ctx.fillText(line, rect.x + 6, lineY);
             lineY += 15;
         }
         ctx.restore();
@@ -634,10 +793,37 @@ export function setupBounding() {
     function paintBox(box, viewW, viewH) {
         const rect = boxRect(box, viewW, viewH);
         const selected = box.id === selectedId;
-        paintBoxBody(box, rect, selected);
+        const paint = currentBoxPaint(selected);
+        paintBoxBody(box, rect, selected, paint);
         paintBoxIndex(rect, box.id);
-        if (box.text && rect.w > 24 && rect.h > 28) paintBoxText(box, rect, selected);
-        if (selected) paintHandles(rect);
+        if (box.text && rect.w > 24 && rect.h > 28) paintBoxText(box, rect, paint);
+        if (box.locked) paintLock(rect);
+        if (selected && !box.locked) paintHandles(rect);
+    }
+
+    function paintLock(rect) {
+        if (rect.w < 22 || rect.h < 18) return;
+        const x = rect.x + rect.w - 15;
+        const y = rect.y + 3;
+        ctx.save();
+        ctx.strokeStyle = '#fff';
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.lineWidth = 1.25;
+        ctx.beginPath();
+        ctx.arc(x + 5, y + 4.5, 3, Math.PI, 0);
+        ctx.stroke();
+        ctx.fillRect(x + 1.5, y + 5, 7, 6);
+        ctx.restore();
+    }
+
+    function paintPlate(viewW, viewH) {
+        if (!plateImage || plateImage.naturalWidth < 1 || plateImage.naturalHeight < 1) return;
+        const rect = coverPlateRect(plateImage.naturalWidth, plateImage.naturalHeight, viewW, viewH);
+        const opacity = clampPlateOpacity(plateSlider?.getValue?.() ?? globalThis.globalSettings?.bounding_plate_opacity);
+        ctx.save();
+        ctx.globalAlpha = opacity / 100;
+        ctx.drawImage(plateImage, rect.x, rect.y, rect.w, rect.h);
+        ctx.restore();
     }
 
     function paintDraft(viewW, viewH) {
@@ -648,8 +834,9 @@ export function setupBounding() {
         const y = Math.min(start.y, current.y) * viewH;
         const w = Math.abs(current.x - start.x) * viewW;
         const h = Math.abs(current.y - start.y) * viewH;
+        const paint = currentBoxPaint(false);
         ctx.save();
-        ctx.fillStyle = 'rgba(52, 152, 219, 0.32)';
+        ctx.fillStyle = rgba(OBJECT_RGB, paint.fill);
         ctx.strokeStyle = '#fff';
         ctx.setLineDash([4, 3]);
         ctx.lineWidth = 1.5;
@@ -772,6 +959,7 @@ export function setupBounding() {
             resizeBitmap();
             draw();
             refreshPreview();
+            if (editingId != null) layoutEditor();
         } finally {
             syncing = false;
         }
@@ -792,20 +980,34 @@ export function setupBounding() {
         draw();
     }
 
+    function layoutEditor() {
+        if (editingId == null || editor.hidden) return;
+        const box = boxes.find((item) => item.id === editingId);
+        if (!box) return;
+        const { viewW, viewH } = viewSize();
+        const rect = boxRect(box, viewW, viewH);
+        const widthBox = fitEditorBox(rect, viewW, viewH, 52);
+        editor.style.left = `${widthBox.left}px`;
+        editor.style.width = `${widthBox.width}px`;
+        // A leftover tall height keeps scrollHeight from shrinking with the text.
+        editor.style.overflowY = 'hidden';
+        editor.style.height = '52px';
+        const border = Math.max(0, editor.offsetHeight - editor.clientHeight);
+        let needed = editor.scrollHeight + border;
+        if (needed > 52) needed += 2;
+        const place = fitEditorBox(rect, viewW, viewH, needed);
+        editor.style.top = `${place.top}px`;
+        editor.style.height = `${place.height}px`;
+        editor.style.overflowY = editor.scrollHeight > editor.clientHeight + 1 ? 'auto' : 'hidden';
+    }
+
     function openEditor(box) {
         editingId = box.id;
         selectedId = box.id;
         syncModeButtons();
         editor.hidden = false;
         editor.value = box.text || '';
-        const { viewW, viewH } = viewSize();
-        const rect = boxRect(box, viewW, viewH);
-        const editW = Math.max(120, Math.min(Math.max(rect.w, 160), viewW - 8));
-        const left = clamp(rect.x, 0, Math.max(0, viewW - editW));
-        const top = clamp(rect.y, 0, Math.max(0, viewH - 64));
-        editor.style.left = `${left}px`;
-        editor.style.top = `${top}px`;
-        editor.style.width = `${editW}px`;
+        layoutEditor();
         editor.focus();
         editor.select();
     }
@@ -838,7 +1040,7 @@ export function setupBounding() {
         nestPoint = point;
         const norm = normPoint(point);
         const handle = hitHandle(point.x, point.y);
-        if (handle && selectedBox()) {
+        if (handle && selectedBox() && !selectedBox().locked) {
             drag = {
                 kind: 'resize',
                 pointerId: event.pointerId,
@@ -852,7 +1054,7 @@ export function setupBounding() {
             const box = hitBox(point.x, point.y);
             if (box) {
                 selectedId = box.id;
-                drag = {
+                drag = box.locked ? null : {
                     kind: 'move',
                     pointerId: event.pointerId,
                     startNorm: norm,
@@ -881,7 +1083,10 @@ export function setupBounding() {
             canvas.style.cursor = CURSORS[handle];
             return;
         }
-        canvas.style.cursor = hitBox(point.x, point.y) ? 'move' : 'crosshair';
+        const box = hitBox(point.x, point.y);
+        if (!box) canvas.style.cursor = 'crosshair';
+        else if (box.locked) canvas.style.cursor = 'default';
+        else canvas.style.cursor = 'move';
     }
 
     function gridSnap() {
@@ -997,6 +1202,9 @@ export function setupBounding() {
         openEditor(box);
     });
 
+    editor.addEventListener('input', () => {
+        layoutEditor();
+    });
     editor.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             event.preventDefault();
@@ -1020,12 +1228,6 @@ export function setupBounding() {
         closeEditor(true);
         setMode('text');
     });
-
-    function isTypingTarget(el) {
-        if (!el) return false;
-        const tag = el.tagName;
-        return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable;
-    }
 
     window.addEventListener('keydown', (event) => {
         if (isTypingTarget(event.target) || isTypingTarget(document.activeElement)) return;
@@ -1074,6 +1276,8 @@ export function setupBounding() {
     });
 
     const clearButton = document.getElementById('bounding-clear');
+    const plateButton = document.getElementById('bounding-plate');
+    const lockButton = document.getElementById('bounding-lock');
     const colorInput = document.getElementById('bounding-color');
     const swatchHost = document.getElementById('bounding-swatches');
 
@@ -1125,18 +1329,102 @@ export function setupBounding() {
         if (selectedBox()?.color) persist();
     });
 
+    function syncPlateControls() {
+        const lang = currentLang();
+        const active = Boolean(plateImage) || platePending;
+        if (plateButton) {
+            plateButton.textContent = active
+                ? (lang.bounding_plate_clear || 'Clear plate')
+                : (lang.bounding_plate || 'Plate');
+            plateButton.classList.toggle('is-on', active);
+        }
+        const root = document.querySelector('.bounding-plate-opacity');
+        if (!root) return;
+        root.classList.toggle('is-disabled', !plateImage);
+        root.querySelectorAll('input').forEach((input) => {
+            input.disabled = !plateImage;
+        });
+    }
+
+    function clearPlate() {
+        plateToken += 1;
+        platePending = false;
+        plateImage = null;
+        syncPlateControls();
+        draw();
+    }
+
+    function loadPlate(src) {
+        const token = plateToken + 1;
+        plateToken = token;
+        platePending = true;
+        plateImage = null;
+        syncPlateControls();
+        const image = new Image();
+        image.onload = () => {
+            if (token !== plateToken) return;
+            platePending = false;
+            plateImage = image;
+            syncPlateControls();
+            draw();
+        };
+        image.onerror = () => {
+            if (token !== plateToken) return;
+            platePending = false;
+            plateImage = null;
+            syncPlateControls();
+            draw();
+        };
+        image.src = src;
+    }
+
+    plateButton?.addEventListener('click', async () => {
+        if (plateImage || platePending) {
+            clearPlate();
+            return;
+        }
+        const src = String(globalThis.mainGallery?.getDisplayedImage?.() || '').trim();
+        if (!src) {
+            const lang = currentLang();
+            await showDialog('info', {
+                message: lang.bounding_plate_empty || 'The gallery has no image to load.',
+                buttonText: lang.setup_ok || 'OK'
+            });
+            return;
+        }
+        loadPlate(src);
+    });
+
+    lockButton?.addEventListener('click', () => {
+        const box = selectedBox();
+        if (!box) return;
+        if (box.locked) delete box.locked;
+        else box.locked = true;
+        persist();
+        syncModeButtons();
+        draw();
+    });
+
     clearButton?.addEventListener('click', async () => {
         if (boxes.length === 0) return;
         const lang = currentLang();
+        const hasUnlocked = boxes.some((box) => !box.locked);
+        const hasLocked = boxes.some((box) => box.locked);
+        let message = lang.bounding_clear_confirm || 'Clear all boxes?';
+        if (hasUnlocked && hasLocked) message = lang.bounding_clear_unlocked || message;
+        else if (!hasUnlocked) message = lang.bounding_clear_locked || message;
         const confirmed = await showDialog('confirm', {
-            message: lang.bounding_clear_confirm || 'Clear all boxes?',
+            message,
             yesText: lang.setup_yes || 'Yes',
             noText: lang.setup_no || 'No'
         });
         if (!confirmed) return;
+        const selected = selectedBox();
+        const kept = boxesAfterClear(boxes);
+        const keepIndex = selected && kept.includes(selected) ? kept.indexOf(selected) : -1;
         closeEditor(false);
-        boxes = [];
-        selectedId = null;
+        boxes = renumberBoxes(kept);
+        selectedId = keepIndex >= 0 ? keepIndex + 1 : null;
         persist();
         syncModeButtons();
         updateCount();
@@ -1164,12 +1452,25 @@ export function setupBounding() {
             draw();
         }
     );
+    const initialOpacity = clampPlateOpacity(stored.bounding_plate_opacity);
+    plateSlider = setupSlider(
+        'bounding-plate-opacity',
+        currentLang().bounding_plate_opacity || 'Opacity',
+        { min: 0, max: 100, step: 1, defaultValue: initialOpacity, inline: true },
+        (value) => {
+            if (globalThis.globalSettings) globalThis.globalSettings.bounding_plate_opacity = clampPlateOpacity(value);
+            draw();
+        }
+    );
 
     function applyToolSettings() {
         const next = globalThis.globalSettings || {};
         snapBox?.setValue(Boolean(next.bounding_grid_snap));
         const size = clampGridSize(next.bounding_grid_size);
         if (gridSlider && gridSlider.getValue() !== size) gridSlider.setValue(size);
+        const opacity = clampPlateOpacity(next.bounding_plate_opacity);
+        if (plateSlider && plateSlider.getValue() !== opacity) plateSlider.setValue(opacity);
+        syncPlateControls();
         syncColorControl();
         draw();
     }
@@ -1194,6 +1495,12 @@ export function setupBounding() {
             syncModeButtons();
             updateCount();
             draw();
+        },
+        setPlate: (src) => {
+            const next = String(src || '').trim();
+            if (!next) return false;
+            loadPlate(next);
+            return true;
         }
     };
 }

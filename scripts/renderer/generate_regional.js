@@ -2,7 +2,7 @@ import { decodeThumb } from './customThumbGallery.js';
 import { generateRandomSeed, resolveGenerateSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, characterRandomMode, pickRandomCharacterEntry, formatCharacterInfo, formatOriginalCharacterInfo,
     getViewTags, createHiFix, formatQueueJobSeed, createRefiner, extractHostPort, checkVpred, extractAPISecure,
     createControlNet, createADetailer, toggleQueueColor, startQueue, REPLACE_AI_MARK,
-    updateADetailerModelList, getImageSavePrefix } from './generate.js';
+    updateADetailerModelList, getImageSavePrefix, readSkipLayer } from './generate.js';
 import { processRandomString } from './tools/nestedBraceParsing.js';
 import { sendWebSocketMessage } from '../webserver/front/wsRequest.js';
 import { filterPrompts } from './tools/promptFilter.js';
@@ -92,6 +92,26 @@ function getCustomJSON(loop=-1){
     }
 }
 
+function appendRegionalSide(blocks, positiveColor) {
+    const groups = [
+        { text: `${blocks.bop}${blocks.common}`, color: blocks.commonColor },
+        { text: blocks.views, color: blocks.viewColor },
+        { text: blocks.aiPrompt, color: blocks.aiColor },
+        { text: `${blocks.boc}${blocks.character}${blocks.eoc}`, color: blocks.characterColor },
+        { text: `${blocks.positive}${blocks.eop}`, color: positiveColor },
+    ];
+    let prompt = '';
+    let promptColored = '';
+    for (const group of groups) {
+        const text = String(group.text ?? '').replaceAll(/\n+/g, '');
+        if (!text) continue;
+        prompt += text;
+        promptColored += `[color=${group.color}]${text}[/color]`;
+    }
+    return { prompt, promptColored };
+}
+
+// eslint-disable-next-line sonarjs/cognitive-complexity
 function getPrompts(character_left, character_right, views, ai='', apiInterface = 'None', loop = -1){
     const commonColor = (globalThis.globalSettings.css_style==='dark')?'darkorange':'Sienna';
     const viewColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';
@@ -106,29 +126,48 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
     let aiPrompt = ai.trim();
     const exclude = globalThis.prompt.exclude.getValue();
 
-    if (common !== '' && !common.endsWith(',')) {
-        common += ', ';
+    if (common) {
+        const trimmedCommon = common.trim();
+        if (trimmedCommon === '') {
+            common = '';
+        } else if (globalThis.globalSettings.api_model_type === 'Diffusion') {
+            if (trimmedCommon.endsWith('.')) {
+                common = `${trimmedCommon} `;
+            } else if (trimmedCommon.endsWith('|')) {
+                common = trimmedCommon.slice(0, -1);
+            } else if (!trimmedCommon.endsWith(',') && !trimmedCommon.endsWith('\n')) {
+                common = `${trimmedCommon}, `;
+            } else {
+                common = trimmedCommon;
+            }
+        } else {
+            common = trimmedCommon.endsWith(',') ? trimmedCommon : `${trimmedCommon}, `;
+        }
     }
 
     if(aiPrompt !== '' && !aiPrompt.endsWith(','))
         aiPrompt += ', ';
 
     const {BOPL, BOCL, EOCL, EOPL, BOPR, BOCR, EOCR, EOPR} = getCustomJSON(loop);
-
-    const tmpPositivePromptLeft = `${BOPL}${common}${views}${aiPrompt}${BOCL}${character_left}${EOCL}${positive}${EOPL}`.replaceAll(/\n+/g, ''); 
-    const tmpPositivePromptRight = `${BOPR}${common}${views}${aiPrompt}${BOCR}${character_right}${EOCR}${positiveR}${EOPR}`.replaceAll(/\n+/g, ''); 
-    const tmpPositivePromptLeftColored = `[color=${commonColor}]${BOPL}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCL}${character_left}${EOCL}[/color][color=${positiveColor}]${positive}${EOPL}[/color]`.replaceAll(/\n+/g, ''); 
-    const tmpPositivePromptRightColored = `[color=${commonColor}]${BOPR}${common}[/color][color=${viewColor}]${views}[/color][color=${aiColor}]${aiPrompt}[/color][color=${characterColor}]${BOCR}${character_right}${EOCR}[/color][color=${positiveRColor}]${positiveR}${EOPR}[/color]`.replaceAll(/\n+/g, ''); 
+    const shared = { common, views, aiPrompt, commonColor, viewColor, aiColor, characterColor };
+    const left = appendRegionalSide({
+        ...shared,
+        bop: BOPL, boc: BOCL, character: character_left, eoc: EOCL, positive, eop: EOPL,
+    }, positiveColor);
+    const right = appendRegionalSide({
+        ...shared,
+        bop: BOPR, boc: BOCR, character: character_right, eoc: EOCR, positive: positiveR, eop: EOPR,
+    }, positiveRColor);
 
     const {
         positivePrompt: positivePromptLeft,
         positivePromptColored: positivePromptLeftColored
-    } = filterPrompts(tmpPositivePromptLeft, tmpPositivePromptLeftColored, exclude);
+    } = filterPrompts(left.prompt, left.promptColored, exclude);
 
     const {
         positivePrompt: positivePromptRight,
         positivePromptColored: positivePromptRightColored
-    } = filterPrompts(tmpPositivePromptRight, tmpPositivePromptRightColored, exclude);
+    } = filterPrompts(right.prompt, right.promptColored, exclude);
 
 
     const loraPromot = getLoRAs(apiInterface);
@@ -264,8 +303,9 @@ async function getCharacters(seedOverride = null){
     let negativeTags = '';
     let character_name_for_image_prefix = '';
 
-    for(let index=0; index < 4; index++) {
-        let {tag, tag_assist, thumb, info, weight, characterName, neg_tags} = await createCharacters(index, seeds);
+    const characterSlots = await Promise.all([0, 1, 2, 3].map((index) => createCharacters(index, seeds)));
+    for(let index=0; index < characterSlots.length; index++) {
+        let {tag, tag_assist, thumb, info, weight, characterName, neg_tags} = characterSlots[index];
         // Should not happen
         if(tag.startsWith('✨ ')) {            
             tag = tag.replace('✨ ', '');
@@ -451,7 +491,9 @@ export async function generateRegionalImage(dataPack){
         if(!globalThis.inGenerating)
             globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${loop+1}`).replace('{1}', loops);
 
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1, seedOverride);
+        // One job at a time: each pass reads the live UI, and cancel/skip must be able to stop the batch.
+        // eslint-disable-next-line no-await-in-loop
+        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1, seedOverride); // NOSONAR
 
         const hifix = createHiFix(createPromptResult.randomSeed, apiInterface,brownColor, hiresOneShot);
         const refiner = createRefiner();
@@ -530,6 +572,7 @@ export async function generateRegionalImage(dataPack){
             refiner: refiner,
             regional: regional,
             vae: {vae_override: vae_override, vae: vae},
+            skip_layer: readSkipLayer(),
             adetailer: createADetailer(apiInterface),
             ...(SETTINGS.api_model_type === 'Checkpoint' ? {                
                 controlnet: createControlNet(),                
@@ -671,10 +714,14 @@ async function runComfyUI(apiInterface, generateData){
                     retCopy = error.message;
                     breakNow = true;
                 } finally {
-                    if (globalThis.inBrowser) {
-                        sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI', params: [parsedResult.prompt_id] });
-                    } else {
-                        globalThis.api.closeWsComfyUI(parsedResult.prompt_id);
+                    try {
+                        if (globalThis.inBrowser) {
+                            await sendWebSocketMessage({ type: 'API', method: 'closeWsComfyUI', params: [parsedResult.prompt_id] });
+                        } else {
+                            await globalThis.api.closeWsComfyUI(parsedResult.prompt_id);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to close ComfyUI websocket:', error);
                     }
                 }                
             } else {
@@ -737,10 +784,16 @@ async function runWebUI(apiInterface, generateData) {
 
     if(ret.includes('cannot run new generation,')) {
         // not stop polling due to WebUI is busy
-    } else if (globalThis.inBrowser) {
-        sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
     } else {
-        globalThis.api.stopPollingWebUI();
+        try {
+            if (globalThis.inBrowser) {
+                await sendWebSocketMessage({ type: 'API', method: 'stopPollingWebUI'});
+            } else {
+                await globalThis.api.stopPollingWebUI();
+            }
+        } catch (error) {
+            console.warn('Failed to stop WebUI polling:', error);
+        }
     }
 
     if (globalThis.cachedFiles.controlnetProcessorListWebUI === 'none') {   // aDetailer might not installed 

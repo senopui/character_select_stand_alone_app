@@ -1,3 +1,19 @@
+2026.10.22 v2.10.2      
+Add `Moss Image` now support `Forge Neo` v2.31 and above     
+Add, Diffusion `Weight Dtype` options `PyTorch_FP16` and `Sage_FP16` for Turing GPUs (RTX 20 series). Checkpoint mode hides these two options      
+Add, `Mini Preview` corner shows a waiting mark while generating before the preview image arrives, and a still mark on error or when `Enable Generate` is off with jobs queued      
+Add, `Bounding Box` `Plate` loads the gallery image onto the canvas; click again to clear it       
+Add, Image Info `To Bounding` sends the loaded image to the `Bounding Box` plate 
+Add, `Bounding Box` `Opacity` for the plate, disabled until an image is loaded; box fills thin out with that slider so the image, regions, and text stay visible      
+Add, `Bounding Box` `Lock`; a locked box can be selected and edited, but not moved or resized      
+Bugfix, Forge Neo reads the current options before setting the model, keeps the existing `Additional Modules` list, and skips the update when nothing changed      
+Change, `Bounding Box` `Clear` keeps locked boxes, and removes them only when they are the only boxes left      
+Change, `Bounding Box` wraps long box text, and the description editor grows with the text      
+Change, `Reload Model/Lora/Settings List` keeps `Model list`, `Diffusion VAE`, `SDXL VAE` and `CLIP Text Encoder`; a missing item falls back to the first entry      
+Change, UI layout saves each panel's collapsed or expanded state and restores it when loading settings; older layouts keep the current state      
+Minor bugs fix     
+
+
 2026.10.18 v2.10.1      
 Add, `Bounding Box` now supports `Keyboard Select`        
 

@@ -922,8 +922,29 @@
     grid-template-columns: 4fr 0.7fr 0.7fr 1.4fr 1fr;
     justify-items: end;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     padding: 8px;
+}
+
+.image-tagger-plate {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 8px 12px;
+}
+
+.image-tagger-plate-send {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 120px;
+    text-align: center;
+    background-color: var(--link);
+    color: var(--ink);
+    border: none;
+}
+
+.image-tagger-plate-send:hover {
+    background-color: var(--link-hover);
 }
 
 .metadata-buttons,
@@ -1066,4 +1087,68 @@
     width: 0;
     background: var(--inline-positive-2);
     transition: width 0.12s linear;
+}
+
+.cg-minimized-generation-preview-container[data-state="working"],
+.cg-minimized-generation-preview-container[data-state="error"],
+.cg-minimized-generation-preview-container[data-state="paused"] {
+    width: max-content;
+}
+
+.cg-gallery-activity {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 64px;
+    height: 64px;
+    border: 2px solid var(--action);
+    border-radius: 8px;
+    background: var(--scrim-panel);
+}
+
+.cg-gallery-activity[hidden] {
+    display: none;
+}
+
+.cg-gallery-activity-spinner {
+    width: 28px;
+    height: 28px;
+    box-sizing: border-box;
+    border: 3px solid var(--action);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.cg-gallery-activity-mark {
+    display: none;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.cg-minimized-generation-preview-container[data-state="error"] .cg-gallery-activity,
+.cg-minimized-generation-preview-container[data-state="paused"] .cg-gallery-activity {
+    border-color: var(--paused);
+}
+
+.cg-minimized-generation-preview-container[data-state="paused"] .cg-gallery-activity-spinner {
+    width: 22px;
+    height: 26px;
+    border: 0;
+    border-radius: 0;
+    animation: none;
+    background:
+        linear-gradient(var(--paused), var(--paused)) left center / 6px 100% no-repeat,
+        linear-gradient(var(--paused), var(--paused)) right center / 6px 100% no-repeat;
+}
+
+.cg-minimized-generation-preview-container[data-state="error"] .cg-gallery-activity-spinner,
+.cg-minimized-generation-preview-container[data-state="preview"] .cg-gallery-activity {
+    display: none;
+}
+
+.cg-minimized-generation-preview-container[data-state="error"] .cg-gallery-activity-mark {
+    display: block;
 }

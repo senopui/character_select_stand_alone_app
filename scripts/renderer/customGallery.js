@@ -1,4 +1,5 @@
 import { customCommonOverlay, addDragFunctionality } from './customOverlay.js';
+import { resetGalleryPreviewProgress } from './generate_backend.js';
 
 export const GRID_SIZE_MIN = 40;
 export const GRID_SIZE_MAX = 420;
@@ -183,6 +184,14 @@ export function setupGallery(containerId) {
         return parseGallerySeed(seeds[index]);
     };
 
+    globalThis.mainGallery.getDisplayedImage = function () {
+        if (!images.length) return '';
+        const inFrame = !isGridMode || isGalleryFocus;
+        let index = inFrame ? currentIndex : images.length - 1;
+        if (index < 0 || index >= images.length) index = images.length - 1;
+        return images[index] || '';
+    };
+
     globalThis.mainGallery.clearGallery = function () {
         images = [];
         seeds = [];
@@ -273,14 +282,206 @@ export function setupGallery(containerId) {
             gallery_renderSplitMode(incremental);
         }
         notifyHiresButton();
+        resumeGalleryWaitForNext();
     };
+
+    function resumeGalleryWaitForNext() {
+        if (globalThis.generate?.cancelClicked || globalThis.generate?.skipClicked) return;
+        if (globalThis.globalSettings?.generate_auto_start === false) return;
+        if (!globalThis.inGenerating && !globalThis.mainGallery?.isLoading) return;
+        const remaining = globalThis.queueManager?.getSlotsCount?.() || 0;
+        const moreQueued = globalThis.generate?.skipCurrentClicked ? remaining > 0 : remaining > 1;
+        if (!moreQueued) return;
+        setGalleryStatus('working');
+    }
+
+    const galleryStatusClass = 'cg-minimized-generation-preview-container';
+
+    function pausedStatusTitle() {
+        const settings = globalThis.globalSettings || {};
+        const lang = globalThis.cachedFiles?.language?.[settings.language] || {};
+        return lang.run_button_paused || 'Paused';
+    }
+
+    function usesGalleryStatusSlot() {
+        const buttonOverlay = document.getElementById('cg-button-overlay');
+        return buttonOverlay?.dataset.minimized === 'true' || globalThis.globalSettings?.gallery_preview === true;
+    }
+
+    function galleryStatusSlot() {
+        return container.querySelector(`.${galleryStatusClass}`);
+    }
+
+    function ensureGalleryStatusSlot() {
+        let slot = galleryStatusSlot();
+        if (!slot) {
+            slot = document.createElement('div');
+            slot.className = galleryStatusClass;
+            container.appendChild(slot);
+        }
+        return slot;
+    }
+
+    function ensureGalleryActivity(slot) {
+        let activity = slot.querySelector('.cg-gallery-activity');
+        if (activity) return activity;
+        activity = document.createElement('div');
+        activity.className = 'cg-gallery-activity';
+        const spinner = document.createElement('div');
+        spinner.className = 'cg-gallery-activity-spinner';
+        const mark = document.createElement('img');
+        mark.className = 'cg-gallery-activity-mark';
+        mark.alt = '';
+        activity.append(spinner, mark);
+        slot.prepend(activity);
+        return activity;
+    }
+
+    function removeGalleryPreviewFrame(slot) {
+        slot.querySelector('.cg-minimized-generation-preview-track')?.remove();
+        slot.querySelector('.cg-minimized-generation-preview')?.remove();
+    }
+
+    function plainStatusText(value) {
+        return String(value ?? '').replace(/\[\/?color(?:=[^\]]*)?\]/gi, '').trim();
+    }
+
+    function setGalleryStatus(state, detail = {}) {
+        if (state === 'clear') {
+            const slot = galleryStatusSlot();
+            if (!slot) return;
+            slot.remove();
+            return;
+        }
+
+        if (state === 'working') {
+            if (document.getElementById('cg-loading-overlay') || !usesGalleryStatusSlot()) return;
+            const slot = ensureGalleryStatusSlot();
+            const followOn = slot.dataset.state === 'preview';
+            if (slot.dataset.state === 'working' && slot.querySelector('.cg-gallery-activity')) return;
+            if (followOn) resetGalleryPreviewProgress();
+            removeGalleryPreviewFrame(slot);
+            slot.dataset.state = 'working';
+            slot.title = '';
+            const activity = ensureGalleryActivity(slot);
+            activity.hidden = false;
+            activity.querySelector('.cg-gallery-activity-mark')?.removeAttribute('src');
+            return;
+        }
+
+        if (state === 'error') {
+            if (!usesGalleryStatusSlot()) {
+                setGalleryStatus('clear');
+                return;
+            }
+            const slot = ensureGalleryStatusSlot();
+            removeGalleryPreviewFrame(slot);
+            slot.dataset.state = 'error';
+            slot.title = plainStatusText(detail.message);
+            const activity = ensureGalleryActivity(slot);
+            activity.hidden = false;
+            const mark = activity.querySelector('.cg-gallery-activity-mark');
+            if (mark) {
+                mark.src = globalThis.cachedFiles?.loadingFailed || '';
+                mark.alt = 'Error';
+            }
+            return;
+        }
+
+        if (state === 'paused') {
+            if (document.getElementById('cg-loading-overlay') || !usesGalleryStatusSlot()) return;
+            if (globalThis.mainGallery?.isLoading || globalThis.inGenerating) return;
+            const queued = (globalThis.queueManager?.getSlotsCount?.() || 0) > 0;
+            const existing = galleryStatusSlot();
+            if (!queued) {
+                if (existing?.dataset.state === 'paused') setGalleryStatus('clear');
+                return;
+            }
+            if (existing?.dataset.state === 'error' || existing?.dataset.state === 'preview') return;
+            const slot = ensureGalleryStatusSlot();
+            removeGalleryPreviewFrame(slot);
+            slot.dataset.state = 'paused';
+            slot.title = pausedStatusTitle();
+            const activity = ensureGalleryActivity(slot);
+            activity.hidden = false;
+            activity.querySelector('.cg-gallery-activity-mark')?.removeAttribute('src');
+        }
+    }
+
+    function syncGalleryStatus(options = {}) {
+        const held = galleryStatusSlot();
+        if (options.dismissHold && (held?.dataset.state === 'error' || held?.dataset.state === 'paused')) {
+            setGalleryStatus('clear');
+        }
+
+        if (document.getElementById('cg-loading-overlay') || !usesGalleryStatusSlot()) {
+            setGalleryStatus('clear');
+            return;
+        }
+
+        const generating = Boolean(globalThis.mainGallery?.isLoading || globalThis.inGenerating);
+        const slot = galleryStatusSlot();
+        if (generating) {
+            if (slot?.dataset.state === 'preview' || slot?.dataset.state === 'working') return;
+            setGalleryStatus('working');
+            return;
+        }
+
+        if (slot?.dataset.state === 'error') return;
+
+        if (globalThis.globalSettings?.generate_auto_start === false && (globalThis.queueManager?.getSlotsCount?.() || 0) > 0) {
+            setGalleryStatus('paused');
+            return;
+        }
+
+        setGalleryStatus('clear');
+    }
+
+    function attachGalleryPreview(base64) {
+        const created = !galleryStatusSlot();
+        const slot = ensureGalleryStatusSlot();
+        slot.dataset.state = 'preview';
+        slot.title = '';
+        const activity = slot.querySelector('.cg-gallery-activity');
+        if (activity) activity.hidden = true;
+
+        if (!slot.querySelector('.cg-minimized-generation-preview-track')) {
+            const track = document.createElement('div');
+            track.className = 'cg-minimized-generation-preview-track';
+            const progress = document.createElement('div');
+            progress.className = 'cg-minimized-generation-preview-progress';
+            track.appendChild(progress);
+            slot.appendChild(track);
+        }
+
+        let preview = slot.querySelector('.cg-minimized-generation-preview');
+        if (!preview) {
+            preview = document.createElement('img');
+            preview.className = 'cg-minimized-generation-preview';
+            preview.alt = 'Generation preview';
+            slot.appendChild(preview);
+        }
+        preview.src = base64;
+        preview.onerror = () => {
+            preview.src = globalThis.cachedFiles.loadingWait;
+            preview.onerror = null;
+        };
+        return created;
+    }
+
+    globalThis.mainGallery.setGalleryStatus = setGalleryStatus;
+    globalThis.mainGallery.syncGalleryStatus = syncGalleryStatus;
+    globalThis.mainGallery.attachGalleryPreview = attachGalleryPreview;
+    globalThis.mainGallery.resumeGalleryWaitForNext = resumeGalleryWaitForNext;
 
     globalThis.mainGallery.showLoading = function (loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix) {        
         const buttonOverlay = document.getElementById('cg-button-overlay');
         if (buttonOverlay?.dataset.minimized === 'true' || globalThis.globalSettings.gallery_preview) {
             globalThis.mainGallery.isLoading = true;
+            setGalleryStatus('working');
             return;
         }
+        setGalleryStatus('clear');
 
         const loadingOverlay = customCommonOverlay().createLoadingOverlay(loadingMEssage, elapsedTimePrefix, elapsedTimeSuffix);
         const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
@@ -320,7 +521,17 @@ export function setupGallery(containerId) {
             }
             loadingOverlay.remove();
         }
-        document.querySelector('.cg-minimized-generation-preview-container')?.remove();
+        globalThis.mainGallery.isLoading = false;
+        if ('success' !== errorMessage) {
+            console.warn('Got Error from backend:', copyMessage);
+            customCommonOverlay().createErrorOverlay(errorMessage, copyMessage);
+            setGalleryStatus('error', { message: errorMessage });
+        } else {
+            setGalleryStatus('clear');
+            if (!globalThis.inGenerating && globalThis.globalSettings?.generate_auto_start === false) {
+                setGalleryStatus('paused');
+            }
+        }
         if (buttonOverlay?.dataset.minimized === 'false') {
             buttonOverlay.classList.remove('minimized');
             buttonOverlay.style.width = '240px';
@@ -333,11 +544,6 @@ export function setupGallery(containerId) {
                 buttonContainer.style.padding = '20px';
             }
         }
-        if ('success' !== errorMessage) {
-            console.warn('Got Error from backend:', copyMessage);
-            customCommonOverlay().createErrorOverlay(errorMessage, copyMessage);
-        }
-        globalThis.mainGallery.isLoading = false;
     };
 
     globalThis.mainGallery.applyGridSize = function (value) {

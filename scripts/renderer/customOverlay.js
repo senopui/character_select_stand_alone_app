@@ -216,7 +216,11 @@ export function setupButtonOverlay() {
             image.style.maxHeight = '384px';
             image.style.objectFit = 'contain';
         }
-        previewContainer?.remove();
+        if (globalThis.mainGallery?.setGalleryStatus) {
+            globalThis.mainGallery.setGalleryStatus('clear');
+        } else {
+            previewContainer?.remove();
+        }
     };
 
     globalThis.generate.galleryPreviewToggle = setupCheckbox(
@@ -225,16 +229,24 @@ export function setupButtonOverlay() {
             globalThis.globalSettings.gallery_preview = enabled;
             if (enabled) {
                 const loadingOverlay = document.getElementById('cg-loading-overlay');
+                const loadingSrc = loadingOverlay?.querySelector('img')?.src || '';
+                const placeholder = globalThis.cachedFiles?.loadingWait || '';
+                const hasFrame = Boolean(loadingSrc) && loadingSrc !== placeholder;
                 if (loadingOverlay) {
                     loadingOverlay._cleanup?.();
                     loadingOverlay.remove();
                 }
                 movePreviewControls(buttonOverlay);
                 buttonOverlay.style.display = 'flex';
+                if (hasFrame) {
+                    globalThis.mainGallery?.attachGalleryPreview?.(loadingSrc);
+                }
+                globalThis.mainGallery?.syncGalleryStatus?.();
                 return;
             }
 
             restoreLoadingOverlayFromGalleryPreview();
+            globalThis.mainGallery?.syncGalleryStatus?.();
         }
     );
 
@@ -291,6 +303,7 @@ export function setupButtonOverlay() {
             galleryPreviewToggleContainer.style.right = '2px';
             galleryPreviewToggleContainer.style.pointerEvents = 'none';
             disableDrag();
+            globalThis.mainGallery?.syncGalleryStatus?.();
         } else {
             overlay.classList.remove('minimized');
             overlay.dataset.minimized = 'false';
@@ -310,6 +323,7 @@ export function setupButtonOverlay() {
             if (!globalThis.globalSettings.gallery_preview && (isGenerating || preview)) {
                 restoreLoadingOverlayFromGalleryPreview();
             }
+            globalThis.mainGallery?.syncGalleryStatus?.();
 
             const savedPosition = JSON.parse(localStorage.getItem('overlayPosition'));
             if (savedPosition?.top !== undefined && savedPosition.left !== undefined) {

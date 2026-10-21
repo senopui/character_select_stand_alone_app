@@ -4,6 +4,8 @@ import { sendToRenderer } from './generate_backend_comfyui.js';
 import { makeBackendLockKey, tryAcquireBackendBusy, releaseBackendBusy, forceReleaseBackendBusy } from '../../main-common.js';
 
 const CAT = '[WebUI]';
+// Forge applies checkpoint and additional modules before /options returns.
+const SET_MODEL_TIMEOUT = 300000;
 const webuiBackends = new Map();
 const WEBUI_BUSY = 'Error: WebUI is busy, cannot run new generation, please try again later.';
 
@@ -125,6 +127,165 @@ function applyADetailer(payload, adetailer) {
 
     return newPayload;
 }
+
+function moduleBasename(value) {
+    return path.basename(String(value ?? ''));
+}
+
+function normalizedModuleNames(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(item => moduleBasename(item)).filter(name => name !== '').sort((a, b) => a.localeCompare(b));
+}
+
+function sameModuleList(left, right) {
+    const a = normalizedModuleNames(left);
+    const b = normalizedModuleNames(right);
+    return a.length === b.length && a.every((name, index) => name === b[index]);
+}
+
+function checkpointKey(value) {
+    if (value == null || value === '') return '';
+    let text = String(value).trim();
+    const bracket = text.lastIndexOf(' [');
+    if (bracket > 0 && text.endsWith(']')) {
+        text = text.slice(0, bracket);
+    }
+    return text.replaceAll('\\', '/');
+}
+
+function sameCheckpoint(current, next) {
+    if (current === next) return true;
+    const left = checkpointKey(current);
+    const right = checkpointKey(next);
+    return left !== '' && left === right;
+}
+
+function hasOption(base, key) {
+    return !!base && Object.hasOwn(base, key);
+}
+
+function moduleName(value) {
+    const base = moduleBasename(value);
+    if (!base || base === 'None' || base === 'Automatic' || base === 'Default') return '';
+    return base;
+}
+
+// Start from an empty list, then add only the modules this request sets.
+function forgeModuleNames(unet, vae) {
+    const modules = [];
+    if (unet?.enable === true) {
+        const clip = moduleName(unet.clip_model);
+        const vaeModel = moduleName(unet.vae_model);
+        if (clip) modules.push(clip);
+        if (vaeModel) modules.push(vaeModel);
+        return modules;
+    }
+    if (vae?.vae_override) {
+        const vaeName = moduleName(vae.vae);
+        if (vaeName) modules.push(vaeName);
+    }
+    return modules;
+}
+
+function optionBase(current) {
+    return current && typeof current === 'object' ? current : {};
+}
+
+function nextCheckpoint(base, model, unet) {
+    if (!hasOption(base, 'sd_model_checkpoint')) return undefined;
+    let checkpoint;
+    if (unet?.enable === true && unet.model) checkpoint = unet.model;
+    else if (unet?.enable !== true && model && model !== 'Default') checkpoint = model;
+    if (checkpoint !== undefined && !sameCheckpoint(base.sd_model_checkpoint, checkpoint)) {
+        return checkpoint;
+    }
+    return undefined;
+}
+
+function nextSdVae(base, vae) {
+    if (!vae?.vae_override || !hasOption(base, 'sd_vae') || vae.vae === base.sd_vae) return undefined;
+    return vae.vae;
+}
+
+function nextFilenamePattern(base, img_prefix) {
+    if (!hasOption(base, 'directories_filename_pattern') || base.directories_filename_pattern === img_prefix) {
+        return undefined;
+    }
+    if (img_prefix !== '[date]') {
+        console.error(CAT, 'Override directories_filename_pattern with:', img_prefix);
+    }
+    return img_prefix;
+}
+
+function skipLayerText(value, fallback) {
+    if (value == null) return fallback;
+    return String(value);
+}
+
+function skipLayerPercent(value, fallback) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    const clamped = Math.min(1, Math.max(0, number));
+    return Math.round(clamped * 100) / 100;
+}
+
+function isMossImage(unet) {
+    return unet?.enable === true && unet?.clip_type === 'moss_image';
+}
+
+// Forge has single-layer skip only. Comma-separated layer numbers stay one string.
+function normalizeForgeSkipLayer(skipLayer) {
+    const source = skipLayer && typeof skipLayer === 'object' ? skipLayer : {};
+    return {
+        slg_enable: true,
+        slg_single_layers: skipLayerText(source.single_layers, '22'),
+        slg_start_percent: skipLayerPercent(source.start_percent, 0),
+        slg_end_percent: skipLayerPercent(source.end_percent, 1),
+    };
+}
+
+function forgeSkipLayerFor(isForge, unet, skipLayer) {
+    if (isForge !== true) return null;
+    if (isMossImage(unet)) return normalizeForgeSkipLayer(skipLayer);
+    return { slg_enable: false };
+}
+
+function buildWebUIOptionPayload(current, isForge, model, vae, unet, img_prefix, skipLayer) {
+    const base = optionBase(current);
+    const payload = {};
+    const forge = isForge === true && hasOption(base, 'forge_additional_modules');
+    const forgeSkipLayer = forgeSkipLayerFor(isForge, unet, skipLayer);
+
+    const checkpoint = nextCheckpoint(base, model, unet);
+    if (checkpoint !== undefined) payload.sd_model_checkpoint = checkpoint;
+
+    if (forge) {
+        const modules = forgeModuleNames(unet, vae);
+        if (!sameModuleList(modules, base.forge_additional_modules)) {
+            payload.forge_additional_modules = modules;
+        }
+    } else {
+        const sdVae = nextSdVae(base, vae);
+        if (sdVae !== undefined) payload.sd_vae = sdVae;
+    }
+
+    const pattern = nextFilenamePattern(base, img_prefix);
+    if (pattern !== undefined) payload.directories_filename_pattern = pattern;
+
+    return {
+        options: Object.keys(payload).length > 0 ? payload : null,
+        forgeSkipLayer,
+    };
+}
+
+function webuiAuthHeaders(auth, extra = {}) {
+    const headers = { ...extra };
+    if (auth?.includes(':')) {
+        headers.Authorization = `Basic ${Buffer.from(auth).toString('base64')}`;
+    }
+    return headers;
+}
+
 class WebUI {
     constructor(addr) {
         this.addr = addr;
@@ -138,25 +299,30 @@ class WebUI {
         this.auth = '';
         this.uuid = 'none';
         this.isForge = null; // null = not detected, true = Forge, false = A1111
+        this.backendOptions = null; // last GET /sdapi/v1/options body
+        this.forgeSkipLayer = null; // Forge moss SLG override, merged into override_settings only
         this.cancelMark = false;
     }
 
     async detectBackendType(addr, auth) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const apiUrl = `http://${addr}/sdapi/v1/options`;
-
-            let headers = {};
-            if (auth?.includes(':')) {
-                const encoded = Buffer.from(auth).toString('base64');
-                headers['Authorization'] = `Basic ${encoded}`;
-            }
-
-            let request = net.request({
+            const request = net.request({
                 method: 'GET',
                 url: apiUrl,
-                headers: headers,
+                headers: webuiAuthHeaders(auth),
                 timeout: this.timeout,
             });
+
+            const fail = (message) => {
+                if (this.isForge === true) {
+                    console.warn(`${CAT} ${message}; keeping the previous Forge options`);
+                    resolve(true);
+                    return;
+                }
+                console.warn(`${CAT} ${message}; assuming A1111`);
+                resolve(false);
+            };
 
             let responseData = '';
             request.on('response', (response) => {
@@ -165,153 +331,115 @@ class WebUI {
                 });
                 response.on('end', () => {
                     if (response.statusCode !== 200) {
-                        console.warn(`${CAT} Failed to detect backend type, assuming A1111`);
-                        resolve(false);
+                        fail(`Failed to read options, HTTP ${response.statusCode}`);
                         return;
                     }
-                    
+
                     try {
                         const options = JSON.parse(responseData);
+                        this.backendOptions = options;
                         const isForge = 'forge_additional_modules' in options;
                         console.log(CAT, `Backend detected: ${isForge ? 'Forge' : 'A1111'}`);
                         resolve(isForge);
                     } catch (error) {
-                        console.warn(`${CAT} Failed to parse options, assuming A1111:`, error);
-                        resolve(false);
+                        fail(`Failed to parse options: ${error}`);
                     }
                 });
             });
-            
+
             request.on('error', (error) => {
-                console.warn(`${CAT} Failed to detect backend type:`, error.message);
-                resolve(false); 
+                fail(`Failed to read options: ${error.message}`);
             });
-    
+
             request.on('timeout', () => {
                 request.destroy();
-                console.warn(`${CAT} Backend detection timed out, assuming A1111`);
-                resolve(false);
+                fail(`Options request timed out after ${this.timeout}ms`);
             });
 
             request.end();
         });
     }
 
-    async setModel(addr, model, auth, vae, unet, img_prefix = '[date]') {
-        this.addr = addr;
-        
-        if (this.isForge === null) {
-            this.isForge = await this.detectBackendType(addr, auth);
-            if (this.isForge === null) this.isForge = false; // Fallback just in case
-        }
-
-        if (!this.isForge && unet?.enable) {
-            console.error(CAT, 'Diffusion Model is not supported by original A1111, please use Forge Neo backend to enable this feature.');
-            return 'Error: Diffusion Model is not supported by original A1111, please use Forge Neo backend to enable this feature.';
-        } 
-        
-        // eslint-disable-next-line sonarjs/cognitive-complexity
-        return new Promise((resolve, reject) => {            
-            const optionPayload = {};
-            
-            if(model) {
-                if(model !== 'Default')
-                    optionPayload["sd_model_checkpoint"] = model;
-            }
-            
-            if (this.isForge && unet?.enable) {
-                optionPayload["sd_model_checkpoint"] = unet.model; 
-                optionPayload["forge_additional_modules"] = [unet.clip_model, unet.vae_model];
-            }
-
-            const vae_key = this.isForge ? "forge_additional_modules" : "sd_vae";
-            if (vae?.vae_override)
-                optionPayload[vae_key] = vae.vae;
-
-            if(img_prefix !== '[date]') {
-                console.error(CAT, 'Override directories_filename_pattern with:', img_prefix);                
-            }
-            optionPayload["directories_filename_pattern"] = img_prefix;
-
+    postOptions(auth, optionPayload) {
+        return new Promise((resolve) => {
             const body = JSON.stringify(optionPayload);
             const apiUrl = `http://${this.addr}/sdapi/v1/options`;
-
-            let headers = {
-                'Content-Type': 'application/json'
-            };
-            if (auth?.includes(':')) {
-                const encoded = Buffer.from(auth).toString('base64');
-                headers['Authorization'] = `Basic ${encoded}`;
-            }
-
             const request = net.request({
                 method: 'POST',
                 url: apiUrl,
-                headers: headers,
-                timeout: this.timeout,
+                headers: webuiAuthHeaders(auth, { 'Content-Type': 'application/json' }),
+                timeout: SET_MODEL_TIMEOUT,
             });
 
             request.on('response', (response) => {
-                let responseData = ''            
+                let responseData = '';
                 response.on('data', (chunk) => {
-                    responseData += chunk
-                })
+                    responseData += chunk;
+                });
                 response.on('end', () => {
                     if (response.statusCode !== 200) {
-                        console.error(`${CAT} Error: setModel HTTP code: ${response.statusCode} - ${response.Data}`);
+                        console.error(`${CAT} Error: setModel HTTP code: ${response.statusCode} - ${responseData}`);
                         resolve(`Error HTTP ${response.statusCode}`);
+                        return;
                     }
-                    
                     resolve('200');
-                })
+                });
             });
-            
+
             request.on('error', (error) => {
                 let ret = '';
                 if (error.code === 'ECONNABORTED') {
-                    console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                    ret = `Error: Request timed out after ${this.timeout}ms`;
+                    console.error(`${CAT} Request timed out after ${SET_MODEL_TIMEOUT}ms`);
+                    ret = `Error: Request timed out after ${SET_MODEL_TIMEOUT}ms`;
                 } else {
                     console.error(CAT, 'Request failed:', error.message);
                     ret = `Error: Request failed:, ${error.message}`;
                 }
                 resolve(ret);
             });
-    
+
             request.on('timeout', () => {
                 request.destroy();
-                console.error(`${CAT} Request timed out after ${this.timeout}ms`);
-                resolve(`Error: Request timed out after ${this.timeout}ms`);
+                console.error(`${CAT} Request timed out after ${SET_MODEL_TIMEOUT}ms`);
+                resolve(`Error: Request timed out after ${SET_MODEL_TIMEOUT}ms`);
             });
 
             request.write(body);
             request.end();
-
-            resolve('200');
         });
     }
 
-    create_override_settings_Forge(model, unet, vae, img_prefix = '[date]') {
-        let override_settings = {};
-        if(model) {
-            if(model !== 'Default')
-                override_settings["sd_model_checkpoint"] = model;
-        }
-        
-        if (unet?.enable) {
-            override_settings["sd_model_checkpoint"] = vae.model; 
-            override_settings["forge_additional_modules"] = [unet.clip_model, unet.vae_model];
+    async setModel(addr, model, auth, vae, unet, img_prefix = '[date]', skipLayer = null) {
+        this.addr = addr;
+
+        if (!this.isForge && unet?.enable === true) {
+            console.error(CAT, 'Diffusion Model is not supported by original A1111, please use Forge Neo backend to enable this feature.');
+            return 'Error: Diffusion Model is not supported by original A1111, please use Forge Neo backend to enable this feature.';
         }
 
-        if (vae?.vae_override)
-            override_settings["forge_additional_modules"] = vae.vae;
-
-        if(img_prefix !== '[date]') {
-            console.error(CAT, 'Override directories_filename_pattern with:', img_prefix);                
+        const built = buildWebUIOptionPayload(this.backendOptions, this.isForge, model, vae, unet, img_prefix, skipLayer);
+        this.forgeSkipLayer = built.forgeSkipLayer;
+        const optionPayload = built.options;
+        if (!optionPayload) {
+            console.log(CAT, 'setModel skipped, options unchanged');
+            return '200';
         }
-        override_settings["directories_filename_pattern"] = img_prefix;
 
-        return override_settings;
+        const result = await this.postOptions(auth, optionPayload);
+        if (result === '200') {
+            this.backendOptions = { ...this.backendOptions, ...optionPayload };
+        }
+        return result;
+    }
+
+    create_override_settings_Forge(model, unet, vae, img_prefix = '[date]', skipLayer = null) {
+        if (!this.isForge) {
+            this.forgeSkipLayer = null;
+            return {};
+        }
+        const built = buildWebUIOptionPayload(this.backendOptions, true, model, vae, unet, img_prefix, skipLayer);
+        this.forgeSkipLayer = built.forgeSkipLayer;
+        return { ...built.options, ...built.forgeSkipLayer };
     }
 
     async run (generateData) {
@@ -325,7 +453,7 @@ class WebUI {
             this.auth = auth;
             this.uuid = uuid;
 
-            const override_settings = this.create_override_settings_Forge(model, generateData?.unet, generateData?.vae, img_prefix);
+            const override_settings = this.create_override_settings_Forge(model, generateData?.unet, generateData?.vae, img_prefix, generateData?.skip_layer);
 
             this.startPolling();
 
@@ -464,7 +592,7 @@ class WebUI {
             this.auth = auth;
             this.uuid = uuid;
 
-            const override_settings = this.create_override_settings_Forge(model, generateData?.unet, generateData?.vae, img_prefix);
+            const override_settings = this.create_override_settings_Forge(model, generateData?.unet, generateData?.vae, img_prefix, generateData?.skip_layer);
 
             // Forge Couple requires SINGLE line for each character with common prompt
             const positive = positive_left.replaceAll('\n', '').trim() + "\n" + positive_right.replaceAll('\n', '').trim();
@@ -1000,29 +1128,10 @@ async function refreshModelLists(generateData) {
     if (backend.isForge === null)
         backend.isForge = await backend.detectBackendType(generateData.addr, generateData.auth);
 
-    if (contronNetModelHashList === 'none') {
-        console.log(CAT, "Refresh controlNet model hash list:");
-        const result = await updateControlNetHashList(generateData);
-        console.log(result);        
-    }
-
-    if (contronProcessorList === 'none') {
-        console.log(CAT, "Refresh ControlNet processor list:");
-        contronProcessorList = await updateControlProcessorList(generateData);
-        console.log(contronProcessorList);
-    }
-
-    if (aDetailerModelList === 'none') {
-        console.log(CAT, "Refresh aDetailer model list:");
-        aDetailerModelList = await updateAdModelList(generateData);
-        console.log(aDetailerModelList);
-    }
-
-    if (upscalersModelList === 'none'){
-        console.log(CAT, "Refresh upscaler model list:");
-        upscalersModelList = await updateUpscalerModelList(generateData);
-        console.log(upscalersModelList);
-    }
+    await updateControlNetHashList(generateData);
+    await updateControlProcessorList(generateData);
+    await updateAdModelList(generateData);
+    await updateUpscalerModelList(generateData);
 }
 
 async function runWebUI(generateData){
@@ -1037,18 +1146,15 @@ async function runWebUI(generateData){
 
     await refreshModelLists(generateData);
     
-    let result = '';
-    if(!backend.isForge) {
-        result = await backend.setModel(generateData.addr, generateData.model, generateData.auth, 
-            generateData.vae?generateData.vae:{vae_override: false, vae: 'Automatic'}, null, generateData.img_prefix);
-    } else {
-        result = '200';
-    }
-    
+    const result = await backend.setModel(generateData.addr, generateData.model, generateData.auth, 
+            generateData.vae?generateData.vae:{vae_override: false, vae: 'Automatic'},
+            generateData.unet?.clip_type ? { clip_type: generateData.unet.clip_type } : null,
+            generateData.img_prefix, generateData.skip_layer);
+
     if(result === '200') {
         try {
             if(backend.uuid !== 'none')
-                console.log(CAT, 'Running A1111 with uuid:', generateData.uuid);
+                console.log(CAT, 'Running WebUI with uuid:', generateData.uuid);
             const imageData = await backend.run(generateData);
             await releaseBackendBusy('WebUI', addr, uuid);
 
@@ -1090,18 +1196,15 @@ async function runWebUI_Regional(generateData){
 
     await refreshModelLists(generateData);
 
-    let result = '';
-    if(!backend.isForge) {
-        result = await backend.setModel(generateData.addr, generateData.model, generateData.auth, 
-            generateData.vae?generateData.vae:{vae_override: false, vae: 'Automatic'}, null, generateData.img_prefix);
-    } else {
-        result = '200';
-    }
+    const result = await backend.setModel(generateData.addr, generateData.model, generateData.auth, 
+            generateData.vae?generateData.vae:{vae_override: false, vae: 'Automatic'},
+            generateData.unet?.clip_type ? { clip_type: generateData.unet.clip_type } : null,
+            generateData.img_prefix, generateData.skip_layer);            
 
     if(result === '200') {
         try {
             if(backend.uuid !== 'none')
-                console.log(CAT, 'Running Regional A1111 with uuid:', generateData.uuid);
+                console.log(CAT, 'Running Regional WebUI with uuid:', generateData.uuid);
             const imageData = await backend.runRegional(generateData);
             await releaseBackendBusy('WebUI', addr, uuid);
 
@@ -1210,11 +1313,10 @@ async function python_runWebUI(generateData, isRegional=false, skeletonKey=false
     return "Success";
 }
 
-function cancelWebUI(uuid) {
-    const owner = uuid || 'none';
-    console.log(CAT, 'Processing interrupted for', owner);
+function cancelWebUI(uuid = 'none') {
+    console.log(CAT, 'Processing interrupted for', uuid);
     for (const backend of webuiBackends.values()) {
-        if (backend.uuid === owner) {
+        if (backend.uuid === uuid) {
             backend.cancelMark = true;
             backend.cancelGenerate();
             backend.stopPolling();
@@ -1235,19 +1337,17 @@ function cancelAllWebUI() {
     }
 }
 
-function startPollingWebUI(uuid) {
-    const owner = uuid || 'none';
+function startPollingWebUI(uuid = 'none') {
     for (const backend of webuiBackends.values()) {
-        if (backend.uuid === owner) {
+        if (backend.uuid === uuid) {
             backend.startPolling();
         }
     }
 }
 
-function stopPollingWebUI(uuid) {
-    const owner = uuid || 'none';
+function stopPollingWebUI(uuid = 'none') {
     for (const backend of webuiBackends.values()) {
-        if (backend.uuid === owner) {
+        if (backend.uuid === uuid) {
             backend.stopPolling();
         }
     }
@@ -1272,6 +1372,7 @@ function resetModelLists() {
     upscalersModelList = 'none';
     for (const backend of webuiBackends.values()) {
         backend.isForge = null;
+        backend.backendOptions = null;
     }
 }
 
