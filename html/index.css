@@ -445,7 +445,8 @@ body.layout-is-resizing-full * {
 .model-settings-container, .add-lora-container, 
 .system-settings-container, .regional-condition-container,
 .bounding-container,
-.jsonlist-container, .adetailer-container, .queue-container
+.jsonlist-container, .adetailer-container, .queue-container,
+.ai-prompt-container
 {
     margin-top: 6px;
 }
