@@ -468,6 +468,16 @@ function createDropdown({
             for (const [index, label] of labels.entries()) {
                 label.textContent = labelPrefixList[index];
             }
+            if (Array.isArray(labelPrefixList) && labelPrefixList.length === dropdownCount) {
+                const headers = container.querySelectorAll(`.mydropdown-${containerId}-header`);
+                for (const [index, header] of headers.entries()) {
+                    header.textContent = labelPrefixList[index];
+                }
+                const titleHosts = container.querySelectorAll('.mydropdown-input-container');
+                for (const [index, host] of titleHosts.entries()) {
+                    host.title = labelPrefixList[index];
+                }
+            }
             this._updateOptionsList(0); 
             return this;
         },

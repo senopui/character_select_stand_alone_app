@@ -7,8 +7,7 @@ import { myCharacterList, myRegionalCharacterList, myViewsList, myLanguageList, 
 import { callback_mySettingList, callback_api_model_select, callback_api_model_type, callback_api_interface, notifySageFp16Cast, 
     callback_generate_start, callback_generate_skip, callback_generate_skip_current, callback_generate_cancel,
     callback_regional_condition, callback_controlnet, callback_adetailer, callback_queue_autostart,
-    callback_thumb_select, callback_ptompt_textbox_autoresize, callback_ptompt_textbox_fontsize, 
-    callback_ai_promot_role
+    callback_thumb_select, callback_ptompt_textbox_autoresize, callback_ptompt_textbox_fontsize
  } from './renderer/callbacks.js';
 import { setupSlider } from './renderer/components/mySlider.js';
 import { setupCheckbox, setupRadiobox } from './renderer/components/myCheckbox.js';
@@ -36,6 +35,7 @@ import { hiresCalculate } from './renderer/tools/hiresCalculation.js';
 import { resetAutoRetry } from './renderer/tools/autoRetry.js';
 import { setupUiLayout } from './renderer/uiLayout.js';
 import { setupBounding } from './renderer/bounding.js';
+import { flushAiPromptNotice, setupAiPromptPanel, setAllAiTemplateModels } from './renderer/aiPromptPanel.js';
 
 function afterDOMinit() {
     (async () => {
@@ -171,6 +171,7 @@ export async function setupLeftRight(SETTINGS, FILES, LANG) {
         jsonlist: setupCollapsed('jsonlist', true),
         aDetailer: setupCollapsed('adetailer', true),
         queueManager: setupCollapsed('queue', false),
+        aiPrompt: setupCollapsed('ai-prompt', false),
     }
     globalThis.bounding = setupBounding();
 
@@ -467,13 +468,6 @@ export async function createPrompt(SETTINGS, FILES, LANG) {
             maxLines: 10,
             shrinkToContent: true
             }, false, (value) => { globalThis.globalSettings.api_neg_prompt = value; }),
-        ai: setupTextbox('prompt-ai', LANG.ai_prompt, {
-            value: SETTINGS.ai_prompt,
-            defaultTextColor: 'hotpink',
-            minLines: 2,
-            maxLines: 10,
-            shrinkToContent: true
-            }, false, (value) => { globalThis.globalSettings.ai_prompt = value; }),
         exclude: setupTextbox('prompt-exclude', LANG.prompt_ban, {
             value: SETTINGS.prompt_ban,
             defaultTextColor: 'khaki',
@@ -542,48 +536,9 @@ export async function createRegional(SETTINGS, FILES, LANG) {
     }
 }
 
-export async function createAI(SETTINGS, FILES, LANG) {
-    console.log('Creating globalThis.ai');
-    globalThis.ai ={
-        ai_select: setupRadiobox("system-settings-ai-select", LANG.batch_generate_rule, LANG.ai_select, LANG.ai_select_title, SETTINGS.ai_prompt_role, 
-            callback_ai_promot_role),
-        ai_prompt_preview: setupCheckbox('system-settings-ai-preview', LANG.ai_prompt_preview, SETTINGS.ai_prompt_preview, true,
-            (value) => { globalThis.globalSettings.ai_prompt_preview = value; }),
-
-        interface: mySimpleList('system-settings-ai-interface', LANG.ai_interface, ['None', 'Remote', 'Local'], 
-            (index, value) => {globalThis.globalSettings.ai_interface = value;}, 5, false, true),
-        remote_timeout: setupSlider('system-settings-ai-timeout', LANG.remote_ai_timeout, {min:2, max:60, step:1, defaultValue:SETTINGS.remote_ai_timeout}, 
-            (value) => { globalThis.globalSettings.remote_ai_timeout = value; }),
-        remote_address: setupTextbox('system-settings-ai-address', LANG.remote_ai_base_url, {
-            value: SETTINGS.remote_ai_base_url,
-            maxLines: 1
-            }, true, (value) => { globalThis.globalSettings.remote_ai_base_url = value; }),
-        remote_model_select: setupTextbox('system-settings-ai-modelselect', LANG.remote_ai_model, {
-            value: SETTINGS.remote_ai_model,
-            maxLines: 1
-            }, true, (value) => { globalThis.globalSettings.remote_ai_model = value; }),
-        remote_apikey: setupTextbox('system-settings-ai-apikey', 'API Key', {
-            value: SETTINGS.remote_ai_api_key,
-            defaultTextColor: 'CornflowerBlue',
-            maxLines: 1
-            }, true, (value) => { globalThis.globalSettings.remote_ai_api_key = value;}, true),  
-
-        local_address: setupTextbox('system-settings-ai-local-address', LANG.ai_local_addr, {
-            value: SETTINGS.ai_local_addr,
-            maxLines: 1
-            }, true, (value) => { globalThis.globalSettings.ai_local_addr = value;}),
-        local_temp: setupSlider('system-settings-ai-local-temperature', 
-            LANG.ai_local_temp, {min:0.1, max:2, step:0.1, defaultValue:SETTINGS.ai_local_temp},
-            (value) => { globalThis.globalSettings.ai_local_temp = value;} ),
-        local_n_predict: setupSlider('system-settings-ai-local-npredict', 
-            LANG.ai_local_n_predict, {min:256, max:4096, step:256, defaultValue:SETTINGS.ai_local_n_predict},
-            (value) => { globalThis.globalSettings.ai_local_n_predict = value;} ),
-
-        ai_system_prompt: setupTextbox('system-settings-ai-sysprompt', LANG.ai_system_prompt_text, {
-            value: LANG.ai_system_prompt,
-            maxLines: 30
-            }, true),  
-    }
+export async function createAI() {
+    console.log('Creating AI prompt panel');
+    await setupAiPromptPanel();
 }
 
 async function init(){
@@ -677,6 +632,7 @@ async function init(){
             buttons: setupButtonOverlay(),
             custom: customCommonOverlay()
         }
+        flushAiPromptNotice();
 
         globalThis.generate.toggleButtons = toggleButtons;
         globalThis.generate.showCancelButtons = showCancelButtons;
@@ -844,6 +800,7 @@ async function setupWizard(){
             showCancel: false,
             buttonText: LANG.setup_ok
         });
+        setAllAiTemplateModels(globalThis.globalSettings.remote_ai_model);
 
         globalThis.globalSettings.remote_ai_api_key = await showDialog('input', { 
             message: LANG.setup_remote_ai_api_key,

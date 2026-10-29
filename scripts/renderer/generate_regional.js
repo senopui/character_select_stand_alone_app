@@ -1,7 +1,7 @@
 import { decodeThumb } from './customThumbGallery.js';
 import { generateRandomSeed, resolveGenerateSeed, getTagAssist, getLoRAs, replaceWildcardsAsync, characterRandomMode, pickRandomCharacterEntry, formatCharacterInfo, formatOriginalCharacterInfo,
     getViewTags, createHiFix, formatQueueJobSeed, createRefiner, extractHostPort, checkVpred, extractAPISecure,
-    createControlNet, createADetailer, toggleQueueColor, startQueue, REPLACE_AI_MARK,
+    createControlNet, createADetailer, toggleQueueColor, startQueue, previewRegionalCharacters,
     updateADetailerModelList, getImageSavePrefix, readSkipLayer } from './generate.js';
 import { processRandomString } from './tools/nestedBraceParsing.js';
 import { sendWebSocketMessage } from '../webserver/front/wsRequest.js';
@@ -175,6 +175,21 @@ function getPrompts(character_left, character_right, views, ai='', apiInterface 
         posL:positivePromptLeft, posLc:positivePromptLeftColored, 
         posR:positivePromptRight, posRc:positivePromptRightColored, 
         lora:loraPromot}
+}
+
+export function composeRegionalForAi() {
+    try {
+        const seedValue = Number(globalThis.generate?.seed?.getValue?.());
+        const seed = Number.isFinite(seedValue) && seedValue >= 0 ? seedValue : 0;
+        const views = getViewTags(seed);
+        const { left, right } = previewRegionalCharacters();
+        const api = globalThis.generate?.api_interface?.getValue?.() || 'None';
+        const { posL, posR } = getPrompts(left, right, views, '', api, -1);
+        return { left: posL || '', right: posR || '' };
+    } catch (error) {
+        console.error('[ai-prompt] regional preview failed', error);
+        return { left: '', right: '' };
+    }
 }
 
 async function createCharacters(index, seeds) {
@@ -464,10 +479,6 @@ export async function generateRegionalImage(dataPack){
 
     const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
     const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';    
-                
-    const aiPromptInterface = globalThis.ai.interface.getValue();
-    const aiPromptCurrentRole = globalThis.ai.ai_select.getValue();        
-    const aiPromot = (aiPromptCurrentRole===0 || String(aiPromptCurrentRole).toLowerCase() === 'none')?'': REPLACE_AI_MARK;
 
     toggleQueueColor();
 
@@ -493,7 +504,7 @@ export async function generateRegionalImage(dataPack){
 
         // One job at a time: each pass reads the live UI, and cancel/skip must be able to stop the batch.
         // eslint-disable-next-line no-await-in-loop
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1, seedOverride); // NOSONAR
+        const createPromptResult = await createPrompt(runSame, '', apiInterface, (loops > 1)?loop:-1, seedOverride); // NOSONAR
 
         const hifix = createHiFix(createPromptResult.randomSeed, apiInterface,brownColor, hiresOneShot);
         const refiner = createRefiner();
@@ -534,23 +545,6 @@ export async function generateRegionalImage(dataPack){
                 finalInfo: '',
                 loop: loop,
                 loops: loops,
-                aiInterface: aiPromptInterface,
-                aiRole: aiPromptCurrentRole,
-                aiOptions: (aiPromptInterface.toLowerCase() === 'remote') ? {
-                        apiUrl: globalThis.ai.remote_address.getValue(),
-                        apiKey: globalThis.ai.remote_apikey.getValue(),
-                        modelSelect: globalThis.ai.remote_model_select.getValue(),
-                        userPrompt: globalThis.prompt.ai.getValue(),
-                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
-                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
-                    } : {
-                        apiUrl: globalThis.ai.local_address.getValue(),
-                        userPrompt: globalThis.prompt.ai.getValue(),
-                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
-                        temperature: globalThis.ai.local_temp.getValue(),
-                        n_predict:globalThis.ai.local_n_predict.getValue(),
-                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
-                    },
                 thumb:createPromptResult.thumbImage || globalThis.generate.lastThumb,
                 id:createPromptResult.charactersName,
             },

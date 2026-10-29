@@ -28,13 +28,15 @@ const COLLAPSE_KEYS = {
     'bounding': 'bounding',
     'jsonlist': 'jsonlist',
     'adetailer': 'aDetailer',
-    'queue': 'queueManager'
+    'queue': 'queueManager',
+    'ai-prompt': 'aiPrompt'
 };
 
 const SPECIAL_NAMES = {
     'gallery-main': 'Gallery',
     'gallery-thumb': 'Thumbnail',
     'prompt-text': 'Prompt',
+    'ai-prompt': 'AI',
     'generate-settings-static-left': 'Image',
     'generate-settings-static-right': 'Generate',
     [CHARACTER_ID]: 'Character'
@@ -54,7 +56,8 @@ const SPAN_IDS = {
     'jsonlist': 'jsonlist-span',
     'controlnet': 'controlnet-span',
     'adetailer': 'adetailer-span',
-    'queue': 'queue-span'
+    'queue': 'queue-span',
+    'ai-prompt': 'ai-prompt-span'
 };
 
 export function isTabHost(el) {

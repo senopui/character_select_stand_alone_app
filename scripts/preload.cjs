@@ -141,6 +141,10 @@ contextBridge.exposeInMainWorld('api', {
   // AI
   remoteAI: async (options) => ipcRenderer.invoke('request-ai-remote', options),
   localAI: async (options) => ipcRenderer.invoke('request-ai-local', options),
+  cancelAI: async (requestId) => ipcRenderer.invoke('cancel-ai-request', requestId),
+  loadAiPromptTemplates: async () => ipcRenderer.invoke('load-ai-prompt-templates'),
+  saveAiPromptTemplates: async (payload) => ipcRenderer.invoke('save-ai-prompt-templates', payload),
+  loadBuiltinAiTemplates: async () => ipcRenderer.invoke('load-builtin-ai-templates'),
   
   // generate_backend ComfyUI
   runComfyUI: async (generateData) => ipcRenderer.invoke('generate-backend-comfyui-run', generateData),

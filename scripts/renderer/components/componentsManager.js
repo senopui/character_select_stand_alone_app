@@ -3,7 +3,7 @@ export function get_prompt_textBox_Heights(){
     const pos = globalThis.prompt.positive.getHeight();
     const posr = globalThis.prompt.positive_right.getHeight();
     const neg = globalThis.prompt.negative.getHeight();
-    const ai = globalThis.prompt.ai.getHeight();
+    const ai = globalThis.aiPrompt?.brief?.getHeight?.() || 2;
     const exc = globalThis.prompt.exclude.getHeight();
 
     console.log([common, pos, posr, neg, ai, exc]);
@@ -20,7 +20,7 @@ export function set_prompt_textBox_Heights(){
     globalThis.prompt.positive.setHeight(pos);
     globalThis.prompt.positive_right.setHeight(posr);
     globalThis.prompt.negative.setHeight(neg);
-    globalThis.prompt.ai.setHeight(ai);
+    globalThis.aiPrompt?.brief?.setHeight?.(ai);
     globalThis.prompt.exclude.setHeight(exc);
 }
 

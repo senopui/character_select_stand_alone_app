@@ -14,6 +14,7 @@ import { initWebSocket, isSecuredConnection, isSaacReadonlyClient, sendWebSocket
 import { flushSlots } from '../renderer/slots/slotsManager.js';
 import { set_prompt_textBox_Heights } from '../renderer/components/componentsManager.js';
 import { setupHeader, setupLeftRight, createGenerate, createPrompt, createHifixRefiner, createRegional, createAI } from '../renderer.js';
+import { flushAiPromptNotice } from '../renderer/aiPromptPanel.js';
 import { SAMPLER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_COMFYUI, SCHEDULER_WEBUI } from '../types.js';
 
 // Run the init function when the DOM is fully loaded
@@ -166,6 +167,7 @@ async function init() {
             buttons: setupButtonOverlay(),
             custom: customCommonOverlay()
         }
+        flushAiPromptNotice();
 
         globalThis.generate.toggleButtons = toggleButtons;
         globalThis.generate.showCancelButtons = showCancelButtons;

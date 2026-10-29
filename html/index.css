@@ -637,6 +637,20 @@ body.layout-is-resizing-full * {
     mask-size: contain;
 }
 
+#ai-prompt-add-icon {
+    -webkit-mask: url('../scripts/svg/save.svg') no-repeat center;
+    mask: url('../scripts/svg/save.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+#ai-prompt-delete-icon {
+    -webkit-mask: url('../scripts/svg/delete.svg') no-repeat center;
+    mask: url('../scripts/svg/delete.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
 .bounding-toolbar {
     display: flex;
     align-items: center;

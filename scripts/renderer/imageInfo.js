@@ -462,7 +462,6 @@ export function setupImageUploadOverlay() {
             
             sendPrompt(parsedMetadata);
             globalThis.generate.landscape.setValue(false);
-            globalThis.ai.ai_select.setValue(0);
             
             sendButton.textContent = LANG.image_info_send_tags_sent;
             setTimeout(() => {

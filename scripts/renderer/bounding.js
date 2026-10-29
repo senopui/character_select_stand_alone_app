@@ -1249,7 +1249,7 @@ export function setupBounding() {
         }
     });
 
-    const previewSource = '.prompt-common, .prompt-positive, .prompt-exclude, .prompt-ai, .jsonlist-container, .add-lora-container, .dropdown-character, .dropdown-view, .generate-tag-assist, .system-settings-ai-select';
+    const previewSource = '.prompt-common, .prompt-positive, .prompt-exclude, .jsonlist-container, .add-lora-container, .dropdown-character, .dropdown-view, .generate-tag-assist';
     const onPreviewSource = (event) => {
         const target = event.target;
         if (!(target instanceof Element)) return;

@@ -25,6 +25,8 @@ body {
 
 #settings-save-icon,
 #settings-delete-icon,
+#ai-prompt-add-icon,
+#ai-prompt-delete-icon,
 #model-refresh-icon,
 #global-refresh-icon,
 #global-settings-swap-layout-icon,
@@ -38,6 +40,8 @@ body {
 
 #settings-save-icon:hover,
 #settings-delete-icon:hover,
+#ai-prompt-add-icon:hover,
+#ai-prompt-delete-icon:hover,
 #model-refresh-icon:hover,
 #global-refresh-icon:hover,
 #global-settings-swap-layout-icon:hover,
@@ -48,6 +52,8 @@ body {
 
 #settings-save-toggle,
 #settings-delete-toggle,
+#ai-prompt-add-toggle,
+#ai-prompt-delete-toggle,
 #model-refresh-toggle,
 #global-refresh-toggle,
 #global-settings-theme-toggle,
@@ -192,6 +198,7 @@ body {
 :where([data-theme="light"]) #jsonlist-toggle,
 :where([data-theme="light"]) #adetailer-toggle,
 :where([data-theme="light"]) #queue-toggle,
+:where([data-theme="light"]) #ai-prompt-toggle,
 :where([data-theme="light"]) #system-settings-toggle {
     content: url("../scripts/svg/mydropdown-arrow-light.svg");
 }
@@ -409,7 +416,8 @@ body.right-to-left #cg-info-button {
 .bounding-header,
 .jsonlist-header,
 .adetailer-header,
-.queue-header {
+.queue-header,
+.ai-prompt-header {
     padding-right: 2px;
     display: flex;
     align-items: center;
@@ -491,7 +499,8 @@ body.right-to-left #cg-info-button {
 .add-lora-span,
 .jsonlist-header-span,
 .adetailer-header-span,
-.queue-header-span {
+.queue-header-span,
+.ai-prompt-header-span {
     display: flex;
     justify-self: flex-end;
 }
@@ -509,7 +518,8 @@ body.right-to-left #cg-info-button {
 #system-settings-span,
 #jsonlist-span,
 #adetailer-span,
-#queue-span {
+#queue-span,
+#ai-prompt-span {
     order: 1;
     color: var(--text);
     padding-right: 2px;
@@ -527,7 +537,8 @@ body.right-to-left #cg-info-button {
 #add-lora-toggle,
 #jsonlist-toggle,
 #adetailer-toggle,
-#queue-toggle {
+#queue-toggle,
+#ai-prompt-toggle {
     margin-top: 2px;
     width: 12px;
     height: 12px;
@@ -568,7 +579,8 @@ body.right-to-left #cg-info-button {
 #jsonlist-toggle:hover,
 #adetailer-toggle:hover,
 #system-settings-toggle:hover,
-#queue-toggle:hover {
+#queue-toggle:hover,
+#ai-prompt-toggle:hover {
     opacity: 0.9;
 }
 
@@ -585,7 +597,8 @@ body.right-to-left #cg-info-button {
 #jsonlist-toggle.collapsed,
 #adetailer-toggle.collapsed,
 #system-settings-toggle.collapsed,
-#queue-toggle.collapsed {
+#queue-toggle.collapsed,
+#ai-prompt-toggle.collapsed {
     transform: rotate(90deg);
 }
 
@@ -768,6 +781,7 @@ body.right-to-left #cg-info-button {
 .jsonlist-container,
 .adetailer-container,
 .queue-container,
+.ai-prompt-container,
 .highres-fix-main,
 .refiner-main,
 .controlnet-main,
@@ -778,7 +792,8 @@ body.right-to-left #cg-info-button {
 .system-settings-main,
 .jsonlist-main,
 .adetailer-main,
-.queue-main {
+.queue-main,
+.ai-prompt-main {
     padding: 1px;
     box-sizing: border-box;
     background: var(--surface);
@@ -1152,7 +1167,8 @@ body.right-to-left #cg-info-button {
 .system-settings-main,
 .jsonlist-main,
 .adetailer-main,
-.queue-main {
+.queue-main,
+.ai-prompt-main {
     transition: max-height 0.3s ease, opacity 0.3s ease;
     overflow: hidden;
     height: auto;
@@ -1173,7 +1189,8 @@ body.right-to-left #cg-info-button {
 .system-settings-main.collapsed,
 .jsonlist-main.collapsed,
 .adetailer-main.collapsed,
-.queue-main.collapsed {
+.queue-main.collapsed,
+.ai-prompt-main.collapsed {
     margin: 0;
     padding: 0;
     max-height: 0;
@@ -1193,7 +1210,8 @@ body.right-to-left #cg-info-button {
 #system-settings-toggle,
 #jsonlist-toggle,
 #adetailer-toggle,
-#queue-toggle {
+#queue-toggle,
+#ai-prompt-toggle {
     margin-right: 5px;
 }
 
@@ -1553,4 +1571,155 @@ body.right-to-left #cg-info-button {
 
 .layout-tab-view-dock .dropdown-view {
     background: transparent;
+}
+
+.ai-prompt-header {
+    display: grid;
+    grid-template-columns: 4fr 1fr;
+    padding-left: 10px;
+}
+
+.ai-prompt-row {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.ai-prompt-template-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0 6px;
+}
+
+#ai-prompt-add-toggle,
+#ai-prompt-delete-toggle {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.ai-prompt-template-bar .ai-prompt-template {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ai-prompt-template-bar .mydropdown-wrapper,
+.ai-prompt-template-bar .mydropdown-input-container {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.ai-prompt-fold,
+.ai-prompt-backend {
+    margin-top: 6px;
+}
+
+.ai-prompt-fold summary,
+.ai-prompt-backend summary {
+    cursor: pointer;
+    margin: 6px 0;
+}
+
+.ai-prompt-note {
+    margin: 0 0 8px 2px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.ai-prompt-inherit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 8px;
+}
+
+.ai-prompt-inherit [class^="myCheckbox-"][class*="-span"] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ai-prompt-inherit [class^="myCheckbox-"][class*="-input"] {
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    height: 16px;
+    margin-right: 0;
+}
+
+.ai-prompt-run,
+.ai-prompt-action-row,
+.ai-prompt-backend-actions {
+    margin: 8px 0;
+}
+
+.ai-prompt-action-row,
+.ai-prompt-backend-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ai-prompt-run,
+.ai-prompt-run [class$="-container"],
+.ai-prompt-action-row > div,
+.ai-prompt-action-row [class$="-container"],
+.ai-prompt-backend-actions > div,
+.ai-prompt-backend-actions [class$="-container"] {
+    width: 100%;
+    min-width: 0;
+}
+
+.ai-prompt-action-row > div,
+.ai-prompt-backend-actions > div {
+    flex: 1 1 0;
+}
+
+.ai-prompt-main button[class^="myButton-"] {
+    background: var(--accent-ring-strong) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--accent) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    height: 34px !important;
+    width: 100% !important;
+    min-width: 0;
+    padding: 0 10px !important;
+}
+
+.ai-prompt-main button[class^="myButton-"]:hover:not(:disabled) {
+    background: var(--accent) !important;
+    color: var(--ai-run-text) !important;
+    border-color: var(--accent) !important;
+}
+
+.ai-prompt-main button[class^="myButton-"]:disabled {
+    opacity: 0.45;
+}
+
+.ai-prompt-main .myButton-ai-prompt-run {
+    background: var(--accent) !important;
+    color: var(--ai-run-text) !important;
+    border-color: transparent !important;
+    height: 36px !important;
+    font-size: 14px !important;
+}
+
+.ai-prompt-main .myButton-ai-prompt-run:hover:not(:disabled) {
+    background: var(--accent-deep) !important;
+    color: var(--ai-run-text) !important;
+    border-color: transparent !important;
+    filter: brightness(0.94);
+}
+
+.ai-prompt-main .myButton-ai-prompt-run.is-cancel,
+.ai-prompt-main .myButton-ai-prompt-run.is-cancel:hover:not(:disabled) {
+    background: var(--ai-cancel) !important;
+    color: var(--ai-cancel-text) !important;
+    border-color: transparent !important;
+    filter: none;
 }

@@ -1,3 +1,16 @@
+2026.10.29 v2.11.0      
+Add, `AI Prompt` panel. Generate inside the panel, then `Overwrite` or `Append` into `Common`, `Positive`, `Right positive`, or `Negative`. Image generation no longer calls the language model      
+Add, templates `Tag scene`, `Natural scene`, and `Character natural`. Each template keeps its system prompt, model, timeout, temperature, max tokens, source, and character slot      
+Add, `Source` chooses the text to send: `Brief`, `Common`, `Positive`, `Right positive`, `Negative`, `Character`, or `Full prompt`. Choosing a template sets its source and character slot      
+Add, `Backend` is shared by every template: `None`, `Remote`, or `Local`. A remote base URL is called at `/chat/completions` unless it already ends with that path      
+Add, `Generate` becomes `Cancel` after a short pause and stops the request      
+Add, save a template by name. The same name updates it. A new name saves a copy. Deleting the last template restores the three original templates. `Restore defaults` puts those templates back and keeps custom ones      
+Add, `Inherit settings`. When it is on, loading another settings file keeps the current AI interface, addresses, key, template, source, and brief, then turns the switch off. Save settings to store that configuration      
+Change, removed `AI prompt generate test` and the old `Once` / `Every` / `Last` AI rule      
+Bugfix, `Source` and `Write result to` titles follow the interface language      
+Minor bugs fix      
+
+
 2026.10.22 v2.10.2      
 Add `Moss Image` now support `Forge Neo` v2.31 and above     
 Add, Diffusion `Weight Dtype` options `PyTorch_FP16` and `Sage_FP16` for Turing GPUs (RTX 20 series). Checkpoint mode hides these two options      

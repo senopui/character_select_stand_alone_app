@@ -173,19 +173,6 @@ export const sharedBodyHTML = `
                 <div class="system-settings-api-webui-image-save-path"></div>                
                 <div></div>
               </div>
-              <div class="system-settings-main-1">
-                <div class="system-settings-ai-interface"></div>
-                <div class="system-settings-ai-timeout"></div>
-              </div>
-              <div class="system-settings-main-2">
-                <div class="system-settings-ai-address"></div>
-                <div class="system-settings-ai-modelselect"></div>
-                <div class="system-settings-ai-apikey"></div>
-                <div class="system-settings-ai-local-address"></div>
-                <div class="system-settings-ai-local-temperature"></div>
-                <div class="system-settings-ai-local-npredict"></div>
-                <div class="system-settings-ai-sysprompt"></div>
-              </div>
             </div>
           </div>
 
@@ -398,10 +385,62 @@ export const sharedBodyHTML = `
             </div>
           </div>
           
+          <div class="ai-prompt-container" data-layout-id="ai-prompt">
+            <div class="ai-prompt-header">
+              <div></div>
+              <div class="ai-prompt-header-span">
+                <span id="ai-prompt-span">AI Prompt</span>
+                <img id="ai-prompt-toggle" src="scripts/svg/mydropdown-arrow.svg" alt="><" fill="currentColor">
+              </div>
+            </div>
+            <div class="ai-prompt-main">
+              <div class="ai-prompt-template-bar">
+                <button id="ai-prompt-add-toggle" type="button" title="Save">
+                  <img id="ai-prompt-add-icon" src="scripts/svg/save.svg" alt="">
+                </button>
+                <div class="ai-prompt-template"></div>
+                <button id="ai-prompt-delete-toggle" type="button" title="Delete">
+                  <img id="ai-prompt-delete-icon" src="scripts/svg/delete.svg" alt="">
+                </button>
+              </div>
+              <details class="ai-prompt-fold">
+                <summary id="ai-prompt-model-span">Model settings</summary>
+                <div class="ai-prompt-model"></div>
+                <div class="ai-prompt-timeout"></div>
+                <div class="ai-prompt-temperature"></div>
+                <div class="ai-prompt-tokens"></div>
+              </details>
+              <details class="ai-prompt-fold">
+                <summary id="ai-prompt-system-span">System prompt</summary>
+                <div class="ai-prompt-system"></div>
+              </details>
+              <div class="ai-prompt-source"></div>
+              <div class="ai-prompt-character"></div>
+              <div class="ai-prompt-brief"></div>
+              <div class="ai-prompt-run"></div>
+              <div class="ai-prompt-result"></div>
+            <div class="ai-prompt-apply-target"></div>
+            <div class="ai-prompt-action-row">
+              <div class="ai-prompt-overwrite"></div>
+              <div class="ai-prompt-append"></div>
+            </div>
+            <details class="ai-prompt-backend">
+              <summary id="ai-prompt-backend-span">Backend</summary>
+              <p class="ai-prompt-note" id="ai-prompt-backend-note">Shared by every template.</p>
+              <div class="ai-prompt-interface"></div>
+              <div class="ai-prompt-remote-address"></div>
+              <div class="ai-prompt-remote-key"></div>
+              <div class="ai-prompt-local-address"></div>
+              <div class="ai-prompt-inherit"></div>
+              <div class="ai-prompt-backend-actions">
+                <div class="ai-prompt-restore"></div>
+              </div>
+            </details>
+            </div>
+          </div>
+
           <div id="prompt-text-container" data-layout-id="prompt-text" data-layout-empty-drag="true">
             <div id="prompt-textbox-settings">
-              <div class="system-settings-ai-select"></div>
-              <div class="system-settings-ai-preview"></div>
               <div class="prompt-textbox-fontsize"></div>
               <div class="prompt-textbox-autoresize"></div>
             </div>
@@ -409,8 +448,7 @@ export const sharedBodyHTML = `
             <div class="prompt-positive">positive</div>
             <div class="prompt-positive-right">positive-right</div>
             <div class="prompt-negative">negative</div>
-            <div class="prompt-exclude">exclude</div>  
-            <div class="prompt-ai">negative</div>          
+            <div class="prompt-exclude">exclude</div>
           </div>
 
           <div class="jsonlist-container" data-layout-id="jsonlist">

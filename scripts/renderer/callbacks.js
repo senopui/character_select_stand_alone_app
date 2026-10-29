@@ -27,6 +27,7 @@ export async function callback_mySettingList(index, selectedValue) {
 
     const lastThumbSelect = globalThis.globalSettings.thumb_select;
     const lastApiInterface = globalThis.globalSettings.api_interface;
+    const inheritedAi = globalThis.aiPrompt?.takeInheritSnapshot?.() || null;
     const value = selectedValue[0];
     console.log('Loading settings file:', value);
     const old_css = globalThis.globalSettings.css_style;
@@ -39,6 +40,7 @@ export async function callback_mySettingList(index, selectedValue) {
         globalSettings = await globalThis.api.loadSettingFile(value);
     }    
     globalThis.globalSettings = structuredClone(globalSettings);
+    if (inheritedAi) globalThis.aiPrompt?.applyInheritSnapshot?.(inheritedAi);
 
     doSwap(globalThis.globalSettings.rightToleft);    
     await reloadFiles()    
@@ -648,7 +650,8 @@ export function callback_ptompt_textbox_autoresize(value) {
     globalThis.prompt.positive.setAutoResize(value);
     globalThis.prompt.positive_right.setAutoResize(value);
     globalThis.prompt.negative.setAutoResize(value);
-    globalThis.prompt.ai.setAutoResize(value);
+    globalThis.aiPrompt?.brief?.setAutoResize(value);
+    globalThis.aiPrompt?.result?.setAutoResize(value);
     globalThis.prompt.exclude.setAutoResize(value);
 
     if (value === false) {
@@ -665,17 +668,5 @@ export function callback_ptompt_textbox_fontsize(value) {
 
 export function callback_ai_promot_role(value) {
     globalThis.globalSettings.ai_prompt_role = value;
-    const at_text = document.querySelector('.prompt-ai');
-    if(!at_text) {
-        console.error('Failed to find .prompt-ai element in the DOM.');
-        globalThis.globalSettings.ai_prompt_role = 0;   // reset to none
-        return;
-    }
-
-    if(value === 0){                    
-        at_text.style.display = 'none';
-    } else {
-        at_text.style.display = 'block';
-    }
 }
 

@@ -1,4 +1,3 @@
-import { getAiPrompt } from '../remoteAI.js';
 import { showDialog } from './myDialog.js';
 import { sendWebSocketMessage } from '../../webserver/front/wsRequest.js';
 
@@ -557,12 +556,6 @@ function registerDefaultMenuItems() {
         }
     });
 
-    // AI prompt
-    globalThis.rightClick.append('test_ai_generate', LANG.right_menu_test_ai_generate, {
-        selector: '.prompt-ai',
-        func: async (element) => await prompt_testAIgenerate(element)
-    });
-
     // line-------------------
     globalThis.rightClick.append('separator_1', null, null);
 
@@ -728,28 +721,5 @@ function prompt_sendLoRAtoSlot(element, textArea){
     } catch (err) {
         console.error(`Error on get ${textArea} prompt:`, err);
         return null;
-    }
-}
-
-async function prompt_testAIgenerate(element){
-    try {
-        const textarea = element.querySelector('.myTextbox-prompt-ai-textarea');
-        if (!textarea) {
-            console.warn('No textarea found with class myTextbox-prompt-ai-textarea');
-            return;
-        }
-
-        const text = textarea.value.trim();
-        if (!text) {
-            console.warn('Textarea is empty');
-            return;
-        }
-
-        const aiText = await getAiPrompt(0, text);
-        globalThis.overlay.custom.closeCustomOverlaysByGroup('aiText'); // close exist
-        globalThis.overlay.custom.createCustomOverlay('none', `\n\n\n${aiText}`,
-                                                    384, 'center', 'left', null, 'aiText');
-    } catch (err) {
-        console.error('Error on get AI prompt:', err);
     }
 }

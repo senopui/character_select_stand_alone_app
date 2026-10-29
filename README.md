@@ -97,6 +97,37 @@ npm install
 ```
 ------
 # Highlights
+## AI Prompt
+Write or polish a prompt in the AI Prompt panel, then put the result into a prompt box yourself. Image generation does not call the language model.     
+
+<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aiPrompt.png" width=45%>
+
+<details>
+<summary>More about AI Prompt</summary>
+
+`Template` chooses how the reply is written. `Source` chooses which text is sent. Picking a template also sets that template's source and character slot. Change either one afterwards and it is stored on the template.     
+
+Three templates are included:     
+
+* `Tag scene` reads `Brief` and answers with one line of English comma-separated tags, about 8 to 16 tags. Gender words are left out.     
+* `Natural scene` reads `Brief` and answers with one English paragraph for diffusion models. Width and height stay with the app, so the paragraph does not contain an aspect ratio.     
+* `Character natural` reads character slot `4`. It polishes the text it actually received. The usual reply is one English paragraph. If that text explicitly asks for tags, the reply is one line of tags. A place, time, light, weather, background, prop, or extra person is added only when the source text already has it.     
+
+Sources are `Brief`, `Common`, `Positive`, `Right positive`, `Negative`, `Character`, and `Full prompt`. `Character` uses one fixed slot from 1 to 4. A random slot is not sent. `Full prompt` skips a random character slot. LoRA lines are not sent. Wildcards stay as written.     
+
+`Generate` runs the request. After a short pause the button becomes `Cancel` and can stop the request. The reply stays in `Result` until you choose where it goes. `Overwrite` replaces `Common`, `Positive`, `Right positive`, or `Negative`. `Append` adds the reply to the end of that box. Character files are left unchanged.     
+
+Each template keeps its own system prompt, model, timeout, temperature, max tokens, source, and character slot. Model settings and the system prompt start folded. The save icon asks for a name. The same name updates the current template. A new name saves a copy and selects it. Delete asks first. Deleting the last template restores the three original templates. `Restore defaults`, under `Backend`, adds a missing original template and replaces an edited original with the stored one. Templates you added yourself stay.     
+
+`Backend` is shared by every template.     
+
+* `Remote` expects an OpenAI-compatible base URL and an API key. A base such as `https://nano-gpt.com/api/v1` is called at `/chat/completions`. A URL that already ends with `/chat/completions` is used as it is.     
+* `Local` expects a llama.cpp server address, for example `http://127.0.0.1:8080/chat/completions`. Build [llama.cpp](https://github.com/ggml-org/llama.cpp) or take a [release](https://github.com/ggml-org/llama.cpp/releases), then start it with your GGUF model: `llama-server.exe -c 16384 --port 8080 -m "<your GGUF model>"`.     
+
+Templates are stored in `settings/ai/templates.json`. The selected template and source are stored with the current settings file. `Inherit settings` starts off. Turn it on before loading another settings file to keep the current interface, addresses, key, template, source, and brief. The switch turns itself off after that load. Save the settings file to store the kept configuration in the file you just opened.     
+
+</details>
+
 ## Bounding Box for Moss Image
 Draw rectangles on a canvas that follows the current `Width` and `Height`, then submit the merged positive prompt as one JSON payload. Turn on the header switch to enable it. `Regional Condition` keeps this switch off.     
 
@@ -478,11 +509,6 @@ Top buttons from Left to right: Save Settings, Reload Model List, Refresh page, 
 Right-click on a word that has a spell check error (a wavy line drawn at the bottom) to see a hint for the corresponding word.     
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/spellCheck.png" width=45%>
 
-**AI prompt generate test**     
-Right click on `AI prompt` to get AI promot without generate.     
-Once got result from Remote/Local AI, an information overlay will show in screen, switch AI rule to `Last` to keep  the result in later generate.    
-<img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/aiPromptTest.png" width=45%>
-
 **Copy Image/Metadata**     
 Right click on `Gallery` to copy current image or copy the metadata to clipboard.     
 ComfyUI with Image Saver node will output an a1111-like format metadata.      
@@ -494,21 +520,6 @@ For SAAC: Drag and drop image from browser to local folder or `save as` from bro
 Right click on `Common` and `Positive` to send text form LoRA to LoRA Slot.     
 <img src="https://github.com/mirabarukaso/character_select_stand_alone_app/blob/main/examples/sendLoRAtoSlot.png" width=35%>
 </details>
-
-------
-# AI prompt
-Remote   
-1. Follow the setup guide to setup your `Remote AI url` , `Remote AI model` and `API Key`     
-2. Put something in `AI Prompt` e.g. `make character furry, and I want a detailed portrait`        
-
-Local    
-1. Make sure you know how to build [Llama.cpp](https://github.com/ggml-org/llama.cpp) yourself, or download them from [trusted source](https://github.com/ggml-org/llama.cpp/releases)       
-2. Download Model from [HuggingFace](https://huggingface.co/), recommend GGUF like `oh-dcft-v3.1-claude-3-5-sonnet-20241022.Q8_0` ([Here](https://huggingface.co/mradermacher/oh-dcft-v3.1-claude-3-5-sonnet-20241022-GGUF))   
-3. Recommend Server args `llama-server.exe -c 16384 --port <your local LLM port> -m "<your GGUF model here>`    
-4. Set `AI Prompt Generator` to `Local`    
-5. Set `Local Llama.cpp server` to your Local AI address and port      
-6. (Optional) You may need to check API settings for any other Local AI service        
-7. Put something e.g. `make character furry, and I want a detailed portrait` in `AI Prompt`   
 
 ------
 # Image API Interface

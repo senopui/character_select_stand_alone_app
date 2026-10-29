@@ -1,5 +1,4 @@
 import { decodeThumb } from './customThumbGallery.js';
-import { getAiPrompt } from './remoteAI.js';
 import { from_renderer_generate_updatePreview } from './generate_backend.js';
 import { seartGenerateRegional } from './generate_regional.js';
 import { startGenerateMiraITU } from './generate_miraITU.js';
@@ -584,19 +583,17 @@ function getPrompts(characters, views, ai='', apiInterface = 'None', loop=-1) {
     return {pos:positivePrompt, posc:positivePromptColored, lora:loraPromot}
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
-function previewCharacterTags() {
-    const list = globalThis.characterList;
+function previewCharacterBlock(list, indexes, ocIndexes) {
     const files = globalThis.cachedFiles;
     if (!list?.getKey || !files?.characterList) return '';
     const useAssist = Boolean(globalThis.generate?.tag_assist?.getValue?.());
     let character = '';
     const keys = list.getKey();
-    for (let index = 0; index < 4; index += 1) {
+    for (const index of indexes) {
         const key = keys[index];
         if (!key || String(key).toLowerCase() === 'none' || characterRandomMode(key)) continue;
         const weight = list.getTextValue(index);
-        if (index === 3) {
+        if (ocIndexes.has(index)) {
             const raw = String(files.ocList?.[key] || '');
             const { tag } = splitTagNegativePrompt(raw);
             let seperate = ', ';
@@ -617,6 +614,29 @@ function previewCharacterTags() {
     return character;
 }
 
+function previewCharacterTags() {
+    return previewCharacterBlock(globalThis.characterList, [0, 1, 2, 3], new Set([3]));
+}
+
+export function previewRegionalCharacters() {
+    return {
+        left: previewCharacterBlock(globalThis.characterListRegional, [0, 2], new Set([2])),
+        right: previewCharacterBlock(globalThis.characterListRegional, [1, 3], new Set([3]))
+    };
+}
+
+// null means the slot is a random entry and was not rolled.
+export function readFixedCharacterTag(list, index, ocIndexes) {
+    const files = globalThis.cachedFiles;
+    const key = list?.getKey?.()?.[index];
+    if (!key || String(key).toLowerCase() === 'none') return '';
+    if (characterRandomMode(key)) return null;
+    const raw = ocIndexes?.has?.(index)
+        ? String(files?.ocList?.[key] || '')
+        : String(files?.characterList?.[key] || '');
+    return splitTagNegativePrompt(raw).tag;
+}
+
 // Wildcards, random braces, and the AI reply stay unresolved here.
 // Generation replaces them, then setPreview shows the string that was sent.
 export function composePositivePreview() {
@@ -627,10 +647,8 @@ export function composePositivePreview() {
         const seedValue = Number(globalThis.generate?.seed?.getValue?.());
         const seed = Number.isFinite(seedValue) && seedValue >= 0 ? seedValue : 0;
         const views = globalThis.viewList?.getValue ? getViewTags(seed) : '';
-        const aiRole = globalThis.ai?.ai_select?.getValue?.();
-        const ai = (aiRole === 0 || String(aiRole ?? '').toLowerCase() === 'none') ? '' : REPLACE_AI_MARK;
         const api = globalThis.generate?.api_interface?.getValue?.() || 'None';
-        const { pos, lora } = getPrompts(previewCharacterTags(), views, ai, api, -1);
+        const { pos, lora } = getPrompts(previewCharacterTags(), views, '', api, -1);
         return lora ? `${pos}\n${lora}` : pos;
     } catch (error) {
         console.error('[bounding] preview failed', error);
@@ -639,6 +657,19 @@ export function composePositivePreview() {
 }
 
 globalThis.composePositivePreview = composePositivePreview;
+
+export function composePositiveForAi() {
+    try {
+        const seedValue = Number(globalThis.generate?.seed?.getValue?.());
+        const seed = Number.isFinite(seedValue) && seedValue >= 0 ? seedValue : 0;
+        const views = globalThis.viewList?.getValue ? getViewTags(seed) : '';
+        const api = globalThis.generate?.api_interface?.getValue?.() || 'None';
+        return getPrompts(previewCharacterTags(), views, '', api, -1).pos || '';
+    } catch (error) {
+        console.error('[ai-prompt] positive preview failed', error);
+        return '';
+    }
+}
 
 export function getLoRAs(apiInterface) {
     const loraData = globalThis.lora.getValues();
@@ -1139,10 +1170,6 @@ export async function generateImage(dataPack){
     const negativeColor = (globalThis.globalSettings.css_style==='dark')?'red':'Crimson';
     const brownColor = (globalThis.globalSettings.css_style==='dark')?'BurlyWood':'Brown';    
     
-    const aiPromptInterface = globalThis.ai.interface.getValue();
-    const aiPromptCurrentRole = globalThis.ai.ai_select.getValue();        
-    const aiPromot = (aiPromptCurrentRole===0 || String(aiPromptCurrentRole).toLowerCase() === 'none')?'':REPLACE_AI_MARK;
-
     toggleQueueColor();
 
     if(!globalThis.mainGallery.isLoading && !globalThis.globalSettings.generate_auto_start && !globalThis.inGenerating) {
@@ -1167,7 +1194,7 @@ export async function generateImage(dataPack){
 
         // One job at a time: each pass reads the live UI, and cancel/skip must be able to stop the batch.
         // eslint-disable-next-line no-await-in-loop
-        const createPromptResult = await createPrompt(runSame, aiPromot, apiInterface, (loops > 1)?loop:-1, seedOverride); // NOSONAR
+        const createPromptResult = await createPrompt(runSame, '', apiInterface, (loops > 1)?loop:-1, seedOverride); // NOSONAR
         const landscape = globalThis.generate.landscape.getValue();
         const width = landscape?globalThis.generate.height.getValue():globalThis.generate.width.getValue();
         const height = landscape?globalThis.generate.width.getValue():globalThis.generate.height.getValue();
@@ -1204,23 +1231,6 @@ export async function generateImage(dataPack){
                 finalInfo: '',
                 loop: loop,
                 loops: loops,
-                aiInterface: aiPromptInterface,
-                aiRole: aiPromptCurrentRole,
-                aiOptions: (aiPromptInterface.toLowerCase() === 'remote') ? {
-                        apiUrl: globalThis.ai.remote_address.getValue(),
-                        apiKey: globalThis.ai.remote_apikey.getValue(),
-                        modelSelect: globalThis.ai.remote_model_select.getValue(),
-                        userPrompt: globalThis.prompt.ai.getValue(),
-                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
-                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
-                    } : {
-                        apiUrl: globalThis.ai.local_address.getValue(),
-                        userPrompt: globalThis.prompt.ai.getValue(),
-                        systemPrompt: globalThis.ai.ai_system_prompt.getValue(),
-                        temperature: globalThis.ai.local_temp.getValue(),
-                        n_predict:globalThis.ai.local_n_predict.getValue(),
-                        timeout: globalThis.ai.remote_timeout.getValue() * 1000
-                    },
                 thumb:createPromptResult.thumbImage || globalThis.generate.lastThumb,
                 id:createPromptResult.charactersName,
             },
@@ -1331,28 +1341,16 @@ export async function startQueue(){
         if(queueManager.genType === 'normal') {
             globalThis.thumbGallery.append(queueManager.thumb);
 
-            const aiPrompt = await getAiPrompt(queueManager.loop, LANG.generate_ai, queueManager.aiInterface, queueManager.aiRole, queueManager.aiOptions);            
-            if (globalThis.globalSettings.ai_prompt_preview && globalThis.globalSettings.ai_prompt_role !== 0) {
-                globalThis.overlay.custom.closeCustomOverlaysByGroup('aiText'); // close exist
-                if(aiPrompt === '') {
-                    globalThis.overlay.custom.createCustomOverlay('none', `\n\n[color=gray]${LANG.ai_no_prompt_generate}[/color]`,
-                                                        384, 'center', 'left', null, 'aiText');
-                } else {
-                    globalThis.overlay.custom.createCustomOverlay('none', `\n\n${aiPrompt}`,
-                                                        384, 'center', 'left', null, 'aiText');
-                }
-            }
-
-            const finalInfo = String(queueManager.finalInfo).replaceAll(REPLACE_AI_MARK, aiPrompt);
+            const finalInfo = String(queueManager.finalInfo).replaceAll(REPLACE_AI_MARK, '');
             globalThis.infoBox.image.appendValue(finalInfo);            
             globalThis.generate.loadingMessage = LANG.generate_start.replace('{0}', `${queueManager.id}`).replace('{1}', `[${queueManager.loop + 1}/${queueManager.loops}]`);
 
             if(queueManager.isRegional) {
-                generateData.positive_left = String(generateData.positive_left).replaceAll(REPLACE_AI_MARK, aiPrompt);
-                generateData.positive_right = String(generateData.positive_right).replaceAll(REPLACE_AI_MARK, aiPrompt);
+                generateData.positive_left = String(generateData.positive_left).replaceAll(REPLACE_AI_MARK, '');
+                generateData.positive_right = String(generateData.positive_right).replaceAll(REPLACE_AI_MARK, '');
                 result = await seartGenerateRegional(queueManager.apiInterface, generateData);
             } else {
-                generateData.positive = String(generateData.positive).replaceAll(REPLACE_AI_MARK, aiPrompt);
+                generateData.positive = String(generateData.positive).replaceAll(REPLACE_AI_MARK, '');
                 const beforePack = generateData.positive;
                 if (!generateData.boundingApplied) {
                     finalizePositivePrompt(generateData);

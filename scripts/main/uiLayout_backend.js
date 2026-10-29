@@ -29,6 +29,7 @@ export const DEFAULT_UI_LAYOUT = {
         'gallery-thumb',
         'add-lora',
         'model-settings',
+        'ai-prompt',
         'prompt-text',
         'jsonlist',
         'controlnet',
@@ -55,7 +56,8 @@ const COLLAPSIBLE_PANELS = new Set([
     'bounding',
     'jsonlist',
     'adetailer',
-    'queue'
+    'queue',
+    'ai-prompt'
 ]);
 
 function sanitizeLayoutName(name) {

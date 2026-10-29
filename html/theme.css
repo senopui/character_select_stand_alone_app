@@ -100,6 +100,9 @@
     --inline-regional: LightSkyBlue;
     --inline-view: SaddleBrown;
     --inline-warm: darkorange;
+    --ai-run-text: #102117;
+    --ai-cancel: #d4534c;
+    --ai-cancel-text: #fff;
     --link: rgb(61,154,215);
     --link-hover: rgb(49,130,182);
     --link-warn: rgb(229,87,32);
@@ -216,6 +219,9 @@
     --inline-regional: Navy;
     --inline-view: rgb(180, 170, 100);
     --inline-warm: Sienna;
+    --ai-run-text: #fffdf7;
+    --ai-cancel: #9c3b34;
+    --ai-cancel-text: #fffdf7;
     --link: #E8B090;
     --link-hover: #F0D4B8;
     --link-warn: #E8C050;

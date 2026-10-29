@@ -1,30 +1,72 @@
 import { ipcMain, net } from 'electron';
 
 const CAT = '[ModelAPI]';
+const aiRequests = new Map();
+
+function trackAiRequest(request, requestId, resolve) {
+    const id = String(requestId || '');
+    let settled = false;
+    if (id) aiRequests.set(id, request);
+    const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        if (id && aiRequests.get(id) === request) aiRequests.delete(id);
+        resolve(value);
+    };
+    request.on('abort', () => {
+        if (request.cancelledByUser) finish('Error: cancelled');
+    });
+    return finish;
+}
+
+function cancelAiRequest(requestId) {
+    const request = aiRequests.get(String(requestId || ''));
+    if (!request) return false;
+    request.cancelledByUser = true;
+    request.destroy();
+    return true;
+}
+
+function remoteChatUrl(apiUrl) {
+    const raw = String(apiUrl || '').trim();
+    let url;
+    try {
+        url = new URL(raw);
+    } catch {
+        return raw;
+    }
+    const path = url.pathname.replace(/\/+$/, '');
+    if (path.endsWith('/chat/completions')) return url.href;
+    url.pathname = `${path}/chat/completions`;
+    return url.href;
+}
 
 function requestRemote(options) {
     return new Promise((resolve, reject) => {
-        const { apiUrl, apiKey, modelSelect, userPrompt, systemPrompt, timeout } = options;
+        const { apiUrl, apiKey, modelSelect, userPrompt, systemPrompt, timeout, temperature, maxTokens } = options;
+        const chatUrl = remoteChatUrl(apiUrl);
 
         const requestBody = {
             model: modelSelect,
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `${userPrompt};Response in English` }
+                { role: 'user', content: String(userPrompt || '') }
             ],
         };
+        if (Number.isFinite(Number(temperature))) requestBody.temperature = Number(temperature);
+        if (Number.isFinite(Number(maxTokens)) && Number(maxTokens) > 0) requestBody.max_tokens = Number(maxTokens);
         const body = JSON.stringify(requestBody);
 
         let request = net.request({
             method: 'POST',
-            url: apiUrl,
+            url: chatUrl,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
             },
             timeout: timeout,
         });
-       
+        const finish = trackAiRequest(request, options.requestId, resolve);
 
         request.on('response', (response) => {
             let responseData = ''            
@@ -33,15 +75,20 @@ function requestRemote(options) {
             })
             response.on('end', () => {
                 if (response.statusCode !== 200) {
-                    console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
-                    resolve(`Error: HTTP error: ${response.statusCode}`);
+                    console.error(`${CAT} HTTP error: ${response.statusCode} ${chatUrl} - ${responseData}`);
+                    finish(`Error: HTTP error: ${response.statusCode}`);
+                    return;
                 }
 
-                resolve(responseData);
+                finish(responseData);
             })
         })
 
         request.on('error', (error) => {
+            if (request.cancelledByUser) {
+                finish('Error: cancelled');
+                return;
+            }
             let ret = '';
             if (error.code === 'ECONNABORTED') {
                 console.error(`${CAT} Request timed out after ${timeout}ms`);
@@ -50,13 +97,13 @@ function requestRemote(options) {
                 console.error(CAT, 'Request failed:', error.message);
                 ret = `Request failed:, ${error.message}`;
             }
-            resolve(ret);
+            finish(ret);
         });
 
         request.on('timeout', () => {
-            req.destroy();
+            request.destroy();
             console.error(`${CAT} Request timed out after ${timeout}ms`);
-            resolve(`Error: Request timed out after ${timeout}ms`);
+            finish(`Error: Request timed out after ${timeout}ms`);
         });
 
         request.write(body);
@@ -75,7 +122,7 @@ function requestLocal(options) {
             stop: ["<|im_end|>"],
             messages: [
                 { role: 'system', content: systemPrompt },
-                { role: 'user', content: `${userPrompt};Response in English` }
+                { role: 'user', content: String(userPrompt || '') }
             ],
         };
         const body = JSON.stringify(requestBody);
@@ -88,7 +135,7 @@ function requestLocal(options) {
             },
             timeout: timeout,
         });
-       
+        const finish = trackAiRequest(request, options.requestId, resolve);
 
         request.on('response', (response) => {
             let responseData = ''            
@@ -98,14 +145,19 @@ function requestLocal(options) {
             response.on('end', () => {
                 if (response.statusCode !== 200) {
                     console.error(`${CAT} HTTP error: ${response.statusCode} - ${responseData}`);
-                    resolve(`Error: HTTP error: ${response.statusCode}`);
+                    finish(`Error: HTTP error: ${response.statusCode}`);
+                    return;
                 }
 
-                resolve(responseData);
+                finish(responseData);
             })
         })
 
         request.on('error', (error) => {
+            if (request.cancelledByUser) {
+                finish('Error: cancelled');
+                return;
+            }
             let ret = '';
             if (error.code === 'ECONNABORTED') {
                 console.error(`${CAT} Request timed out after ${timeout}ms`);
@@ -114,13 +166,13 @@ function requestLocal(options) {
                 console.error(CAT, 'Request failed:', error.message);
                 ret = `Request failed:, ${error.message}`;
             }
-            resolve(ret);
+            finish(ret);
         });
 
         request.on('timeout', () => {
-            req.destroy();
+            request.destroy();
             console.error(`${CAT} Request timed out after ${timeout}ms`);
-            resolve(`Error: Request timed out after ${timeout}ms`);
+            finish(`Error: Request timed out after ${timeout}ms`);
         });
 
         request.write(body);
@@ -136,6 +188,10 @@ function setupModelApi() {
     ipcMain.handle('request-ai-local', async (event, options) => {
         return await requestLocal(options);
     });
+
+    ipcMain.handle('cancel-ai-request', async (event, requestId) => {
+        return cancelAiRequest(requestId);
+    });
 }
 
 async function remoteAI(options){
@@ -149,5 +205,6 @@ async function localAI(options){
 export {
     setupModelApi,
     remoteAI,
-    localAI
+    localAI,
+    cancelAiRequest
 };

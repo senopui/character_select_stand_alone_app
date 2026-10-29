@@ -1,4 +1,4 @@
-import { callback_api_model_type, callback_regional_condition, callback_ai_promot_role, updateQueuePausedBorder } from './callbacks.js';
+import { callback_api_model_type, callback_regional_condition, updateQueuePausedBorder } from './callbacks.js';
 import { hiresCalculate } from './tools/hiresCalculation.js';
 import { SAMPLER_COMFYUI, SAMPLER_WEBUI, SCHEDULER_COMFYUI, SCHEDULER_WEBUI } from '../types.js';
 import { updateUiLayoutLanguage } from './uiLayout.js';
@@ -184,7 +184,6 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.prompt.positive.setTitle(LANG.api_prompt);
     globalThis.prompt.positive_right.setTitle(LANG.regional_api_prompt_right);
     globalThis.prompt.negative.setTitle(LANG.api_neg_prompt);
-    globalThis.prompt.ai.setTitle(LANG.ai_prompt);
     globalThis.prompt.exclude.setTitle(LANG.prompt_ban);
     globalThis.prompt.autoResize.setTitle(LANG.ptompt_textbox_autoresize);
     globalThis.prompt.fontSize.setTitle(LANG.ptompt_textbox_fontsize);
@@ -202,18 +201,7 @@ export function updateLanguage(skipLoRA = false, skipRightClick = false) {
     globalThis.refiner.vpred.setTitle(LANG.vpred);
     globalThis.refiner.vpred.setValue(LANG.vpred, [LANG.vpred_auto, LANG.vpred_on, LANG.vpred_on_zsnr, LANG.vpred_off]);
 
-    globalThis.ai.interface.setTitle(LANG.ai_interface);
-    globalThis.ai.remote_timeout.setTitle(LANG.remote_ai_timeout);
-    globalThis.ai.remote_address.setTitle(LANG.remote_ai_base_url);
-    globalThis.ai.remote_model_select.setTitle(LANG.remote_ai_model);
-    globalThis.ai.remote_apikey.setTitle('API Key');
-    globalThis.ai.ai_select.setTitle(LANG.batch_generate_rule, LANG.ai_select, LANG.ai_select_title);
-    globalThis.ai.ai_prompt_preview.setTitle(LANG.ai_prompt_preview);
-    globalThis.ai.local_address.setTitle(LANG.ai_local_addr);
-    globalThis.ai.local_temp.setTitle(LANG.ai_local_temp);
-    globalThis.ai.local_n_predict.setTitle(LANG.ai_local_n_predict);
-    globalThis.ai.ai_system_prompt.setTitle(LANG.ai_system_prompt_text);
-    globalThis.ai.ai_system_prompt.setValue(LANG.ai_system_prompt);
+    globalThis.aiPrompt?.refreshLanguage?.();
 
     globalThis.overlay.buttons.reload();
 
@@ -244,10 +232,7 @@ export function updateSettings() {
 
     globalThis.dropdownList.languageList.updateDefaults(LANG.language);
 
-    globalThis.ai.remote_address.setValue(SETTINGS.remote_ai_base_url);
-    globalThis.ai.remote_model_select.setValue(SETTINGS.remote_ai_model);
-    globalThis.ai.remote_apikey.setValue(SETTINGS.remote_ai_api_key);
-    globalThis.ai.remote_timeout.setValue(SETTINGS.remote_ai_timeout);
+    globalThis.aiPrompt?.syncFromSettings?.();
 
     globalThis.generate.regionalCondition.setValue(SETTINGS.regional_condition);
     globalThis.generate.regionalCondition_dummy.setValue(SETTINGS.regional_condition);
@@ -363,17 +348,10 @@ export function updateSettings() {
     globalThis.prompt.positive.setValue(SETTINGS.api_prompt);
     globalThis.prompt.positive_right.setValue(SETTINGS.regional_api_prompt_right);
     globalThis.prompt.negative.setValue(SETTINGS.api_neg_prompt);
-    globalThis.prompt.ai.setValue(SETTINGS.ai_prompt);
     globalThis.prompt.exclude.setValue(SETTINGS.prompt_ban);
     globalThis.prompt.autoResize.setValue(SETTINGS.ptompt_textbox_autoresize);
     globalThis.prompt.fontSize.setValue(SETTINGS.ptompt_textbox_fontsize);
-
-    globalThis.ai.interface.updateDefaults(SETTINGS.ai_interface);
-    globalThis.ai.local_address.setValue(SETTINGS.ai_local_addr);
-    globalThis.ai.local_temp.setValue(SETTINGS.ai_local_temp);
-    globalThis.ai.local_n_predict.setValue(SETTINGS.ai_local_n_predict);
-    globalThis.ai.ai_select.setValue(SETTINGS.ai_prompt_role);
-    globalThis.ai.ai_prompt_preview.setValue(SETTINGS.ai_prompt_preview);
+    globalThis.aiPrompt?.syncFromSettings?.();
 
     globalThis.generate.api_interface.updateDefaults(SETTINGS.api_interface);
     globalThis.generate.api_preview_refresh_time.setValue(SETTINGS.api_preview_refresh_time);
@@ -399,7 +377,6 @@ export function updateSettings() {
 
     void callback_api_model_type(0, [globalThis.dropdownList.model_type.getValue()]); //Model Type
     callback_regional_condition(globalThis.generate.regionalCondition.getValue(), false); //Regional Condition
-    callback_ai_promot_role(globalThis.globalSettings.ai_prompt_role);  //AI Prompt Role
     
     globalThis.generate.galleryPreviewToggle?.setValue(globalThis.globalSettings.gallery_preview);  // Update the gallery preview toggle checkbox to reflect the current setting
 }

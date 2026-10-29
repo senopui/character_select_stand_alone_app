@@ -11,6 +11,7 @@ import { setupHttpServer, closeWebSocketServer, getWsServiceStatus, setWsService
 // Import custom modules
 import { setupFileHandlers } from './scripts/main/fileHandlers.js';
 import { setupGlobalSettings, setPreserveWsServiceSettings } from './scripts/main/globalSettings.js';
+import { setupAiPromptTemplates } from './scripts/main/aiPromptTemplates.js';
 import { setupDownloadFiles } from './scripts/main/downloadFiles.js';
 import { setupModelList } from './scripts/main/modelList.js';
 import { setupTagAutoCompleteBackend } from './scripts/main/tagAutoComplete_backend.js';
@@ -174,6 +175,7 @@ async function initializeApp() {
 
   setupFileHandlers();  
   const SETTINGS = setupGlobalSettings();
+  setupAiPromptTemplates();
   setPreserveWsServiceSettings(preserveRunningWsServiceSettings);
   setupUiLayoutHandlers();
   SETTINGS.version = version;

@@ -45,6 +45,7 @@ const PANEL_IDS = [
     'gallery-thumb',
     'add-lora',
     'model-settings',
+    'ai-prompt',
     'prompt-text',
     'jsonlist',
     'controlnet',
